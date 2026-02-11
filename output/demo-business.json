@@ -1,0 +1,47 @@
+{
+  "entity_type": "business",
+  "name": {
+    "legal": "Context Architecture",
+    "common": "Context Architecture",
+    "aliases": []
+  },
+  "summary": "Context Architecture is a consulting business founded in 2025 that helps individuals and SMBs structure their knowledge so AI tools can use it effectively, solving what founder CJ Mitchell calls the Midas Problem where AI lacks context about users' true needs. The company's competitive advantage lies in its methodology for structuring domain-specific knowledge into queryable systems, positioning the knowledge layer as the defensible moat while voice AI becomes commoditized.",
+  "industry": "AI Consulting and Knowledge Management",
+  "products_services": [
+    "Foundation tier: discovery sessions, ontology design, knowledge graph creation, MCP integration",
+    "Voice Layer tier: custom voice persona creation, real-time voice interfaces",
+    "Digital Twin tier: personality capture, expertise preservation",
+    "context-engine: open source CLI tool for text to structured JSON pipeline"
+  ],
+  "key_people": [
+    {
+      "name": "CJ Mitchell",
+      "role": "Founder",
+      "context": "Founded Context Architecture in Atlanta Georgia in 2025"
+    }
+  ],
+  "values": [],
+  "customers": {
+    "target": "individuals and small to medium businesses",
+    "segments": [
+      "law firms losing institutional knowledge when senior partners retire",
+      "financial advisory practices needing voice AI with client portfolio knowledge",
+      "healthcare practices wanting AI that understands patient history",
+      "real estate brokerages needing property knowledge systems"
+    ]
+  },
+  "competitive_position": "Methodology-focused differentiation with the process of structuring domain-specific knowledge into queryable systems as the defensible moat, while underlying AI models and voice layers are commoditized",
+  "key_facts": [
+    "Founded in Atlanta Georgia in 2025",
+    "Pre-revenue and in MVP stage",
+    "Solves the Midas Problem: AI gives exactly what you asked for but not what you meant due to lack of context",
+    "Revenue model is project-based consulting with recurring maintenance contracts",
+    "Founding thesis: voice layer is commoditizing but knowledge layer is the moat",
+    "First product is context-engine, an open source CLI tool"
+  ],
+  "metadata": {
+    "source": "context-architecture-biz.txt",
+    "generated": "2026-02-11T04:27:50.703Z",
+    "version": "1.0"
+  }
+}
