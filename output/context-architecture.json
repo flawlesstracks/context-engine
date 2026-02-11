@@ -1,0 +1,47 @@
+{
+  "entity_type": "business",
+  "name": {
+    "legal": "Context Architecture",
+    "common": "Context Architecture",
+    "aliases": []
+  },
+  "summary": "Context Architecture is an Atlanta-based consulting business founded by CJ Mitchell in 2025 that helps individuals and SMBs structure their knowledge so AI tools can use it effectively. The company solves the 'Midas Problem' where AI gives exactly what was asked for but not what was meant due to lack of context. Their competitive advantage is methodology for structuring domain-specific knowledge into queryable systems, with the knowledge layer serving as their defensible moat while voice technology becomes commoditized.",
+  "industry": "AI Consulting and Knowledge Management",
+  "products_services": [
+    "Foundation tier: discovery sessions, ontology design, knowledge graph creation, MCP integration",
+    "Voice Layer tier: custom voice persona creation, real-time voice interfaces",
+    "Digital Twin tier: personality capture, expertise preservation",
+    "context-engine: open source CLI tool for text to structured JSON pipeline"
+  ],
+  "key_people": [
+    {
+      "name": "CJ Mitchell",
+      "role": "Founder",
+      "context": "Founded Context Architecture in Atlanta, Georgia in 2025"
+    }
+  ],
+  "values": [],
+  "customers": {
+    "target": "individuals and small to medium businesses",
+    "segments": [
+      "law firms losing institutional knowledge when senior partners retire",
+      "financial advisory practices needing voice AI with client portfolio knowledge",
+      "healthcare practices wanting AI that understands patient history",
+      "real estate brokerages needing property knowledge systems"
+    ]
+  },
+  "competitive_position": "Methodology-focused differentiation where the process of structuring domain-specific knowledge into queryable systems serves as the defensible moat, while underlying AI models and voice technology are commoditized",
+  "key_facts": [
+    "Founded in 2025 in Atlanta, Georgia",
+    "Pre-revenue and in MVP stage",
+    "Revenue model is project-based consulting with recurring maintenance contracts",
+    "Core problem addressed is the 'Midas Problem' where AI lacks context about user identity and actual needs",
+    "Founding thesis: voice layer is commoditizing but knowledge layer is the moat",
+    "First product is context-engine, an open source CLI tool"
+  ],
+  "metadata": {
+    "source": "context-architecture-biz.txt",
+    "generated": "2026-02-11T04:25:28.832Z",
+    "version": "1.0"
+  }
+}

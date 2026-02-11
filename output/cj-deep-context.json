@@ -1,0 +1,114 @@
+{
+  "entity_type": "person",
+  "name": {
+    "full": "CJ Mitchell",
+    "preferred": "CJ",
+    "aliases": []
+  },
+  "summary": "CJ Mitchell is a Principal Product Manager at Amazon managing AI forecasting models for middle-mile logistics, with his team delivering $55 million in validated savings. He runs a YouTube channel called Putchuon with 65,000 subscribers focused on AI education, and is building the Context Journey, a digital continuation system to preserve his thinking patterns and values for his son London. He has an MBA from Clark Atlanta University and extensive experience across AI and product roles at major companies including Fandom, Wayfair, and Walmart.",
+  "attributes": {
+    "role": "Principal Product Manager at Amazon",
+    "location": "Atlanta",
+    "expertise": [
+      "AI forecasting models",
+      "middle-mile logistics",
+      "product management",
+      "AI education",
+      "knowledge architecture",
+      "voice AI"
+    ]
+  },
+  "relationships": [
+    {
+      "name": "Lola Mafe",
+      "relationship": "spouse",
+      "context": "married February 14 2023, live in separate homes two blocks apart in Atlanta"
+    },
+    {
+      "name": "Carrie Mitchell",
+      "relationship": "ex-wife",
+      "context": "married 2014 to 2020, shares legal custody of son"
+    },
+    {
+      "name": "London Khal Mitchell",
+      "relationship": "son",
+      "context": "born 2017, attends Esther Jackson Elementary in Roswell Georgia, CJ has shared legal custody with primary physical custody with Carrie, custody includes 1st 3rd and 5th weekends plus holiday rotation and most of summer"
+    },
+    {
+      "name": "Julian Nixon",
+      "relationship": "collaborator",
+      "context": "aka Juju, based in Los Angeles, collaborator on musical scores for YouTube channel"
+    },
+    {
+      "name": "Jay Kinney",
+      "relationship": "business partner",
+      "context": "partner on Twin voice AI project focused on culturally authentic Atlanta speech patterns"
+    },
+    {
+      "name": "Six Five crew",
+      "relationship": "friends",
+      "context": "inner circle friends from Markham Illinois"
+    },
+    {
+      "name": "Howard fraternity brothers",
+      "relationship": "friends",
+      "context": "part of inner circle from Howard University"
+    }
+  ],
+  "values": [
+    "two things can be true - embracing paradox over binary thinking",
+    "preserving thinking patterns and values for future generations",
+    "continuation not immortality",
+    "cultural authenticity"
+  ],
+  "communication_style": {
+    "tone": "educational, storytelling-focused",
+    "preferences": [
+      "AI education",
+      "narrative content",
+      "YouTube video format"
+    ]
+  },
+  "active_projects": [
+    {
+      "name": "AI forecasting models for middle-mile logistics",
+      "status": "active",
+      "description": "Managing team of five models at Amazon that have delivered $55 million in validated savings"
+    },
+    {
+      "name": "Putchuon YouTube channel",
+      "status": "active",
+      "description": "YouTube channel with 65,000 subscribers focused on AI education and storytelling, best performing videos include Entire History of AI, Euphoria Timeline, and Groundhog Day"
+    },
+    {
+      "name": "Context Journey",
+      "status": "active",
+      "description": "Digital continuation system designed to preserve thinking patterns, values and voice for son London, described as continuation not immortality"
+    },
+    {
+      "name": "Context Architecture",
+      "status": "active",
+      "description": "Consulting business helping individuals and SMBs structure their knowledge for AI consumption"
+    },
+    {
+      "name": "Twin",
+      "status": "active",
+      "description": "Voice AI project with partner Jay Kinney focused on training culturally authentic Atlanta speech patterns"
+    }
+  ],
+  "key_facts": [
+    "Born June 8 1983",
+    "MBA from Clark Atlanta University",
+    "BBA from Howard University",
+    "Previously worked at Fandom, Wayfair, Walmart, and Deloitte",
+    "ENTP personality type with 96th percentile openness and 97th percentile extraversion",
+    "Chess rating of 2100 plus",
+    "Previously ran beat selling business called Flawless Tracks that peaked at 150K per year revenue",
+    "Lives two blocks away from spouse in separate homes in Atlanta"
+  ],
+  "metadata": {
+    "source": "cj-deep.txt",
+    "generated": "2026-02-11T04:23:13.639Z",
+    "version": "1.0"
+  }
+}
