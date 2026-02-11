@@ -4,7 +4,7 @@
   "description": "CLI tool that extracts structured context from unstructured text using the Anthropic API",
   "main": "context-engine.js",
   "scripts": {
-    "start": "node context-engine.js",
+    "start": "node web-demo.js",
     "demo": "node web-demo.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

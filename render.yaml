@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: context-engine
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node web-demo.js
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: NODE_ENV
+        value: production
