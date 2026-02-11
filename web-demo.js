@@ -319,6 +319,59 @@ const HTML = `<!DOCTYPE html>
     color: #4b5563;
   }
 
+  .btn-sample {
+    background: transparent;
+    border: 1px solid #2a2a3e;
+    color: #6b7280;
+    padding: 6px 14px;
+    font-size: 0.8rem;
+  }
+
+  .btn-sample:hover:not(:disabled) {
+    border-color: #8b5cf6;
+    color: #a78bfa;
+  }
+
+  .output-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .btn-action {
+    background: transparent;
+    border: 1px solid #2a2a3e;
+    color: #6b7280;
+    padding: 6px 14px;
+    font-size: 0.75rem;
+    display: none;
+  }
+
+  .btn-action:hover:not(:disabled) {
+    border-color: #8b5cf6;
+    color: #a78bfa;
+  }
+
+  .btn-action.visible { display: inline-block; }
+
+  .btn-action.copied {
+    border-color: #34d399;
+    color: #34d399;
+  }
+
+  footer {
+    text-align: center;
+    padding: 40px 24px 24px;
+    color: #3a3a4a;
+    font-size: 0.8rem;
+  }
+
+  footer a {
+    color: #6b7280;
+    text-decoration: none;
+  }
+
+  footer a:hover { color: #a78bfa; }
+
   @media (max-width: 768px) {
     .workspace { grid-template-columns: 1fr; }
   }
@@ -335,6 +388,7 @@ const HTML = `<!DOCTYPE html>
     <div class="panel">
       <div class="panel-header">
         <span class="panel-label">Input</span>
+        <button class="btn-sample" onclick="loadSample()">Load Sample</button>
       </div>
       <textarea id="input" placeholder="Paste unstructured text about a person or business here..."></textarea>
     </div>
@@ -342,7 +396,11 @@ const HTML = `<!DOCTYPE html>
     <div class="panel">
       <div class="panel-header">
         <span class="panel-label">Structured Output</span>
-        <span class="timer" id="timer"></span>
+        <div class="output-actions">
+          <button class="btn-action" id="btn-copy" onclick="copyJSON()">Copy JSON</button>
+          <button class="btn-action" id="btn-download" onclick="downloadJSON()">Download JSON</button>
+          <span class="timer" id="timer"></span>
+        </div>
       </div>
       <div class="result-area" id="result">
         <div class="empty-state">
@@ -358,7 +416,54 @@ const HTML = `<!DOCTYPE html>
   </div>
 </div>
 
+<footer>
+  Built by CJ Mitchell | Context Architecture | <a href="https://github.com/flawlesstracks/context-engine" target="_blank">github.com/flawlesstracks/context-engine</a>
+</footer>
+
 <script>
+var lastResult = null;
+
+var SAMPLE_TEXT = "Dr. Sarah Chen is a 38-year-old AI research lead at Meridian Labs in San Francisco. She previously spent six years at DeepMind working on reinforcement learning before joining Meridian in 2023 to build their applied AI division. Sarah holds a PhD from MIT in computational neuroscience and a BS from Stanford in computer science. She is known for her work on multi-agent systems and has published over 40 papers. Her close collaborators include Dr. James Park, CTO of Meridian Labs, and Professor Ana Ruiz at UC Berkeley who co-authored several papers with her. Sarah values rigorous experimentation and open science. She prefers written communication over meetings and is known for detailed technical memos. Outside of work she mentors undergrad researchers through a program called NextGen AI and is an avid rock climber.";
+
+function loadSample() {
+  document.getElementById('input').value = SAMPLE_TEXT;
+}
+
+function showActionButtons() {
+  document.getElementById('btn-copy').classList.add('visible');
+  document.getElementById('btn-download').classList.add('visible');
+}
+
+function hideActionButtons() {
+  document.getElementById('btn-copy').classList.remove('visible');
+  document.getElementById('btn-download').classList.remove('visible');
+}
+
+async function copyJSON() {
+  if (!lastResult) return;
+  var btn = document.getElementById('btn-copy');
+  await navigator.clipboard.writeText(JSON.stringify(lastResult, null, 2));
+  btn.textContent = 'Copied!';
+  btn.classList.add('copied');
+  setTimeout(function() {
+    btn.textContent = 'Copy JSON';
+    btn.classList.remove('copied');
+  }, 2000);
+}
+
+function downloadJSON() {
+  if (!lastResult) return;
+  var name = lastResult.name?.full || lastResult.name?.common || lastResult.name?.legal || 'context';
+  var filename = name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-context.json';
+  var blob = new Blob([JSON.stringify(lastResult, null, 2)], { type: 'application/json' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function syntaxHighlight(json) {
   const str = JSON.stringify(json, null, 2);
   return str.replace(
@@ -415,6 +520,8 @@ async function extract(type) {
 
   btnP.disabled = true;
   btnB.disabled = true;
+  lastResult = null;
+  hideActionButtons();
   result.innerHTML = '<div class="loading"><div class="spinner"></div><div class="loading-text">Extracting ' + type + ' context...</div></div>';
 
   var start = Date.now();
@@ -435,6 +542,8 @@ async function extract(type) {
     if (data.error) {
       result.innerHTML = '<div class="empty-state" style="color:#ef4444;">Error: ' + data.error + '</div>';
     } else {
+      lastResult = data;
+      showActionButtons();
       result.innerHTML = buildStats(data) + '<pre>' + syntaxHighlight(data) + '</pre>';
     }
   } catch (err) {
