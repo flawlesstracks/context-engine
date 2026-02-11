@@ -1,0 +1,62 @@
+{
+  "entity_type": "person",
+  "name": {
+    "full": "CJ Mitchell",
+    "preferred": "CJ",
+    "aliases": []
+  },
+  "summary": "CJ Mitchell is a 42-year-old Principal Product Manager at Amazon specializing in AI Forecasting and Logistics, based in Atlanta. He runs a YouTube channel called Putchuon with 65,000 subscribers focused on AI education and is building the Context Journey, an AI system to preserve his thinking patterns and values for his son. He is married to Lola Mafe with an unconventional living arrangement, has an 8-year-old son named London, and previously ran a successful beat-selling business called Flawless Tracks.",
+  "attributes": {
+    "role": "Principal Product Manager at Amazon",
+    "location": "Atlanta",
+    "expertise": [
+      "AI Forecasting",
+      "Logistics",
+      "AI Education",
+      "Product Management"
+    ]
+  },
+  "relationships": [
+    {
+      "name": "London",
+      "relationship": "son",
+      "context": "8 years old"
+    },
+    {
+      "name": "Lola Mafe",
+      "relationship": "spouse",
+      "context": "Married since February 2023, living in separate homes two blocks apart"
+    }
+  ],
+  "values": [],
+  "communication_style": {
+    "tone": "",
+    "preferences": []
+  },
+  "active_projects": [
+    {
+      "name": "Putchuon YouTube Channel",
+      "status": "active",
+      "description": "AI education channel with about 65,000 subscribers"
+    },
+    {
+      "name": "Context Journey",
+      "status": "building",
+      "description": "A system to preserve his thinking patterns and values for his son using AI"
+    }
+  ],
+  "key_facts": [
+    "42 years old",
+    "ENTP personality type",
+    "Chess player rated over 2100",
+    "MBA from Clark Atlanta University",
+    "BBA from Howard University",
+    "Previously ran Flawless Tracks, a beat-selling business that made about 150K per year at its peak",
+    "Lives two blocks away from spouse in separate homes"
+  ],
+  "metadata": {
+    "source": "cj-mitchell.txt",
+    "generated": "2026-02-11T04:12:23.641Z",
+    "version": "1.0"
+  }
+}

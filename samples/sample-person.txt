@@ -1,0 +1,7 @@
+Marcus Rivera is a senior product designer based in Austin, Texas, who goes by "Marc" to most people. He's been working at Lumen Labs for the past three years, leading the design system team. Before that, he spent five years at Dropbox on their mobile team.
+
+Marc is passionate about accessibility and design tokens. He speaks at conferences regularly and has a popular newsletter called "Pixels & Purpose" where he writes about inclusive design practices. He's also an advisor to two early-stage startups: CanvaFlow (a collaborative whiteboarding tool) and Tertia Health (a patient portal platform).
+
+His close collaborators include Jenna Okafor, the head of engineering at Lumen Labs, and David Choi, his former manager at Dropbox who now runs product at Stripe. He also frequently co-presents with Amara Singh, a UX researcher.
+
+Marc's communication style is direct but warm. He prefers async communication over meetings and writes detailed docs before any design review. He values craft, clarity, and shipping things that matter. Outside of work, he mentors junior designers through a program called DesignBridge and is training for his first marathon.

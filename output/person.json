@@ -1,0 +1,98 @@
+{
+  "entity_type": "person",
+  "name": {
+    "full": "Marcus Rivera",
+    "preferred": "Marc",
+    "aliases": [
+      "Marc"
+    ]
+  },
+  "summary": "Marcus Rivera (Marc) is a senior product designer at Lumen Labs in Austin, Texas, where he leads the design system team. He is passionate about accessibility and design tokens, regularly speaks at conferences, and runs a newsletter called 'Pixels & Purpose' focused on inclusive design. He also advises two early-stage startups and mentors junior designers.",
+  "attributes": {
+    "role": "Senior Product Designer, Design System Team Lead",
+    "location": "Austin, Texas",
+    "expertise": [
+      "accessibility",
+      "design tokens",
+      "inclusive design",
+      "design systems",
+      "mobile design"
+    ]
+  },
+  "relationships": [
+    {
+      "name": "Jenna Okafor",
+      "relationship": "colleague",
+      "context": "Head of Engineering at Lumen Labs, close collaborator"
+    },
+    {
+      "name": "David Choi",
+      "relationship": "former manager",
+      "context": "Former manager at Dropbox, now runs product at Stripe"
+    },
+    {
+      "name": "Amara Singh",
+      "relationship": "collaborator",
+      "context": "UX researcher, frequently co-presents with Marc"
+    }
+  ],
+  "values": [
+    "craft",
+    "clarity",
+    "shipping things that matter"
+  ],
+  "communication_style": {
+    "tone": "direct but warm",
+    "preferences": [
+      "async communication over meetings",
+      "writes detailed docs before design reviews"
+    ]
+  },
+  "active_projects": [
+    {
+      "name": "Lumen Labs Design System",
+      "status": "ongoing",
+      "description": "Leading the design system team at Lumen Labs"
+    },
+    {
+      "name": "Pixels & Purpose Newsletter",
+      "status": "active",
+      "description": "Popular newsletter about inclusive design practices"
+    },
+    {
+      "name": "CanvaFlow Advisory",
+      "status": "active",
+      "description": "Advisor to CanvaFlow, a collaborative whiteboarding tool startup"
+    },
+    {
+      "name": "Tertia Health Advisory",
+      "status": "active",
+      "description": "Advisor to Tertia Health, a patient portal platform startup"
+    },
+    {
+      "name": "DesignBridge Mentorship",
+      "status": "active",
+      "description": "Mentoring junior designers through DesignBridge program"
+    },
+    {
+      "name": "Marathon Training",
+      "status": "in progress",
+      "description": "Training for first marathon"
+    }
+  ],
+  "key_facts": [
+    "Based in Austin, Texas",
+    "Works at Lumen Labs for 3 years, leading design system team",
+    "Previously worked at Dropbox for 5 years on mobile team",
+    "Speaks at conferences regularly",
+    "Runs newsletter called 'Pixels & Purpose'",
+    "Advises two early-stage startups",
+    "Training for first marathon",
+    "Mentors junior designers through DesignBridge"
+  ],
+  "metadata": {
+    "source": "sample-person.txt",
+    "generated": "2026-02-11T04:09:27.523Z",
+    "version": "1.0"
+  }
+}
