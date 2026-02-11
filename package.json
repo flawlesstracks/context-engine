@@ -5,6 +5,7 @@
   "main": "context-engine.js",
   "scripts": {
     "start": "node context-engine.js",
+    "demo": "node web-demo.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -12,6 +13,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "commander": "^12.1.0",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "express": "^4.21.0"
   }
 }
