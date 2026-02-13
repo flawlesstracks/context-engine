@@ -1,0 +1,541 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-13T03:52:50.829Z",
+    "source_text_hash": "035e220b2b62f8c1cc38533a0d5b3baba3bdb1f9a25cfefb6bf6af8fd0d439b6",
+    "source_description": "Extracted from context-architecture-biz.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.88,
+    "word_count": 295,
+    "extraction_notes": [
+      "Clear business model and service offerings explicitly stated",
+      "Target market and competitive positioning well-defined",
+      "Pre-revenue status explicitly stated"
+    ]
+  },
+  "entity": {
+    "entity_type": "business",
+    "entity_id": "ENT-BIZ-CA-001",
+    "name": {
+      "legal": "Context Architecture",
+      "common": "Context Architecture",
+      "aliases": [],
+      "confidence": 0.95,
+      "facts_layer": 1
+    },
+    "summary": {
+      "value": "A consulting business that helps individuals and SMBs structure knowledge so AI tools can use it effectively, solving the 'Midas Problem' where AI lacks context about who you are and what you need",
+      "confidence": 0.9,
+      "facts_layer": 1
+    }
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "industry",
+      "value": "AI consulting and knowledge management",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly described in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "founding_year",
+      "value": "2025",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "headquarters_location",
+      "value": "Atlanta, Georgia",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "business_stage",
+      "value": "pre-revenue, MVP stage",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "volatile",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 60
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "revenue_model",
+      "value": "Project-based consulting with recurring maintenance contracts",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "core_problem_solved",
+      "value": "The Midas Problem - AI gives you exactly what you asked for but not what you meant because it lacks context",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly defined by founder in source text",
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-007",
+      "key": "competitive_moat",
+      "value": "Methodology for structuring domain-specific knowledge into queryable systems, not underlying AI technology",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated competitive positioning",
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-008",
+      "key": "founding_thesis",
+      "value": "Voice layer is commoditizing; knowledge layer is the defensible moat",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated founding thesis",
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "products_services": [
+    {
+      "product_id": "PROD-001",
+      "name": "Foundation Tier",
+      "description": "Discovery sessions, ontology design, knowledge graph creation, and MCP integration for SMBs wanting smarter AI chat tools",
+      "status": "active",
+      "confidence": 0.9,
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly described service tier",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "product_id": "PROD-002",
+      "name": "Voice Layer Tier",
+      "description": "Includes Foundation tier plus custom voice persona creation and real-time voice interfaces for client-facing businesses needing phone or voice AI",
+      "status": "active",
+      "confidence": 0.9,
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly described service tier",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "product_id": "PROD-003",
+      "name": "Digital Twin Tier",
+      "description": "Premium offering including personality capture and expertise preservation for firms wanting to preserve partner or founder knowledge",
+      "status": "active",
+      "confidence": 0.9,
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly described service tier",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "product_id": "PROD-004",
+      "name": "context-engine",
+      "description": "Open source CLI tool that automates the text to structured JSON pipeline; first product in MVP stage",
+      "status": "active",
+      "confidence": 0.95,
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly described as first product",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    }
+  ],
+  "key_people": [
+    {
+      "person_id": "PERSON-001",
+      "name": "CJ Mitchell",
+      "entity_id_ref": "ENT-CJM-001",
+      "role": "Founder",
+      "context": "Founded Context Architecture in Atlanta, Georgia in 2025; coined the term 'Midas Problem'",
+      "confidence": 0.95,
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    }
+  ],
+  "values": [
+    {
+      "value_id": "VAL-001",
+      "value": "Methodology over technology",
+      "interpretation": "Focus on defensible processes for structuring knowledge rather than relying on commoditized AI models",
+      "confidence": 0.85,
+      "source_attribution": {
+        "origin": "Derived from competitive positioning statement",
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "value_id": "VAL-002",
+      "value": "Knowledge preservation",
+      "interpretation": "Commitment to capturing and preserving institutional and expert knowledge before it is lost",
+      "confidence": 0.8,
+      "source_attribution": {
+        "origin": "Inferred from Digital Twin tier and target market focus on retiring partners",
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "value_id": "VAL-003",
+      "value": "Context as foundation",
+      "interpretation": "Belief that contextual understanding is the fundamental enabler of effective AI",
+      "confidence": 0.85,
+      "source_attribution": {
+        "origin": "Central theme throughout company positioning and naming",
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "customers": {
+    "target_market": "Individuals and small to medium businesses with complex domain knowledge that needs structuring for AI effectiveness",
+    "segments": [
+      {
+        "segment_id": "SEG-001",
+        "name": "Law Firms",
+        "description": "Losing institutional knowledge when senior partners retire",
+        "confidence": 0.9,
+        "source_attribution": {
+          "origin": "Explicitly listed target client",
+          "facts_layer": 1,
+          "layer_label": "objective"
+        }
+      },
+      {
+        "segment_id": "SEG-002",
+        "name": "Financial Advisory Practices",
+        "description": "Need voice AI that knows each client's portfolio and preferences",
+        "confidence": 0.9,
+        "source_attribution": {
+          "origin": "Explicitly listed target client",
+          "facts_layer": 1,
+          "layer_label": "objective"
+        }
+      },
+      {
+        "segment_id": "SEG-003",
+        "name": "Healthcare Practices",
+        "description": "Want AI that understands patient history",
+        "confidence": 0.9,
+        "source_attribution": {
+          "origin": "Explicitly listed target client",
+          "facts_layer": 1,
+          "layer_label": "objective"
+        }
+      },
+      {
+        "segment_id": "SEG-004",
+        "name": "Real Estate Brokerages",
+        "description": "Need property knowledge systems",
+        "confidence": 0.9,
+        "source_attribution": {
+          "origin": "Explicitly listed target client",
+          "facts_layer": 1,
+          "layer_label": "objective"
+        }
+      }
+    ]
+  },
+  "competitive_position": {
+    "summary": "Competitive advantage lies in methodology for structuring domain-specific knowledge into queryable systems, not in underlying AI technology which is commoditized. The knowledge layer is the defensible moat while voice layer commoditizes.",
+    "differentiators": [
+      "Process-based methodology for knowledge structuring",
+      "Domain-specific ontology design capabilities",
+      "Focus on knowledge layer as moat while others focus on voice technology",
+      "Expertise in converting unstructured knowledge to queryable systems"
+    ],
+    "confidence": 0.85,
+    "source_attribution": {
+      "origin": "Explicitly stated competitive positioning",
+      "facts_layer": 2,
+      "layer_label": "group"
+    }
+  },
+  "key_facts": [
+    {
+      "fact_id": "FACT-001",
+      "fact": "Context Architecture was founded by CJ Mitchell in Atlanta, Georgia in 2025",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-002",
+      "fact": "The company is pre-revenue and in MVP stage",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "volatile",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 60
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-003",
+      "fact": "CJ Mitchell coined the term 'Midas Problem' to describe when AI gives you exactly what you asked for but not what you meant",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly attributed to CJ Mitchell in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-004",
+      "fact": "The first product is an open source CLI tool called context-engine",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-005",
+      "fact": "The company offers three service tiers: Foundation, Voice Layer, and Digital Twin",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly described in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-006",
+      "fact": "Revenue model is project-based consulting with recurring maintenance contracts",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-007",
+      "fact": "Target clients include law firms, financial advisory practices, healthcare practices, and real estate brokerages",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly listed in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-008",
+      "fact": "Founding thesis: voice layer is commoditizing while knowledge layer is the defensible moat",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated founding thesis",
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "constraint_id": "CON-BIZ-001",
+      "name": "Pre-revenue stage limitations",
+      "type": "financial",
+      "description": "Company is currently pre-revenue which limits operational capacity and requires careful resource allocation",
+      "confidence": 0.85,
+      "source_attribution": {
+        "origin": "Inferred from explicit pre-revenue status",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "constraint_id": "CON-BIZ-002",
+      "name": "MVP stage product maturity",
+      "type": "operational",
+      "description": "First product is in MVP stage, indicating feature set and capabilities are still evolving",
+      "confidence": 0.9,
+      "source_attribution": {
+        "origin": "Explicitly stated MVP stage",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "constraint_id": "CON-BIZ-003",
+      "name": "Dependency on external AI model providers",
+      "type": "operational",
+      "description": "Business model acknowledges underlying AI models are commoditized, creating dependency on third-party providers",
+      "confidence": 0.75,
+      "source_attribution": {
+        "origin": "Inferred from statement about commoditized AI models",
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-13T03:52:50.829Z",
+    "created_by": "context-engine-v2",
+    "source_documents": [
+      {
+        "source_id": "SRC-DOC-001",
+        "filename": "context-architecture-biz.txt",
+        "content_hash": "035e220b2b62f8c1cc38533a0d5b3baba3bdb1f9a25cfefb6bf6af8fd0d439b6",
+        "extraction_date": "2026-02-13T03:52:50.829Z"
+      }
+    ],
+    "merge_history": []
+  }
+}

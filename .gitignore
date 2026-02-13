@@ -1,3 +1,9 @@
 node_modules/
 .env
 .DS_Store
+output/
+watch-folder/input/
+watch-folder/processing/
+watch-folder/processed/
+watch-folder/output/
+watch-folder/errors/

@@ -1,0 +1,563 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-13T03:53:45.858Z",
+    "source_text_hash": "a7bf951f6ae5e00311722744965f01fb5ec0173287e04e896ceca96a17624500",
+    "source_description": "Extracted from lola-mafe.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.89,
+    "word_count": 148,
+    "extraction_notes": []
+  },
+  "entity": {
+    "entity_type": "person",
+    "entity_id": "ENT-LM-001",
+    "name": {
+      "full": "Lola Mafe",
+      "preferred": "Lola",
+      "aliases": [],
+      "confidence": 0.95,
+      "facts_layer": 1
+    },
+    "summary": {
+      "value": "Lola Mafe is a creative director and brand strategist based in Atlanta who specializes in brand identity for tech startups. Originally from Lagos, Nigeria, she went independent in 2021 after working at major agencies and is known for her direct, authentic approach to branding. She married CJ Mitchell in 2023 and maintains an unconventional living arrangement with separate homes.",
+      "confidence": 0.9,
+      "facts_layer": 1
+    }
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "creative director",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "role",
+      "value": "brand strategist",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "current_city",
+      "value": "Atlanta",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "birthplace",
+      "value": "Lagos, Nigeria",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "education",
+      "value": "BFA from Savannah College of Art and Design",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "languages",
+      "value": "Yoruba, English",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-007",
+      "key": "specialization",
+      "value": "brand identity for tech startups",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-008",
+      "key": "work_history",
+      "value": "Previously worked at Ogilvy and McCann",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-009",
+      "key": "business_status",
+      "value": "independent since 2021",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-010",
+      "key": "client_count",
+      "value": "over 30 early-stage companies",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "volatile",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 60
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-011",
+      "key": "immigration_age",
+      "value": "moved to US at age 12",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-012",
+      "key": "living_arrangement",
+      "value": "unconventional arrangement with separate homes two blocks apart from spouse",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": [
+        "note this as personal boundary; avoid assumptions about cohabitation"
+      ]
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "CJ Mitchell",
+      "entity_id_ref": "ENT-CJM-001",
+      "relationship_type": "spouse",
+      "relationship_label": "husband",
+      "context": "married February 14, 2023; maintain separate homes two blocks apart",
+      "sentiment": "positive",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "Nia Osei",
+      "entity_id_ref": null,
+      "relationship_type": "colleague",
+      "relationship_label": "close collaborator",
+      "context": "UX designer based in Brooklyn",
+      "sentiment": "positive",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "relationship_id": "REL-003",
+      "name": "Tariq Adams",
+      "entity_id_ref": null,
+      "relationship_type": "business_partner",
+      "relationship_label": "frequent collaborator",
+      "context": "copywriter she frequently partners with",
+      "sentiment": "positive",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    }
+  ],
+  "values": [
+    {
+      "value_id": "VAL-001",
+      "value": "authenticity in branding",
+      "interpretation": "She believes most startups over-design and under-communicate; prioritizes genuine expression over polish",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 3,
+        "layer_label": "personal"
+      }
+    },
+    {
+      "value_id": "VAL-002",
+      "value": "direct honest feedback",
+      "interpretation": "Known for telling clients what they need to hear, not what they want to hear; prefers transparency over diplomacy",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 3,
+        "layer_label": "personal"
+      }
+    }
+  ],
+  "communication_style": {
+    "tone": "direct, honest, unfiltered",
+    "preferences": [
+      "prefers direct honest feedback",
+      "tells clients what they need to hear not what they want to hear",
+      "values authenticity over politeness"
+    ],
+    "confidence": 0.9,
+    "source_attribution": {
+      "origin": "explicitly stated communication patterns in source text",
+      "facts_layer": 2,
+      "layer_label": "group"
+    },
+    "actions": [
+      "match directness; avoid sugar-coating feedback",
+      "prioritize honest assessment over diplomatic phrasing",
+      "expect and deliver unvarnished truth"
+    ]
+  },
+  "active_projects": [],
+  "key_facts": [
+    {
+      "fact_id": "FACT-001",
+      "fact": "Married CJ Mitchell on February 14, 2023",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-002",
+      "fact": "Lives in a separate home two blocks from spouse",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-003",
+      "fact": "Went independent in 2021 after working at Ogilvy and McCann",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-004",
+      "fact": "Has worked with over 30 early-stage tech startups",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "volatile",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 60
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-005",
+      "fact": "Originally from Lagos, Nigeria; moved to US at age 12",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-006",
+      "fact": "Speaks Yoruba and English fluently",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-007",
+      "fact": "Believes most startups over-design and under-communicate",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "explicitly stated professional belief in source text",
+        "facts_layer": 3,
+        "layer_label": "personal"
+      }
+    }
+  ],
+  "translations": [
+    {
+      "translation_id": "TRANS-001",
+      "literal_input": "What do you think about this direction?",
+      "true_intent": "I want your honest assessment even if it means telling me this doesn't work",
+      "not_intent": "I want you to tell me it's great",
+      "confidence": 0.75,
+      "source_attribution": {
+        "origin": "inferred from her known pattern of preferring direct honest feedback and telling clients what they need to hear",
+        "facts_layer": 3,
+        "layer_label": "personal"
+      },
+      "actions": [
+        "provide unfiltered critique",
+        "avoid hedging or softening feedback"
+      ]
+    }
+  ],
+  "constraints": [
+    {
+      "constraint_id": "CON-EXT-001",
+      "name": "unconventional relationship boundary",
+      "type": "contextual",
+      "description": "Maintains separate home from spouse by choice; this is an intentional arrangement, not a problem to solve",
+      "trigger_condition": "when discussing living situation, marriage, or domestic arrangements",
+      "violation_response": "never suggest cohabitation or imply the arrangement is temporary or problematic; respect this as a conscious choice",
+      "confidence": 0.9,
+      "source_attribution": {
+        "origin": "explicitly stated living arrangement in source text",
+        "facts_layer": 3,
+        "layer_label": "personal"
+      }
+    },
+    {
+      "constraint_id": "CON-EXT-002",
+      "name": "communication authenticity requirement",
+      "type": "behavioral",
+      "description": "Requires direct, unfiltered communication; dislikes sugar-coating or diplomatic evasion",
+      "trigger_condition": "when providing feedback, assessment, or professional opinions",
+      "violation_response": "avoid hedging language, diplomatic softening, or telling her what she wants to hear; prioritize truth over comfort",
+      "confidence": 0.9,
+      "source_attribution": {
+        "origin": "explicitly stated communication preference in source text",
+        "facts_layer": 3,
+        "layer_label": "personal"
+      }
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-13T03:53:45.858Z",
+    "created_by": "context-engine-v2",
+    "source_documents": [
+      {
+        "source_id": "SRC-DOC-001",
+        "filename": "lola-mafe.txt",
+        "content_hash": "a7bf951f6ae5e00311722744965f01fb5ec0173287e04e896ceca96a17624500",
+        "extraction_date": "2026-02-13T03:53:45.858Z"
+      }
+    ],
+    "merge_history": []
+  }
+}

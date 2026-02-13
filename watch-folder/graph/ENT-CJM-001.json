@@ -1,0 +1,1045 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-13T03:57:18.895Z",
+    "source_text_hash": "65d8e7a132ee5ef8690290b7cd43bc99c531b29c950a8249f82223feec5d796b",
+    "source_description": "Extracted from cj-deep.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.92,
+    "word_count": 328,
+    "extraction_notes": [
+      "High confidence across most biographical data",
+      "Some project details are moderately specific but not fully detailed"
+    ]
+  },
+  "entity": {
+    "entity_type": "person",
+    "entity_id": "ENT-CJM-001",
+    "name": {
+      "full": "CJ Mitchell",
+      "preferred": "CJ",
+      "aliases": [],
+      "confidence": 0.95,
+      "facts_layer": 1
+    },
+    "summary": {
+      "value": "CJ Mitchell is a Principal Product Manager at Amazon specializing in AI forecasting models, with a background spanning Fandom, Wayfair, Walmart, and Deloitte. He runs a 65K-subscriber YouTube channel called Putchuon focused on AI education, and is developing Context Architecture as both a personal legacy project for his son and a consulting business helping individuals and SMBs structure knowledge for AI consumption.",
+      "confidence": 0.9,
+      "facts_layer": 2
+    }
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "birthdate",
+      "value": "1983-06-08",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "current_role",
+      "value": "Principal Product Manager at Amazon",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "specialization",
+      "value": "AI forecasting models for middle-mile logistics",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "team_impact",
+      "value": "$55 million in validated savings from five AI models",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "volatile",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 60
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "previous_companies",
+      "value": "Fandom, Wayfair, Walmart, Deloitte",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "mba",
+      "value": "Clark Atlanta University",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-007",
+      "key": "undergraduate_degree",
+      "value": "BBA from Howard University",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-008",
+      "key": "current_location",
+      "value": "Atlanta, Georgia",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-009",
+      "key": "living_arrangement",
+      "value": "Separate homes two blocks apart from spouse",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": [
+        "Do not assume cohabitation; respect unconventional living arrangement as intentional choice"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-010",
+      "key": "personality_type",
+      "value": "ENTP",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 2,
+        "layer_label": "group"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-011",
+      "key": "openness_percentile",
+      "value": "96th percentile",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 2,
+        "layer_label": "group"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-012",
+      "key": "extraversion_percentile",
+      "value": "97th percentile",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 2,
+        "layer_label": "group"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-013",
+      "key": "chess_rating",
+      "value": "2100+",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-014",
+      "key": "youtube_channel",
+      "value": "Putchuon",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-015",
+      "key": "youtube_subscribers",
+      "value": "approximately 65,000",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "volatile",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 60
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-016",
+      "key": "youtube_focus",
+      "value": "AI education and storytelling",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-017",
+      "key": "top_performing_videos",
+      "value": "Entire History of AI, Euphoria Timeline, Groundhog Day",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-018",
+      "key": "custody_arrangement",
+      "value": "Shared legal custody with primary physical custody with ex-wife; gets 1st, 3rd, 5th weekends plus holiday rotation and most of summer",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [
+        "CON-EXT-001"
+      ],
+      "actions": [
+        "Be mindful of scheduling constraints around custody weekends",
+        "Respect privacy around custody arrangements"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-019",
+      "key": "previous_business",
+      "value": "Flawless Tracks beat selling business, peaked at $150K/year revenue",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "attribute_id": "ATTR-020",
+      "key": "hometown_connections",
+      "value": "Markham, Illinois - Six Five crew",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "Lola Mafe",
+      "entity_id_ref": "ENT-LM-001",
+      "relationship_type": "spouse",
+      "relationship_label": "Wife",
+      "context": "Married February 14, 2023. They live in separate homes two blocks apart in Atlanta which works for both of them.",
+      "sentiment": "positive",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": [
+        "Respect unconventional living arrangement as intentional and functional for both parties"
+      ]
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "Carrie Mitchell",
+      "entity_id_ref": "ENT-CM-001",
+      "relationship_type": "ex",
+      "relationship_label": "Ex-wife",
+      "context": "Married 2014 to 2020. Co-parenting London with shared legal custody; Carrie has primary physical custody.",
+      "sentiment": "neutral",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [
+        "CON-EXT-001"
+      ],
+      "actions": [
+        "Maintain professional neutrality when referencing",
+        "Respect co-parenting boundaries"
+      ]
+    },
+    {
+      "relationship_id": "REL-003",
+      "name": "London Khal Mitchell",
+      "entity_id_ref": "ENT-LKM-001",
+      "relationship_type": "child",
+      "relationship_label": "Son",
+      "context": "Born 2017, attends Esther Jackson Elementary in Roswell, Georgia. Primary motivation for Context Journey project.",
+      "sentiment": "positive",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [
+        "CON-EXT-001",
+        "CON-EXT-002"
+      ],
+      "actions": [
+        "Prioritize privacy protection for minor child",
+        "Recognize London as primary motivation for Context Journey project"
+      ]
+    },
+    {
+      "relationship_id": "REL-004",
+      "name": "Julian Nixon (Juju)",
+      "entity_id_ref": "ENT-JN-001",
+      "relationship_type": "business_partner",
+      "relationship_label": "Collaborator on musical scores",
+      "context": "Based in Los Angeles. Works with CJ on Putchuon video content.",
+      "sentiment": "positive",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "relationship_id": "REL-005",
+      "name": "Jay Kinney",
+      "entity_id_ref": "ENT-JK-001",
+      "relationship_type": "business_partner",
+      "relationship_label": "Twin voice AI project partner",
+      "context": "Co-developing Twin voice AI focused on culturally authentic Atlanta speech patterns.",
+      "sentiment": "positive",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "relationship_id": "REL-006",
+      "name": "Six Five crew",
+      "entity_id_ref": null,
+      "relationship_type": "friend",
+      "relationship_label": "Inner circle friends from Markham, Illinois",
+      "context": "Part of CJ's core inner circle alongside Howard fraternity brothers.",
+      "sentiment": "positive",
+      "confidence": 0.85,
+      "confidence_label": "STRONG",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    },
+    {
+      "relationship_id": "REL-007",
+      "name": "Howard University fraternity brothers",
+      "entity_id_ref": null,
+      "relationship_type": "friend",
+      "relationship_label": "Inner circle fraternity brothers",
+      "context": "Part of CJ's core inner circle alongside Six Five crew from Markham.",
+      "sentiment": "positive",
+      "confidence": 0.85,
+      "confidence_label": "STRONG",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    }
+  ],
+  "values": [
+    {
+      "value_id": "VAL-001",
+      "value": "Paradox over binary thinking",
+      "interpretation": "Core philosophy that 'two things can be true' - embracing complexity and contradiction rather than forcing either/or choices. Manifests in his ENTP personality and unconventional life choices like living separately from spouse.",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated as core philosophy in source text",
+        "facts_layer": 3,
+        "layer_label": "personal"
+      }
+    },
+    {
+      "value_id": "VAL-002",
+      "value": "Legacy through continuation, not immortality",
+      "interpretation": "Distinguishes between ego-driven immortality and meaningful continuation. Focuses on preserving thinking patterns, values, and voice for his son London rather than seeking to 'live forever'.",
+      "confidence": 0.85,
+      "confidence_label": "STRONG",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in Context Journey project description",
+        "facts_layer": 3,
+        "layer_label": "personal"
+      }
+    },
+    {
+      "value_id": "VAL-003",
+      "value": "Knowledge accessibility through structure",
+      "interpretation": "Believes in democratizing complex information through thoughtful architecture. Manifests in YouTube education work, Context Architecture consulting, and AI knowledge structuring.",
+      "confidence": 0.8,
+      "confidence_label": "STRONG",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Inferred from YouTube channel focus, Context Architecture business model, and professional work in AI",
+        "facts_layer": 3,
+        "layer_label": "personal"
+      }
+    },
+    {
+      "value_id": "VAL-004",
+      "value": "Cultural authenticity in technology",
+      "interpretation": "Prioritizes representing and preserving cultural identity within technological systems. Evidenced by Twin voice AI project focused on authentic Atlanta speech patterns.",
+      "confidence": 0.8,
+      "confidence_label": "STRONG",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in Twin project description",
+        "facts_layer": 3,
+        "layer_label": "personal"
+      }
+    }
+  ],
+  "communication_style": {
+    "tone": "Educational, narrative-driven, embraces complexity",
+    "preferences": [
+      "Storytelling approach to complex topics",
+      "Visual and narrative content over pure data",
+      "Balancing paradoxes rather than resolving them"
+    ],
+    "confidence": 0.75,
+    "source_attribution": {
+      "origin": "Inferred from YouTube channel focus on 'AI education and storytelling' and core philosophy",
+      "facts_layer": 2,
+      "layer_label": "group"
+    },
+    "actions": [
+      "Use narrative frameworks when presenting information",
+      "Don't force binary choices; present nuanced options",
+      "Connect technical concepts to human stories"
+    ]
+  },
+  "active_projects": [
+    {
+      "project_id": "PROJ-001",
+      "name": "Context Journey",
+      "status": "active",
+      "description": "Digital continuation system designed to preserve CJ's thinking patterns, values, and voice for his son London. Emphasizes continuation not immortality.",
+      "confidence": 0.9,
+      "time_decay": {
+        "stability": "volatile",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 60
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [
+        "CON-EXT-002"
+      ],
+      "actions": [
+        "Prioritize features that preserve authentic thinking patterns",
+        "Focus on value transmission to London as primary outcome"
+      ]
+    },
+    {
+      "project_id": "PROJ-002",
+      "name": "Context Architecture",
+      "status": "active",
+      "description": "Consulting business helping individuals and SMBs structure their knowledge for AI consumption. Developing as both methodology and business model.",
+      "confidence": 0.9,
+      "time_decay": {
+        "stability": "volatile",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 60
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": [
+        "Position as practical solution for SMBs and individuals",
+        "Emphasize knowledge structuring over simple data conversion"
+      ]
+    },
+    {
+      "project_id": "PROJ-003",
+      "name": "Twin Voice AI",
+      "status": "active",
+      "description": "Voice AI project with partner Jay Kinney focused on training culturally authentic Atlanta speech patterns.",
+      "confidence": 0.9,
+      "time_decay": {
+        "stability": "volatile",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 60
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": [
+        "Prioritize cultural authenticity over generic voice patterns",
+        "Collaborate closely with Jay Kinney on development"
+      ]
+    },
+    {
+      "project_id": "PROJ-004",
+      "name": "Putchuon YouTube Channel",
+      "status": "active",
+      "description": "YouTube channel with approximately 65,000 subscribers focused on AI education and storytelling. Top videos include Entire History of AI, Euphoria Timeline, and Groundhog Day.",
+      "confidence": 0.9,
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": [
+        "Continue narrative-driven AI education approach",
+        "Collaborate with Julian Nixon on musical scores",
+        "Build on success of timeline and historical analysis formats"
+      ]
+    },
+    {
+      "project_id": "PROJ-005",
+      "name": "Amazon AI Forecasting Models",
+      "status": "active",
+      "description": "Managing five AI forecasting models for middle-mile logistics that have delivered $55 million in validated savings.",
+      "confidence": 0.9,
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      },
+      "constraint_linkages": [],
+      "actions": []
+    }
+  ],
+  "key_facts": [
+    {
+      "fact_id": "FACT-001",
+      "fact": "Born June 8, 1983",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-002",
+      "fact": "Married to Lola Mafe since February 14, 2023",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-003",
+      "fact": "Previously married to Carrie Mitchell from 2014 to 2020",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-004",
+      "fact": "Has one son, London Khal Mitchell, born 2017",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-005",
+      "fact": "London attends Esther Jackson Elementary in Roswell, Georgia",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-006",
+      "fact": "Team's five AI models delivered $55 million in validated savings at Amazon",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "volatile",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 60
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-007",
+      "fact": "YouTube channel Putchuon has approximately 65,000 subscribers",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "volatile",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 60
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-008",
+      "fact": "Previous business Flawless Tracks peaked at $150K/year revenue",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-009",
+      "fact": "Lives two blocks away from spouse in separate homes in Atlanta",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "fact_id": "FACT-010",
+      "fact": "ENTP personality type with 96th percentile openness and 97th percentile extraversion",
+      "confidence": 0.95,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "fact_id": "FACT-011",
+      "fact": "Plays chess at 2100+ rating",
+      "confidence": 0.9,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-13",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "Explicitly stated in source text",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    }
+  ],
+  "translations": [],
+  "constraints": [
+    {
+      "constraint_id": "CON-EXT-001",
+      "name": "Child custody schedule respect",
+      "type": "behavioral",
+      "description": "Must respect and work around custody schedule: 1st, 3rd, 5th weekends, holiday rotation, and most of summer with CJ.",
+      "trigger_condition": "When scheduling events, meetings, or commitments involving CJ",
+      "violation_response": "Flag scheduling conflicts that interfere with custody weekends; suggest alternative times",
+      "confidence": 0.9,
+      "source_attribution": {
+        "origin": "Explicitly stated custody arrangement in source text",
+        "facts_layer": 3,
+        "layer_label": "personal"
+      }
+    },
+    {
+      "constraint_id": "CON-EXT-002",
+      "name": "Child privacy protection",
+      "type": "absolute",
+      "description": "Protect privacy and sensitive information about London Khal Mitchell, a minor child.",
+      "trigger_condition": "When discussing, sharing, or documenting information about London",
+      "violation_response": "Redact or limit sharing of identifying or sensitive information; prioritize child safety and privacy",
+      "confidence": 0.95,
+      "source_attribution": {
+        "origin": "Ethical and legal standards for minor child protection",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    },
+    {
+      "constraint_id": "CON-EXT-003",
+      "name": "Binary thinking rejection",
+      "type": "behavioral",
+      "description": "Do not force either/or framing when presenting options or analyzing situations. Honor CJ's core philosophy that 'two things can be true.'",
+      "trigger_condition": "When presenting choices, analyzing trade-offs, or discussing conflicting perspectives",
+      "violation_response": "Reframe to acknowledge complexity and multiple valid perspectives; present nuanced options",
+      "confidence": 0.85,
+      "source_attribution": {
+        "origin": "Explicitly stated core philosophy in source text",
+        "facts_layer": 3,
+        "layer_label": "personal"
+      }
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-13T03:57:18.895Z",
+    "created_by": "context-engine-v2",
+    "source_documents": [
+      {
+        "source_id": "SRC-DOC-001",
+        "filename": "cj-deep.txt",
+        "content_hash": "65d8e7a132ee5ef8690290b7cd43bc99c531b29c950a8249f82223feec5d796b",
+        "extraction_date": "2026-02-13T03:57:18.895Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-13T04:13:06.192Z",
+        "merged_by": "test",
+        "incoming_source": "chappie",
+        "platform": "chatgpt",
+        "conversation_id": null,
+        "changes": [
+          "updated ATTR-002 confidence 0.9→0.95: User confirmed current role"
+        ]
+      }
+    ]
+  }
+}

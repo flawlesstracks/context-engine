@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 
+const fs = require('fs');
+const crypto = require('crypto');
 const path = require('path');
 const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk').default;
+const { merge } = require('./merge-engine');
 
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
@@ -69,7 +72,7 @@ async function callClaude(prompt) {
   return message.content[0].text;
 }
 
-// --- API endpoint ---
+// --- Web UI extract endpoint (v2, no auth) ---
 
 app.post('/extract', async (req, res) => {
   const { text, type } = req.body;
@@ -82,14 +85,414 @@ app.post('/extract', async (req, res) => {
   }
 
   try {
-    const prompt = buildPrompt(type, text);
-    const raw = await callClaude(prompt);
-    const cleaned = raw.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
-    const parsed = JSON.parse(cleaned);
-    res.json(parsed);
+    const { execFile } = require('child_process');
+    const tmpIn = path.join(__dirname, 'watch-folder', 'output', `_web_input_${Date.now()}.txt`);
+    const tmpOut = path.join(__dirname, 'watch-folder', 'output', `_web_output_${Date.now()}.json`);
+
+    fs.writeFileSync(tmpIn, text);
+
+    await new Promise((resolve, reject) => {
+      execFile('node', [
+        path.join(__dirname, 'context-engine.js'),
+        '--input', tmpIn, '--output', tmpOut, '--type', type, '--schema-version', '2.0',
+      ], {
+        env: { ...process.env, PATH: `/opt/homebrew/bin:${process.env.PATH}` },
+        timeout: 180000,
+      }, (err) => err ? reject(err) : resolve());
+    });
+
+    const result = JSON.parse(fs.readFileSync(tmpOut, 'utf-8'));
+    fs.unlinkSync(tmpIn);
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// --- Graph API ---
+
+const GRAPH_DIR = path.join(__dirname, 'watch-folder', 'graph');
+const CONFIG_PATH = path.join(__dirname, 'watch-folder', 'config.json');
+
+function loadConfig() {
+  return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
+}
+
+function readEntity(entityId) {
+  const filePath = path.join(GRAPH_DIR, `${entityId}.json`);
+  if (!fs.existsSync(filePath)) return null;
+  return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+}
+
+function writeEntity(entityId, data) {
+  fs.writeFileSync(path.join(GRAPH_DIR, `${entityId}.json`), JSON.stringify(data, null, 2) + '\n');
+}
+
+function listEntities() {
+  if (!fs.existsSync(GRAPH_DIR)) return [];
+  return fs.readdirSync(GRAPH_DIR)
+    .filter(f => f.endsWith('.json'))
+    .map(f => {
+      try {
+        const data = JSON.parse(fs.readFileSync(path.join(GRAPH_DIR, f), 'utf-8'));
+        return { file: f, data };
+      } catch { return null; }
+    })
+    .filter(Boolean);
+}
+
+// Auth middleware
+function apiAuth(req, res, next) {
+  const config = loadConfig();
+  const key = req.headers['x-context-api-key'];
+  if (!key || key !== config.api_key) {
+    return res.status(401).json({ error: 'Invalid or missing X-Context-API-Key header' });
+  }
+  req.agentId = req.headers['x-agent-id'] || 'external';
+  next();
+}
+
+// GET /api/entity/:id — Full entity JSON
+app.get('/api/entity/:id', apiAuth, (req, res) => {
+  const entity = readEntity(req.params.id);
+  if (!entity) return res.status(404).json({ error: 'Entity not found' });
+  res.json(entity);
+});
+
+// GET /api/entity/:id/summary — Lightweight summary
+app.get('/api/entity/:id/summary', apiAuth, (req, res) => {
+  const entity = readEntity(req.params.id);
+  if (!entity) return res.status(404).json({ error: 'Entity not found' });
+
+  const e = entity.entity || {};
+  const type = e.entity_type;
+  let name = '';
+  if (type === 'person') {
+    name = e.name?.full || '';
+  } else {
+    name = e.name?.common || e.name?.legal || '';
+  }
+
+  res.json({
+    entity_id: e.entity_id,
+    entity_type: type,
+    name,
+    summary: e.summary?.value || '',
+    confidence: entity.extraction_metadata?.extraction_confidence || null,
+    last_updated: entity.extraction_metadata?.extracted_at || null,
+    attributes_count: entity.attributes?.length || 0,
+    relationships_count: entity.relationships?.length || 0,
+    key_facts_count: entity.key_facts?.length || 0,
+  });
+});
+
+// GET /api/search?q= — Fuzzy search entities
+app.get('/api/search', apiAuth, (req, res) => {
+  const q = (req.query.q || '').toLowerCase().trim();
+  if (!q) return res.status(400).json({ error: 'Missing query parameter q' });
+
+  const { similarity } = require('./merge-engine');
+  const entities = listEntities();
+  const results = [];
+
+  for (const { data } of entities) {
+    const e = data.entity || {};
+    const type = e.entity_type;
+    let name = type === 'person' ? (e.name?.full || '') : (e.name?.common || e.name?.legal || '');
+    let score = 0;
+
+    // Check name similarity
+    score = Math.max(score, similarity(q, name));
+
+    // Check aliases
+    const aliases = e.name?.aliases || [];
+    for (const alias of aliases) {
+      score = Math.max(score, similarity(q, alias));
+    }
+
+    // Check attributes for keyword match
+    for (const attr of (data.attributes || [])) {
+      if ((attr.value || '').toLowerCase().includes(q)) {
+        score = Math.max(score, 0.6);
+      }
+    }
+
+    // Check summary
+    if ((e.summary?.value || '').toLowerCase().includes(q)) {
+      score = Math.max(score, 0.5);
+    }
+
+    if (score > 0.3) {
+      results.push({
+        entity_id: e.entity_id,
+        entity_type: type,
+        name,
+        summary: e.summary?.value || '',
+        match_score: Math.round(score * 100) / 100,
+      });
+    }
+  }
+
+  results.sort((a, b) => b.match_score - a.match_score);
+  res.json({ query: q, count: results.length, results });
+});
+
+// PATCH /api/entity/:id — Update fields (the magic endpoint)
+app.patch('/api/entity/:id', apiAuth, (req, res) => {
+  const entity = readEntity(req.params.id);
+  if (!entity) return res.status(404).json({ error: 'Entity not found' });
+
+  const { source, updates } = req.body;
+  if (!updates || !Array.isArray(updates)) {
+    return res.status(400).json({ error: 'Missing or invalid updates array' });
+  }
+
+  const now = new Date().toISOString();
+  const agentId = req.agentId;
+  const changes = [];
+  let applied = 0;
+  let rejected = 0;
+
+  for (const update of updates) {
+    const { path: updatePath, action, value, target_id, new_confidence, new_sentiment, reason, confidence } = update;
+
+    try {
+      if (action === 'add') {
+        // Add new item to the specified array
+        const arr = entity[updatePath];
+        if (!Array.isArray(arr)) { rejected++; continue; }
+        arr.push(value);
+        changes.push(`added ${value.attribute_id || value.relationship_id || value.fact_id || 'item'} to ${updatePath}`);
+        applied++;
+
+      } else if (action === 'update_confidence') {
+        // Update confidence on existing item
+        const arr = entity[updatePath];
+        if (!Array.isArray(arr)) { rejected++; continue; }
+        const item = arr.find(i =>
+          i.attribute_id === target_id || i.relationship_id === target_id ||
+          i.fact_id === target_id || i.value_id === target_id || i.project_id === target_id
+        );
+        if (!item) { rejected++; continue; }
+        const old = item.confidence;
+        item.confidence = new_confidence;
+        // Update label
+        if (new_confidence >= 0.90) item.confidence_label = 'VERIFIED';
+        else if (new_confidence >= 0.75) item.confidence_label = 'STRONG';
+        else if (new_confidence >= 0.50) item.confidence_label = 'MODERATE';
+        else if (new_confidence >= 0.25) item.confidence_label = 'SPECULATIVE';
+        else item.confidence_label = 'UNCERTAIN';
+        changes.push(`updated ${target_id} confidence ${old}→${new_confidence}${reason ? ': ' + reason : ''}`);
+        applied++;
+
+      } else if (action === 'update_sentiment') {
+        // Update relationship sentiment
+        const rels = entity.relationships;
+        if (!Array.isArray(rels)) { rejected++; continue; }
+        const rel = rels.find(r => r.relationship_id === target_id);
+        if (!rel) { rejected++; continue; }
+        const old = rel.sentiment;
+        rel.sentiment = new_sentiment;
+        if (confidence) rel.confidence = confidence;
+        changes.push(`updated ${target_id} sentiment ${old}→${new_sentiment}${reason ? ': ' + reason : ''}`);
+        applied++;
+
+      } else if (action === 'update_value') {
+        // Update the actual value of an attribute
+        const arr = entity[updatePath];
+        if (!Array.isArray(arr)) { rejected++; continue; }
+        const item = arr.find(i =>
+          i.attribute_id === target_id || i.fact_id === target_id
+        );
+        if (!item) { rejected++; continue; }
+        // Move old value to provenance
+        if (!entity.provenance_chain) entity.provenance_chain = { merge_history: [] };
+        entity.provenance_chain.merge_history.push({
+          merged_at: now,
+          merged_by: agentId,
+          changes: [{ type: 'value_updated', target_id, old_value: item.value, new_value: value }],
+        });
+        item.value = value;
+        if (confidence) item.confidence = confidence;
+        changes.push(`updated ${target_id} value to "${value}"`);
+        applied++;
+
+      } else if (action === 'deprecate') {
+        // Mark data point as deprecated
+        const arr = entity[updatePath];
+        if (!Array.isArray(arr)) { rejected++; continue; }
+        const item = arr.find(i =>
+          i.attribute_id === target_id || i.relationship_id === target_id ||
+          i.fact_id === target_id || i.value_id === target_id
+        );
+        if (!item) { rejected++; continue; }
+        item.confidence = 0.10;
+        item.confidence_label = 'UNCERTAIN';
+        item.deprecated = true;
+        changes.push(`deprecated ${target_id}${reason ? ': ' + reason : ''}`);
+        applied++;
+
+      } else if (action === 'verify') {
+        // Confirm existing data — bump confidence by +0.10 (cap 0.98)
+        const arr = entity[updatePath];
+        if (!Array.isArray(arr)) { rejected++; continue; }
+        const item = arr.find(i =>
+          i.attribute_id === target_id || i.relationship_id === target_id ||
+          i.fact_id === target_id || i.value_id === target_id
+        );
+        if (!item) { rejected++; continue; }
+        const old = item.confidence;
+        item.confidence = Math.min(0.98, (item.confidence || 0) + 0.10);
+        if (item.confidence >= 0.90) item.confidence_label = 'VERIFIED';
+        changes.push(`verified ${target_id} confidence ${old}→${item.confidence}`);
+        applied++;
+
+      } else {
+        rejected++;
+      }
+    } catch {
+      rejected++;
+    }
+  }
+
+  // Add provenance entry
+  if (!entity.provenance_chain) {
+    entity.provenance_chain = { created_at: now, created_by: 'api', source_documents: [], merge_history: [] };
+  }
+  entity.provenance_chain.merge_history = entity.provenance_chain.merge_history || [];
+  entity.provenance_chain.merge_history.push({
+    merged_at: now,
+    merged_by: agentId,
+    incoming_source: source?.agent || agentId,
+    platform: source?.platform || 'api',
+    conversation_id: source?.conversation_id || null,
+    changes,
+  });
+
+  // Recalculate average confidence
+  let totalConf = 0;
+  let confCount = 0;
+  for (const attr of (entity.attributes || [])) {
+    if (attr.confidence != null) { totalConf += attr.confidence; confCount++; }
+  }
+  for (const rel of (entity.relationships || [])) {
+    if (rel.confidence != null) { totalConf += rel.confidence; confCount++; }
+  }
+  for (const fact of (entity.key_facts || [])) {
+    if (fact.confidence != null) { totalConf += fact.confidence; confCount++; }
+  }
+  if (confCount > 0 && entity.extraction_metadata) {
+    entity.extraction_metadata.extraction_confidence = Math.round((totalConf / confCount) * 100) / 100;
+  }
+
+  writeEntity(req.params.id, entity);
+
+  res.json({
+    status: 'success',
+    entity_id: req.params.id,
+    updates_applied: applied,
+    updates_rejected: rejected,
+    new_entity_confidence: entity.extraction_metadata?.extraction_confidence || null,
+    provenance_entry: {
+      timestamp: now,
+      agent: agentId,
+      changes,
+    },
+  });
+});
+
+// POST /api/entity — Create entity from structured JSON
+app.post('/api/entity', apiAuth, (req, res) => {
+  const data = req.body;
+  const entityId = data.entity?.entity_id;
+  if (!entityId) {
+    return res.status(400).json({ error: 'Missing entity.entity_id' });
+  }
+
+  // Check if entity already exists
+  const existing = readEntity(entityId);
+  if (existing) {
+    return res.status(409).json({ error: `Entity ${entityId} already exists. Use PATCH to update or POST /api/extract for merge.` });
+  }
+
+  writeEntity(entityId, data);
+  res.status(201).json({ status: 'created', entity_id: entityId });
+});
+
+// POST /api/extract — Extract from raw text (v2 schema)
+app.post('/api/extract', apiAuth, async (req, res) => {
+  const { text, type } = req.body;
+  if (!text || !type) return res.status(400).json({ error: 'Missing text or type' });
+  if (!['person', 'business'].includes(type)) return res.status(400).json({ error: 'Type must be person or business' });
+
+  try {
+    // Use v2 extraction via context-engine
+    const { execFile } = require('child_process');
+    const tmpIn = path.join(__dirname, 'watch-folder', 'output', `_api_input_${Date.now()}.txt`);
+    const tmpOut = path.join(__dirname, 'watch-folder', 'output', `_api_output_${Date.now()}.json`);
+
+    fs.writeFileSync(tmpIn, text);
+
+    await new Promise((resolve, reject) => {
+      execFile('node', [
+        path.join(__dirname, 'context-engine.js'),
+        '--input', tmpIn, '--output', tmpOut, '--type', type, '--schema-version', '2.0',
+      ], {
+        env: { ...process.env, PATH: `/opt/homebrew/bin:${process.env.PATH}` },
+        timeout: 180000,
+      }, (err) => err ? reject(err) : resolve());
+    });
+
+    const result = JSON.parse(fs.readFileSync(tmpOut, 'utf-8'));
+
+    // Clean up temp input
+    fs.unlinkSync(tmpIn);
+
+    // Auto-add to graph if entity_id present
+    const entityId = result.entity?.entity_id;
+    if (entityId) {
+      const existing = readEntity(entityId);
+      if (existing) {
+        const { merged } = merge(existing, result);
+        if (merged) writeEntity(entityId, merged);
+      } else {
+        writeEntity(entityId, result);
+      }
+    }
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/graph/stats — Knowledge graph health check
+app.get('/api/graph/stats', apiAuth, (req, res) => {
+  const entities = listEntities();
+  let lastUpdated = null;
+  let totalMerges = 0;
+  const typeCounts = { person: 0, business: 0 };
+
+  for (const { data } of entities) {
+    const type = data.entity?.entity_type;
+    if (type && typeCounts[type] !== undefined) typeCounts[type]++;
+
+    const extractedAt = data.extraction_metadata?.extracted_at;
+    if (extractedAt && (!lastUpdated || extractedAt > lastUpdated)) {
+      lastUpdated = extractedAt;
+    }
+
+    totalMerges += (data.provenance_chain?.merge_history || []).length;
+  }
+
+  res.json({
+    status: 'healthy',
+    entity_count: entities.length,
+    type_counts: typeCounts,
+    total_merges: totalMerges,
+    last_updated: lastUpdated,
+    graph_directory: GRAPH_DIR,
+  });
 });
 
 // --- Serve the UI ---
@@ -103,7 +506,7 @@ const HTML = `<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Context Engine</title>
+<title>Context Engine v2</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -319,6 +722,173 @@ const HTML = `<!DOCTYPE html>
     color: #4b5563;
   }
 
+  /* v2 structured view */
+  .entity-card {
+    background: #1a1a2e;
+    border: 1px solid #2a2a3e;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+
+  .entity-card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+
+  .entity-name {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .entity-id {
+    font-size: 0.7rem;
+    color: #6366f1;
+    font-family: monospace;
+    background: rgba(99,102,241,0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  .entity-summary {
+    font-size: 0.85rem;
+    color: #9ca3af;
+    line-height: 1.5;
+    margin-top: 6px;
+  }
+
+  .section {
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6b7280;
+    margin-bottom: 6px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #1e1e2e;
+  }
+
+  .item-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 5px 0;
+    font-size: 0.82rem;
+    flex-wrap: wrap;
+  }
+
+  .item-key {
+    color: #8b5cf6;
+    font-weight: 600;
+    min-width: 70px;
+  }
+
+  .item-value {
+    color: #e0e0e0;
+    flex: 1;
+  }
+
+  .badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    flex-shrink: 0;
+  }
+
+  .badge-verified { background: rgba(52,211,153,0.15); color: #34d399; }
+  .badge-strong { background: rgba(96,165,250,0.15); color: #60a5fa; }
+  .badge-moderate { background: rgba(251,191,36,0.15); color: #fbbf24; }
+  .badge-speculative { background: rgba(251,146,60,0.15); color: #fb923c; }
+  .badge-uncertain { background: rgba(239,68,68,0.15); color: #ef4444; }
+
+  .badge-time {
+    background: rgba(139,92,246,0.1);
+    color: #a78bfa;
+    font-size: 0.6rem;
+  }
+
+  .badge-layer {
+    font-size: 0.6rem;
+  }
+
+  .badge-layer-1 { background: rgba(52,211,153,0.1); color: #6ee7b7; }
+  .badge-layer-2 { background: rgba(96,165,250,0.1); color: #93c5fd; }
+  .badge-layer-3 { background: rgba(244,114,182,0.1); color: #f9a8d4; }
+
+  .rel-sentiment {
+    font-size: 0.65rem;
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+
+  .sentiment-positive { background: rgba(52,211,153,0.12); color: #34d399; }
+  .sentiment-neutral { background: rgba(156,163,175,0.12); color: #9ca3af; }
+  .sentiment-strained { background: rgba(239,68,68,0.12); color: #ef4444; }
+  .sentiment-complex { background: rgba(251,191,36,0.12); color: #fbbf24; }
+  .sentiment-unknown { background: rgba(107,114,128,0.12); color: #6b7280; }
+
+  .constraint-card {
+    background: rgba(239,68,68,0.05);
+    border: 1px solid rgba(239,68,68,0.15);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 6px;
+    font-size: 0.8rem;
+  }
+
+  .constraint-name { color: #fca5a5; font-weight: 600; }
+  .constraint-desc { color: #9ca3af; margin-top: 3px; }
+
+  .view-toggle {
+    display: flex;
+    gap: 4px;
+  }
+
+  .view-btn {
+    background: transparent;
+    border: 1px solid #2a2a3e;
+    color: #6b7280;
+    padding: 3px 10px;
+    font-size: 0.7rem;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  .view-btn.active {
+    border-color: #8b5cf6;
+    color: #a78bfa;
+  }
+
+  .json-view { display: none; }
+  .json-view.active { display: block; }
+  .structured-view { display: none; }
+  .structured-view.active { display: block; }
+
+  .provenance {
+    font-size: 0.75rem;
+    color: #4b5563;
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid #1e1e2e;
+  }
+
+  .provenance code {
+    color: #6366f1;
+    font-size: 0.7rem;
+  }
+
   .btn-sample {
     background: transparent;
     border: 1px solid #2a2a3e;
@@ -397,6 +967,10 @@ const HTML = `<!DOCTYPE html>
       <div class="panel-header">
         <span class="panel-label">Structured Output</span>
         <div class="output-actions">
+          <div class="view-toggle" id="view-toggle" style="display:none;">
+            <button class="view-btn active" data-view="structured" onclick="toggleView('structured')">Structured</button>
+            <button class="view-btn" data-view="json" onclick="toggleView('json')">JSON</button>
+          </div>
           <button class="btn-action" id="btn-copy" onclick="copyJSON()">Copy JSON</button>
           <button class="btn-action" id="btn-download" onclick="downloadJSON()">Download JSON</button>
           <span class="timer" id="timer"></span>
@@ -422,6 +996,7 @@ const HTML = `<!DOCTYPE html>
 
 <script>
 var lastResult = null;
+var currentView = 'structured';
 
 var SAMPLE_TEXT = "Dr. Sarah Chen is a 38-year-old AI research lead at Meridian Labs in San Francisco. She previously spent six years at DeepMind working on reinforcement learning before joining Meridian in 2023 to build their applied AI division. Sarah holds a PhD from MIT in computational neuroscience and a BS from Stanford in computer science. She is known for her work on multi-agent systems and has published over 40 papers. Her close collaborators include Dr. James Park, CTO of Meridian Labs, and Professor Ana Ruiz at UC Berkeley who co-authored several papers with her. Sarah values rigorous experimentation and open science. She prefers written communication over meetings and is known for detailed technical memos. Outside of work she mentors undergrad researchers through a program called NextGen AI and is an avid rock climber.";
 
@@ -432,11 +1007,13 @@ function loadSample() {
 function showActionButtons() {
   document.getElementById('btn-copy').classList.add('visible');
   document.getElementById('btn-download').classList.add('visible');
+  document.getElementById('view-toggle').style.display = 'flex';
 }
 
 function hideActionButtons() {
   document.getElementById('btn-copy').classList.remove('visible');
   document.getElementById('btn-download').classList.remove('visible');
+  document.getElementById('view-toggle').style.display = 'none';
 }
 
 async function copyJSON() {
@@ -453,7 +1030,8 @@ async function copyJSON() {
 
 function downloadJSON() {
   if (!lastResult) return;
-  var name = lastResult.name?.full || lastResult.name?.common || lastResult.name?.legal || 'context';
+  var e = lastResult.entity || {};
+  var name = e.name?.full || e.name?.common || e.name?.legal || 'context';
   var filename = name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-context.json';
   var blob = new Blob([JSON.stringify(lastResult, null, 2)], { type: 'application/json' });
   var url = URL.createObjectURL(blob);
@@ -464,16 +1042,64 @@ function downloadJSON() {
   URL.revokeObjectURL(url);
 }
 
+function toggleView(view) {
+  currentView = view;
+  document.querySelectorAll('.view-btn').forEach(function(b) {
+    b.classList.toggle('active', b.dataset.view === view);
+  });
+  var sv = document.querySelector('.structured-view');
+  var jv = document.querySelector('.json-view');
+  if (sv) sv.classList.toggle('active', view === 'structured');
+  if (jv) jv.classList.toggle('active', view === 'json');
+}
+
+function esc(str) {
+  var d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
+function confidenceBadge(conf, label) {
+  if (conf == null) return '';
+  var cls = 'badge-moderate';
+  var lbl = label || '';
+  if (conf >= 0.90) { cls = 'badge-verified'; lbl = lbl || 'VERIFIED'; }
+  else if (conf >= 0.75) { cls = 'badge-strong'; lbl = lbl || 'STRONG'; }
+  else if (conf >= 0.50) { cls = 'badge-moderate'; lbl = lbl || 'MODERATE'; }
+  else if (conf >= 0.25) { cls = 'badge-speculative'; lbl = lbl || 'SPECULATIVE'; }
+  else { cls = 'badge-uncertain'; lbl = lbl || 'UNCERTAIN'; }
+  return '<span class="badge ' + cls + '">' + esc(lbl) + ' ' + conf.toFixed(2) + '</span>';
+}
+
+function timeBadge(decay) {
+  if (!decay) return '';
+  return '<span class="badge badge-time">' + esc(decay) + '</span>';
+}
+
+function layerBadge(layer) {
+  if (!layer) return '';
+  var labels = { 1: 'Objective', 2: 'Group', 3: 'Personal' };
+  return '<span class="badge badge-layer badge-layer-' + layer + '">L' + layer + ' ' + esc(labels[layer] || '') + '</span>';
+}
+
+function sentimentBadge(sentiment) {
+  if (!sentiment) return '';
+  var cls = 'sentiment-' + sentiment.toLowerCase().replace(/[^a-z]/g, '');
+  if (!['positive','neutral','strained','complex','unknown'].some(function(s) { return cls === 'sentiment-' + s; })) {
+    cls = 'sentiment-neutral';
+  }
+  return '<span class="rel-sentiment ' + cls + '">' + esc(sentiment) + '</span>';
+}
+
 function syntaxHighlight(json) {
-  const str = JSON.stringify(json, null, 2);
+  var str = JSON.stringify(json, null, 2);
   return str.replace(
     /("(\\\\u[a-zA-Z0-9]{4}|\\\\[^u]|[^\\\\"])*"(\\s*:)?|\\b(true|false|null)\\b|-?\\d+(?:\\.\\d*)?(?:[eE][+\\-]?\\d+)?)/g,
     function(match) {
-      let cls = 'json-number';
+      var cls = 'json-number';
       if (/^"/.test(match)) {
         if (/:$/.test(match)) {
           cls = 'json-key';
-          match = match.replace(/^"/, '"').replace(/":\\s*$/, '":');
         } else {
           cls = 'json-string';
         }
@@ -487,26 +1113,143 @@ function syntaxHighlight(json) {
   );
 }
 
-function buildStats(data) {
-  const stats = [];
-  if (data.entity_type === 'person') {
-    if (data.name?.full) stats.push({ v: data.name.full, l: '' });
-    if (data.attributes?.role) stats.push({ v: data.attributes.role, l: '' });
-    stats.push({ v: data.relationships?.length || 0, l: 'relationships' });
-    stats.push({ v: data.active_projects?.length || 0, l: 'projects' });
-    stats.push({ v: data.values?.length || 0, l: 'values' });
-    stats.push({ v: data.key_facts?.length || 0, l: 'key facts' });
-  } else {
-    if (data.name?.common || data.name?.legal) stats.push({ v: data.name.common || data.name.legal, l: '' });
-    if (data.industry) stats.push({ v: data.industry, l: '' });
-    stats.push({ v: data.products_services?.length || 0, l: 'products' });
-    stats.push({ v: data.customers?.segments?.length || 0, l: 'segments' });
-    stats.push({ v: data.key_people?.length || 0, l: 'key people' });
-    stats.push({ v: data.key_facts?.length || 0, l: 'key facts' });
+function buildStructuredView(data) {
+  var html = '';
+  var e = data.entity || {};
+  var meta = data.extraction_metadata || {};
+  var type = e.entity_type || 'person';
+
+  // Entity card
+  var name = type === 'person' ? (e.name?.full || '') : (e.name?.common || e.name?.legal || '');
+  html += '<div class="entity-card">';
+  html += '<div class="entity-card-header">';
+  html += '<span class="entity-name">' + esc(name) + '</span>';
+  if (e.entity_id) html += '<span class="entity-id">' + esc(e.entity_id) + '</span>';
+  html += confidenceBadge(meta.extraction_confidence);
+  html += '</div>';
+  if (e.summary?.value) {
+    html += '<div class="entity-summary">' + esc(e.summary.value) + '</div>';
   }
-  return '<div class="stats">' + stats.map(function(s) {
+  html += '</div>';
+
+  // Stats bar
+  var stats = [];
+  stats.push({ v: (data.attributes || []).length, l: 'attributes' });
+  stats.push({ v: (data.relationships || []).length, l: 'relationships' });
+  stats.push({ v: (data.values || []).length, l: 'values' });
+  stats.push({ v: (data.key_facts || []).length, l: 'key facts' });
+  if ((data.constraints || []).length > 0) stats.push({ v: data.constraints.length, l: 'constraints' });
+  if ((data.action_suggestions || []).length > 0) stats.push({ v: data.action_suggestions.length, l: 'actions' });
+  html += '<div class="stats">' + stats.map(function(s) {
     return '<div class="stat"><span class="stat-value">' + s.v + '</span><span class="stat-label">' + s.l + '</span></div>';
   }).join('') + '</div>';
+
+  // Attributes
+  var attrs = data.attributes || [];
+  if (attrs.length > 0) {
+    html += '<div class="section"><div class="section-title">Attributes</div>';
+    attrs.forEach(function(a) {
+      html += '<div class="item-row">';
+      html += '<span class="item-key">' + esc(a.key || '') + '</span>';
+      html += '<span class="item-value">' + esc(String(a.value || '')) + '</span>';
+      html += confidenceBadge(a.confidence, a.confidence_label);
+      html += timeBadge(a.time_decay);
+      html += layerBadge(a.facts_layer);
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  // Relationships
+  var rels = data.relationships || [];
+  if (rels.length > 0) {
+    html += '<div class="section"><div class="section-title">Relationships</div>';
+    rels.forEach(function(r) {
+      html += '<div class="item-row">';
+      html += '<span class="item-key">' + esc(r.name || '') + '</span>';
+      html += '<span class="item-value">' + esc(r.relationship_type || '') + (r.context ? ' — ' + esc(r.context) : '') + '</span>';
+      html += sentimentBadge(r.sentiment);
+      html += confidenceBadge(r.confidence, r.confidence_label);
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  // Values
+  var vals = data.values || [];
+  if (vals.length > 0) {
+    html += '<div class="section"><div class="section-title">Values</div>';
+    vals.forEach(function(v) {
+      html += '<div class="item-row">';
+      html += '<span class="item-key">' + esc(v.value || '') + '</span>';
+      html += '<span class="item-value">' + esc(v.interpretation || '') + '</span>';
+      html += confidenceBadge(v.confidence, v.confidence_label);
+      html += timeBadge(v.time_decay);
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  // Key Facts
+  var facts = data.key_facts || [];
+  if (facts.length > 0) {
+    html += '<div class="section"><div class="section-title">Key Facts</div>';
+    facts.forEach(function(f) {
+      html += '<div class="item-row">';
+      html += '<span class="item-value">' + esc(f.fact || '') + '</span>';
+      html += confidenceBadge(f.confidence, f.confidence_label);
+      html += timeBadge(f.time_decay);
+      html += layerBadge(f.facts_layer);
+      if (f.category) html += '<span class="badge badge-time">' + esc(f.category) + '</span>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  // Constraints
+  var constraints = data.constraints || [];
+  if (constraints.length > 0) {
+    html += '<div class="section"><div class="section-title">Constraints</div>';
+    constraints.forEach(function(c) {
+      html += '<div class="constraint-card">';
+      html += '<div class="constraint-name">' + esc(c.type || c.constraint_id || '') + '</div>';
+      html += '<div class="constraint-desc">' + esc(c.description || '') + '</div>';
+      if (c.linked_entities && c.linked_entities.length > 0) {
+        html += '<div class="constraint-desc" style="margin-top:4px;color:#6366f1;">Linked: ' + c.linked_entities.map(function(le) { return esc(le); }).join(', ') + '</div>';
+      }
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  // Action Suggestions
+  var actions = data.action_suggestions || [];
+  if (actions.length > 0) {
+    html += '<div class="section"><div class="section-title">Action Suggestions</div>';
+    actions.forEach(function(a) {
+      html += '<div class="item-row">';
+      html += '<span class="item-key" style="color:#34d399;">' + esc(a.priority || '') + '</span>';
+      html += '<span class="item-value">' + esc(a.action || a.suggestion || '') + '</span>';
+      if (a.rationale) html += '<span class="badge badge-time">' + esc(a.rationale) + '</span>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  // Provenance
+  var prov = data.provenance_chain || {};
+  if (prov.created_at || prov.source_documents?.length > 0) {
+    html += '<div class="provenance">';
+    if (prov.created_at) html += 'Created: <code>' + esc(prov.created_at) + '</code>';
+    if (prov.source_documents?.length > 0) {
+      html += ' | Sources: <code>' + prov.source_documents.length + '</code>';
+    }
+    if (meta.schema_version) html += ' | Schema: <code>v' + esc(meta.schema_version) + '</code>';
+    if (meta.source_hash) html += ' | Hash: <code>' + esc(meta.source_hash.slice(0, 12)) + '...</code>';
+    html += '</div>';
+  }
+
+  return html;
 }
 
 async function extract(type) {
@@ -522,7 +1265,7 @@ async function extract(type) {
   btnB.disabled = true;
   lastResult = null;
   hideActionButtons();
-  result.innerHTML = '<div class="loading"><div class="spinner"></div><div class="loading-text">Extracting ' + type + ' context...</div></div>';
+  result.innerHTML = '<div class="loading"><div class="spinner"></div><div class="loading-text">Extracting ' + type + ' context (v2)...</div></div>';
 
   var start = Date.now();
   var interval = setInterval(function() {
@@ -544,7 +1287,14 @@ async function extract(type) {
     } else {
       lastResult = data;
       showActionButtons();
-      result.innerHTML = buildStats(data) + '<pre>' + syntaxHighlight(data) + '</pre>';
+      var structuredHtml = buildStructuredView(data);
+      var jsonHtml = '<pre>' + syntaxHighlight(data) + '</pre>';
+      result.innerHTML = '<div class="structured-view active">' + structuredHtml + '</div>' +
+                         '<div class="json-view">' + jsonHtml + '</div>';
+      currentView = 'structured';
+      document.querySelectorAll('.view-btn').forEach(function(b) {
+        b.classList.toggle('active', b.dataset.view === 'structured');
+      });
     }
   } catch (err) {
     clearInterval(interval);
@@ -563,8 +1313,9 @@ async function extract(type) {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log('');
-  console.log('  Context Engine - Web Demo');
-  console.log('  ─────────────────────────');
-  console.log('  http://localhost:' + PORT);
+  console.log('  Context Engine - Web Demo + API');
+  console.log('  ──────────────────────────────');
+  console.log('  UI:  http://localhost:' + PORT);
+  console.log('  API: http://localhost:' + PORT + '/api/graph/stats');
   console.log('');
 });

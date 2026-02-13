@@ -1,0 +1,14 @@
+{
+  "api_key": "ctx-dev-key-001",
+  "poll_interval_ms": 5000,
+  "api_model": "claude-sonnet-4-5-20250929",
+  "default_entity_type": "person",
+  "auto_merge": true,
+  "max_concurrent": 2,
+  "supported_extensions": [".txt", ".md"],
+  "entity_id_counter": {
+    "person": 1,
+    "business": 1,
+    "project": 1
+  }
+}

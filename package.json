@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node web-demo.js",
     "demo": "node web-demo.js",
+    "watch": "node watcher.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
