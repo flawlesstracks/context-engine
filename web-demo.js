@@ -772,6 +772,18 @@ app.get('/api/search', apiAuth, (req, res) => {
 
   const { similarity } = require('./merge-engine');
   const entities = listEntities(req.graphDir);
+
+  // Wildcard: return all entities
+  if (q === '*') {
+    const all = entities.map(({ data }) => {
+      const e = data.entity || {};
+      const type = e.entity_type;
+      const name = type === 'person' ? (e.name?.full || '') : (e.name?.common || e.name?.legal || '');
+      return { entity_id: e.entity_id, entity_type: type, name, summary: e.summary?.value || '', match_score: 1.0 };
+    });
+    return res.json({ query: q, count: all.length, results: all });
+  }
+
   const results = [];
 
   for (const { data } of entities) {
@@ -2358,6 +2370,576 @@ function showSummary(s) {
 </body>
 </html>`;
 
+// --- Wiki Dashboard ---
+
+app.get('/wiki', (req, res) => {
+  res.send(WIKI_HTML);
+});
+
+const WIKI_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wiki — Context Engine</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0a0a0f; color: #e0e0e0; height: 100vh; overflow: hidden;
+  }
+
+  /* --- Login --- */
+  #login-screen {
+    display: flex; align-items: center; justify-content: center;
+    height: 100vh; flex-direction: column; gap: 20px;
+  }
+  .login-card {
+    background: #12121a; border: 1px solid #1e1e2e; border-radius: 12px;
+    padding: 40px; width: 380px; text-align: center;
+  }
+  .login-card h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 6px; }
+  .login-card h1 span {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6, #a78bfa);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .login-card .subtitle { color: #6b7280; font-size: 0.9rem; margin-bottom: 24px; }
+  .login-card input {
+    width: 100%; padding: 10px 14px; background: #0a0a0f;
+    border: 1px solid #2a2a3e; border-radius: 8px; color: #e0e0e0;
+    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.9rem;
+    outline: none; margin-bottom: 14px;
+  }
+  .login-card input:focus { border-color: #6366f1; }
+  .login-error { color: #ef4444; font-size: 0.8rem; margin-bottom: 10px; display: none; }
+  .login-error.active { display: block; }
+  .btn {
+    width: 100%; padding: 12px; border: none; border-radius: 8px;
+    font-size: 0.95rem; font-weight: 600; cursor: pointer;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white;
+    transition: all 0.2s;
+  }
+  .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(99,102,241,0.3); }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+  /* --- App Layout --- */
+  #app { display: none; height: 100vh; }
+  #sidebar {
+    width: 280px; min-width: 280px; border-right: 1px solid #1e1e2e;
+    display: flex; flex-direction: column; background: #0d0d14;
+  }
+  .sidebar-header {
+    padding: 16px; border-bottom: 1px solid #1e1e2e;
+  }
+  .sidebar-header h2 {
+    font-size: 1rem; font-weight: 700; margin-bottom: 10px;
+  }
+  .sidebar-header h2 span {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6, #a78bfa);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  #searchInput {
+    width: 100%; padding: 8px 12px; background: #12121a;
+    border: 1px solid #1e1e2e; border-radius: 6px; color: #e0e0e0;
+    font-size: 0.82rem; outline: none;
+  }
+  #searchInput:focus { border-color: #6366f1; }
+  .sidebar-count {
+    padding: 6px 16px; font-size: 0.7rem; color: #4b5563;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    border-bottom: 1px solid #1e1e2e;
+  }
+  #entityList { flex: 1; overflow-y: auto; }
+  .entity-item {
+    padding: 10px 16px; cursor: pointer;
+    border-bottom: 1px solid rgba(30,30,46,0.5); transition: background 0.15s;
+  }
+  .entity-item:hover { background: rgba(99,102,241,0.05); }
+  .entity-item.active { background: rgba(99,102,241,0.1); border-left: 3px solid #6366f1; }
+  .entity-item-name { font-size: 0.85rem; font-weight: 600; color: #e0e0e0; margin-bottom: 2px; }
+  .entity-item-summary {
+    font-size: 0.72rem; color: #4b5563; line-height: 1.4;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .type-badge {
+    display: inline-block; font-size: 0.6rem; font-weight: 600;
+    padding: 1px 6px; border-radius: 3px; text-transform: uppercase;
+    letter-spacing: 0.03em; vertical-align: middle; margin-left: 6px;
+  }
+  .type-badge.person { background: rgba(139,92,246,0.15); color: #a78bfa; }
+  .type-badge.business { background: rgba(14,165,233,0.15); color: #38bdf8; }
+
+  /* --- Main Panel --- */
+  #main {
+    flex: 1; overflow-y: auto; padding: 28px 32px;
+  }
+  .empty-state {
+    display: flex; align-items: center; justify-content: center;
+    height: 100%; color: #3a3a4a; font-size: 0.95rem; text-align: center;
+    line-height: 1.7;
+  }
+  .detail-header { margin-bottom: 24px; }
+  .detail-header h2 { font-size: 1.5rem; font-weight: 700; color: #fff; display: inline; }
+  .entity-id-badge {
+    font-size: 0.7rem; color: #6366f1;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    background: rgba(99,102,241,0.1); padding: 2px 8px;
+    border-radius: 4px; margin-left: 8px; vertical-align: middle;
+  }
+
+  /* --- Sections --- */
+  .section {
+    background: #12121a; border: 1px solid #1e1e2e; border-radius: 10px;
+    padding: 16px; margin-bottom: 16px;
+  }
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .section-title {
+    font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; color: #6b7280;
+  }
+  .section-title-only { margin-bottom: 10px; }
+  .summary-text { font-size: 0.88rem; color: #9ca3af; line-height: 1.6; }
+  .summary-edit {
+    width: 100%; min-height: 70px; padding: 10px; background: #0a0a0f;
+    border: 1px solid #2a2a3e; border-radius: 6px; color: #e0e0e0;
+    font-family: inherit; font-size: 0.88rem; line-height: 1.6;
+    resize: vertical; outline: none;
+  }
+  .summary-edit:focus { border-color: #6366f1; }
+  .edit-actions { margin-top: 8px; display: flex; gap: 8px; }
+
+  /* --- Attributes, Relationships, Values --- */
+  .attr-row, .rel-row, .value-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 5px 0; font-size: 0.82rem; flex-wrap: wrap;
+  }
+  .attr-key {
+    color: #8b5cf6; font-weight: 600; min-width: 80px; flex-shrink: 0;
+  }
+  .attr-value { color: #e0e0e0; flex: 1; }
+  .rel-name { color: #e0e0e0; font-weight: 600; min-width: 100px; }
+  .rel-type {
+    color: #38bdf8; font-size: 0.75rem; background: rgba(14,165,233,0.1);
+    padding: 1px 6px; border-radius: 3px;
+  }
+  .rel-context { color: #6b7280; font-size: 0.78rem; flex: 1; }
+  .rel-sentiment {
+    font-size: 0.65rem; padding: 1px 6px; border-radius: 4px;
+  }
+  .sentiment-positive { background: rgba(52,211,153,0.12); color: #34d399; }
+  .sentiment-neutral { background: rgba(156,163,175,0.12); color: #9ca3af; }
+  .sentiment-strained { background: rgba(239,68,68,0.12); color: #ef4444; }
+  .value-text { color: #e0e0e0; }
+
+  /* --- Badges --- */
+  .badge {
+    display: inline-block; font-size: 0.6rem; font-weight: 600;
+    padding: 1px 6px; border-radius: 4px; text-transform: uppercase;
+    letter-spacing: 0.03em; white-space: nowrap; vertical-align: middle;
+  }
+  .badge-verified { background: rgba(52,211,153,0.15); color: #34d399; }
+  .badge-strong { background: rgba(96,165,250,0.15); color: #60a5fa; }
+  .badge-moderate { background: rgba(251,191,36,0.15); color: #fbbf24; }
+  .badge-speculative { background: rgba(251,146,60,0.15); color: #fb923c; }
+  .badge-uncertain { background: rgba(239,68,68,0.15); color: #ef4444; }
+  .badge-layer {
+    font-size: 0.58rem; padding: 1px 5px; border-radius: 3px;
+  }
+  .badge-layer-1 { background: rgba(52,211,153,0.1); color: #6ee7b7; }
+  .badge-layer-2 { background: rgba(96,165,250,0.1); color: #93c5fd; }
+  .badge-layer-3 { background: rgba(244,114,182,0.1); color: #f9a8d4; }
+
+  /* --- Observations --- */
+  .obs-card {
+    background: #0d0d14; border: 1px solid #1a1a2e; border-radius: 8px;
+    padding: 10px 12px; margin-bottom: 8px; transition: opacity 0.3s;
+  }
+  .obs-text { font-size: 0.84rem; color: #d1d5db; line-height: 1.5; margin-bottom: 6px; }
+  .obs-meta {
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    font-size: 0.7rem;
+  }
+  .obs-source {
+    color: #4b5563; font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.65rem;
+  }
+  .obs-date { color: #4b5563; font-size: 0.65rem; }
+  .obs-decay {
+    font-size: 0.6rem; color: #4b5563;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  .btn-delete {
+    background: none; border: 1px solid rgba(239,68,68,0.2); color: #ef4444;
+    font-size: 0.6rem; padding: 1px 6px; border-radius: 3px; cursor: pointer;
+    margin-left: auto; opacity: 0.5; transition: opacity 0.15s;
+  }
+  .btn-delete:hover { opacity: 1; background: rgba(239,68,68,0.1); }
+
+  /* --- Forms --- */
+  .add-obs-form { margin-top: 12px; }
+  .obs-textarea {
+    width: 100%; min-height: 56px; padding: 10px; background: #0a0a0f;
+    border: 1px solid #2a2a3e; border-radius: 6px; color: #e0e0e0;
+    font-family: inherit; font-size: 0.84rem; line-height: 1.5;
+    resize: vertical; outline: none; margin-bottom: 8px;
+  }
+  .obs-textarea:focus { border-color: #6366f1; }
+  .obs-form-row { display: flex; gap: 8px; align-items: center; }
+  .obs-form-row select {
+    padding: 6px 10px; background: #0a0a0f; border: 1px solid #2a2a3e;
+    border-radius: 6px; color: #e0e0e0; font-size: 0.78rem; outline: none;
+  }
+  .obs-form-row select:focus { border-color: #6366f1; }
+  .btn-sm {
+    padding: 4px 12px; border: 1px solid #2a2a3e; border-radius: 5px;
+    background: transparent; color: #6b7280; font-size: 0.72rem;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .btn-sm:hover { border-color: #6366f1; color: #a78bfa; }
+  .btn-add {
+    padding: 6px 16px; border: none; border-radius: 6px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white;
+    font-size: 0.78rem; font-weight: 600; cursor: pointer; transition: all 0.15s;
+  }
+  .btn-add:hover { transform: translateY(-1px); box-shadow: 0 2px 12px rgba(99,102,241,0.3); }
+  .btn-add:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-save {
+    padding: 4px 14px; border: none; border-radius: 5px;
+    background: #34d399; color: #0a0a0f; font-size: 0.72rem;
+    font-weight: 600; cursor: pointer;
+  }
+  .btn-cancel {
+    padding: 4px 14px; border: 1px solid #2a2a3e; border-radius: 5px;
+    background: transparent; color: #6b7280; font-size: 0.72rem; cursor: pointer;
+  }
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: #1a1a2e; border: 1px solid #2a2a3e; border-radius: 8px;
+    padding: 10px 18px; font-size: 0.82rem; color: #34d399;
+    display: none; z-index: 100; animation: fadeIn 0.2s;
+  }
+  .toast.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .sidebar-footer {
+    padding: 10px 16px; border-top: 1px solid #1e1e2e;
+    font-size: 0.7rem; color: #3a3a4a; text-align: center;
+  }
+  .sidebar-footer a { color: #4b5563; text-decoration: none; }
+  .sidebar-footer a:hover { color: #a78bfa; }
+</style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="login-screen">
+  <div class="login-card">
+    <h1><span>Context Engine</span></h1>
+    <p class="subtitle">Knowledge Graph Wiki</p>
+    <input type="password" id="apiKeyInput" placeholder="Enter API key (ctx-...)" />
+    <div class="login-error" id="loginError"></div>
+    <button class="btn" id="btnLogin" onclick="login()">Connect</button>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app">
+  <div id="sidebar">
+    <div class="sidebar-header">
+      <h2><span>Entities</span></h2>
+      <input type="text" id="searchInput" placeholder="Search entities..." oninput="onSearch()" />
+    </div>
+    <div class="sidebar-count" id="sidebarCount"></div>
+    <div id="entityList"></div>
+    <div class="sidebar-footer"><a href="/">&larr; Context Engine</a> &middot; <a href="/ingest">Import</a></div>
+  </div>
+  <div id="main">
+    <div class="empty-state" id="emptyState">Select an entity from the sidebar<br/>to view its knowledge graph profile</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var apiKey = '';
+var entities = [];
+var selectedId = null;
+var selectedData = null;
+var searchTimeout = null;
+
+function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+function api(method, path, body) {
+  var opts = {
+    method: method,
+    headers: { 'X-Context-API-Key': apiKey, 'X-Agent-Id': 'wiki-dashboard' },
+  };
+  if (body) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
+  return fetch(path, opts).then(function(r) {
+    if (!r.ok) return r.json().then(function(e) { throw new Error(e.error || 'Request failed'); });
+    return r.json();
+  });
+}
+
+function toast(msg) {
+  var el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('active');
+  setTimeout(function() { el.classList.remove('active'); }, 2000);
+}
+
+/* --- Login --- */
+function login() {
+  apiKey = document.getElementById('apiKeyInput').value.trim();
+  if (!apiKey) return;
+  document.getElementById('btnLogin').disabled = true;
+  api('GET', '/api/search?q=*').then(function(data) {
+    entities = data.results || [];
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    renderEntityList();
+  }).catch(function(err) {
+    var el = document.getElementById('loginError');
+    el.textContent = err.message; el.classList.add('active');
+    document.getElementById('btnLogin').disabled = false;
+  });
+}
+document.getElementById('apiKeyInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') login();
+});
+
+/* --- Sidebar --- */
+function onSearch() {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(function() {
+    var q = document.getElementById('searchInput').value.trim() || '*';
+    api('GET', '/api/search?q=' + encodeURIComponent(q)).then(function(data) {
+      entities = data.results || [];
+      renderEntityList();
+    });
+  }, 250);
+}
+
+function renderEntityList() {
+  var html = '';
+  for (var i = 0; i < entities.length; i++) {
+    var e = entities[i];
+    var cls = e.entity_id === selectedId ? 'entity-item active' : 'entity-item';
+    html += '<div class="' + cls + '" onclick="selectEntity(\\'' + esc(e.entity_id) + '\\')">';
+    html += '<div><span class="entity-item-name">' + esc(e.name) + '</span>';
+    html += '<span class="type-badge ' + e.entity_type + '">' + e.entity_type + '</span></div>';
+    if (e.summary) html += '<div class="entity-item-summary">' + esc(e.summary) + '</div>';
+    html += '</div>';
+  }
+  document.getElementById('entityList').innerHTML = html || '<div style="padding:16px;color:#3a3a4a;font-size:0.82rem;">No entities found</div>';
+  document.getElementById('sidebarCount').textContent = entities.length + ' entit' + (entities.length === 1 ? 'y' : 'ies');
+}
+
+/* --- Entity Detail --- */
+function selectEntity(id) {
+  selectedId = id;
+  document.getElementById('emptyState').style.display = 'none';
+  api('GET', '/api/entity/' + id).then(function(data) {
+    selectedData = data;
+    renderDetail(data);
+    renderEntityList();
+  });
+}
+
+function confidenceBadge(conf, label) {
+  if (conf == null && !label) return '';
+  var cls = 'badge-moderate'; var lbl = label || '';
+  if (conf >= 0.90 || lbl === 'VERIFIED') { cls = 'badge-verified'; lbl = lbl || 'VERIFIED'; }
+  else if (conf >= 0.75 || lbl === 'STRONG') { cls = 'badge-strong'; lbl = lbl || 'STRONG'; }
+  else if (conf >= 0.50 || lbl === 'MODERATE') { cls = 'badge-moderate'; lbl = lbl || 'MODERATE'; }
+  else if (conf >= 0.25 || lbl === 'SPECULATIVE') { cls = 'badge-speculative'; lbl = lbl || 'SPECULATIVE'; }
+  else { cls = 'badge-uncertain'; lbl = lbl || 'UNCERTAIN'; }
+  return ' <span class="badge ' + cls + '">' + lbl + (conf != null ? ' ' + conf.toFixed(2) : '') + '</span>';
+}
+
+function layerBadge(layer) {
+  if (!layer) return '';
+  var labels = { 1: 'Objective', 2: 'Group', 3: 'Personal' };
+  return ' <span class="badge badge-layer badge-layer-' + layer + '">L' + layer + ' ' + (labels[layer] || '') + '</span>';
+}
+
+function sentimentBadge(s) {
+  if (!s) return '';
+  var cls = 'sentiment-neutral';
+  if (s === 'positive') cls = 'sentiment-positive';
+  else if (s === 'strained') cls = 'sentiment-strained';
+  return ' <span class="rel-sentiment ' + cls + '">' + esc(s) + '</span>';
+}
+
+function calcDecay(observedAt) {
+  if (!observedAt) return 1;
+  var days = Math.max(0, (Date.now() - new Date(observedAt).getTime()) / 86400000);
+  return Math.exp(-0.03 * days);
+}
+
+function renderDetail(data) {
+  var e = data.entity || {};
+  var type = e.entity_type || '';
+  var name = type === 'person' ? (e.name?.full || '') : (e.name?.common || e.name?.legal || '');
+  var summary = e.summary?.value || '';
+  var meta = data.extraction_metadata || {};
+  var h = '';
+
+  // Header
+  h += '<div class="detail-header">';
+  h += '<h2>' + esc(name) + '</h2>';
+  h += '<span class="type-badge ' + type + '">' + type + '</span>';
+  h += '<span class="entity-id-badge">' + esc(e.entity_id || '') + '</span>';
+  h += confidenceBadge(meta.extraction_confidence);
+  h += '</div>';
+
+  // Summary
+  h += '<div class="section">';
+  h += '<div class="section-header"><span class="section-title">Summary</span>';
+  h += '<button class="btn-sm" id="btnEditSummary" onclick="toggleSummaryEdit()">Edit</button></div>';
+  h += '<div id="summaryDisplay" class="summary-text">' + esc(summary) + '</div>';
+  h += '<div id="summaryEditSection" style="display:none">';
+  h += '<textarea class="summary-edit" id="summaryEdit">' + esc(summary) + '</textarea>';
+  h += '<div class="edit-actions"><button class="btn-save" onclick="saveSummary()">Save</button>';
+  h += '<button class="btn-cancel" onclick="toggleSummaryEdit()">Cancel</button></div>';
+  h += '</div></div>';
+
+  // Attributes
+  var attrs = data.attributes || [];
+  if (attrs.length > 0) {
+    h += '<div class="section"><div class="section-title section-title-only">Attributes</div>';
+    for (var i = 0; i < attrs.length; i++) {
+      var a = attrs[i];
+      h += '<div class="attr-row"><span class="attr-key">' + esc(a.key) + '</span>';
+      h += '<span class="attr-value">' + esc(String(a.value || '')) + '</span>';
+      h += confidenceBadge(a.confidence, a.confidence_label);
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  // Relationships
+  var rels = data.relationships || [];
+  if (rels.length > 0) {
+    h += '<div class="section"><div class="section-title section-title-only">Relationships</div>';
+    for (var i = 0; i < rels.length; i++) {
+      var r = rels[i];
+      h += '<div class="rel-row"><span class="rel-name">' + esc(r.name) + '</span>';
+      h += '<span class="rel-type">' + esc(r.relationship_type || '') + '</span>';
+      if (r.context) h += '<span class="rel-context">' + esc(r.context) + '</span>';
+      h += sentimentBadge(r.sentiment);
+      h += confidenceBadge(r.confidence, r.confidence_label);
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  // Values
+  var vals = data.values || [];
+  if (vals.length > 0) {
+    h += '<div class="section"><div class="section-title section-title-only">Values</div>';
+    for (var i = 0; i < vals.length; i++) {
+      h += '<div class="value-item"><span class="value-text">' + esc(vals[i].value || '') + '</span>';
+      h += confidenceBadge(vals[i].confidence, vals[i].confidence_label);
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  // Observations
+  var obs = (data.observations || []).slice().sort(function(a, b) {
+    return new Date(b.observed_at || 0) - new Date(a.observed_at || 0);
+  });
+  h += '<div class="section"><div class="section-title section-title-only">Observations (' + obs.length + ')</div>';
+  if (obs.length === 0) {
+    h += '<div style="color:#3a3a4a;font-size:0.82rem;padding:8px 0;">No observations yet</div>';
+  }
+  for (var i = 0; i < obs.length; i++) {
+    var o = obs[i];
+    var decay = calcDecay(o.observed_at);
+    var opacity = Math.max(0.35, decay);
+    h += '<div class="obs-card" style="opacity:' + opacity.toFixed(2) + '">';
+    h += '<div class="obs-text">' + esc(o.observation) + '</div>';
+    h += '<div class="obs-meta">';
+    h += confidenceBadge(o.confidence, o.confidence_label);
+    h += layerBadge(o.layer_number);
+    if (o.source) h += '<span class="obs-source">' + esc(o.source) + '</span>';
+    h += '<span class="obs-date">' + esc((o.observed_at || '').slice(0, 10)) + '</span>';
+    h += '<span class="obs-decay">' + (decay * 100).toFixed(0) + '% weight</span>';
+    h += '<button class="btn-delete" data-id="' + esc(o.observation_id || '') + '" onclick="deleteObs(this.dataset.id)">delete</button>';
+    h += '</div></div>';
+  }
+  h += '</div>';
+
+  // Add Observation Form
+  h += '<div class="section"><div class="section-title section-title-only">Add Observation</div>';
+  h += '<div class="add-obs-form">';
+  h += '<textarea class="obs-textarea" id="obsText" placeholder="What did you learn about this entity?"></textarea>';
+  h += '<div class="obs-form-row">';
+  h += '<select id="obsConfidence"><option value="VERIFIED">Verified</option>';
+  h += '<option value="STRONG" selected>Strong</option><option value="MODERATE">Moderate</option>';
+  h += '<option value="SPECULATIVE">Speculative</option><option value="UNCERTAIN">Uncertain</option></select>';
+  h += '<select id="obsLayer"><option value="L1_OBJECTIVE">L1 Objective</option>';
+  h += '<option value="L2_GROUP" selected>L2 Group</option><option value="L3_PERSONAL">L3 Personal</option></select>';
+  h += '<button class="btn-add" id="btnAddObs" onclick="addObs()">Add Observation</button>';
+  h += '</div></div></div>';
+
+  document.getElementById('main').innerHTML = h;
+}
+
+/* --- Actions --- */
+function toggleSummaryEdit() {
+  var d = document.getElementById('summaryDisplay');
+  var e = document.getElementById('summaryEditSection');
+  if (e.style.display === 'none') {
+    e.style.display = 'block'; d.style.display = 'none';
+  } else {
+    e.style.display = 'none'; d.style.display = 'block';
+  }
+}
+
+function saveSummary() {
+  var val = document.getElementById('summaryEdit').value;
+  api('PATCH', '/api/entity/' + selectedId, { summary: val }).then(function() {
+    toast('Summary updated');
+    selectEntity(selectedId);
+  }).catch(function(err) { toast('Error: ' + err.message); });
+}
+
+function addObs() {
+  var text = document.getElementById('obsText').value.trim();
+  if (!text) return;
+  document.getElementById('btnAddObs').disabled = true;
+  api('POST', '/api/observe', {
+    entity_id: selectedId,
+    observation: text,
+    confidence_label: document.getElementById('obsConfidence').value,
+    facts_layer: document.getElementById('obsLayer').value,
+  }).then(function() {
+    toast('Observation added');
+    selectEntity(selectedId);
+  }).catch(function(err) {
+    toast('Error: ' + err.message);
+    document.getElementById('btnAddObs').disabled = false;
+  });
+}
+
+function deleteObs(obsId) {
+  if (!obsId || !confirm('Delete this observation?')) return;
+  api('DELETE', '/api/observe/' + obsId).then(function() {
+    toast('Observation deleted');
+    selectEntity(selectedId);
+  }).catch(function(err) { toast('Error: ' + err.message); });
+}
+</script>
+</body>
+</html>`;
+
 // --- Start server ---
 
 const PORT = process.env.PORT || 3000;
@@ -2366,6 +2948,7 @@ app.listen(PORT, () => {
   console.log('  Context Engine - Web Demo + API');
   console.log('  ──────────────────────────────');
   console.log('  UI:     http://localhost:' + PORT);
+  console.log('  Wiki:   http://localhost:' + PORT + '/wiki');
   console.log('  Import: http://localhost:' + PORT + '/ingest');
   console.log('  API:    http://localhost:' + PORT + '/api/graph/stats');
   console.log('  Graph:  ' + GRAPH_DIR + (GRAPH_IS_PERSISTENT ? ' (persistent disk)' : ' (local)'));
