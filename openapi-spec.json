@@ -653,7 +653,7 @@
       "post": {
         "operationId": "ingestChatGPT",
         "summary": "Import ChatGPT conversation history",
-        "description": "Parses a ChatGPT data export, extracts user messages only (assistant/system messages are skipped), batches 10 conversations at a time through Claude for entity extraction, and merges results into the authenticated tenant's graph. Entities appearing across multiple conversations are deduplicated via the merge engine. Each observation gets source 'chatgpt_import', confidence_label 'MODERATE', and the conversation's create_time as observed_at. Re-importing the same file is safe — duplicate observations are skipped. Response is streamed as newline-delimited JSON (NDJSON) with progress events per batch.",
+        "description": "Imports a ChatGPT export. Extracts user messages, batches 10 conversations through Claude for entity extraction, deduplicates via merge engine, and streams NDJSON progress events. Observations get source 'chatgpt_import' and confidence MODERATE. Safe to re-import.",
         "requestBody": {
           "required": true,
           "content": {
