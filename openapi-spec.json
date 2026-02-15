@@ -1,0 +1,554 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Context Engine API",
+    "description": "Context Architecture's knowledge graph API. Extracts structured context from unstructured text, stores entity profiles with six metadata layers (confidence, time decay, facts layers, entity IDs, constraints, actions), and accepts real-time observations that decay over time.",
+    "version": "2.0.0",
+    "contact": {
+      "name": "CJ Mitchell",
+      "url": "https://github.com/flawlesstracks/context-engine"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://context-engine-nw4l.onrender.com",
+      "description": "Production (Render)"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "X-Context-API-Key",
+        "description": "API key for authenticating requests. Pass via X-Context-API-Key header."
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message"
+          }
+        },
+        "required": ["error"]
+      },
+      "SearchResult": {
+        "type": "object",
+        "properties": {
+          "entity_id": {
+            "type": "string",
+            "example": "ENT-CJM-001"
+          },
+          "entity_type": {
+            "type": "string",
+            "enum": ["person", "business"]
+          },
+          "name": {
+            "type": "string",
+            "example": "CJ Mitchell"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "match_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "example": 0.85
+          }
+        }
+      },
+      "SearchResponse": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "count": {
+            "type": "integer"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SearchResult"
+            }
+          }
+        }
+      },
+      "EntitySummary": {
+        "type": "object",
+        "properties": {
+          "entity_id": {
+            "type": "string",
+            "example": "ENT-CJM-001"
+          },
+          "entity_type": {
+            "type": "string",
+            "enum": ["person", "business"]
+          },
+          "name": {
+            "type": "string",
+            "example": "CJ Mitchell"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number",
+            "nullable": true,
+            "example": 0.92
+          },
+          "last_updated": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "attributes_count": {
+            "type": "integer"
+          },
+          "relationships_count": {
+            "type": "integer"
+          },
+          "key_facts_count": {
+            "type": "integer"
+          }
+        }
+      },
+      "WeightedObservation": {
+        "type": "object",
+        "properties": {
+          "observation_id": {
+            "type": "string",
+            "example": "OBS-ENT-CJM-001-20260215194818-001"
+          },
+          "observation": {
+            "type": "string",
+            "example": "CJ started the Semi-LoRA MVP weekend build"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "example": 1.0
+          },
+          "confidence_label": {
+            "type": "string",
+            "enum": ["VERIFIED", "STRONG", "MODERATE", "SPECULATIVE", "UNCERTAIN"]
+          },
+          "facts_layer": {
+            "type": "string",
+            "enum": ["L1_OBJECTIVE", "L2_GROUP", "L3_PERSONAL"]
+          },
+          "layer_number": {
+            "type": "integer",
+            "enum": [1, 2, 3]
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "observed_by": {
+            "type": "string",
+            "example": "claude-agent"
+          },
+          "source": {
+            "type": "string",
+            "nullable": true,
+            "example": "direct conversation"
+          },
+          "days_since": {
+            "type": "number",
+            "description": "Days since observation was recorded",
+            "example": 2.45
+          },
+          "time_decay_factor": {
+            "type": "number",
+            "description": "Exponential decay factor: exp(-0.03 * days_since)",
+            "example": 0.929
+          },
+          "relevance_weight": {
+            "type": "number",
+            "description": "confidence * time_decay_factor",
+            "example": 0.929
+          }
+        }
+      },
+      "EntityProfile": {
+        "type": "object",
+        "properties": {
+          "attributes_count": {
+            "type": "integer"
+          },
+          "relationships_count": {
+            "type": "integer"
+          },
+          "values_count": {
+            "type": "integer"
+          },
+          "key_facts_count": {
+            "type": "integer"
+          },
+          "constraints_count": {
+            "type": "integer"
+          },
+          "confidence": {
+            "type": "number",
+            "nullable": true,
+            "example": 0.92
+          }
+        }
+      },
+      "ContextResponse": {
+        "type": "object",
+        "properties": {
+          "entity_id": {
+            "type": "string",
+            "example": "ENT-CJM-001"
+          },
+          "entity_type": {
+            "type": "string",
+            "enum": ["person", "business"]
+          },
+          "name": {
+            "type": "string",
+            "example": "CJ Mitchell"
+          },
+          "entity_summary": {
+            "type": "string",
+            "description": "Base entity summary from extraction"
+          },
+          "context_summary": {
+            "type": "string",
+            "description": "Entity summary concatenated with top 5 weighted observations in natural language"
+          },
+          "observation_count": {
+            "type": "integer",
+            "description": "Total number of observations on this entity"
+          },
+          "observations": {
+            "type": "array",
+            "description": "Top 20 observations sorted by relevance_weight descending",
+            "items": {
+              "$ref": "#/components/schemas/WeightedObservation"
+            }
+          },
+          "profile": {
+            "$ref": "#/components/schemas/EntityProfile"
+          }
+        }
+      },
+      "ObserveRequest": {
+        "type": "object",
+        "required": ["entity_id", "observation", "confidence_label", "facts_layer"],
+        "properties": {
+          "entity_id": {
+            "type": "string",
+            "description": "The entity to attach this observation to. Must exist in the graph.",
+            "example": "ENT-CJM-001"
+          },
+          "observation": {
+            "type": "string",
+            "description": "The observation text to record",
+            "example": "CJ started the Semi-LoRA MVP weekend build"
+          },
+          "confidence_label": {
+            "type": "string",
+            "enum": ["VERIFIED", "STRONG", "MODERATE", "SPECULATIVE", "UNCERTAIN"],
+            "description": "Confidence level. Maps to numeric scores: VERIFIED=1.0, STRONG=0.8, MODERATE=0.6, SPECULATIVE=0.4, UNCERTAIN=0.2"
+          },
+          "facts_layer": {
+            "type": "string",
+            "enum": ["L1_OBJECTIVE", "L2_GROUP", "L3_PERSONAL"],
+            "description": "Which facts layer this observation belongs to. L1=objective/verifiable, L2=group consensus, L3=personal/subjective"
+          },
+          "source": {
+            "type": "string",
+            "nullable": true,
+            "description": "Where this observation came from",
+            "example": "direct conversation"
+          }
+        }
+      },
+      "Observation": {
+        "type": "object",
+        "properties": {
+          "observation_id": {
+            "type": "string",
+            "description": "Auto-generated unique ID in format OBS-{entity_id}-{timestamp}-{seq}",
+            "example": "OBS-ENT-CJM-001-20260215194818-001"
+          },
+          "observation": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number",
+            "description": "Numeric confidence score mapped from confidence_label"
+          },
+          "confidence_label": {
+            "type": "string",
+            "enum": ["VERIFIED", "STRONG", "MODERATE", "SPECULATIVE", "UNCERTAIN"]
+          },
+          "facts_layer": {
+            "type": "string",
+            "enum": ["L1_OBJECTIVE", "L2_GROUP", "L3_PERSONAL"]
+          },
+          "layer_number": {
+            "type": "integer",
+            "enum": [1, 2, 3]
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Server-generated timestamp"
+          },
+          "observed_by": {
+            "type": "string",
+            "description": "Value of X-Agent-ID header, defaults to 'external'"
+          },
+          "source": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "ObserveResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["created"]
+          },
+          "entity_id": {
+            "type": "string"
+          },
+          "observation": {
+            "$ref": "#/components/schemas/Observation"
+          }
+        }
+      }
+    }
+  },
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ],
+  "paths": {
+    "/api/search": {
+      "get": {
+        "operationId": "searchEntities",
+        "summary": "Fuzzy search entities in the knowledge graph",
+        "description": "Searches entity names, aliases, attributes, and summaries using Dice coefficient similarity. Returns results sorted by match_score descending. Minimum threshold is 0.3.",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Search query string",
+            "example": "CJ Mitchell"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Search results",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing query parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entity/{id}/summary": {
+      "get": {
+        "operationId": "getEntitySummary",
+        "summary": "Get a lightweight entity summary",
+        "description": "Returns a compact summary of an entity including name, type, summary text, confidence score, and counts of attributes, relationships, and key facts.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Entity ID",
+            "example": "ENT-CJM-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Entity summary",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntitySummary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Entity not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entity/{id}/context": {
+      "get": {
+        "operationId": "getEntityContext",
+        "summary": "Get entity profile with weighted observations",
+        "description": "Returns the entity profile plus up to 20 most recent observations, each scored with relevance_weight = confidence * exp(-0.03 * days_since_observation). Includes a context_summary that concatenates the entity summary with the top 5 weighted observations in natural language. Use this endpoint to get the full context for an entity before responding to questions about them.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Entity ID",
+            "example": "ENT-CJM-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Entity context with weighted observations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContextResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Entity not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/observe": {
+      "post": {
+        "operationId": "addObservation",
+        "summary": "Append an observation to an existing entity",
+        "description": "Records a new observation about an entity. The observation gets a unique ID (OBS-{entity_id}-{timestamp}-{seq}), a numeric confidence score mapped from the label, and is appended to the entity's observations array. The observation is also logged to the entity's provenance chain. Use this after every conversation to record what you learned about the person or business.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ObserveRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Observation created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ObserveResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error (missing fields, invalid confidence_label or facts_layer)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Entity not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
