@@ -1,0 +1,90 @@
+[
+  {
+    "title": "Q4 product launch planning",
+    "create_time": 1706800000.0,
+    "mapping": {
+      "sys-1": {
+        "message": {
+          "author": { "role": "system" },
+          "content": { "parts": ["You are a helpful assistant."] },
+          "create_time": 1706800000.0
+        }
+      },
+      "msg-1": {
+        "message": {
+          "author": { "role": "user" },
+          "content": { "parts": ["I just got out of a planning call with Dana Reeves. She's our VP of Product at Orion Dynamics and she wants to move the Q4 launch up by three weeks. She thinks the ML features are ready but wants Raj Patel from engineering to sign off on the load testing first."] },
+          "create_time": 1706800010.0
+        }
+      },
+      "msg-2": {
+        "message": {
+          "author": { "role": "assistant" },
+          "content": { "parts": ["That's an aggressive timeline shift. Let me help you think through the dependencies..."] },
+          "create_time": 1706800020.0
+        }
+      },
+      "msg-3": {
+        "message": {
+          "author": { "role": "user" },
+          "content": { "parts": ["Yeah the main risk is that Raj Patel hasn't finished the stress tests on the new inference cluster. Dana is pushing hard because the board presentation to investors is December 10th and she wants live numbers. Orion Dynamics has been promising this feature since last spring."] },
+          "create_time": 1706800030.0
+        }
+      }
+    }
+  },
+  {
+    "title": "Debugging session with Raj",
+    "create_time": 1707000000.0,
+    "mapping": {
+      "msg-1": {
+        "message": {
+          "author": { "role": "user" },
+          "content": { "parts": ["Raj Patel found a memory leak in the inference pipeline today. He's been at Orion Dynamics for about 4 years and this is the first time he's seen the GPU utilization spike like that. He thinks it might be related to the batching logic that Tomas Eriksson wrote last month."] },
+          "create_time": 1707000010.0
+        }
+      },
+      "msg-2": {
+        "message": {
+          "author": { "role": "assistant" },
+          "content": { "parts": ["A memory leak in the inference pipeline could definitely explain the GPU spikes..."] },
+          "create_time": 1707000020.0
+        }
+      },
+      "msg-3": {
+        "message": {
+          "author": { "role": "user" },
+          "content": { "parts": ["Tomas Eriksson is a senior backend engineer. He joined Orion Dynamics from Spotify about 8 months ago. He's great at distributed systems but still learning the ML stack. Raj is mentoring him on the GPU stuff."] },
+          "create_time": 1707000030.0
+        }
+      }
+    }
+  },
+  {
+    "title": "Board prep with Dana",
+    "create_time": 1707200000.0,
+    "mapping": {
+      "msg-1": {
+        "message": {
+          "author": { "role": "user" },
+          "content": { "parts": ["Dana Reeves just sent over the draft deck for the board presentation. She included the revenue projections that show Orion Dynamics hitting $12M ARR by Q2. She credited Raj Patel's team for getting the inference latency under 50ms which is the key selling point."] },
+          "create_time": 1707200010.0
+        }
+      },
+      "msg-2": {
+        "message": {
+          "author": { "role": "assistant" },
+          "content": { "parts": ["Those are strong numbers. Let me help you review the deck..."] },
+          "create_time": 1707200020.0
+        }
+      },
+      "msg-3": {
+        "message": {
+          "author": { "role": "user" },
+          "content": { "parts": ["One thing I want to flag — Dana mentioned that Priya Sharma from the advisory board wants to see customer retention metrics too, not just ARR. Priya runs a VC firm called Canopy Ventures and she's been pushing for more unit economics in the pitch. Dana agrees it's a good idea."] },
+          "create_time": 1707200030.0
+        }
+      }
+    }
+  }
+]
