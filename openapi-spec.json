@@ -328,6 +328,124 @@
             "$ref": "#/components/schemas/Observation"
           }
         }
+      },
+      "CreateEntityRequest": {
+        "type": "object",
+        "required": ["entity_type", "name"],
+        "properties": {
+          "entity_type": {
+            "type": "string",
+            "enum": ["person", "business"],
+            "description": "Type of entity to create"
+          },
+          "name": {
+            "type": "object",
+            "description": "Entity name. For person: use 'full'. For business: use 'common' or 'legal'.",
+            "properties": {
+              "full": { "type": "string", "example": "Tariq Adams" },
+              "preferred": { "type": "string" },
+              "common": { "type": "string" },
+              "legal": { "type": "string" },
+              "aliases": { "type": "array", "items": { "type": "string" } }
+            }
+          },
+          "summary": {
+            "type": "string",
+            "description": "Brief description of the entity"
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Key-value pairs like role, location, expertise",
+            "additionalProperties": {}
+          },
+          "relationships": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "relationship": { "type": "string" },
+                "context": { "type": "string" }
+              }
+            }
+          },
+          "values": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "source": {
+            "type": "string",
+            "description": "Where this data came from"
+          }
+        }
+      },
+      "CreateEntityResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "enum": ["created"] },
+          "entity_id": { "type": "string", "example": "ENT-TA-001" },
+          "entity_type": { "type": "string" },
+          "name": { "type": "string" }
+        }
+      },
+      "UpdateEntityRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "object",
+            "description": "Updated name fields to merge",
+            "properties": {
+              "full": { "type": "string" },
+              "preferred": { "type": "string" },
+              "common": { "type": "string" },
+              "legal": { "type": "string" }
+            }
+          },
+          "summary": {
+            "type": "string",
+            "description": "Updated summary text"
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Attributes to add or update by key",
+            "additionalProperties": {}
+          },
+          "relationships": {
+            "type": "array",
+            "description": "Relationships to add or update (matched by name)",
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "relationship": { "type": "string" },
+                "context": { "type": "string" }
+              }
+            }
+          },
+          "values": {
+            "type": "array",
+            "description": "Values to add (deduped by text)",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "UpdateEntityResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "enum": ["updated"] },
+          "entity_id": { "type": "string" },
+          "changes": { "type": "array", "items": { "type": "string" } },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "DeleteObservationResponse": {
+        "type": "object",
+        "properties": {
+          "status": { "type": "string", "enum": ["deleted"] },
+          "observation_id": { "type": "string" },
+          "entity_id": { "type": "string" },
+          "deleted_observation": { "$ref": "#/components/schemas/Observation" }
+        }
       }
     }
   },
@@ -529,6 +647,173 @@
           },
           "404": {
             "description": "Entity not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entity": {
+      "post": {
+        "operationId": "createEntity",
+        "summary": "Create a new entity with auto-generated ID",
+        "description": "Creates a person or business entity. Auto-generates ENT-{initials}-{seq} ID. Returns 409 if a similar name already exists. Initializes empty observations array.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEntityRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Entity created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateEntityResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid required fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Entity with similar name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/entity/{id}": {
+      "patch": {
+        "operationId": "updateEntity",
+        "summary": "Merge-update entity fields",
+        "description": "Merges provided fields into an existing entity. Updates attributes by key, deduplicates relationships by name, appends new values. Logs all changes to provenance chain.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Entity ID",
+            "example": "ENT-CJM-001"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEntityRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Entity updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateEntityResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Entity not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/observe/{id}": {
+      "delete": {
+        "operationId": "deleteObservation",
+        "summary": "Delete a specific observation by ID",
+        "description": "Searches all entities to find and remove the observation. Logs deletion to provenance chain. Returns the deleted observation.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Observation ID",
+            "example": "OBS-ENT-CJM-001-20260215194818-001"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Observation deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeleteObservationResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Observation not found",
             "content": {
               "application/json": {
                 "schema": {

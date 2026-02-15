@@ -164,6 +164,10 @@ function loadConfig() {
   return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
 }
 
+function saveConfig(config) {
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2) + '\n');
+}
+
 function readEntity(entityId) {
   const filePath = path.join(GRAPH_DIR, `${entityId}.json`);
   if (!fs.existsSync(filePath)) return null;
@@ -333,167 +337,111 @@ app.get('/api/search', apiAuth, (req, res) => {
   res.json({ query: q, count: results.length, results });
 });
 
-// PATCH /api/entity/:id — Update fields (the magic endpoint)
+// PATCH /api/entity/:id — Merge-update entity fields
 app.patch('/api/entity/:id', apiAuth, (req, res) => {
   const entity = readEntity(req.params.id);
   if (!entity) return res.status(404).json({ error: 'Entity not found' });
 
-  const { source, updates } = req.body;
-  if (!updates || !Array.isArray(updates)) {
-    return res.status(400).json({ error: 'Missing or invalid updates array' });
+  const now = new Date().toISOString();
+  const updates = req.body;
+  const changes = [];
+
+  // Merge into entity.entity (name, summary, entity_type)
+  if (updates.name && entity.entity) {
+    Object.assign(entity.entity.name || {}, updates.name);
+    changes.push('updated name');
+  }
+  if (updates.summary != null && entity.entity) {
+    if (typeof entity.entity.summary === 'object') {
+      entity.entity.summary.value = updates.summary;
+    } else {
+      entity.entity.summary = { value: updates.summary, confidence: 0.8 };
+    }
+    changes.push('updated summary');
   }
 
-  const now = new Date().toISOString();
-  const agentId = req.agentId;
-  const changes = [];
-  let applied = 0;
-  let rejected = 0;
-
-  for (const update of updates) {
-    const { path: updatePath, action, value, target_id, new_confidence, new_sentiment, reason, confidence } = update;
-
-    try {
-      if (action === 'add') {
-        // Add new item to the specified array
-        const arr = entity[updatePath];
-        if (!Array.isArray(arr)) { rejected++; continue; }
-        arr.push(value);
-        changes.push(`added ${value.attribute_id || value.relationship_id || value.fact_id || 'item'} to ${updatePath}`);
-        applied++;
-
-      } else if (action === 'update_confidence') {
-        // Update confidence on existing item
-        const arr = entity[updatePath];
-        if (!Array.isArray(arr)) { rejected++; continue; }
-        const item = arr.find(i =>
-          i.attribute_id === target_id || i.relationship_id === target_id ||
-          i.fact_id === target_id || i.value_id === target_id || i.project_id === target_id
-        );
-        if (!item) { rejected++; continue; }
-        const old = item.confidence;
-        item.confidence = new_confidence;
-        // Update label
-        if (new_confidence >= 0.90) item.confidence_label = 'VERIFIED';
-        else if (new_confidence >= 0.75) item.confidence_label = 'STRONG';
-        else if (new_confidence >= 0.50) item.confidence_label = 'MODERATE';
-        else if (new_confidence >= 0.25) item.confidence_label = 'SPECULATIVE';
-        else item.confidence_label = 'UNCERTAIN';
-        changes.push(`updated ${target_id} confidence ${old}→${new_confidence}${reason ? ': ' + reason : ''}`);
-        applied++;
-
-      } else if (action === 'update_sentiment') {
-        // Update relationship sentiment
-        const rels = entity.relationships;
-        if (!Array.isArray(rels)) { rejected++; continue; }
-        const rel = rels.find(r => r.relationship_id === target_id);
-        if (!rel) { rejected++; continue; }
-        const old = rel.sentiment;
-        rel.sentiment = new_sentiment;
-        if (confidence) rel.confidence = confidence;
-        changes.push(`updated ${target_id} sentiment ${old}→${new_sentiment}${reason ? ': ' + reason : ''}`);
-        applied++;
-
-      } else if (action === 'update_value') {
-        // Update the actual value of an attribute
-        const arr = entity[updatePath];
-        if (!Array.isArray(arr)) { rejected++; continue; }
-        const item = arr.find(i =>
-          i.attribute_id === target_id || i.fact_id === target_id
-        );
-        if (!item) { rejected++; continue; }
-        // Move old value to provenance
-        if (!entity.provenance_chain) entity.provenance_chain = { merge_history: [] };
-        entity.provenance_chain.merge_history.push({
-          merged_at: now,
-          merged_by: agentId,
-          changes: [{ type: 'value_updated', target_id, old_value: item.value, new_value: value }],
-        });
-        item.value = value;
-        if (confidence) item.confidence = confidence;
-        changes.push(`updated ${target_id} value to "${value}"`);
-        applied++;
-
-      } else if (action === 'deprecate') {
-        // Mark data point as deprecated
-        const arr = entity[updatePath];
-        if (!Array.isArray(arr)) { rejected++; continue; }
-        const item = arr.find(i =>
-          i.attribute_id === target_id || i.relationship_id === target_id ||
-          i.fact_id === target_id || i.value_id === target_id
-        );
-        if (!item) { rejected++; continue; }
-        item.confidence = 0.10;
-        item.confidence_label = 'UNCERTAIN';
-        item.deprecated = true;
-        changes.push(`deprecated ${target_id}${reason ? ': ' + reason : ''}`);
-        applied++;
-
-      } else if (action === 'verify') {
-        // Confirm existing data — bump confidence by +0.10 (cap 0.98)
-        const arr = entity[updatePath];
-        if (!Array.isArray(arr)) { rejected++; continue; }
-        const item = arr.find(i =>
-          i.attribute_id === target_id || i.relationship_id === target_id ||
-          i.fact_id === target_id || i.value_id === target_id
-        );
-        if (!item) { rejected++; continue; }
-        const old = item.confidence;
-        item.confidence = Math.min(0.98, (item.confidence || 0) + 0.10);
-        if (item.confidence >= 0.90) item.confidence_label = 'VERIFIED';
-        changes.push(`verified ${target_id} confidence ${old}→${item.confidence}`);
-        applied++;
-
-      } else {
-        rejected++;
+  // Merge attributes (append new ones, update existing by key)
+  if (updates.attributes && entity.attributes) {
+    if (typeof updates.attributes === 'object' && !Array.isArray(updates.attributes)) {
+      // Object form: { role: "new value", location: "new value" }
+      for (const [key, value] of Object.entries(updates.attributes)) {
+        const existing = entity.attributes.find(a => a.key === key);
+        if (existing) {
+          existing.value = value;
+          existing.confidence = 0.8;
+          existing.confidence_label = 'STRONG';
+          changes.push(`updated attribute ${key}`);
+        } else {
+          entity.attributes.push({
+            attribute_id: `ATTR-${String(entity.attributes.length + 1).padStart(3, '0')}`,
+            key, value, confidence: 0.8, confidence_label: 'STRONG',
+            time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+            source_attribution: { facts_layer: 2, layer_label: 'group' },
+          });
+          changes.push(`added attribute ${key}`);
+        }
       }
-    } catch {
-      rejected++;
     }
   }
 
-  // Add provenance entry
+  // Merge relationships (append new, dedup by name)
+  if (Array.isArray(updates.relationships)) {
+    if (!entity.relationships) entity.relationships = [];
+    for (const rel of updates.relationships) {
+      const existing = entity.relationships.find(r =>
+        (r.name || '').toLowerCase() === (rel.name || '').toLowerCase()
+      );
+      if (existing) {
+        if (rel.relationship) existing.relationship_type = rel.relationship;
+        if (rel.context) existing.context = rel.context;
+        changes.push(`updated relationship ${rel.name}`);
+      } else {
+        entity.relationships.push({
+          relationship_id: `REL-${String(entity.relationships.length + 1).padStart(3, '0')}`,
+          name: rel.name, relationship_type: rel.relationship || '', context: rel.context || '',
+          sentiment: 'neutral', confidence: 0.8, confidence_label: 'STRONG',
+        });
+        changes.push(`added relationship ${rel.name}`);
+      }
+    }
+  }
+
+  // Merge values (append new, dedup by value text)
+  if (Array.isArray(updates.values)) {
+    if (!entity.values) entity.values = [];
+    for (const val of updates.values) {
+      const valText = typeof val === 'string' ? val : val.value;
+      const existing = entity.values.find(v => (v.value || '').toLowerCase() === valText.toLowerCase());
+      if (!existing) {
+        entity.values.push({
+          value_id: `VAL-${String(entity.values.length + 1).padStart(3, '0')}`,
+          value: valText, confidence: 0.8, confidence_label: 'STRONG',
+        });
+        changes.push(`added value ${valText}`);
+      }
+    }
+  }
+
+  // Update timestamps
+  if (!entity.extraction_metadata) entity.extraction_metadata = {};
+  entity.extraction_metadata.updated_at = now;
+
+  // Provenance
   if (!entity.provenance_chain) {
     entity.provenance_chain = { created_at: now, created_by: 'api', source_documents: [], merge_history: [] };
   }
   entity.provenance_chain.merge_history = entity.provenance_chain.merge_history || [];
   entity.provenance_chain.merge_history.push({
-    merged_at: now,
-    merged_by: agentId,
-    incoming_source: source?.agent || agentId,
-    platform: source?.platform || 'api',
-    conversation_id: source?.conversation_id || null,
-    changes,
+    merged_at: now, merged_by: req.agentId, changes,
   });
-
-  // Recalculate average confidence
-  let totalConf = 0;
-  let confCount = 0;
-  for (const attr of (entity.attributes || [])) {
-    if (attr.confidence != null) { totalConf += attr.confidence; confCount++; }
-  }
-  for (const rel of (entity.relationships || [])) {
-    if (rel.confidence != null) { totalConf += rel.confidence; confCount++; }
-  }
-  for (const fact of (entity.key_facts || [])) {
-    if (fact.confidence != null) { totalConf += fact.confidence; confCount++; }
-  }
-  if (confCount > 0 && entity.extraction_metadata) {
-    entity.extraction_metadata.extraction_confidence = Math.round((totalConf / confCount) * 100) / 100;
-  }
 
   writeEntity(req.params.id, entity);
 
   res.json({
-    status: 'success',
+    status: 'updated',
     entity_id: req.params.id,
-    updates_applied: applied,
-    updates_rejected: rejected,
-    new_entity_confidence: entity.extraction_metadata?.extraction_confidence || null,
-    provenance_entry: {
-      timestamp: now,
-      agent: agentId,
-      changes,
-    },
+    changes,
+    updated_at: now,
   });
 });
 
@@ -567,22 +515,175 @@ app.post('/api/observe', apiAuth, (req, res) => {
   });
 });
 
-// POST /api/entity — Create entity from structured JSON
+// POST /api/entity — Create a new entity with auto-generated ID
 app.post('/api/entity', apiAuth, (req, res) => {
-  const data = req.body;
-  const entityId = data.entity?.entity_id;
-  if (!entityId) {
-    return res.status(400).json({ error: 'Missing entity.entity_id' });
+  const { entity_type, name, summary, attributes, relationships, values, source } = req.body;
+
+  // Validate required fields
+  if (!entity_type || !['person', 'business'].includes(entity_type)) {
+    return res.status(400).json({ error: 'entity_type is required and must be "person" or "business"' });
+  }
+  if (!name || typeof name !== 'object') {
+    return res.status(400).json({ error: 'name is required and must be an object (e.g. { "full": "John Smith" })' });
+  }
+  const displayName = entity_type === 'person'
+    ? (name.full || name.preferred || '')
+    : (name.common || name.legal || '');
+  if (!displayName) {
+    return res.status(400).json({ error: entity_type === 'person' ? 'name.full is required' : 'name.common or name.legal is required' });
   }
 
-  // Check if entity already exists
-  const existing = readEntity(entityId);
-  if (existing) {
-    return res.status(409).json({ error: `Entity ${entityId} already exists. Use PATCH to update or POST /api/extract for merge.` });
+  // Check for duplicate names
+  const { similarity } = require('./merge-engine');
+  const entities = listEntities();
+  for (const { data } of entities) {
+    const e = data.entity || {};
+    if (e.entity_type !== entity_type) continue;
+    const existingName = entity_type === 'person'
+      ? (e.name?.full || '')
+      : (e.name?.common || e.name?.legal || '');
+    if (existingName && similarity(displayName, existingName) > 0.85) {
+      return res.status(409).json({
+        error: `Entity "${existingName}" (${e.entity_id}) already exists with similar name. Use PATCH to update.`,
+        existing_entity_id: e.entity_id,
+      });
+    }
   }
 
-  writeEntity(entityId, data);
-  res.status(201).json({ status: 'created', entity_id: entityId });
+  // Generate entity_id
+  const config = loadConfig();
+  const counters = config.entity_id_counter || { person: 1, business: 1 };
+  let initials;
+  if (entity_type === 'person') {
+    initials = displayName.split(/\s+/).map(w => w[0]).join('').toUpperCase();
+  } else {
+    initials = 'BIZ-' + displayName.split(/\s+/).map(w => w[0]).join('').toUpperCase();
+  }
+  const seq = counters[entity_type] || 1;
+  const entityId = `ENT-${initials}-${String(seq).padStart(3, '0')}`;
+  counters[entity_type] = seq + 1;
+  config.entity_id_counter = counters;
+  saveConfig(config);
+
+  // Build v2-compatible entity
+  const now = new Date().toISOString();
+  const entityData = {
+    schema_version: '2.0',
+    schema_type: 'context_architecture_entity',
+    extraction_metadata: {
+      extracted_at: now,
+      updated_at: now,
+      source_description: source || 'API create',
+      extraction_model: 'manual',
+      extraction_confidence: 0.8,
+      schema_version: '2.0',
+    },
+    entity: {
+      entity_type,
+      entity_id: entityId,
+      name: { ...name, confidence: 0.9, facts_layer: 1 },
+      summary: summary
+        ? { value: summary, confidence: 0.8, facts_layer: 2 }
+        : { value: '', confidence: 0, facts_layer: 2 },
+    },
+    attributes: [],
+    relationships: [],
+    values: [],
+    key_facts: [],
+    constraints: [],
+    observations: [],
+    provenance_chain: {
+      created_at: now,
+      created_by: req.agentId,
+      source_documents: source ? [{ source: source, ingested_at: now }] : [],
+      merge_history: [],
+    },
+  };
+
+  // Populate attributes from object
+  if (attributes && typeof attributes === 'object') {
+    let attrSeq = 1;
+    for (const [key, value] of Object.entries(attributes)) {
+      const val = Array.isArray(value) ? value.join(', ') : String(value);
+      entityData.attributes.push({
+        attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`,
+        key, value: val, confidence: 0.8, confidence_label: 'STRONG',
+        time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+        source_attribution: { facts_layer: 1, layer_label: 'objective' },
+      });
+    }
+  }
+
+  // Populate relationships
+  if (Array.isArray(relationships)) {
+    let relSeq = 1;
+    for (const rel of relationships) {
+      entityData.relationships.push({
+        relationship_id: `REL-${String(relSeq++).padStart(3, '0')}`,
+        name: rel.name || '', relationship_type: rel.relationship || '', context: rel.context || '',
+        sentiment: 'neutral', confidence: 0.8, confidence_label: 'STRONG',
+      });
+    }
+  }
+
+  // Populate values
+  if (Array.isArray(values)) {
+    let valSeq = 1;
+    for (const v of values) {
+      const valText = typeof v === 'string' ? v : v.value || '';
+      entityData.values.push({
+        value_id: `VAL-${String(valSeq++).padStart(3, '0')}`,
+        value: valText, confidence: 0.8, confidence_label: 'STRONG',
+      });
+    }
+  }
+
+  writeEntity(entityId, entityData);
+
+  res.status(201).json({
+    status: 'created',
+    entity_id: entityId,
+    entity_type,
+    name: displayName,
+    entity: entityData,
+  });
+});
+
+// DELETE /api/observe/:id — Delete a specific observation
+app.delete('/api/observe/:id', apiAuth, (req, res) => {
+  const obsId = req.params.id;
+  const entities = listEntities();
+
+  for (const { file, data } of entities) {
+    const observations = data.observations || [];
+    const idx = observations.findIndex(o => o.observation_id === obsId);
+    if (idx !== -1) {
+      const removed = observations.splice(idx, 1)[0];
+      const entityId = data.entity?.entity_id || file.replace('.json', '');
+
+      // Log to provenance
+      if (!data.provenance_chain) {
+        data.provenance_chain = { created_at: new Date().toISOString(), created_by: 'api', source_documents: [], merge_history: [] };
+      }
+      data.provenance_chain.merge_history = data.provenance_chain.merge_history || [];
+      data.provenance_chain.merge_history.push({
+        merged_at: new Date().toISOString(),
+        merged_by: req.agentId,
+        changes: [`deleted observation ${obsId}`],
+      });
+
+      writeEntity(entityId, data);
+
+      return res.json({
+        status: 'deleted',
+        observation_id: obsId,
+        entity_id: entityId,
+        deleted_observation: removed,
+      });
+    }
+  }
+
+  res.status(404).json({ error: `Observation ${obsId} not found` });
 });
 
 // POST /api/extract — Extract from raw text (v2 schema)

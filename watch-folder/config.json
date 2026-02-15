@@ -5,7 +5,10 @@
   "default_entity_type": "person",
   "auto_merge": true,
   "max_concurrent": 2,
-  "supported_extensions": [".txt", ".md"],
+  "supported_extensions": [
+    ".txt",
+    ".md"
+  ],
   "entity_id_counter": {
     "person": 1,
     "business": 1,
