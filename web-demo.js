@@ -186,6 +186,56 @@ app.get('/api/entity/:id/summary', apiAuth, (req, res) => {
   });
 });
 
+// GET /api/entity/:id/context — Entity profile + top 20 weighted observations
+app.get('/api/entity/:id/context', apiAuth, (req, res) => {
+  const entity = readEntity(req.params.id);
+  if (!entity) return res.status(404).json({ error: 'Entity not found' });
+
+  const e = entity.entity || {};
+  const type = e.entity_type;
+  const name = type === 'person' ? (e.name?.full || '') : (e.name?.common || e.name?.legal || '');
+  const now = Date.now();
+
+  // Score and sort observations
+  const observations = (entity.observations || []).map(obs => {
+    const obsTime = new Date(obs.observed_at).getTime();
+    const daysSince = Math.max(0, (now - obsTime) / (1000 * 60 * 60 * 24));
+    const timeDecayFactor = Math.exp(-0.03 * daysSince);
+    const relevanceWeight = (obs.confidence || 0) * timeDecayFactor;
+    return { ...obs, days_since: Math.round(daysSince * 100) / 100, time_decay_factor: Math.round(timeDecayFactor * 1000) / 1000, relevance_weight: Math.round(relevanceWeight * 1000) / 1000 };
+  });
+
+  observations.sort((a, b) => b.relevance_weight - a.relevance_weight);
+  const top20 = observations.slice(0, 20);
+  const top5 = observations.slice(0, 5);
+
+  // Build context summary
+  const entitySummary = e.summary?.value || '';
+  let contextSummary = entitySummary;
+  if (top5.length > 0) {
+    const obsText = top5.map((o, i) => `(${i + 1}) ${o.observation}`).join(' ');
+    contextSummary += ' Recent observations: ' + obsText;
+  }
+
+  res.json({
+    entity_id: e.entity_id,
+    entity_type: type,
+    name,
+    entity_summary: entitySummary,
+    context_summary: contextSummary,
+    observation_count: (entity.observations || []).length,
+    observations: top20,
+    profile: {
+      attributes_count: (entity.attributes || []).length,
+      relationships_count: (entity.relationships || []).length,
+      values_count: (entity.values || []).length,
+      key_facts_count: (entity.key_facts || []).length,
+      constraints_count: (entity.constraints || []).length,
+      confidence: entity.extraction_metadata?.extraction_confidence || null,
+    },
+  });
+});
+
 // GET /api/search?q= — Fuzzy search entities
 app.get('/api/search', apiAuth, (req, res) => {
   const q = (req.query.q || '').toLowerCase().trim();
