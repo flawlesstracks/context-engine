@@ -2,11 +2,17 @@ services:
   - type: web
     name: context-engine
     runtime: node
-    plan: free
+    plan: professional
     buildCommand: npm install
     startCommand: node web-demo.js
+    disk:
+      name: context-data
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: NODE_ENV
         value: production
+      - key: RENDER_DISK_PATH
+        value: /var/data

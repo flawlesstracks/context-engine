@@ -112,36 +112,51 @@ app.post('/extract', async (req, res) => {
 // --- Graph API ---
 
 const IS_PRODUCTION = process.env.RENDER || process.env.NODE_ENV === 'production';
-const PERSISTENT_GRAPH_DIR = '/var/data/graph';
 const LOCAL_GRAPH_DIR = path.join(__dirname, 'watch-folder', 'graph');
 const CONFIG_PATH = path.join(__dirname, 'watch-folder', 'config.json');
 
-// Resolve graph directory — use persistent disk if available, fall back to local
+// Resolve graph directory — try persistent disk candidates, fall back to local
 let GRAPH_DIR = LOCAL_GRAPH_DIR;
+let GRAPH_IS_PERSISTENT = false;
 if (IS_PRODUCTION) {
-  try {
-    if (!fs.existsSync(PERSISTENT_GRAPH_DIR)) {
-      fs.mkdirSync(PERSISTENT_GRAPH_DIR, { recursive: true });
-    }
-    // Test write access
-    const testFile = path.join(PERSISTENT_GRAPH_DIR, '.write-test');
-    fs.writeFileSync(testFile, '');
-    fs.unlinkSync(testFile);
+  const candidates = [
+    process.env.RENDER_DISK_PATH && path.join(process.env.RENDER_DISK_PATH, 'graph'),
+    '/var/data/graph',
+    '/data/graph',
+  ].filter(Boolean);
 
-    // Seed from repo on first boot
-    const existing = fs.readdirSync(PERSISTENT_GRAPH_DIR).filter(f => f.endsWith('.json'));
-    if (existing.length === 0) {
-      const seedFiles = fs.readdirSync(LOCAL_GRAPH_DIR).filter(f => f.endsWith('.json'));
-      for (const file of seedFiles) {
-        fs.copyFileSync(path.join(LOCAL_GRAPH_DIR, file), path.join(PERSISTENT_GRAPH_DIR, file));
+  for (const candidate of candidates) {
+    try {
+      const parentDir = path.dirname(candidate);
+      if (!fs.existsSync(parentDir)) continue;
+      if (!fs.existsSync(candidate)) {
+        fs.mkdirSync(candidate, { recursive: true });
       }
-      console.log(`  Seeded ${seedFiles.length} entity file(s) to ${PERSISTENT_GRAPH_DIR}`);
+      // Test write access
+      const testFile = path.join(candidate, '.write-test');
+      fs.writeFileSync(testFile, '');
+      fs.unlinkSync(testFile);
+
+      // Seed from repo on first boot
+      const existing = fs.readdirSync(candidate).filter(f => f.endsWith('.json'));
+      if (existing.length === 0) {
+        const seedFiles = fs.readdirSync(LOCAL_GRAPH_DIR).filter(f => f.endsWith('.json'));
+        for (const file of seedFiles) {
+          fs.copyFileSync(path.join(LOCAL_GRAPH_DIR, file), path.join(candidate, file));
+        }
+        console.log(`  Seeded ${seedFiles.length} entity file(s) to ${candidate}`);
+      }
+      GRAPH_DIR = candidate;
+      GRAPH_IS_PERSISTENT = true;
+      break;
+    } catch {
+      continue;
     }
-    GRAPH_DIR = PERSISTENT_GRAPH_DIR;
-  } catch (err) {
-    console.warn(`  WARNING: Persistent disk not available (${err.message})`);
-    console.warn(`  Falling back to local graph: ${LOCAL_GRAPH_DIR}`);
-    GRAPH_DIR = LOCAL_GRAPH_DIR;
+  }
+  if (!GRAPH_IS_PERSISTENT) {
+    console.warn('  WARNING: No writable persistent disk found');
+    console.warn('  Falling back to local graph: ' + LOCAL_GRAPH_DIR);
+    console.warn('  Set RENDER_DISK_PATH env var to your disk mount path');
   }
 }
 
@@ -1468,6 +1483,6 @@ app.listen(PORT, () => {
   console.log('  ──────────────────────────────');
   console.log('  UI:     http://localhost:' + PORT);
   console.log('  API:    http://localhost:' + PORT + '/api/graph/stats');
-  console.log('  Graph:  ' + GRAPH_DIR + (IS_PRODUCTION ? ' (persistent disk)' : ' (local)'));
+  console.log('  Graph:  ' + GRAPH_DIR + (GRAPH_IS_PERSISTENT ? ' (persistent disk)' : ' (local)'));
   console.log('');
 });
