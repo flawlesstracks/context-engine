@@ -10,7 +10,7 @@ const { merge } = require('./merge-engine');
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 const app = express();
-app.use(express.json());
+app.use(express.json({ limit: '200mb' }));
 
 // --- Shared extraction logic ---
 
@@ -221,6 +221,53 @@ function getNextCounter(dir, entityType) {
   return seq;
 }
 
+// --- ChatGPT Ingest Helpers ---
+
+function parseChatGPTExport(input) {
+  let conversations;
+  if (typeof input === 'string') {
+    conversations = JSON.parse(input);
+  } else if (Array.isArray(input)) {
+    conversations = input;
+  } else {
+    throw new Error('Expected an array of conversations or a JSON string');
+  }
+
+  return conversations.map(conv => {
+    const title = conv.title || 'Untitled';
+    const createTime = conv.create_time
+      ? new Date(conv.create_time * 1000).toISOString()
+      : new Date().toISOString();
+    const userMessages = [];
+
+    if (conv.mapping) {
+      const nodes = Object.values(conv.mapping);
+      nodes.sort((a, b) => (a.message?.create_time || 0) - (b.message?.create_time || 0));
+      for (const node of nodes) {
+        const msg = node.message;
+        if (!msg || !msg.author || msg.author.role !== 'user') continue;
+        const parts = (msg.content?.parts || []);
+        const text = parts.filter(p => typeof p === 'string').join('\n').trim();
+        if (text) userMessages.push(text);
+      }
+    }
+
+    return { title, createTime, userMessages };
+  }).filter(c => c.userMessages.length > 0);
+}
+
+function buildIngestPrompt(batch) {
+  let text = '';
+  batch.forEach((conv, i) => {
+    text += '\nCONVERSATION ' + i + ' (title: "' + conv.title.replace(/"/g, '\\"') + '"):\n';
+    let convText = conv.userMessages.join('\n');
+    if (convText.length > 5000) convText = convText.substring(0, 5000) + '\n[...truncated]';
+    text += convText + '\n';
+  });
+
+  return 'You are a structured data extraction engine. Analyze these user messages from ChatGPT conversations and extract every person and business the user mentions by name.\n\nRULES:\n- Only extract named entities (skip "my boss", "the company" without a specific name)\n- entity_type: "person" or "business"\n- name: { "full": "..." } for persons, { "common": "..." } for businesses\n- summary: 2-3 sentences synthesizing what the user said about this entity\n- attributes: only include clearly stated facts (role, location, expertise, industry)\n- relationships: connections between extracted entities\n- observations: each specific mention tagged with conversation_index (0-based integer matching conversation numbers below)\n- Do NOT invent information beyond what the user explicitly stated\n- If no named entities found, return {"entities": []}\n\nOutput ONLY valid JSON, no markdown fences, no commentary:\n{\n  "entities": [\n    {\n      "entity_type": "person",\n      "name": { "full": "Jane Smith" },\n      "summary": "...",\n      "attributes": { "role": "...", "location": "..." },\n      "relationships": [{ "name": "Other Entity", "relationship": "colleague", "context": "..." }],\n      "observations": [{ "text": "What the user said about this entity", "conversation_index": 0 }]\n    }\n  ]\n}\n\n--- USER MESSAGES FROM CONVERSATIONS ---' + text + '\n--- END ---';
+}
+
 // --- Auth middleware (multi-tenant) ---
 
 function apiAuth(req, res, next) {
@@ -299,6 +346,332 @@ app.post('/api/tenant', apiAuth, adminOnly, (req, res) => {
     graph_directory: `tenant-${tenantId}`,
     note: 'Save this API key — it will not be shown again.',
   });
+});
+
+// POST /api/ingest/chatgpt — Import ChatGPT conversation history
+app.post('/api/ingest/chatgpt', apiAuth, async (req, res) => {
+  const startTime = Date.now();
+
+  // Parse input
+  let conversations;
+  try {
+    const input = req.body.conversations || req.body.raw;
+    if (!input) {
+      return res.status(400).json({ error: 'Missing "conversations" array or "raw" JSON string' });
+    }
+    conversations = parseChatGPTExport(input);
+  } catch (err) {
+    return res.status(400).json({ error: 'Failed to parse input: ' + err.message });
+  }
+
+  if (conversations.length === 0) {
+    return res.status(400).json({ error: 'No conversations with user messages found' });
+  }
+
+  // Stream NDJSON progress
+  res.setHeader('Content-Type', 'application/x-ndjson');
+  res.setHeader('Transfer-Encoding', 'chunked');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.flushHeaders();
+
+  const sendEvent = (event) => res.write(JSON.stringify(event) + '\n');
+
+  const BATCH_SIZE = 10;
+  const batches = [];
+  for (let i = 0; i < conversations.length; i += BATCH_SIZE) {
+    batches.push(conversations.slice(i, i + BATCH_SIZE));
+  }
+
+  let entitiesCreated = 0;
+  let entitiesUpdated = 0;
+  let observationsAdded = 0;
+  let conversationsProcessed = 0;
+
+  sendEvent({
+    type: 'started',
+    total_conversations: conversations.length,
+    total_batches: batches.length,
+  });
+
+  const client = new Anthropic();
+  const { similarity } = require('./merge-engine');
+
+  for (let bi = 0; bi < batches.length; bi++) {
+    const batch = batches[bi];
+
+    try {
+      const prompt = buildIngestPrompt(batch);
+      const message = await client.messages.create({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 16384,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      const rawResponse = message.content[0].text;
+      const cleaned = rawResponse.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+      const parsed = JSON.parse(cleaned);
+
+      for (const extracted of (parsed.entities || [])) {
+        const entityType = extracted.entity_type;
+        if (!entityType || !['person', 'business'].includes(entityType)) continue;
+
+        const displayName = entityType === 'person'
+          ? (extracted.name?.full || '')
+          : (extracted.name?.common || extracted.name?.legal || '');
+        if (!displayName) continue;
+
+        // Build observations from extracted data
+        const newObservations = (extracted.observations || []).map(obs => {
+          const convIdx = typeof obs.conversation_index === 'number' ? obs.conversation_index : 0;
+          const conv = batch[convIdx] || batch[0];
+          return {
+            observation: (obs.text || '').trim(),
+            observed_at: conv.createTime,
+            source: 'chatgpt_import',
+            confidence: 0.6,
+            confidence_label: 'MODERATE',
+            facts_layer: 'L2_GROUP',
+            layer_number: 2,
+            observed_by: req.agentId,
+          };
+        }).filter(o => o.observation);
+
+        // Search for existing entity with similar name
+        const existingEntities = listEntities(req.graphDir);
+        let matchedData = null;
+        let matchedId = null;
+
+        for (const { file, data } of existingEntities) {
+          const e = data.entity || {};
+          if (e.entity_type !== entityType) continue;
+          const existingName = entityType === 'person'
+            ? (e.name?.full || '')
+            : (e.name?.common || e.name?.legal || '');
+          if (existingName && similarity(displayName, existingName) > 0.85) {
+            matchedData = data;
+            matchedId = e.entity_id || file.replace('.json', '');
+            break;
+          }
+        }
+
+        if (matchedData) {
+          // --- UPDATE existing entity via merge ---
+          const now = new Date().toISOString();
+          const incoming = {
+            schema_version: '2.0',
+            schema_type: 'context_architecture_entity',
+            extraction_metadata: {
+              extracted_at: now,
+              source_description: 'chatgpt_import',
+              extraction_model: 'claude-sonnet-4-5-20250929',
+              extraction_confidence: 0.6,
+              schema_version: '2.0',
+            },
+            entity: {
+              entity_type: entityType,
+              entity_id: matchedId,
+              name: { ...extracted.name, confidence: 0.6, facts_layer: 2 },
+              summary: extracted.summary
+                ? { value: extracted.summary, confidence: 0.6, facts_layer: 2 }
+                : matchedData.entity?.summary || { value: '', confidence: 0, facts_layer: 2 },
+            },
+            attributes: [],
+            relationships: [],
+            values: [],
+            key_facts: [],
+            constraints: [],
+            observations: [],
+            provenance_chain: {
+              created_at: now,
+              created_by: req.agentId,
+              source_documents: [{ source: 'chatgpt_import', ingested_at: now }],
+              merge_history: [],
+            },
+          };
+
+          // Build attributes for merge
+          if (extracted.attributes && typeof extracted.attributes === 'object') {
+            let attrSeq = 1;
+            for (const [key, value] of Object.entries(extracted.attributes)) {
+              const val = Array.isArray(value) ? value.join(', ') : String(value);
+              if (!val) continue;
+              incoming.attributes.push({
+                attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`,
+                key, value: val, confidence: 0.6, confidence_label: 'MODERATE',
+                time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+                source_attribution: { facts_layer: 2, layer_label: 'group' },
+              });
+            }
+          }
+
+          // Build relationships for merge
+          if (Array.isArray(extracted.relationships)) {
+            let relSeq = 1;
+            for (const rel of extracted.relationships) {
+              incoming.relationships.push({
+                relationship_id: `REL-${String(relSeq++).padStart(3, '0')}`,
+                name: rel.name || '', relationship_type: rel.relationship || '', context: rel.context || '',
+                sentiment: 'neutral', confidence: 0.6, confidence_label: 'MODERATE',
+              });
+            }
+          }
+
+          // Merge structured data
+          const { merged } = merge(matchedData, incoming);
+          const result = merged || matchedData;
+
+          // Append observations (dedup by text)
+          if (!result.observations) result.observations = [];
+          const existingObsTexts = new Set(
+            result.observations
+              .filter(o => o.source === 'chatgpt_import')
+              .map(o => o.observation.toLowerCase().trim())
+          );
+          for (const obs of newObservations) {
+            if (existingObsTexts.has(obs.observation.toLowerCase().trim())) continue;
+            const seq = String(result.observations.length + 1).padStart(3, '0');
+            const tsCompact = obs.observed_at.replace(/[-:T]/g, '').slice(0, 14);
+            obs.observation_id = `OBS-${matchedId}-${tsCompact}-${seq}`;
+            result.observations.push(obs);
+            existingObsTexts.add(obs.observation.toLowerCase().trim());
+            observationsAdded++;
+          }
+
+          // Provenance
+          if (!result.provenance_chain) {
+            result.provenance_chain = { created_at: now, created_by: req.agentId, source_documents: [], merge_history: [] };
+          }
+          result.provenance_chain.merge_history = result.provenance_chain.merge_history || [];
+          result.provenance_chain.merge_history.push({
+            merged_at: now,
+            merged_by: req.agentId,
+            changes: ['chatgpt_import: merged data and ' + newObservations.length + ' observations'],
+          });
+
+          writeEntity(matchedId, result, req.graphDir);
+          entitiesUpdated++;
+
+        } else {
+          // --- CREATE new entity ---
+          let initials;
+          if (entityType === 'person') {
+            initials = displayName.split(/\s+/).map(w => w[0]).join('').toUpperCase();
+          } else {
+            initials = 'BIZ-' + displayName.split(/\s+/).map(w => w[0]).join('').toUpperCase();
+          }
+          const seq = getNextCounter(req.graphDir, entityType);
+          const entityId = `ENT-${initials}-${String(seq).padStart(3, '0')}`;
+          const now = new Date().toISOString();
+
+          // Set observation IDs
+          newObservations.forEach((obs, idx) => {
+            const tsCompact = obs.observed_at.replace(/[-:T]/g, '').slice(0, 14);
+            obs.observation_id = `OBS-${entityId}-${tsCompact}-${String(idx + 1).padStart(3, '0')}`;
+          });
+
+          // Build attributes
+          const attributes = [];
+          if (extracted.attributes && typeof extracted.attributes === 'object') {
+            let attrSeq = 1;
+            for (const [key, value] of Object.entries(extracted.attributes)) {
+              const val = Array.isArray(value) ? value.join(', ') : String(value);
+              if (!val) continue;
+              attributes.push({
+                attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`,
+                key, value: val, confidence: 0.6, confidence_label: 'MODERATE',
+                time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+                source_attribution: { facts_layer: 2, layer_label: 'group' },
+              });
+            }
+          }
+
+          // Build relationships
+          const relationships = [];
+          if (Array.isArray(extracted.relationships)) {
+            let relSeq = 1;
+            for (const rel of extracted.relationships) {
+              relationships.push({
+                relationship_id: `REL-${String(relSeq++).padStart(3, '0')}`,
+                name: rel.name || '', relationship_type: rel.relationship || '', context: rel.context || '',
+                sentiment: 'neutral', confidence: 0.6, confidence_label: 'MODERATE',
+              });
+            }
+          }
+
+          const entityData = {
+            schema_version: '2.0',
+            schema_type: 'context_architecture_entity',
+            extraction_metadata: {
+              extracted_at: now,
+              updated_at: now,
+              source_description: 'chatgpt_import',
+              extraction_model: 'claude-sonnet-4-5-20250929',
+              extraction_confidence: 0.6,
+              schema_version: '2.0',
+            },
+            entity: {
+              entity_type: entityType,
+              entity_id: entityId,
+              name: { ...extracted.name, confidence: 0.6, facts_layer: 2 },
+              summary: extracted.summary
+                ? { value: extracted.summary, confidence: 0.6, facts_layer: 2 }
+                : { value: '', confidence: 0, facts_layer: 2 },
+            },
+            attributes,
+            relationships,
+            values: [],
+            key_facts: [],
+            constraints: [],
+            observations: newObservations,
+            provenance_chain: {
+              created_at: now,
+              created_by: req.agentId,
+              source_documents: [{ source: 'chatgpt_import', ingested_at: now }],
+              merge_history: [],
+            },
+          };
+
+          writeEntity(entityId, entityData, req.graphDir);
+          entitiesCreated++;
+          observationsAdded += newObservations.length;
+        }
+      }
+
+      conversationsProcessed += batch.length;
+      sendEvent({
+        type: 'progress',
+        batch: bi + 1,
+        total_batches: batches.length,
+        conversations_processed: conversationsProcessed,
+        total_conversations: conversations.length,
+        entities_created: entitiesCreated,
+        entities_updated: entitiesUpdated,
+        observations_added: observationsAdded,
+      });
+
+    } catch (err) {
+      conversationsProcessed += batch.length;
+      sendEvent({
+        type: 'batch_error',
+        batch: bi + 1,
+        error: err.message,
+        conversations_processed: conversationsProcessed,
+      });
+    }
+  }
+
+  // Final summary
+  sendEvent({
+    type: 'complete',
+    summary: {
+      entities_created: entitiesCreated,
+      entities_updated: entitiesUpdated,
+      observations_added: observationsAdded,
+      conversations_processed: conversationsProcessed,
+      processing_time_seconds: Math.round((Date.now() - startTime) / 10) / 100,
+    },
+  });
+  res.end();
 });
 
 // GET /api/entity/:id — Full entity JSON
@@ -1669,6 +2042,315 @@ async function extract(type) {
 </body>
 </html>`;
 
+// --- Ingest UI ---
+
+app.get('/ingest', (req, res) => {
+  res.send(INGEST_HTML);
+});
+
+const INGEST_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChatGPT Import — Context Engine</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0a0a0f;
+    color: #e0e0e0;
+    min-height: 100vh;
+  }
+  .container { max-width: 720px; margin: 0 auto; padding: 40px 24px; }
+  header { text-align: center; margin-bottom: 48px; }
+  h1 { font-size: 2.2rem; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
+  h1 span {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .subtitle { font-size: 1rem; color: #6b7280; margin-top: 8px; }
+  .steps {
+    font-size: 0.8rem; color: #4b5563; margin-top: 16px; line-height: 1.7;
+    text-align: left; max-width: 480px; margin-left: auto; margin-right: auto;
+  }
+  .steps strong { color: #6b7280; }
+
+  .field { margin-bottom: 20px; }
+  .field label {
+    display: block; font-size: 0.8rem; font-weight: 600; color: #6b7280;
+    text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;
+  }
+  .field input {
+    width: 100%; padding: 10px 14px; background: #12121a;
+    border: 1px solid #1e1e2e; border-radius: 8px; color: #e0e0e0;
+    font-size: 0.9rem; outline: none; font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  .field input:focus { border-color: #6366f1; }
+
+  .drop-zone {
+    border: 2px dashed #2a2a3e; border-radius: 12px;
+    padding: 48px 24px; text-align: center; cursor: pointer;
+    transition: all 0.2s; background: #12121a; margin-bottom: 24px;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: #6366f1; background: rgba(99, 102, 241, 0.05);
+  }
+  .drop-zone.has-file {
+    border-color: #34d399; background: rgba(52, 211, 153, 0.05);
+  }
+  .drop-icon { font-size: 1.6rem; margin-bottom: 10px; color: #3a3a4a; }
+  .drop-text { color: #6b7280; font-size: 0.9rem; }
+  .drop-text strong { color: #a78bfa; }
+  .file-info {
+    color: #34d399; font-size: 0.85rem; margin-top: 10px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+
+  .btn {
+    width: 100%; padding: 14px; border: none; border-radius: 8px;
+    font-size: 1rem; font-weight: 600; cursor: pointer;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white;
+    transition: all 0.2s;
+  }
+  .btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .progress-section { display: none; margin: 24px 0; }
+  .progress-section.active { display: block; }
+  .progress-bar-bg {
+    width: 100%; height: 8px; background: #1e1e2e;
+    border-radius: 4px; overflow: hidden; margin-bottom: 12px;
+  }
+  .progress-bar {
+    height: 100%; background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    border-radius: 4px; transition: width 0.3s; width: 0%;
+  }
+  .progress-text { font-size: 0.85rem; color: #9ca3af; }
+  .progress-stats {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 0.8rem; color: #6b7280; margin-top: 8px;
+  }
+
+  .summary { display: none; margin: 24px 0; }
+  .summary.active { display: block; }
+  .summary-card {
+    background: #12121a; border: 1px solid #1e1e2e;
+    border-radius: 12px; padding: 24px;
+  }
+  .summary-title { font-size: 1.1rem; font-weight: 700; color: #34d399; margin-bottom: 16px; }
+  .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .summary-stat {
+    background: #1a1a2e; border: 1px solid #2a2a3e;
+    border-radius: 8px; padding: 14px; text-align: center;
+  }
+  .summary-stat-value { font-size: 1.5rem; font-weight: 700; color: #a78bfa; }
+  .summary-stat-label {
+    font-size: 0.7rem; color: #6b7280;
+    text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px;
+  }
+
+  .error-msg { color: #ef4444; font-size: 0.85rem; margin-top: 12px; display: none; }
+  .error-msg.active { display: block; }
+
+  footer {
+    text-align: center; padding: 40px 24px 24px;
+    color: #3a3a4a; font-size: 0.8rem;
+  }
+  footer a { color: #6b7280; text-decoration: none; }
+  footer a:hover { color: #a78bfa; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1><span>ChatGPT Import</span></h1>
+    <p class="subtitle">Import your ChatGPT conversation history into the knowledge graph</p>
+    <div class="steps">
+      <strong>How it works:</strong> Go to ChatGPT Settings &rarr; Data Controls &rarr; Export Data.
+      You will receive a zip file containing <strong>conversations.json</strong>.
+      Drop that file below. The engine extracts every person and business
+      you mentioned, deduplicates across conversations, and builds your graph.
+    </div>
+  </header>
+
+  <div class="field">
+    <label>API Key</label>
+    <input type="password" id="apiKey" placeholder="ctx-..." />
+  </div>
+
+  <div class="drop-zone" id="dropZone">
+    <div class="drop-icon">&#8593;</div>
+    <div class="drop-text">Drag &amp; drop <strong>conversations.json</strong> here, or click to browse</div>
+    <div class="file-info" id="fileInfo"></div>
+  </div>
+  <input type="file" id="fileInput" accept=".json" style="display:none" />
+
+  <button class="btn" id="btnImport" onclick="startImport()" disabled>Import Conversations</button>
+  <div class="error-msg" id="errorMsg"></div>
+
+  <div class="progress-section" id="progress">
+    <div class="progress-bar-bg"><div class="progress-bar" id="progressBar"></div></div>
+    <div class="progress-text" id="progressText">Starting import...</div>
+    <div class="progress-stats" id="progressStats"></div>
+  </div>
+
+  <div class="summary" id="summary">
+    <div class="summary-card">
+      <div class="summary-title">Import Complete</div>
+      <div class="summary-grid" id="summaryGrid"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <a href="/">&larr; Back to Context Engine</a>
+</footer>
+
+<script>
+var fileData = null;
+
+var dropZone = document.getElementById('dropZone');
+var fileInput = document.getElementById('fileInput');
+
+dropZone.addEventListener('click', function() { fileInput.click(); });
+dropZone.addEventListener('dragover', function(e) {
+  e.preventDefault(); dropZone.classList.add('dragover');
+});
+dropZone.addEventListener('dragleave', function() {
+  dropZone.classList.remove('dragover');
+});
+dropZone.addEventListener('drop', function(e) {
+  e.preventDefault(); dropZone.classList.remove('dragover');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', function() {
+  if (fileInput.files.length) handleFile(fileInput.files[0]);
+});
+
+function handleFile(file) {
+  if (!file) return;
+  showError('');
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var data = JSON.parse(e.target.result);
+      if (!Array.isArray(data)) throw new Error('Expected a JSON array of conversations');
+      fileData = data;
+      dropZone.classList.add('has-file');
+      document.getElementById('fileInfo').textContent =
+        file.name + ' \\u2014 ' + data.length + ' conversations (' + (file.size / 1048576).toFixed(1) + ' MB)';
+      document.getElementById('btnImport').disabled = false;
+    } catch (err) {
+      showError('Invalid file: ' + err.message);
+      fileData = null;
+    }
+  };
+  reader.readAsText(file);
+}
+
+function showError(msg) {
+  var el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  if (msg) { el.classList.add('active'); } else { el.classList.remove('active'); }
+}
+
+async function startImport() {
+  var apiKey = document.getElementById('apiKey').value.trim();
+  if (!apiKey) return showError('API key is required');
+  if (!fileData) return showError('No file selected');
+
+  document.getElementById('btnImport').disabled = true;
+  showError('');
+  document.getElementById('progress').classList.add('active');
+  document.getElementById('summary').classList.remove('active');
+  document.getElementById('progressBar').style.width = '0%';
+  document.getElementById('progressText').textContent = 'Starting import...';
+  document.getElementById('progressStats').textContent = '';
+
+  try {
+    var response = await fetch('/api/ingest/chatgpt', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Context-API-Key': apiKey },
+      body: JSON.stringify({ conversations: fileData }),
+    });
+
+    if (!response.ok && !response.headers.get('content-type').includes('ndjson')) {
+      var errBody = await response.json();
+      throw new Error(errBody.error || 'Request failed with status ' + response.status);
+    }
+
+    var reader = response.body.getReader();
+    var decoder = new TextDecoder();
+    var buffer = '';
+
+    while (true) {
+      var chunk = await reader.read();
+      if (chunk.done) break;
+      buffer += decoder.decode(chunk.value, { stream: true });
+      var lines = buffer.split('\\n');
+      buffer = lines.pop();
+      for (var i = 0; i < lines.length; i++) {
+        if (!lines[i].trim()) continue;
+        try { handleEvent(JSON.parse(lines[i])); } catch (e) {}
+      }
+    }
+    if (buffer.trim()) {
+      try { handleEvent(JSON.parse(buffer)); } catch (e) {}
+    }
+  } catch (err) {
+    showError(err.message);
+  }
+
+  document.getElementById('btnImport').disabled = false;
+}
+
+function handleEvent(event) {
+  if (event.type === 'started') {
+    document.getElementById('progressText').textContent =
+      'Processing ' + event.total_conversations + ' conversations in ' + event.total_batches + ' batches...';
+  } else if (event.type === 'progress') {
+    var pct = Math.round((event.batch / event.total_batches) * 100);
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('progressText').textContent =
+      'Batch ' + event.batch + ' / ' + event.total_batches +
+      ' \\u2014 ' + event.conversations_processed + ' of ' + event.total_conversations + ' conversations';
+    document.getElementById('progressStats').textContent =
+      event.entities_created + ' created, ' +
+      event.entities_updated + ' updated, ' +
+      event.observations_added + ' observations';
+  } else if (event.type === 'complete') {
+    document.getElementById('progressBar').style.width = '100%';
+    document.getElementById('progressText').textContent = 'Done!';
+    showSummary(event.summary);
+  } else if (event.type === 'batch_error') {
+    var stats = document.getElementById('progressStats');
+    stats.textContent += ' [batch ' + event.batch + ' error: ' + event.error + ']';
+  }
+}
+
+function showSummary(s) {
+  document.getElementById('summary').classList.add('active');
+  var items = [
+    { value: s.entities_created, label: 'Entities Created' },
+    { value: s.entities_updated, label: 'Entities Updated' },
+    { value: s.observations_added, label: 'Observations Added' },
+    { value: s.conversations_processed, label: 'Conversations' },
+    { value: s.processing_time_seconds + 's', label: 'Processing Time' },
+  ];
+  document.getElementById('summaryGrid').innerHTML = items.map(function(it) {
+    return '<div class="summary-stat"><div class="summary-stat-value">' +
+      it.value + '</div><div class="summary-stat-label">' + it.label + '</div></div>';
+  }).join('');
+}
+</script>
+</body>
+</html>`;
+
 // --- Start server ---
 
 const PORT = process.env.PORT || 3000;
@@ -1677,6 +2359,7 @@ app.listen(PORT, () => {
   console.log('  Context Engine - Web Demo + API');
   console.log('  ──────────────────────────────');
   console.log('  UI:     http://localhost:' + PORT);
+  console.log('  Import: http://localhost:' + PORT + '/ingest');
   console.log('  API:    http://localhost:' + PORT + '/api/graph/stats');
   console.log('  Graph:  ' + GRAPH_DIR + (GRAPH_IS_PERSISTENT ? ' (persistent disk)' : ' (local)'));
   console.log('');
