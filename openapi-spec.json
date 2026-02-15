@@ -446,6 +446,49 @@
           "entity_id": { "type": "string" },
           "deleted_observation": { "$ref": "#/components/schemas/Observation" }
         }
+      },
+      "CreateTenantRequest": {
+        "type": "object",
+        "required": ["tenant_name"],
+        "properties": {
+          "tenant_name": {
+            "type": "string",
+            "description": "Display name for the new tenant. Must be unique (case-insensitive).",
+            "example": "Acme Corp"
+          }
+        }
+      },
+      "CreateTenantResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["created"]
+          },
+          "tenant_id": {
+            "type": "string",
+            "description": "Auto-generated 8-character hex tenant ID",
+            "example": "7105d791"
+          },
+          "tenant_name": {
+            "type": "string",
+            "example": "Acme Corp"
+          },
+          "api_key": {
+            "type": "string",
+            "description": "Auto-generated API key in ctx-{32 hex chars} format. Shown only once.",
+            "example": "ctx-6d72d8920e5ca9785d42ae71b3b0243a"
+          },
+          "graph_directory": {
+            "type": "string",
+            "description": "Isolated subdirectory for this tenant's data",
+            "example": "tenant-7105d791"
+          },
+          "note": {
+            "type": "string",
+            "example": "Save this API key — it will not be shown again."
+          }
+        }
       }
     }
   },
@@ -455,6 +498,75 @@
     }
   ],
   "paths": {
+    "/api/tenant": {
+      "post": {
+        "operationId": "createTenant",
+        "summary": "Create a new tenant (admin only)",
+        "description": "Creates an isolated tenant with its own graph subdirectory and auto-generated API key. Requires the admin API key. The tenant key is returned once and cannot be retrieved again. All subsequent API calls using the tenant key are automatically scoped to the tenant's isolated subdirectory.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTenantRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Tenant created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateTenantResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or invalid tenant_name",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Admin access required — only the admin API key can create tenants",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Tenant with this name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/search": {
       "get": {
         "operationId": "searchEntities",
