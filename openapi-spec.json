@@ -489,6 +489,88 @@
             "example": "Save this API key — it will not be shown again."
           }
         }
+      },
+      "ChatGPTConversation": {
+        "type": "object",
+        "description": "A single conversation from ChatGPT's data export format",
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Conversation title",
+            "example": "Project planning with team"
+          },
+          "create_time": {
+            "type": "number",
+            "description": "Unix timestamp (seconds) when the conversation was created",
+            "example": 1700000000.0
+          },
+          "mapping": {
+            "type": "object",
+            "description": "Map of node IDs to message nodes. Each node has a message with author.role ('user', 'assistant', 'system') and content.parts (array of strings). Only user messages are extracted.",
+            "additionalProperties": {}
+          }
+        }
+      },
+      "IngestChatGPTRequest": {
+        "type": "object",
+        "description": "Submit ChatGPT conversations for entity extraction. Provide either 'conversations' (parsed array) or 'raw' (JSON string to parse).",
+        "properties": {
+          "conversations": {
+            "type": "array",
+            "description": "Array of ChatGPT conversation objects from the export file",
+            "items": {
+              "$ref": "#/components/schemas/ChatGPTConversation"
+            }
+          },
+          "raw": {
+            "type": "string",
+            "description": "Raw JSON string of the conversations array (alternative to 'conversations')"
+          }
+        }
+      },
+      "IngestProgressEvent": {
+        "type": "object",
+        "description": "NDJSON progress event streamed during ingest processing",
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["started", "progress", "batch_error", "complete"],
+            "description": "Event type: 'started' (initial), 'progress' (per batch), 'batch_error' (batch failure), 'complete' (final summary)"
+          },
+          "batch": {
+            "type": "integer",
+            "description": "Current batch number (1-based)"
+          },
+          "total_batches": {
+            "type": "integer"
+          },
+          "conversations_processed": {
+            "type": "integer"
+          },
+          "total_conversations": {
+            "type": "integer"
+          },
+          "entities_created": {
+            "type": "integer"
+          },
+          "entities_updated": {
+            "type": "integer"
+          },
+          "observations_added": {
+            "type": "integer"
+          },
+          "summary": {
+            "type": "object",
+            "description": "Present only in 'complete' events",
+            "properties": {
+              "entities_created": { "type": "integer" },
+              "entities_updated": { "type": "integer" },
+              "observations_added": { "type": "integer" },
+              "conversations_processed": { "type": "integer" },
+              "processing_time_seconds": { "type": "number", "example": 19.05 }
+            }
+          }
+        }
       }
     }
   },
@@ -556,6 +638,55 @@
           },
           "409": {
             "description": "Tenant with this name already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ingest/chatgpt": {
+      "post": {
+        "operationId": "ingestChatGPT",
+        "summary": "Import ChatGPT conversation history",
+        "description": "Parses a ChatGPT data export, extracts user messages only (assistant/system messages are skipped), batches 10 conversations at a time through Claude for entity extraction, and merges results into the authenticated tenant's graph. Entities appearing across multiple conversations are deduplicated via the merge engine. Each observation gets source 'chatgpt_import', confidence_label 'MODERATE', and the conversation's create_time as observed_at. Re-importing the same file is safe — duplicate observations are skipped. Response is streamed as newline-delimited JSON (NDJSON) with progress events per batch.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IngestChatGPTRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "NDJSON stream of progress events. Each line is a JSON object with type 'started', 'progress', 'batch_error', or 'complete'. The final 'complete' event contains the summary.",
+            "content": {
+              "application/x-ndjson": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngestProgressEvent"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input — missing conversations, unparseable JSON, or no user messages found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid or missing API key",
             "content": {
               "application/json": {
                 "schema": {
