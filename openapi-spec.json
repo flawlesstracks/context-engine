@@ -1,5 +1,5 @@
 {
-  "openapi": "3.0.3",
+  "openapi": "3.1.0",
   "info": {
     "title": "Context Engine API",
     "description": "Context Architecture's knowledge graph API. Extracts structured context from unstructured text, stores entity profiles with six metadata layers (confidence, time decay, facts layers, entity IDs, constraints, actions), and accepts real-time observations that decay over time.",
@@ -444,7 +444,7 @@
       "get": {
         "operationId": "getEntityContext",
         "summary": "Get entity profile with weighted observations",
-        "description": "Returns the entity profile plus up to 20 most recent observations, each scored with relevance_weight = confidence * exp(-0.03 * days_since_observation). Includes a context_summary that concatenates the entity summary with the top 5 weighted observations in natural language. Use this endpoint to get the full context for an entity before responding to questions about them.",
+        "description": "Returns entity profile plus top 20 observations scored by relevance_weight (confidence * time decay). Includes context_summary merging entity summary with top 5 observations. Call this before answering questions about an entity.",
         "parameters": [
           {
             "name": "id",
@@ -495,7 +495,7 @@
       "post": {
         "operationId": "addObservation",
         "summary": "Append an observation to an existing entity",
-        "description": "Records a new observation about an entity. The observation gets a unique ID (OBS-{entity_id}-{timestamp}-{seq}), a numeric confidence score mapped from the label, and is appended to the entity's observations array. The observation is also logged to the entity's provenance chain. Use this after every conversation to record what you learned about the person or business.",
+        "description": "Appends an observation to an entity. Generates unique OBS-{entity_id}-{timestamp}-{seq} ID, maps confidence label to numeric score, logs to provenance chain. Call this after conversations to record what you learned.",
         "requestBody": {
           "required": true,
           "content": {
