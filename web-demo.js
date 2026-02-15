@@ -168,50 +168,149 @@ function saveConfig(config) {
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2) + '\n');
 }
 
-function readEntity(entityId) {
-  const filePath = path.join(GRAPH_DIR, `${entityId}.json`);
+function readEntity(entityId, dir) {
+  const d = dir || GRAPH_DIR;
+  const filePath = path.join(d, `${entityId}.json`);
   if (!fs.existsSync(filePath)) return null;
   return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
 }
 
-function writeEntity(entityId, data) {
-  fs.writeFileSync(path.join(GRAPH_DIR, `${entityId}.json`), JSON.stringify(data, null, 2) + '\n');
+function writeEntity(entityId, data, dir) {
+  const d = dir || GRAPH_DIR;
+  if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
+  fs.writeFileSync(path.join(d, `${entityId}.json`), JSON.stringify(data, null, 2) + '\n');
 }
 
-function listEntities() {
-  if (!fs.existsSync(GRAPH_DIR)) return [];
-  return fs.readdirSync(GRAPH_DIR)
-    .filter(f => f.endsWith('.json'))
+function listEntities(dir) {
+  const d = dir || GRAPH_DIR;
+  if (!fs.existsSync(d)) return [];
+  return fs.readdirSync(d)
+    .filter(f => f.endsWith('.json') && f !== '_counter.json' && f !== 'tenants.json')
     .map(f => {
       try {
-        const data = JSON.parse(fs.readFileSync(path.join(GRAPH_DIR, f), 'utf-8'));
+        const data = JSON.parse(fs.readFileSync(path.join(d, f), 'utf-8'));
         return { file: f, data };
       } catch { return null; }
     })
     .filter(Boolean);
 }
 
-// Auth middleware
+// --- Tenant management ---
+
+const TENANTS_PATH = path.join(GRAPH_DIR, 'tenants.json');
+
+function loadTenants() {
+  if (!fs.existsSync(TENANTS_PATH)) return {};
+  return JSON.parse(fs.readFileSync(TENANTS_PATH, 'utf-8'));
+}
+
+function saveTenants(tenants) {
+  fs.writeFileSync(TENANTS_PATH, JSON.stringify(tenants, null, 2) + '\n');
+}
+
+function getNextCounter(dir, entityType) {
+  const counterPath = path.join(dir, '_counter.json');
+  let counters = { person: 1, business: 1 };
+  if (fs.existsSync(counterPath)) {
+    counters = JSON.parse(fs.readFileSync(counterPath, 'utf-8'));
+  }
+  const seq = counters[entityType] || 1;
+  counters[entityType] = seq + 1;
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(counterPath, JSON.stringify(counters, null, 2) + '\n');
+  return seq;
+}
+
+// --- Auth middleware (multi-tenant) ---
+
 function apiAuth(req, res, next) {
   const config = loadConfig();
   const key = req.headers['x-context-api-key'];
-  if (!key || key !== config.api_key) {
-    return res.status(401).json({ error: 'Invalid or missing X-Context-API-Key header' });
+  if (!key) {
+    return res.status(401).json({ error: 'Missing X-Context-API-Key header' });
   }
-  req.agentId = req.headers['x-agent-id'] || 'external';
+
+  // Admin key — root namespace
+  if (key === config.api_key) {
+    req.agentId = req.headers['x-agent-id'] || 'external';
+    req.graphDir = GRAPH_DIR;
+    req.isAdmin = true;
+    req.tenantId = null;
+    return next();
+  }
+
+  // Tenant key lookup
+  const tenants = loadTenants();
+  const tenant = Object.values(tenants).find(t => t.api_key === key);
+  if (!tenant) {
+    return res.status(401).json({ error: 'Invalid API key' });
+  }
+
+  const tenantDir = path.join(GRAPH_DIR, `tenant-${tenant.tenant_id}`);
+  if (!fs.existsSync(tenantDir)) fs.mkdirSync(tenantDir, { recursive: true });
+
+  req.agentId = req.headers['x-agent-id'] || tenant.tenant_name;
+  req.graphDir = tenantDir;
+  req.isAdmin = false;
+  req.tenantId = tenant.tenant_id;
   next();
 }
 
+function adminOnly(req, res, next) {
+  if (!req.isAdmin) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+}
+
+// POST /api/tenant — Create a new tenant (admin only)
+app.post('/api/tenant', apiAuth, adminOnly, (req, res) => {
+  const { tenant_name } = req.body;
+  if (!tenant_name || typeof tenant_name !== 'string' || !tenant_name.trim()) {
+    return res.status(400).json({ error: 'tenant_name is required' });
+  }
+
+  const tenants = loadTenants();
+
+  // Check duplicate name
+  if (Object.values(tenants).some(t => t.tenant_name.toLowerCase() === tenant_name.trim().toLowerCase())) {
+    return res.status(409).json({ error: `Tenant "${tenant_name}" already exists` });
+  }
+
+  const tenantId = crypto.randomBytes(4).toString('hex');
+  const apiKey = 'ctx-' + crypto.randomBytes(16).toString('hex');
+  const tenantDir = path.join(GRAPH_DIR, `tenant-${tenantId}`);
+  fs.mkdirSync(tenantDir, { recursive: true });
+
+  tenants[tenantId] = {
+    tenant_id: tenantId,
+    tenant_name: tenant_name.trim(),
+    api_key: apiKey,
+    created_at: new Date().toISOString(),
+    created_by: req.agentId,
+  };
+  saveTenants(tenants);
+
+  res.status(201).json({
+    status: 'created',
+    tenant_id: tenantId,
+    tenant_name: tenant_name.trim(),
+    api_key: apiKey,
+    graph_directory: `tenant-${tenantId}`,
+    note: 'Save this API key — it will not be shown again.',
+  });
+});
+
 // GET /api/entity/:id — Full entity JSON
 app.get('/api/entity/:id', apiAuth, (req, res) => {
-  const entity = readEntity(req.params.id);
+  const entity = readEntity(req.params.id, req.graphDir);
   if (!entity) return res.status(404).json({ error: 'Entity not found' });
   res.json(entity);
 });
 
 // GET /api/entity/:id/summary — Lightweight summary
 app.get('/api/entity/:id/summary', apiAuth, (req, res) => {
-  const entity = readEntity(req.params.id);
+  const entity = readEntity(req.params.id, req.graphDir);
   if (!entity) return res.status(404).json({ error: 'Entity not found' });
 
   const e = entity.entity || {};
@@ -238,7 +337,7 @@ app.get('/api/entity/:id/summary', apiAuth, (req, res) => {
 
 // GET /api/entity/:id/context — Entity profile + top 20 weighted observations
 app.get('/api/entity/:id/context', apiAuth, (req, res) => {
-  const entity = readEntity(req.params.id);
+  const entity = readEntity(req.params.id, req.graphDir);
   if (!entity) return res.status(404).json({ error: 'Entity not found' });
 
   const e = entity.entity || {};
@@ -292,7 +391,7 @@ app.get('/api/search', apiAuth, (req, res) => {
   if (!q) return res.status(400).json({ error: 'Missing query parameter q' });
 
   const { similarity } = require('./merge-engine');
-  const entities = listEntities();
+  const entities = listEntities(req.graphDir);
   const results = [];
 
   for (const { data } of entities) {
@@ -339,7 +438,7 @@ app.get('/api/search', apiAuth, (req, res) => {
 
 // PATCH /api/entity/:id — Merge-update entity fields
 app.patch('/api/entity/:id', apiAuth, (req, res) => {
-  const entity = readEntity(req.params.id);
+  const entity = readEntity(req.params.id, req.graphDir);
   if (!entity) return res.status(404).json({ error: 'Entity not found' });
 
   const now = new Date().toISOString();
@@ -435,7 +534,7 @@ app.patch('/api/entity/:id', apiAuth, (req, res) => {
     merged_at: now, merged_by: req.agentId, changes,
   });
 
-  writeEntity(req.params.id, entity);
+  writeEntity(req.params.id, entity, req.graphDir);
 
   res.json({
     status: 'updated',
@@ -471,7 +570,7 @@ app.post('/api/observe', apiAuth, (req, res) => {
   }
 
   // Validate entity exists
-  const entity = readEntity(entity_id);
+  const entity = readEntity(entity_id, req.graphDir);
   if (!entity) return res.status(404).json({ error: `Entity ${entity_id} not found` });
 
   // Build observation
@@ -506,7 +605,7 @@ app.post('/api/observe', apiAuth, (req, res) => {
     changes: [`added observation ${obsId}`],
   });
 
-  writeEntity(entity_id, entity);
+  writeEntity(entity_id, entity, req.graphDir);
 
   res.status(201).json({
     status: 'created',
@@ -535,7 +634,7 @@ app.post('/api/entity', apiAuth, (req, res) => {
 
   // Check for duplicate names
   const { similarity } = require('./merge-engine');
-  const entities = listEntities();
+  const entities = listEntities(req.graphDir);
   for (const { data } of entities) {
     const e = data.entity || {};
     if (e.entity_type !== entity_type) continue;
@@ -551,19 +650,14 @@ app.post('/api/entity', apiAuth, (req, res) => {
   }
 
   // Generate entity_id
-  const config = loadConfig();
-  const counters = config.entity_id_counter || { person: 1, business: 1 };
   let initials;
   if (entity_type === 'person') {
     initials = displayName.split(/\s+/).map(w => w[0]).join('').toUpperCase();
   } else {
     initials = 'BIZ-' + displayName.split(/\s+/).map(w => w[0]).join('').toUpperCase();
   }
-  const seq = counters[entity_type] || 1;
+  const seq = getNextCounter(req.graphDir, entity_type);
   const entityId = `ENT-${initials}-${String(seq).padStart(3, '0')}`;
-  counters[entity_type] = seq + 1;
-  config.entity_id_counter = counters;
-  saveConfig(config);
 
   // Build v2-compatible entity
   const now = new Date().toISOString();
@@ -638,7 +732,7 @@ app.post('/api/entity', apiAuth, (req, res) => {
     }
   }
 
-  writeEntity(entityId, entityData);
+  writeEntity(entityId, entityData, req.graphDir);
 
   res.status(201).json({
     status: 'created',
@@ -652,7 +746,7 @@ app.post('/api/entity', apiAuth, (req, res) => {
 // DELETE /api/observe/:id — Delete a specific observation
 app.delete('/api/observe/:id', apiAuth, (req, res) => {
   const obsId = req.params.id;
-  const entities = listEntities();
+  const entities = listEntities(req.graphDir);
 
   for (const { file, data } of entities) {
     const observations = data.observations || [];
@@ -672,7 +766,7 @@ app.delete('/api/observe/:id', apiAuth, (req, res) => {
         changes: [`deleted observation ${obsId}`],
       });
 
-      writeEntity(entityId, data);
+      writeEntity(entityId, data, req.graphDir);
 
       return res.json({
         status: 'deleted',
@@ -718,12 +812,12 @@ app.post('/api/extract', apiAuth, async (req, res) => {
     // Auto-add to graph if entity_id present
     const entityId = result.entity?.entity_id;
     if (entityId) {
-      const existing = readEntity(entityId);
+      const existing = readEntity(entityId, req.graphDir);
       if (existing) {
         const { merged } = merge(existing, result);
-        if (merged) writeEntity(entityId, merged);
+        if (merged) writeEntity(entityId, merged, req.graphDir);
       } else {
-        writeEntity(entityId, result);
+        writeEntity(entityId, result, req.graphDir);
       }
     }
 
@@ -735,7 +829,7 @@ app.post('/api/extract', apiAuth, async (req, res) => {
 
 // GET /api/graph/stats — Knowledge graph health check
 app.get('/api/graph/stats', apiAuth, (req, res) => {
-  const entities = listEntities();
+  const entities = listEntities(req.graphDir);
   let lastUpdated = null;
   let totalMerges = 0;
   const typeCounts = { person: 0, business: 0 };
