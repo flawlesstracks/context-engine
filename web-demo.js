@@ -401,6 +401,76 @@ app.patch('/api/entity/:id', apiAuth, (req, res) => {
   });
 });
 
+// POST /api/observe — Append an observation to an existing entity
+const CONFIDENCE_MAP = {
+  VERIFIED: 1.0, STRONG: 0.8, MODERATE: 0.6, SPECULATIVE: 0.4, UNCERTAIN: 0.2,
+};
+const VALID_LAYERS = ['L1_OBJECTIVE', 'L2_GROUP', 'L3_PERSONAL'];
+
+app.post('/api/observe', apiAuth, (req, res) => {
+  const { entity_id, observation, confidence_label, facts_layer, source } = req.body;
+
+  // Validate required fields
+  if (!entity_id) return res.status(400).json({ error: 'Missing entity_id' });
+  if (!observation || typeof observation !== 'string' || !observation.trim()) {
+    return res.status(400).json({ error: 'Missing or empty observation string' });
+  }
+  if (!confidence_label || !CONFIDENCE_MAP.hasOwnProperty(confidence_label)) {
+    return res.status(400).json({
+      error: 'Invalid confidence_label. Must be one of: ' + Object.keys(CONFIDENCE_MAP).join(', '),
+    });
+  }
+  if (!facts_layer || !VALID_LAYERS.includes(facts_layer)) {
+    return res.status(400).json({
+      error: 'Invalid facts_layer. Must be one of: ' + VALID_LAYERS.join(', '),
+    });
+  }
+
+  // Validate entity exists
+  const entity = readEntity(entity_id);
+  if (!entity) return res.status(404).json({ error: `Entity ${entity_id} not found` });
+
+  // Build observation
+  const now = new Date().toISOString();
+  if (!entity.observations) entity.observations = [];
+  const seq = String(entity.observations.length + 1).padStart(3, '0');
+  const tsCompact = now.replace(/[-:T]/g, '').slice(0, 14);
+  const obsId = `OBS-${entity_id}-${tsCompact}-${seq}`;
+
+  const obs = {
+    observation_id: obsId,
+    observation: observation.trim(),
+    confidence: CONFIDENCE_MAP[confidence_label],
+    confidence_label,
+    facts_layer,
+    layer_number: parseInt(facts_layer.charAt(1)),
+    observed_at: now,
+    observed_by: req.agentId,
+    source: source || null,
+  };
+
+  entity.observations.push(obs);
+
+  // Log to provenance chain
+  if (!entity.provenance_chain) {
+    entity.provenance_chain = { created_at: now, created_by: 'api', source_documents: [], merge_history: [] };
+  }
+  entity.provenance_chain.merge_history = entity.provenance_chain.merge_history || [];
+  entity.provenance_chain.merge_history.push({
+    merged_at: now,
+    merged_by: req.agentId,
+    changes: [`added observation ${obsId}`],
+  });
+
+  writeEntity(entity_id, entity);
+
+  res.status(201).json({
+    status: 'created',
+    entity_id,
+    observation: obs,
+  });
+});
+
 // POST /api/entity — Create entity from structured JSON
 app.post('/api/entity', apiAuth, (req, res) => {
   const data = req.body;
