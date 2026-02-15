@@ -111,8 +111,26 @@ app.post('/extract', async (req, res) => {
 
 // --- Graph API ---
 
-const GRAPH_DIR = path.join(__dirname, 'watch-folder', 'graph');
+const IS_PRODUCTION = process.env.RENDER || process.env.NODE_ENV === 'production';
+const PERSISTENT_GRAPH_DIR = '/var/data/graph';
+const LOCAL_GRAPH_DIR = path.join(__dirname, 'watch-folder', 'graph');
+const GRAPH_DIR = IS_PRODUCTION ? PERSISTENT_GRAPH_DIR : LOCAL_GRAPH_DIR;
 const CONFIG_PATH = path.join(__dirname, 'watch-folder', 'config.json');
+
+// Seed persistent disk from repo on first boot
+if (IS_PRODUCTION) {
+  if (!fs.existsSync(PERSISTENT_GRAPH_DIR)) {
+    fs.mkdirSync(PERSISTENT_GRAPH_DIR, { recursive: true });
+  }
+  const existing = fs.readdirSync(PERSISTENT_GRAPH_DIR).filter(f => f.endsWith('.json'));
+  if (existing.length === 0) {
+    const seedFiles = fs.readdirSync(LOCAL_GRAPH_DIR).filter(f => f.endsWith('.json'));
+    for (const file of seedFiles) {
+      fs.copyFileSync(path.join(LOCAL_GRAPH_DIR, file), path.join(PERSISTENT_GRAPH_DIR, file));
+    }
+    console.log(`  Seeded ${seedFiles.length} entity file(s) to ${PERSISTENT_GRAPH_DIR}`);
+  }
+}
 
 function loadConfig() {
   return JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf-8'));
@@ -1435,7 +1453,8 @@ app.listen(PORT, () => {
   console.log('');
   console.log('  Context Engine - Web Demo + API');
   console.log('  ──────────────────────────────');
-  console.log('  UI:  http://localhost:' + PORT);
-  console.log('  API: http://localhost:' + PORT + '/api/graph/stats');
+  console.log('  UI:     http://localhost:' + PORT);
+  console.log('  API:    http://localhost:' + PORT + '/api/graph/stats');
+  console.log('  Graph:  ' + GRAPH_DIR + (IS_PRODUCTION ? ' (persistent disk)' : ' (local)'));
   console.log('');
 });
