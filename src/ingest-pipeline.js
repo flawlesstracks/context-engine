@@ -1,7 +1,7 @@
 'use strict';
 
 const { readEntity, writeEntity, listEntities, getNextCounter } = require('./graph-ops');
-const { merge, similarity } = require('../merge-engine');
+const { merge, similarity, entitiesMatch } = require('../merge-engine');
 
 /**
  * Unified ingest pipeline — all extraction sources go through here.
@@ -42,10 +42,7 @@ async function ingestPipeline(entities, graphDir, agentId, options = {}) {
     for (const { file, data } of existingEntities) {
       const e = data.entity || {};
       if (e.entity_type !== entityType) continue;
-      const existingName = entityType === 'person'
-        ? (e.name?.full || '')
-        : (e.name?.common || e.name?.legal || '');
-      if (existingName && similarity(displayName, existingName) > 0.85) {
+      if (entitiesMatch(data, entityData)) {
         matchedData = data;
         matchedId = e.entity_id || file.replace('.json', '');
         break;

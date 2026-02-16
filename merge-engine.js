@@ -27,6 +27,175 @@ function similarity(a, b) {
   return (2 * intersection) / (biA.size + biB.size);
 }
 
+// --- Name & property helpers for enhanced matching ---
+
+/**
+ * Collect all known names for an entity (full, preferred, aliases).
+ */
+function getAllNames(entity) {
+  const names = [];
+  const e = entity.entity || {};
+  if (e.name?.full) names.push(e.name.full);
+  if (e.name?.preferred) names.push(e.name.preferred);
+  for (const alias of (e.name?.aliases || [])) {
+    if (alias) names.push(alias);
+  }
+  // Deduplicate (case-insensitive)
+  const seen = new Set();
+  return names.filter(n => {
+    const key = n.toLowerCase().trim();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+/**
+ * Check if two sets of names likely refer to the same person.
+ * Handles: alias cross-matching, token subsets, initials (CJ = Clarence James).
+ */
+function namesLikelyMatch(namesA, namesB) {
+  for (const a of namesA) {
+    for (const b of namesB) {
+      // Direct high similarity on any name pair
+      if (similarity(a, b) > 0.85) return true;
+
+      const tokensA = a.toLowerCase().split(/[\s()]+/).filter(Boolean);
+      const tokensB = b.toLowerCase().split(/[\s()]+/).filter(Boolean);
+
+      // Token subset: "Clarence Mitchell" ⊆ "Clarence James Mitchell"
+      if (tokensA.length >= 2 && tokensB.length >= 2) {
+        const aInB = tokensA.every(t => tokensB.some(tb => similarity(t, tb) > 0.85));
+        const bInA = tokensB.every(t => tokensA.some(ta => similarity(t, ta) > 0.85));
+        if (aInB || bInA) return true;
+      }
+
+      // Initials matching: "CJ Mitchell" vs "Clarence James Mitchell"
+      if (tokensA.length >= 2 && tokensB.length >= 2) {
+        const lastA = tokensA[tokensA.length - 1];
+        const lastB = tokensB[tokensB.length - 1];
+        // Last names must match
+        if (similarity(lastA, lastB) > 0.85) {
+          const firstA = tokensA.slice(0, -1);
+          const firstB = tokensB.slice(0, -1);
+          // Check if first part of A is initials of B's first parts
+          if (firstA.length === 1 && firstA[0].length <= 4 && firstB.length >= 1) {
+            const candidate = firstA[0].toUpperCase();
+            const initials = firstB.map(t => t[0]).join('').toUpperCase();
+            if (candidate === initials) return true;
+          }
+          // Reverse check
+          if (firstB.length === 1 && firstB[0].length <= 4 && firstA.length >= 1) {
+            const candidate = firstB[0].toUpperCase();
+            const initials = firstA.map(t => t[0]).join('').toUpperCase();
+            if (candidate === initials) return true;
+          }
+        }
+      }
+
+      // Standalone nickname is initials: "CJ" (single token) vs "Clarence James Mitchell"
+      if (tokensA.length === 1 && tokensA[0].length <= 4 && tokensB.length >= 2) {
+        const candidate = tokensA[0].toUpperCase();
+        const firstParts = tokensB.slice(0, -1);
+        const initials = firstParts.map(t => t[0]).join('').toUpperCase();
+        if (candidate === initials) return true;
+      }
+      if (tokensB.length === 1 && tokensB[0].length <= 4 && tokensA.length >= 2) {
+        const candidate = tokensB[0].toUpperCase();
+        const firstParts = tokensA.slice(0, -1);
+        const initials = firstParts.map(t => t[0]).join('').toUpperCase();
+        if (candidate === initials) return true;
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Extract comparable properties from an entity for overlap checking.
+ */
+function getEntityProperties(entity) {
+  const props = { company: '', location: '', email: '', linkedinUrl: '', skills: [] };
+
+  // From attributes
+  for (const attr of (entity.attributes || [])) {
+    const key = (attr.key || '').toLowerCase();
+    const val = (attr.value || '').trim();
+    if (!val) continue;
+    if ((key === 'company' || key === 'current_role') && !props.company) {
+      // Extract company name from "role at Company" or just company
+      const atMatch = val.match(/at\s+(.+)/i);
+      props.company = (atMatch ? atMatch[1] : val).toLowerCase();
+    }
+    if ((key === 'location' || key === 'current_location') && !props.location) {
+      props.location = val.toLowerCase();
+    }
+    if (key === 'email' && !props.email) props.email = val.toLowerCase();
+    if (key === 'linkedin_url' && !props.linkedinUrl) props.linkedinUrl = val.toLowerCase();
+    if (key === 'skills' && props.skills.length === 0) {
+      props.skills = val.split(/,\s*/).map(s => s.toLowerCase().trim()).filter(Boolean);
+    }
+  }
+
+  // From career_lite (fallback)
+  const cl = entity.career_lite;
+  if (cl) {
+    if (cl.current_company && !props.company) props.company = cl.current_company.toLowerCase();
+    if (cl.location && !props.location) props.location = cl.location.toLowerCase();
+    if (cl.linkedin_url && !props.linkedinUrl) props.linkedinUrl = cl.linkedin_url.toLowerCase();
+    if (cl.skills && cl.skills.length > 0 && props.skills.length === 0) {
+      props.skills = cl.skills.map(s => s.toLowerCase().trim());
+    }
+  }
+
+  return props;
+}
+
+/**
+ * Count how many properties overlap between two entities.
+ * Checks: company, LinkedIn URL, email, location, skills (3+).
+ */
+function propertyOverlapCount(base, incoming) {
+  const bp = getEntityProperties(base);
+  const ip = getEntityProperties(incoming);
+  let count = 0;
+
+  // Company (fuzzy — "Amazon" matches "Amazon (Relay)")
+  if (bp.company && ip.company) {
+    if (similarity(bp.company, ip.company) > 0.7 ||
+        bp.company.includes(ip.company) || ip.company.includes(bp.company)) {
+      count++;
+    }
+  }
+
+  // LinkedIn URL (exact, ignoring trailing slash)
+  if (bp.linkedinUrl && ip.linkedinUrl) {
+    if (bp.linkedinUrl.replace(/\/+$/, '') === ip.linkedinUrl.replace(/\/+$/, '')) count++;
+  }
+
+  // Email (exact)
+  if (bp.email && ip.email && bp.email === ip.email) count++;
+
+  // Location (fuzzy — "Atlanta, Georgia" matches "Atlanta, GA")
+  if (bp.location && ip.location) {
+    if (similarity(bp.location, ip.location) > 0.6 ||
+        bp.location.includes(ip.location) || ip.location.includes(bp.location)) {
+      count++;
+    }
+  }
+
+  // Skills (3+ matches)
+  if (bp.skills.length > 0 && ip.skills.length > 0) {
+    let skillMatches = 0;
+    for (const skill of bp.skills) {
+      if (ip.skills.some(s => similarity(skill, s) > 0.85)) skillMatches++;
+    }
+    if (skillMatches >= 3) count++;
+  }
+
+  return count;
+}
+
 // --- Match check ---
 
 function entitiesMatch(base, incoming) {
@@ -35,11 +204,14 @@ function entitiesMatch(base, incoming) {
     return true;
   }
 
-  // Name fuzzy match (>85% similarity)
+  // Must be same entity type
   const type = base.entity?.entity_type;
+  const incomingType = incoming.entity?.entity_type;
+  if (type && incomingType && type !== incomingType) return false;
+
+  // Get primary names
   let baseName = '';
   let incomingName = '';
-
   if (type === 'person') {
     baseName = base.entity?.name?.full || '';
     incomingName = incoming.entity?.name?.full || '';
@@ -48,7 +220,27 @@ function entitiesMatch(base, incoming) {
     incomingName = incoming.entity?.name?.common || incoming.entity?.name?.legal || '';
   }
 
-  return similarity(baseName, incomingName) > 0.85;
+  // High name similarity (original threshold)
+  if (similarity(baseName, incomingName) > 0.85) return true;
+
+  // Enhanced matching for persons: nickname awareness + property overlap
+  if (type === 'person') {
+    const baseNames = getAllNames(base);
+    const incomingNames = getAllNames(incoming);
+
+    // Nickname/alias-aware name match
+    if (namesLikelyMatch(baseNames, incomingNames)) {
+      // Names very likely match — shared last name is sufficient
+      return true;
+    }
+
+    // Property-heavy match: 2+ property overlaps AND moderate name similarity (>0.5)
+    if (similarity(baseName, incomingName) > 0.5 && propertyOverlapCount(base, incoming) >= 2) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 // --- Merge functions ---
@@ -440,7 +632,10 @@ function merge(base, incoming) {
 
 // --- Exports for use as module ---
 
-module.exports = { merge, entitiesMatch, similarity };
+module.exports = {
+  merge, entitiesMatch, similarity,
+  getAllNames, namesLikelyMatch, propertyOverlapCount,
+};
 
 // --- CLI ---
 
