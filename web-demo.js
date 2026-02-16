@@ -7,11 +7,13 @@ const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk').default;
 const { merge } = require('./merge-engine');
 const multer = require('multer');
+const cookieParser = require('cookie-parser');
 const { readEntity, writeEntity, listEntities, getNextCounter } = require('./src/graph-ops');
 const { ingestPipeline } = require('./src/ingest-pipeline');
 const { normalizeFileToText } = require('./src/parsers/normalize');
 const { buildLinkedInPrompt, linkedInResponseToEntity } = require('./src/parsers/linkedin');
 const { mapContactRows } = require('./src/parsers/contacts');
+const auth = require('./src/auth');
 
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
@@ -24,6 +26,7 @@ app.use((req, res, next) => {
   next();
 });
 app.use(express.json({ limit: '200mb' }));
+app.use(cookieParser());
 
 // --- Shared extraction logic ---
 
@@ -194,6 +197,11 @@ function saveTenants(tenants) {
   fs.writeFileSync(TENANTS_PATH, JSON.stringify(tenants, null, 2) + '\n');
 }
 
+// --- Google OAuth routes ---
+
+auth.init({ graphDir: GRAPH_DIR, loadTenants, saveTenants });
+app.use('/auth', auth.router);
+
 // --- ChatGPT Ingest Helpers ---
 
 function parseChatGPTExport(input) {
@@ -245,35 +253,53 @@ function buildIngestPrompt(batch) {
 
 function apiAuth(req, res, next) {
   const config = loadConfig();
+
+  // Source 1: X-Context-API-Key header (existing behavior for API consumers)
   const key = req.headers['x-context-api-key'];
-  if (!key) {
-    return res.status(401).json({ error: 'Missing X-Context-API-Key header' });
-  }
 
-  // Admin key — root namespace
-  if (key === config.api_key) {
-    req.agentId = req.headers['x-agent-id'] || 'external';
-    req.graphDir = GRAPH_DIR;
-    req.isAdmin = true;
-    req.tenantId = null;
-    return next();
-  }
+  if (key) {
+    // Admin key — root namespace
+    if (key === config.api_key) {
+      req.agentId = req.headers['x-agent-id'] || 'external';
+      req.graphDir = GRAPH_DIR;
+      req.isAdmin = true;
+      req.tenantId = null;
+      return next();
+    }
 
-  // Tenant key lookup
-  const tenants = loadTenants();
-  const tenant = Object.values(tenants).find(t => t.api_key === key);
-  if (!tenant) {
+    // Tenant key lookup
+    const tenants = loadTenants();
+    const tenant = Object.values(tenants).find(t => t.api_key === key);
+    if (tenant) {
+      const tenantDir = path.join(GRAPH_DIR, `tenant-${tenant.tenant_id}`);
+      if (!fs.existsSync(tenantDir)) fs.mkdirSync(tenantDir, { recursive: true });
+      req.agentId = req.headers['x-agent-id'] || tenant.tenant_name;
+      req.graphDir = tenantDir;
+      req.isAdmin = false;
+      req.tenantId = tenant.tenant_id;
+      return next();
+    }
+
     return res.status(401).json({ error: 'Invalid API key' });
   }
 
-  const tenantDir = path.join(GRAPH_DIR, `tenant-${tenant.tenant_id}`);
-  if (!fs.existsSync(tenantDir)) fs.mkdirSync(tenantDir, { recursive: true });
+  // Source 2: ca_session cookie (browser sessions via Google OAuth)
+  const session = auth.verifySession(req.cookies[auth.SESSION_COOKIE]);
+  if (session && session.api_key) {
+    const tenants = loadTenants();
+    const tenant = Object.values(tenants).find(t => t.api_key === session.api_key);
+    if (tenant) {
+      const tenantDir = path.join(GRAPH_DIR, `tenant-${tenant.tenant_id}`);
+      if (!fs.existsSync(tenantDir)) fs.mkdirSync(tenantDir, { recursive: true });
+      req.agentId = tenant.tenant_name;
+      req.graphDir = tenantDir;
+      req.isAdmin = false;
+      req.tenantId = tenant.tenant_id;
+      return next();
+    }
+  }
 
-  req.agentId = req.headers['x-agent-id'] || tenant.tenant_name;
-  req.graphDir = tenantDir;
-  req.isAdmin = false;
-  req.tenantId = tenant.tenant_id;
-  next();
+  return res.status(401).json({ error: 'Missing X-Context-API-Key header or valid session' });
 }
 
 function adminOnly(req, res, next) {
@@ -2454,6 +2480,19 @@ const WIKI_HTML = `<!DOCTYPE html>
   }
   .btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(99,102,241,0.3); }
   .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+  .google-btn {
+    display: flex; align-items: center; justify-content: center;
+    background: #fff; color: #333; text-decoration: none; margin-bottom: 16px;
+    font-size: 0.9rem; font-weight: 600;
+  }
+  .google-btn:hover { background: #f0f0f0; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }
+  .login-divider {
+    display: flex; align-items: center; margin-bottom: 14px; color: #4b5563; font-size: 0.75rem;
+  }
+  .login-divider::before, .login-divider::after {
+    content: ''; flex: 1; border-bottom: 1px solid #2a2a3e;
+  }
+  .login-divider span { padding: 0 10px; }
 
   /* --- App Layout --- */
   #app { display: none; height: 100vh; }
@@ -2672,6 +2711,16 @@ const WIKI_HTML = `<!DOCTYPE html>
   <div class="login-card">
     <h1><span>Context Engine</span></h1>
     <p class="subtitle">Knowledge Graph Wiki</p>
+    <a href="/auth/google" class="btn google-btn" id="btnGoogle">
+      <svg width="18" height="18" viewBox="0 0 48 48" style="vertical-align:middle;margin-right:8px;">
+        <path fill="#4285F4" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+        <path fill="#34A853" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+        <path fill="#FBBC05" d="M10.53 28.59a14.5 14.5 0 010-9.18l-7.98-6.19a24.1 24.1 0 000 21.56l7.98-6.19z"/>
+        <path fill="#EA4335" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+      </svg>
+      Sign in with Google
+    </a>
+    <div class="login-divider"><span>or use API key</span></div>
     <input type="password" id="apiKeyInput" placeholder="Enter API key (ctx-...)" />
     <div class="login-error" id="loginError"></div>
     <button class="btn" id="btnLogin" onclick="login()">Connect</button>
@@ -2687,7 +2736,11 @@ const WIKI_HTML = `<!DOCTYPE html>
     </div>
     <div class="sidebar-count" id="sidebarCount"></div>
     <div id="entityList"></div>
-    <div class="sidebar-footer"><a href="/">&larr; Context Engine</a> &middot; <a href="/ingest">Import</a></div>
+    <div class="sidebar-footer">
+      <span id="userInfo"></span>
+      <a href="/">&larr; Context Engine</a> &middot; <a href="/ingest">Import</a>
+      <span id="logoutLink"></span>
+    </div>
   </div>
   <div id="main">
     <div class="empty-state" id="emptyState">Select an entity from the sidebar<br/>to view its knowledge graph profile</div>
@@ -2698,6 +2751,7 @@ const WIKI_HTML = `<!DOCTYPE html>
 
 <script>
 var apiKey = '';
+var sessionUser = null;
 var entities = [];
 var selectedId = null;
 var selectedData = null;
@@ -2708,8 +2762,10 @@ function esc(s) { var d = document.createElement('div'); d.textContent = s || ''
 function api(method, path, body) {
   var opts = {
     method: method,
-    headers: { 'X-Context-API-Key': apiKey, 'X-Agent-Id': 'wiki-dashboard' },
+    headers: { 'X-Agent-Id': 'wiki-dashboard' },
+    credentials: 'same-origin',
   };
+  if (apiKey) opts.headers['X-Context-API-Key'] = apiKey;
   if (body) {
     opts.headers['Content-Type'] = 'application/json';
     opts.body = JSON.stringify(body);
@@ -2726,7 +2782,38 @@ function toast(msg) {
   setTimeout(function() { el.classList.remove('active'); }, 2000);
 }
 
+function enterApp(user) {
+  sessionUser = user;
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  if (user && user.name) {
+    document.getElementById('userInfo').textContent = user.name + ' ';
+    document.getElementById('logoutLink').innerHTML = ' &middot; <a href="#" onclick="logout();return false;">Logout</a>';
+  }
+  api('GET', '/api/search?q=*').then(function(data) {
+    entities = data.results || [];
+    renderEntityList();
+  });
+}
+
+function logout() {
+  fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' }).then(function() {
+    window.location.reload();
+  });
+}
+
 /* --- Login --- */
+// Auto-login: check for existing session cookie
+fetch('/auth/me', { credentials: 'same-origin' }).then(function(r) {
+  if (r.ok) return r.json();
+  return null;
+}).then(function(user) {
+  if (user && user.tenant_id) {
+    enterApp(user);
+  }
+}).catch(function() {});
+
+// Manual API key login
 function login() {
   apiKey = document.getElementById('apiKeyInput').value.trim();
   if (!apiKey) return;
@@ -2984,6 +3071,7 @@ app.listen(PORT, () => {
   console.log('  Wiki:   http://localhost:' + PORT + '/wiki');
   console.log('  Import: http://localhost:' + PORT + '/ingest');
   console.log('  API:    http://localhost:' + PORT + '/api/graph/stats');
+  console.log('  Auth:   http://localhost:' + PORT + '/auth/google' + (process.env.GOOGLE_CLIENT_ID ? '' : ' (not configured)'));
   console.log('  Graph:  ' + GRAPH_DIR + (GRAPH_IS_PERSISTENT ? ' (persistent disk)' : ' (local)'));
   console.log('');
 });
