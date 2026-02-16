@@ -3002,11 +3002,14 @@ function renderEntityList() {
 /* --- Entity Detail --- */
 function selectEntity(id) {
   selectedId = id;
-  document.getElementById('emptyState').style.display = 'none';
+  var empty = document.getElementById('emptyState');
+  if (empty) empty.style.display = 'none';
   api('GET', '/api/entity/' + id).then(function(data) {
     selectedData = data;
     renderDetail(data);
     renderEntityList();
+  }).catch(function(err) {
+    document.getElementById('main').innerHTML = '<div class="empty-state">Error loading entity: ' + esc(err.message) + '</div>';
   });
 }
 
@@ -3085,7 +3088,7 @@ function showUploadView() {
 
 function hideUploadView() {
   if (uploadInProgress) return;
-  document.getElementById('main').innerHTML = '<div class="empty-state">Select an entity from the sidebar<br/>to view its knowledge graph profile</div>';
+  document.getElementById('main').innerHTML = '<div class="empty-state" id="emptyState">Select an entity from the sidebar<br/>to view its knowledge graph profile</div>';
 }
 
 var ALLOWED_UPLOAD_EXT = ['.pdf', '.docx', '.xlsx', '.xls', '.csv', '.txt', '.md'];
