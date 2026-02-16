@@ -759,7 +759,7 @@ function saveDriveToken(tenantId, newAccessToken) {
   }
 }
 
-// GET /api/drive/files?folderId=X — List files in a Drive folder
+// GET /api/drive/files?folderId=X&q=searchterm — List or search Drive files
 app.get('/api/drive/files', apiAuth, async (req, res) => {
   const tokens = getDriveTokens(req.tenantId);
   if (!tokens || !tokens.accessToken) {
@@ -767,15 +767,29 @@ app.get('/api/drive/files', apiAuth, async (req, res) => {
   }
 
   const folderId = req.query.folderId || null;
+  const searchQuery = req.query.q || null;
 
   try {
-    const { result: files, newAccessToken } = await drive.withTokenRefresh(
-      (token) => drive.listFiles(token, folderId),
-      tokens.accessToken,
-      tokens.refreshToken,
-    );
-    if (newAccessToken) saveDriveToken(req.tenantId, newAccessToken);
-    res.json({ files, folderId: folderId || 'root' });
+    let files;
+    if (searchQuery) {
+      const r = await drive.withTokenRefresh(
+        (token) => drive.searchFiles(token, searchQuery),
+        tokens.accessToken,
+        tokens.refreshToken,
+      );
+      files = r.result;
+      if (r.newAccessToken) saveDriveToken(req.tenantId, r.newAccessToken);
+      res.json({ files, search: searchQuery });
+    } else {
+      const r = await drive.withTokenRefresh(
+        (token) => drive.listFiles(token, folderId),
+        tokens.accessToken,
+        tokens.refreshToken,
+      );
+      files = r.result;
+      if (r.newAccessToken) saveDriveToken(req.tenantId, r.newAccessToken);
+      res.json({ files, folderId: folderId || 'root' });
+    }
   } catch (err) {
     console.error('Drive list error:', err.message);
     res.status(500).json({ error: 'Failed to list Drive files: ' + err.message });
@@ -3067,6 +3081,31 @@ const WIKI_HTML = `<!DOCTYPE html>
   .drive-empty {
     text-align: center; padding: 24px; color: #4b5563; font-size: 0.82rem;
   }
+  .drive-search-bar {
+    display: flex; align-items: center; gap: 6px; margin-bottom: 12px;
+  }
+  .drive-search-bar input {
+    flex: 1; padding: 7px 10px; background: #12121a;
+    border: 1px solid #1e1e2e; border-radius: 6px; color: #e0e0e0;
+    font-size: 0.82rem; outline: none;
+  }
+  .drive-search-bar input:focus { border-color: #6366f1; }
+  .drive-search-bar input::placeholder { color: #4b5563; }
+  .drive-search-btn {
+    padding: 7px 10px; background: #12121a; border: 1px solid #1e1e2e;
+    border-radius: 6px; color: #6b7280; cursor: pointer; font-size: 0.82rem;
+    transition: all 0.15s;
+  }
+  .drive-search-btn:hover { border-color: #6366f1; color: #a78bfa; }
+  .drive-search-clear {
+    padding: 7px 10px; background: transparent; border: 1px solid #2a2a3e;
+    border-radius: 6px; color: #6b7280; cursor: pointer; font-size: 0.75rem;
+    transition: all 0.15s;
+  }
+  .drive-search-clear:hover { border-color: #ef4444; color: #ef4444; }
+  .drive-search-tag {
+    display: inline-block; font-size: 0.72rem; color: #60a5fa; margin-bottom: 8px;
+  }
 
   /* --- Career Lite Profile --- */
   .cl-header {
@@ -3549,6 +3588,9 @@ var driveBreadcrumb = [{ id: null, name: 'My Drive' }];
 var driveFiles = [];
 var driveSelected = {};
 var driveIngesting = false;
+var driveSearchMode = false;
+var driveSearchQuery = '';
+var driveFilterTimeout = null;
 
 function showDriveView() {
   selectedId = null;
@@ -3556,6 +3598,8 @@ function showDriveView() {
   driveFiles = [];
   driveSelected = {};
   driveIngesting = false;
+  driveSearchMode = false;
+  driveSearchQuery = '';
   renderDrivePanel();
   loadDriveFolder(null);
   var items = document.querySelectorAll('.entity-item');
@@ -3565,17 +3609,32 @@ function showDriveView() {
 function renderDrivePanel() {
   var h = '<h2 style="font-size:1.2rem;font-weight:700;color:#fff;margin-bottom:16px;">Import from Google Drive</h2>';
 
-  // Breadcrumb
-  h += '<div class="drive-breadcrumb">';
-  for (var i = 0; i < driveBreadcrumb.length; i++) {
-    if (i > 0) h += '<span class="sep">/</span>';
-    if (i < driveBreadcrumb.length - 1) {
-      h += '<a onclick="navigateDrive(' + i + ')">' + esc(driveBreadcrumb[i].name) + '</a>';
-    } else {
-      h += '<span class="current">' + esc(driveBreadcrumb[i].name) + '</span>';
-    }
+  // Search bar
+  h += '<div class="drive-search-bar">';
+  h += '<input type="text" id="driveSearchInput" placeholder="Filter files or press Enter to search Drive..." value="' + esc(driveSearchQuery) + '" oninput="onDriveFilter()" onkeydown="if(event.key===\\'Enter\\')driveFullSearch()" />';
+  if (driveSearchMode) {
+    h += '<button class="drive-search-clear" onclick="clearDriveSearch()">Clear</button>';
+  } else {
+    h += '<button class="drive-search-btn" onclick="driveFullSearch()">Search</button>';
   }
   h += '</div>';
+
+  if (driveSearchMode) {
+    // Search results mode — show tag instead of breadcrumb
+    h += '<div class="drive-search-tag">Search results for &ldquo;' + esc(driveSearchQuery) + '&rdquo;</div>';
+  } else {
+    // Breadcrumb
+    h += '<div class="drive-breadcrumb">';
+    for (var i = 0; i < driveBreadcrumb.length; i++) {
+      if (i > 0) h += '<span class="sep">/</span>';
+      if (i < driveBreadcrumb.length - 1) {
+        h += '<a onclick="navigateDrive(' + i + ')">' + esc(driveBreadcrumb[i].name) + '</a>';
+      } else {
+        h += '<span class="current">' + esc(driveBreadcrumb[i].name) + '</span>';
+      }
+    }
+    h += '</div>';
+  }
 
   // Loading or file list
   h += '<div id="driveFileArea"><div class="drive-loading">Loading...</div></div>';
@@ -3594,6 +3653,48 @@ function renderDrivePanel() {
   document.getElementById('main').innerHTML = h;
 }
 
+function onDriveFilter() {
+  clearTimeout(driveFilterTimeout);
+  driveFilterTimeout = setTimeout(function() {
+    var input = document.getElementById('driveSearchInput');
+    var q = input ? input.value.trim().toLowerCase() : '';
+    if (driveSearchMode || !q) {
+      renderDriveFiles();
+      return;
+    }
+    // Local filter: re-render with filter applied
+    renderDriveFiles(q);
+  }, 150);
+}
+
+function driveFullSearch() {
+  var input = document.getElementById('driveSearchInput');
+  var q = input ? input.value.trim() : '';
+  if (!q) return;
+  driveSearchQuery = q;
+  driveSearchMode = true;
+  driveSelected = {};
+  renderDrivePanel();
+  // API search
+  var area = document.getElementById('driveFileArea');
+  if (area) area.innerHTML = '<div class="drive-loading">Searching Drive...</div>';
+  api('GET', '/api/drive/files?q=' + encodeURIComponent(q)).then(function(data) {
+    driveFiles = data.files || [];
+    renderDriveFiles();
+  }).catch(function(err) {
+    if (area) area.innerHTML = '<div class="drive-empty" style="color:#ef4444;">Search error: ' + esc(err.message) + '</div>';
+  });
+}
+
+function clearDriveSearch() {
+  driveSearchMode = false;
+  driveSearchQuery = '';
+  driveSelected = {};
+  var folderId = driveBreadcrumb[driveBreadcrumb.length - 1].id;
+  renderDrivePanel();
+  loadDriveFolder(folderId);
+}
+
 function loadDriveFolder(folderId) {
   var area = document.getElementById('driveFileArea');
   if (area) area.innerHTML = '<div class="drive-loading">Loading...</div>';
@@ -3609,18 +3710,26 @@ function loadDriveFolder(folderId) {
   });
 }
 
-function renderDriveFiles() {
+function renderDriveFiles(localFilter) {
   var area = document.getElementById('driveFileArea');
   if (!area) return;
 
-  if (driveFiles.length === 0) {
-    area.innerHTML = '<div class="drive-empty">No supported files in this folder</div>';
+  var filtered = driveFiles;
+  if (localFilter) {
+    filtered = driveFiles.filter(function(f) {
+      return f.name.toLowerCase().indexOf(localFilter) !== -1;
+    });
+  }
+
+  if (filtered.length === 0) {
+    area.innerHTML = '<div class="drive-empty">' + (localFilter ? 'No files match &ldquo;' + esc(localFilter) + '&rdquo;' : 'No supported files in this folder') + '</div>';
+    updateDriveActionBar();
     return;
   }
 
   var h = '<div class="drive-file-list">';
-  for (var i = 0; i < driveFiles.length; i++) {
-    var f = driveFiles[i];
+  for (var i = 0; i < filtered.length; i++) {
+    var f = filtered[i];
     if (f.isFolder) {
       h += '<div class="drive-file-row" onclick="openDriveFolder(\\'' + esc(f.id) + '\\', \\'' + esc(f.name).replace(/'/g, "\\\\'") + '\\')">';
       h += '<div class="drive-file-icon">\\ud83d\\udcc1</div>';

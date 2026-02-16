@@ -90,6 +90,39 @@ async function listFiles(accessToken, folderId) {
 }
 
 /**
+ * Search files across the entire Drive by name/content.
+ * Returns a flat list of matching files (no folders).
+ */
+async function searchFiles(accessToken, query) {
+  const auth = getAuthedClient(accessToken);
+  const drv = google.drive({ version: 'v3', auth });
+
+  const mimeQueries = [
+    ...[...SUPPORTED_MIME_TYPES].map(m => `mimeType = '${m}'`),
+    ...Object.keys(GOOGLE_EXPORT_MAP).map(m => `mimeType = '${m}'`),
+  ];
+
+  const q = `trashed = false and (${mimeQueries.join(' or ')}) and (name contains '${query.replace(/'/g, "\\'")}' or fullText contains '${query.replace(/'/g, "\\'")}')`;
+
+  const res = await drv.files.list({
+    q,
+    fields: 'files(id, name, mimeType, size, modifiedTime, parents)',
+    orderBy: 'modifiedTime desc',
+    pageSize: 100,
+  });
+
+  return (res.data.files || []).map(f => ({
+    id: f.id,
+    name: f.name,
+    mimeType: f.mimeType,
+    size: f.size ? parseInt(f.size, 10) : 0,
+    modifiedTime: f.modifiedTime || '',
+    isFolder: false,
+    isGoogleNative: !!GOOGLE_EXPORT_MAP[f.mimeType],
+  }));
+}
+
+/**
  * Download a file from Drive as a Buffer.
  * Google Docs → export as DOCX; Google Sheets → export as XLSX.
  * Regular files → direct download.
@@ -155,6 +188,7 @@ async function withTokenRefresh(fn, accessToken, refreshToken) {
 
 module.exports = {
   listFiles,
+  searchFiles,
   downloadFile,
   refreshAccessToken,
   withTokenRefresh,
