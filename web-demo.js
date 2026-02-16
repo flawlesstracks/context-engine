@@ -14,6 +14,7 @@ const { normalizeFileToText } = require('./src/parsers/normalize');
 const { buildLinkedInPrompt, linkedInResponseToEntity } = require('./src/parsers/linkedin');
 const { mapContactRows } = require('./src/parsers/contacts');
 const auth = require('./src/auth');
+const drive = require('./src/drive');
 
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
@@ -732,6 +733,247 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
     type: 'complete',
     summary: {
       files_processed: files.length,
+      entities_created: totalCreated,
+      entities_updated: totalUpdated,
+      observations_added: totalObservations,
+    },
+  });
+  res.end();
+});
+
+// --- Google Drive integration ---
+
+// Helper: get tenant's Drive tokens from tenants.json
+function getDriveTokens(tenantId) {
+  const tenants = loadTenants();
+  const tenant = tenants[tenantId];
+  if (!tenant) return null;
+  return { accessToken: tenant.access_token, refreshToken: tenant.refresh_token, tenant, tenants };
+}
+
+function saveDriveToken(tenantId, newAccessToken) {
+  const tenants = loadTenants();
+  if (tenants[tenantId]) {
+    tenants[tenantId].access_token = newAccessToken;
+    saveTenants(tenants);
+  }
+}
+
+// GET /api/drive/files?folderId=X — List files in a Drive folder
+app.get('/api/drive/files', apiAuth, async (req, res) => {
+  const tokens = getDriveTokens(req.tenantId);
+  if (!tokens || !tokens.accessToken) {
+    return res.status(401).json({ error: 'No Google Drive access. Please sign in with Google.' });
+  }
+
+  const folderId = req.query.folderId || null;
+
+  try {
+    const { result: files, newAccessToken } = await drive.withTokenRefresh(
+      (token) => drive.listFiles(token, folderId),
+      tokens.accessToken,
+      tokens.refreshToken,
+    );
+    if (newAccessToken) saveDriveToken(req.tenantId, newAccessToken);
+    res.json({ files, folderId: folderId || 'root' });
+  } catch (err) {
+    console.error('Drive list error:', err.message);
+    res.status(500).json({ error: 'Failed to list Drive files: ' + err.message });
+  }
+});
+
+// POST /api/drive/ingest — Download files from Drive and ingest
+app.post('/api/drive/ingest', apiAuth, async (req, res) => {
+  const { fileIds } = req.body;
+  if (!Array.isArray(fileIds) || fileIds.length === 0) {
+    return res.status(400).json({ error: 'Missing fileIds array' });
+  }
+
+  const tokens = getDriveTokens(req.tenantId);
+  if (!tokens || !tokens.accessToken) {
+    return res.status(401).json({ error: 'No Google Drive access. Please sign in with Google.' });
+  }
+
+  let currentToken = tokens.accessToken;
+
+  // Stream NDJSON
+  res.setHeader('Content-Type', 'application/x-ndjson');
+  res.setHeader('Transfer-Encoding', 'chunked');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.flushHeaders();
+
+  const sendEvent = (event) => res.write(JSON.stringify(event) + '\n');
+  sendEvent({ type: 'started', total_files: fileIds.length });
+
+  let totalCreated = 0;
+  let totalUpdated = 0;
+  let totalObservations = 0;
+  const client = new Anthropic();
+
+  for (let fi = 0; fi < fileIds.length; fi++) {
+    const fileId = fileIds[fi];
+    let filename = fileId;
+
+    try {
+      // Download from Drive (with token refresh)
+      sendEvent({ type: 'file_downloading', file_index: fi + 1, file_id: fileId });
+
+      const { result: downloaded, newAccessToken } = await drive.withTokenRefresh(
+        (token) => drive.downloadFile(token, fileId),
+        currentToken,
+        tokens.refreshToken,
+      );
+      if (newAccessToken) {
+        currentToken = newAccessToken;
+        saveDriveToken(req.tenantId, newAccessToken);
+      }
+
+      const { buffer, filename: dlFilename } = downloaded;
+      filename = dlFilename;
+
+      // Run through the same parser pipeline as file upload
+      const { text, metadata } = await normalizeFileToText(buffer, filename);
+
+      let result;
+
+      if (metadata.isContactList && metadata.rows) {
+        const entities = mapContactRows(metadata.rows, filename, req.agentId);
+        result = await ingestPipeline(entities, req.graphDir, req.agentId, {
+          source: `drive:${filename}`,
+          truthLevel: 'STRONG',
+        });
+      } else if (metadata.isLinkedIn) {
+        const prompt = buildLinkedInPrompt(text, filename);
+        const message = await client.messages.create({
+          model: 'claude-sonnet-4-5-20250929',
+          max_tokens: 8192,
+          messages: [{ role: 'user', content: prompt }],
+        });
+        const rawResponse = message.content[0].text;
+        const cleaned = rawResponse.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+        const parsed = JSON.parse(cleaned);
+        const entity = linkedInResponseToEntity(parsed, filename, req.agentId);
+        result = await ingestPipeline([entity], req.graphDir, req.agentId, {
+          source: `drive:${filename}`,
+          truthLevel: 'INFERRED',
+        });
+      } else {
+        const truncated = text.length > 50000 ? text.substring(0, 50000) + '\n[...truncated]' : text;
+        const prompt = buildIngestPrompt([{ title: filename, createTime: new Date().toISOString(), userMessages: [truncated] }]);
+        const message = await client.messages.create({
+          model: 'claude-sonnet-4-5-20250929',
+          max_tokens: 16384,
+          messages: [{ role: 'user', content: prompt }],
+        });
+        const rawResponse = message.content[0].text;
+        const cleaned = rawResponse.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+        const parsed = JSON.parse(cleaned);
+
+        const now = new Date().toISOString();
+        const v2Entities = (parsed.entities || []).map(extracted => {
+          const entityType = extracted.entity_type;
+          if (!entityType || !['person', 'business'].includes(entityType)) return null;
+
+          const observations = (extracted.observations || []).map(obs => ({
+            observation: (obs.text || '').trim(),
+            observed_at: now,
+            source: `drive_import:${filename}`,
+            confidence: 0.6,
+            confidence_label: 'MODERATE',
+            facts_layer: 'L2_GROUP',
+            layer_number: 2,
+            observed_by: req.agentId,
+          })).filter(o => o.observation);
+
+          const attributes = [];
+          if (extracted.attributes && typeof extracted.attributes === 'object') {
+            let attrSeq = 1;
+            for (const [key, value] of Object.entries(extracted.attributes)) {
+              const val = Array.isArray(value) ? value.join(', ') : String(value);
+              if (!val) continue;
+              attributes.push({
+                attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`,
+                key, value: val, confidence: 0.6, confidence_label: 'MODERATE',
+                time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+                source_attribution: { facts_layer: 2, layer_label: 'group' },
+              });
+            }
+          }
+
+          const relationships = [];
+          if (Array.isArray(extracted.relationships)) {
+            let relSeq = 1;
+            for (const rel of extracted.relationships) {
+              relationships.push({
+                relationship_id: `REL-${String(relSeq++).padStart(3, '0')}`,
+                name: rel.name || '', relationship_type: rel.relationship || '', context: rel.context || '',
+                sentiment: 'neutral', confidence: 0.6, confidence_label: 'MODERATE',
+              });
+            }
+          }
+
+          return {
+            schema_version: '2.0',
+            schema_type: 'context_architecture_entity',
+            extraction_metadata: {
+              extracted_at: now, updated_at: now,
+              source_description: `drive_import:${filename}`,
+              extraction_model: 'claude-sonnet-4-5-20250929',
+              extraction_confidence: 0.6, schema_version: '2.0',
+            },
+            entity: {
+              entity_type: entityType,
+              name: { ...extracted.name, confidence: 0.6, facts_layer: 2 },
+              summary: extracted.summary
+                ? { value: extracted.summary, confidence: 0.6, facts_layer: 2 }
+                : { value: '', confidence: 0, facts_layer: 2 },
+            },
+            attributes, relationships,
+            values: [], key_facts: [], constraints: [],
+            observations,
+            provenance_chain: {
+              created_at: now, created_by: req.agentId,
+              source_documents: [{ source: `drive_import:${filename}`, ingested_at: now }],
+              merge_history: [],
+            },
+          };
+        }).filter(Boolean);
+
+        result = await ingestPipeline(v2Entities, req.graphDir, req.agentId, {
+          source: `drive:${filename}`,
+          truthLevel: 'INFERRED',
+        });
+      }
+
+      totalCreated += result.created;
+      totalUpdated += result.updated;
+      totalObservations += result.observationsAdded;
+
+      sendEvent({
+        type: 'file_progress',
+        file: filename,
+        file_index: fi + 1,
+        total_files: fileIds.length,
+        entities_created: result.created,
+        entities_updated: result.updated,
+        observations_added: result.observationsAdded,
+      });
+
+    } catch (err) {
+      sendEvent({
+        type: 'file_error',
+        file: filename,
+        file_index: fi + 1,
+        error: err.message,
+      });
+    }
+  }
+
+  sendEvent({
+    type: 'complete',
+    summary: {
+      files_processed: fileIds.length,
       entities_created: totalCreated,
       entities_updated: totalUpdated,
       observations_added: totalObservations,
@@ -2782,6 +3024,50 @@ const WIKI_HTML = `<!DOCTYPE html>
     font-size: 0.68rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em;
   }
 
+  /* --- Drive Picker --- */
+  .drive-breadcrumb {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 4px;
+    margin-bottom: 12px; font-size: 0.78rem;
+  }
+  .drive-breadcrumb a {
+    color: #60a5fa; text-decoration: none; cursor: pointer;
+  }
+  .drive-breadcrumb a:hover { text-decoration: underline; }
+  .drive-breadcrumb .sep { color: #4b5563; }
+  .drive-breadcrumb .current { color: #e0e0e0; font-weight: 600; }
+  .drive-file-list {
+    border: 1px solid #1e1e2e; border-radius: 8px; overflow: hidden; margin-bottom: 16px;
+  }
+  .drive-file-row {
+    display: flex; align-items: center; padding: 8px 12px;
+    border-bottom: 1px solid rgba(30,30,46,0.5); font-size: 0.82rem;
+    transition: background 0.1s; cursor: pointer;
+  }
+  .drive-file-row:last-child { border-bottom: none; }
+  .drive-file-row:hover { background: rgba(99,102,241,0.05); }
+  .drive-file-row.selected { background: rgba(99,102,241,0.1); }
+  .drive-file-check {
+    width: 16px; height: 16px; margin-right: 10px; accent-color: #6366f1; flex-shrink: 0;
+  }
+  .drive-file-icon {
+    width: 20px; text-align: center; margin-right: 8px; flex-shrink: 0; font-size: 0.9rem;
+  }
+  .drive-file-name { flex: 1; color: #e0e0e0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .drive-file-name.folder { color: #60a5fa; font-weight: 500; }
+  .drive-file-meta {
+    font-size: 0.68rem; color: #4b5563; margin-left: 12px; flex-shrink: 0; white-space: nowrap;
+  }
+  .drive-select-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px; font-size: 0.78rem; color: #6b7280;
+  }
+  .drive-loading {
+    text-align: center; padding: 32px; color: #4b5563; font-size: 0.85rem;
+  }
+  .drive-empty {
+    text-align: center; padding: 24px; color: #4b5563; font-size: 0.82rem;
+  }
+
   /* --- Career Lite Profile --- */
   .cl-header {
     display: flex; gap: 16px; align-items: flex-start; margin-bottom: 6px;
@@ -2871,6 +3157,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     </div>
     <div class="sidebar-actions">
       <button class="btn-upload" onclick="showUploadView()">+ Upload Files</button>
+      <button class="btn-upload" onclick="showDriveView()" id="btnDrive" style="margin-top:4px;display:none;">Import from Drive</button>
     </div>
     <div class="sidebar-count" id="sidebarCount"></div>
     <div id="entityList"></div>
@@ -2928,6 +3215,8 @@ function enterApp(user) {
   if (user && user.name) {
     document.getElementById('userInfo').textContent = user.name + ' ';
     document.getElementById('logoutLink').innerHTML = ' &middot; <a href="#" onclick="logout();return false;">Logout</a>';
+    // Show Drive button for Google OAuth users
+    document.getElementById('btnDrive').style.display = 'block';
   }
   api('GET', '/api/search?q=*').then(function(data) {
     entities = data.results || [];
@@ -3249,6 +3538,252 @@ function uploadComplete() {
     });
   };
   // Also refresh sidebar entity list
+  api('GET', '/api/search?q=*').then(function(data) {
+    entities = data.results || [];
+    renderEntityList();
+  });
+}
+
+/* --- Google Drive Picker --- */
+var driveBreadcrumb = [{ id: null, name: 'My Drive' }];
+var driveFiles = [];
+var driveSelected = {};
+var driveIngesting = false;
+
+function showDriveView() {
+  selectedId = null;
+  driveBreadcrumb = [{ id: null, name: 'My Drive' }];
+  driveFiles = [];
+  driveSelected = {};
+  driveIngesting = false;
+  renderDrivePanel();
+  loadDriveFolder(null);
+  var items = document.querySelectorAll('.entity-item');
+  for (var i = 0; i < items.length; i++) items[i].classList.remove('active');
+}
+
+function renderDrivePanel() {
+  var h = '<h2 style="font-size:1.2rem;font-weight:700;color:#fff;margin-bottom:16px;">Import from Google Drive</h2>';
+
+  // Breadcrumb
+  h += '<div class="drive-breadcrumb">';
+  for (var i = 0; i < driveBreadcrumb.length; i++) {
+    if (i > 0) h += '<span class="sep">/</span>';
+    if (i < driveBreadcrumb.length - 1) {
+      h += '<a onclick="navigateDrive(' + i + ')">' + esc(driveBreadcrumb[i].name) + '</a>';
+    } else {
+      h += '<span class="current">' + esc(driveBreadcrumb[i].name) + '</span>';
+    }
+  }
+  h += '</div>';
+
+  // Loading or file list
+  h += '<div id="driveFileArea"><div class="drive-loading">Loading...</div></div>';
+
+  // Progress log (hidden until ingest starts)
+  h += '<div id="driveProgressLog" class="upload-progress-log" style="display:none;"></div>';
+  h += '<div id="driveSummary" style="display:none;"></div>';
+
+  // Action bar
+  h += '<div id="driveActionBar">';
+  var selCount = Object.keys(driveSelected).length;
+  h += '<button class="btn-start-upload" id="btnDriveImport" onclick="startDriveIngest()" style="display:' + (selCount > 0 ? 'block' : 'none') + ';">Import ' + selCount + ' file' + (selCount !== 1 ? 's' : '') + '</button>';
+  h += '<button class="btn-back-upload" onclick="hideUploadView()">Back to Entities</button>';
+  h += '</div>';
+
+  document.getElementById('main').innerHTML = h;
+}
+
+function loadDriveFolder(folderId) {
+  var area = document.getElementById('driveFileArea');
+  if (area) area.innerHTML = '<div class="drive-loading">Loading...</div>';
+
+  var url = '/api/drive/files';
+  if (folderId) url += '?folderId=' + encodeURIComponent(folderId);
+
+  api('GET', url).then(function(data) {
+    driveFiles = data.files || [];
+    renderDriveFiles();
+  }).catch(function(err) {
+    if (area) area.innerHTML = '<div class="drive-empty" style="color:#ef4444;">Error: ' + esc(err.message) + '</div>';
+  });
+}
+
+function renderDriveFiles() {
+  var area = document.getElementById('driveFileArea');
+  if (!area) return;
+
+  if (driveFiles.length === 0) {
+    area.innerHTML = '<div class="drive-empty">No supported files in this folder</div>';
+    return;
+  }
+
+  var h = '<div class="drive-file-list">';
+  for (var i = 0; i < driveFiles.length; i++) {
+    var f = driveFiles[i];
+    if (f.isFolder) {
+      h += '<div class="drive-file-row" onclick="openDriveFolder(\\'' + esc(f.id) + '\\', \\'' + esc(f.name).replace(/'/g, "\\\\'") + '\\')">';
+      h += '<div class="drive-file-icon">\\ud83d\\udcc1</div>';
+      h += '<div class="drive-file-name folder">' + esc(f.name) + '</div>';
+      h += '<div class="drive-file-meta">' + formatDriveDate(f.modifiedTime) + '</div>';
+      h += '</div>';
+    } else {
+      var checked = driveSelected[f.id] ? ' checked' : '';
+      var selCls = driveSelected[f.id] ? ' selected' : '';
+      h += '<div class="drive-file-row' + selCls + '" onclick="toggleDriveFile(\\'' + esc(f.id) + '\\', \\'' + esc(f.name).replace(/'/g, "\\\\'") + '\\')">';
+      h += '<input type="checkbox" class="drive-file-check"' + checked + ' onclick="event.stopPropagation(); toggleDriveFile(\\'' + esc(f.id) + '\\', \\'' + esc(f.name).replace(/'/g, "\\\\'") + '\\')" />';
+      h += '<div class="drive-file-icon">' + driveFileIcon(f.mimeType, f.isGoogleNative) + '</div>';
+      h += '<div class="drive-file-name">' + esc(f.name) + (f.isGoogleNative ? ' <span style="font-size:0.65rem;color:#4b5563;">(Google)</span>' : '') + '</div>';
+      h += '<div class="drive-file-meta">' + (f.size ? formatFileSize(f.size) : '') + '</div>';
+      h += '<div class="drive-file-meta">' + formatDriveDate(f.modifiedTime) + '</div>';
+      h += '</div>';
+    }
+  }
+  h += '</div>';
+  area.innerHTML = h;
+  updateDriveActionBar();
+}
+
+function driveFileIcon(mimeType, isGoogleNative) {
+  if (mimeType === 'application/pdf') return '\\ud83d\\udcc4';
+  if (mimeType.includes('spreadsheet') || mimeType.includes('excel') || mimeType === 'text/csv') return '\\ud83d\\udcca';
+  if (mimeType.includes('document') || mimeType.includes('wordprocessing')) return '\\ud83d\\udcdd';
+  if (mimeType === 'text/plain' || mimeType === 'text/markdown') return '\\ud83d\\udcc3';
+  return '\\ud83d\\udcc4';
+}
+
+function formatDriveDate(iso) {
+  if (!iso) return '';
+  return iso.slice(0, 10);
+}
+
+function openDriveFolder(id, name) {
+  driveBreadcrumb.push({ id: id, name: name });
+  driveSelected = {};
+  renderDrivePanel();
+  loadDriveFolder(id);
+}
+
+function navigateDrive(index) {
+  driveBreadcrumb = driveBreadcrumb.slice(0, index + 1);
+  driveSelected = {};
+  var folderId = driveBreadcrumb[driveBreadcrumb.length - 1].id;
+  renderDrivePanel();
+  loadDriveFolder(folderId);
+}
+
+function toggleDriveFile(fileId, fileName) {
+  if (driveSelected[fileId]) {
+    delete driveSelected[fileId];
+  } else {
+    driveSelected[fileId] = fileName;
+  }
+  renderDriveFiles();
+}
+
+function updateDriveActionBar() {
+  var btn = document.getElementById('btnDriveImport');
+  if (!btn) return;
+  var selCount = Object.keys(driveSelected).length;
+  btn.style.display = selCount > 0 ? 'block' : 'none';
+  btn.textContent = 'Import ' + selCount + ' file' + (selCount !== 1 ? 's' : '');
+}
+
+function startDriveIngest() {
+  var ids = Object.keys(driveSelected);
+  if (ids.length === 0 || driveIngesting) return;
+  driveIngesting = true;
+
+  var btn = document.getElementById('btnDriveImport');
+  btn.disabled = true;
+  btn.textContent = 'Importing...';
+
+  var log = document.getElementById('driveProgressLog');
+  log.style.display = 'block';
+  log.innerHTML = '<div class="log-info">Starting import of ' + ids.length + ' file' + (ids.length > 1 ? 's' : '') + ' from Drive...</div>';
+
+  var headers = { 'Content-Type': 'application/json', 'X-Agent-Id': 'wiki-drive' };
+  if (apiKey) headers['X-Context-API-Key'] = apiKey;
+
+  fetch('/api/drive/ingest', {
+    method: 'POST',
+    headers: headers,
+    credentials: 'same-origin',
+    body: JSON.stringify({ fileIds: ids }),
+  }).then(function(response) {
+    if (!response.ok) {
+      return response.json().then(function(e) {
+        throw new Error(e.error || 'Import failed (' + response.status + ')');
+      });
+    }
+    var reader = response.body.getReader();
+    var decoder = new TextDecoder();
+    var buffer = '';
+
+    function read() {
+      return reader.read().then(function(result) {
+        if (result.done) {
+          driveIngestComplete();
+          return;
+        }
+        buffer += decoder.decode(result.value, { stream: true });
+        var lines = buffer.split('\\n');
+        buffer = lines.pop();
+        for (var i = 0; i < lines.length; i++) {
+          if (!lines[i].trim()) continue;
+          try {
+            var evt = JSON.parse(lines[i]);
+            handleDriveEvent(evt);
+          } catch (e) {}
+        }
+        return read();
+      });
+    }
+    return read();
+  }).catch(function(err) {
+    log.innerHTML += '<div class="log-error">Error: ' + esc(err.message) + '</div>';
+    log.scrollTop = log.scrollHeight;
+    driveIngesting = false;
+    btn.disabled = false;
+    btn.textContent = 'Retry Import';
+  });
+}
+
+function handleDriveEvent(evt) {
+  var log = document.getElementById('driveProgressLog');
+  if (evt.type === 'started') {
+    log.innerHTML += '<div class="log-info">Processing ' + evt.total_files + ' file' + (evt.total_files > 1 ? 's' : '') + '...</div>';
+  } else if (evt.type === 'file_downloading') {
+    log.innerHTML += '<div class="log-info">Downloading file ' + evt.file_index + '...</div>';
+  } else if (evt.type === 'file_progress') {
+    log.innerHTML += '<div class="log-success">' + esc(evt.file) + ' — ' + evt.entities_created + ' created, ' + evt.entities_updated + ' updated</div>';
+  } else if (evt.type === 'file_error') {
+    log.innerHTML += '<div class="log-error">' + esc(evt.file) + ' — ' + esc(evt.error) + '</div>';
+  } else if (evt.type === 'complete') {
+    var s = evt.summary || {};
+    var sumEl = document.getElementById('driveSummary');
+    sumEl.style.display = 'block';
+    sumEl.innerHTML = '<div class="upload-summary">' +
+      '<div class="upload-summary-stat"><div class="upload-summary-num">' + (s.files_processed || 0) + '</div><div class="upload-summary-label">Files</div></div>' +
+      '<div class="upload-summary-stat"><div class="upload-summary-num">' + (s.entities_created || 0) + '</div><div class="upload-summary-label">Created</div></div>' +
+      '<div class="upload-summary-stat"><div class="upload-summary-num">' + (s.entities_updated || 0) + '</div><div class="upload-summary-label">Merged</div></div>' +
+      '</div>';
+  }
+  log.scrollTop = log.scrollHeight;
+}
+
+function driveIngestComplete() {
+  driveIngesting = false;
+  var btn = document.getElementById('btnDriveImport');
+  btn.textContent = 'Done — View Entities';
+  btn.disabled = false;
+  btn.onclick = function() {
+    hideUploadView();
+    api('GET', '/api/search?q=*').then(function(data) {
+      entities = data.results || [];
+      renderEntityList();
+    });
+  };
   api('GET', '/api/search?q=*').then(function(data) {
     entities = data.results || [];
     renderEntityList();
