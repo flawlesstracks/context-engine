@@ -2696,6 +2696,92 @@ const WIKI_HTML = `<!DOCTYPE html>
   .toast.active { display: block; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
+  /* --- Upload Zone --- */
+  .sidebar-actions {
+    padding: 8px 16px; border-bottom: 1px solid #1e1e2e;
+  }
+  .btn-upload {
+    width: 100%; padding: 7px 0; border: 1px dashed #2a2a3e; border-radius: 6px;
+    background: transparent; color: #6b7280; font-size: 0.75rem; font-weight: 600;
+    cursor: pointer; transition: all 0.15s; letter-spacing: 0.03em;
+  }
+  .btn-upload:hover { border-color: #6366f1; color: #a78bfa; background: rgba(99,102,241,0.05); }
+  .upload-view { display: none; }
+  .upload-view.active { display: block; }
+  .upload-dropzone {
+    border: 2px dashed #2a2a3e; border-radius: 12px; padding: 48px 24px;
+    text-align: center; cursor: pointer; transition: all 0.2s;
+    background: #0d0d14; margin-bottom: 16px;
+  }
+  .upload-dropzone:hover, .upload-dropzone.dragover {
+    border-color: #6366f1; background: rgba(99,102,241,0.05);
+  }
+  .upload-dropzone-icon {
+    font-size: 2.5rem; margin-bottom: 12px; opacity: 0.4;
+  }
+  .upload-dropzone-text {
+    font-size: 0.9rem; color: #6b7280; margin-bottom: 6px;
+  }
+  .upload-dropzone-hint {
+    font-size: 0.72rem; color: #4b5563;
+  }
+  .upload-file-list {
+    margin-bottom: 16px;
+  }
+  .upload-file-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; background: #12121a; border: 1px solid #1e1e2e;
+    border-radius: 6px; margin-bottom: 6px; font-size: 0.82rem;
+  }
+  .upload-file-name { color: #e0e0e0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .upload-file-size { color: #4b5563; font-size: 0.72rem; margin-left: 8px; flex-shrink: 0; }
+  .upload-file-status { margin-left: 8px; font-size: 0.72rem; flex-shrink: 0; }
+  .upload-file-status.pending { color: #4b5563; }
+  .upload-file-status.processing { color: #f59e0b; }
+  .upload-file-status.done { color: #34d399; }
+  .upload-file-status.error { color: #ef4444; }
+  .upload-file-remove {
+    margin-left: 8px; background: none; border: none; color: #4b5563;
+    cursor: pointer; font-size: 0.9rem; padding: 0 4px;
+  }
+  .upload-file-remove:hover { color: #ef4444; }
+  .btn-start-upload {
+    width: 100%; padding: 10px; border: none; border-radius: 8px;
+    font-size: 0.85rem; font-weight: 600; cursor: pointer;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white;
+    transition: all 0.2s; margin-bottom: 8px;
+  }
+  .btn-start-upload:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(99,102,241,0.3); }
+  .btn-start-upload:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+  .btn-back-upload {
+    width: 100%; padding: 8px; border: 1px solid #2a2a3e; border-radius: 8px;
+    font-size: 0.8rem; font-weight: 500; cursor: pointer;
+    background: transparent; color: #6b7280; transition: all 0.15s;
+  }
+  .btn-back-upload:hover { border-color: #6366f1; color: #a78bfa; }
+  .upload-progress-log {
+    background: #0a0a0f; border: 1px solid #1e1e2e; border-radius: 8px;
+    padding: 12px; margin-bottom: 16px; max-height: 200px; overflow-y: auto;
+    font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.72rem;
+    line-height: 1.7; color: #6b7280;
+  }
+  .upload-progress-log .log-success { color: #34d399; }
+  .upload-progress-log .log-info { color: #60a5fa; }
+  .upload-progress-log .log-error { color: #ef4444; }
+  .upload-summary {
+    background: #12121a; border: 1px solid #1e1e2e; border-radius: 8px;
+    padding: 16px; text-align: center; margin-bottom: 16px;
+  }
+  .upload-summary-stat {
+    display: inline-block; margin: 0 16px; text-align: center;
+  }
+  .upload-summary-num {
+    font-size: 1.5rem; font-weight: 700; color: #a78bfa;
+  }
+  .upload-summary-label {
+    font-size: 0.68rem; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em;
+  }
+
   /* --- Career Lite Profile --- */
   .cl-header {
     display: flex; gap: 16px; align-items: flex-start; margin-bottom: 6px;
@@ -2783,6 +2869,9 @@ const WIKI_HTML = `<!DOCTYPE html>
       <h2><span>Entities</span></h2>
       <input type="text" id="searchInput" placeholder="Search entities..." oninput="onSearch()" />
     </div>
+    <div class="sidebar-actions">
+      <button class="btn-upload" onclick="showUploadView()">+ Upload Files</button>
+    </div>
     <div class="sidebar-count" id="sidebarCount"></div>
     <div id="entityList"></div>
     <div class="sidebar-footer">
@@ -2797,6 +2886,7 @@ const WIKI_HTML = `<!DOCTYPE html>
 </div>
 
 <div class="toast" id="toast"></div>
+<input type="file" id="uploadFileInput" multiple accept=".pdf,.docx,.xlsx,.xls,.csv,.txt,.md" style="display:none" />
 
 <script>
 var apiKey = '';
@@ -2949,6 +3039,217 @@ function calcDecay(observedAt) {
   if (!observedAt) return 1;
   var days = Math.max(0, (Date.now() - new Date(observedAt).getTime()) / 86400000);
   return Math.exp(-0.03 * days);
+}
+
+/* --- File Upload --- */
+var uploadFiles = [];
+var uploadInProgress = false;
+
+function showUploadView() {
+  selectedId = null;
+  uploadFiles = [];
+  uploadInProgress = false;
+  var h = '<div class="upload-view active">';
+  h += '<h2 style="font-size:1.2rem;font-weight:700;color:#fff;margin-bottom:16px;">Upload Files</h2>';
+  h += '<div class="upload-dropzone" id="uploadDropzone">';
+  h += '<div class="upload-dropzone-icon">+</div>';
+  h += '<div class="upload-dropzone-text">Drag & drop files here, or click to browse</div>';
+  h += '<div class="upload-dropzone-hint">PDF, DOCX, XLSX, CSV, TXT, MD &mdash; up to 50 MB per file</div>';
+  h += '</div>';
+  h += '<div class="upload-file-list" id="uploadFileList"></div>';
+  h += '<div id="uploadProgressLog" class="upload-progress-log" style="display:none;"></div>';
+  h += '<div id="uploadSummary" style="display:none;"></div>';
+  h += '<button class="btn-start-upload" id="btnStartUpload" onclick="startUpload()" style="display:none;">Upload & Extract</button>';
+  h += '<button class="btn-back-upload" onclick="hideUploadView()">Back to Entities</button>';
+  h += '</div>';
+  document.getElementById('main').innerHTML = h;
+
+  // Wire up drop zone
+  var dz = document.getElementById('uploadDropzone');
+  dz.addEventListener('click', function() { document.getElementById('uploadFileInput').click(); });
+  dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', function() { dz.classList.remove('dragover'); });
+  dz.addEventListener('drop', function(e) {
+    e.preventDefault(); dz.classList.remove('dragover');
+    addUploadFiles(e.dataTransfer.files);
+  });
+  document.getElementById('uploadFileInput').onchange = function(e) {
+    addUploadFiles(e.target.files);
+    e.target.value = '';
+  };
+
+  // Deselect sidebar items
+  var items = document.querySelectorAll('.entity-item');
+  for (var i = 0; i < items.length; i++) items[i].classList.remove('active');
+}
+
+function hideUploadView() {
+  if (uploadInProgress) return;
+  document.getElementById('main').innerHTML = '<div class="empty-state">Select an entity from the sidebar<br/>to view its knowledge graph profile</div>';
+}
+
+var ALLOWED_UPLOAD_EXT = ['.pdf', '.docx', '.xlsx', '.xls', '.csv', '.txt', '.md'];
+
+function addUploadFiles(fileList) {
+  for (var i = 0; i < fileList.length; i++) {
+    var f = fileList[i];
+    var ext = '.' + f.name.split('.').pop().toLowerCase();
+    if (ALLOWED_UPLOAD_EXT.indexOf(ext) === -1) {
+      toast('Unsupported file type: ' + ext);
+      continue;
+    }
+    // Avoid duplicates by name
+    var dup = false;
+    for (var j = 0; j < uploadFiles.length; j++) {
+      if (uploadFiles[j].name === f.name) { dup = true; break; }
+    }
+    if (!dup) uploadFiles.push(f);
+  }
+  renderUploadFileList();
+}
+
+function removeUploadFile(idx) {
+  uploadFiles.splice(idx, 1);
+  renderUploadFileList();
+}
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function renderUploadFileList() {
+  var html = '';
+  for (var i = 0; i < uploadFiles.length; i++) {
+    var f = uploadFiles[i];
+    html += '<div class="upload-file-item">';
+    html += '<span class="upload-file-name">' + esc(f.name) + '</span>';
+    html += '<span class="upload-file-size">' + formatFileSize(f.size) + '</span>';
+    html += '<span class="upload-file-status pending" id="uploadStatus' + i + '">ready</span>';
+    html += '<button class="upload-file-remove" onclick="removeUploadFile(' + i + ')">&times;</button>';
+    html += '</div>';
+  }
+  document.getElementById('uploadFileList').innerHTML = html;
+  var btn = document.getElementById('btnStartUpload');
+  if (btn) btn.style.display = uploadFiles.length > 0 ? 'block' : 'none';
+}
+
+function startUpload() {
+  if (uploadFiles.length === 0 || uploadInProgress) return;
+  uploadInProgress = true;
+  document.getElementById('btnStartUpload').disabled = true;
+
+  // Disable remove buttons
+  var removeBtns = document.querySelectorAll('.upload-file-remove');
+  for (var i = 0; i < removeBtns.length; i++) removeBtns[i].style.display = 'none';
+
+  var log = document.getElementById('uploadProgressLog');
+  log.style.display = 'block';
+  log.innerHTML = '<div class="log-info">Starting upload...</div>';
+
+  var formData = new FormData();
+  for (var i = 0; i < uploadFiles.length; i++) {
+    formData.append('files', uploadFiles[i]);
+  }
+
+  var headers = { 'X-Agent-Id': 'wiki-upload' };
+  if (apiKey) headers['X-Context-API-Key'] = apiKey;
+
+  fetch('/api/ingest/files', {
+    method: 'POST',
+    headers: headers,
+    credentials: 'same-origin',
+    body: formData,
+  }).then(function(response) {
+    if (!response.ok) {
+      return response.json().then(function(e) {
+        throw new Error(e.error || 'Upload failed (' + response.status + ')');
+      });
+    }
+    var reader = response.body.getReader();
+    var decoder = new TextDecoder();
+    var buffer = '';
+
+    function read() {
+      return reader.read().then(function(result) {
+        if (result.done) {
+          uploadComplete();
+          return;
+        }
+        buffer += decoder.decode(result.value, { stream: true });
+        var lines = buffer.split('\\n');
+        buffer = lines.pop();
+        for (var i = 0; i < lines.length; i++) {
+          if (!lines[i].trim()) continue;
+          try {
+            var evt = JSON.parse(lines[i]);
+            handleUploadEvent(evt);
+          } catch (e) {}
+        }
+        return read();
+      });
+    }
+    return read();
+  }).catch(function(err) {
+    log.innerHTML += '<div class="log-error">Error: ' + esc(err.message) + '</div>';
+    log.scrollTop = log.scrollHeight;
+    uploadInProgress = false;
+    document.getElementById('btnStartUpload').disabled = false;
+    document.getElementById('btnStartUpload').textContent = 'Retry';
+  });
+}
+
+function handleUploadEvent(evt) {
+  var log = document.getElementById('uploadProgressLog');
+  if (evt.type === 'started') {
+    log.innerHTML += '<div class="log-info">Processing ' + evt.total_files + ' file' + (evt.total_files > 1 ? 's' : '') + '...</div>';
+  } else if (evt.type === 'file_progress') {
+    var idx = evt.file_index - 1;
+    var statusEl = document.getElementById('uploadStatus' + idx);
+    if (statusEl) {
+      statusEl.className = 'upload-file-status done';
+      statusEl.textContent = evt.entities_created + ' created, ' + evt.entities_updated + ' merged';
+    }
+    log.innerHTML += '<div class="log-success">' + esc(evt.file) + ' — ' + evt.entities_created + ' created, ' + evt.entities_updated + ' updated</div>';
+  } else if (evt.type === 'file_error') {
+    var idx = evt.file_index - 1;
+    var statusEl = document.getElementById('uploadStatus' + idx);
+    if (statusEl) {
+      statusEl.className = 'upload-file-status error';
+      statusEl.textContent = 'error';
+    }
+    log.innerHTML += '<div class="log-error">' + esc(evt.file) + ' — ' + esc(evt.error) + '</div>';
+  } else if (evt.type === 'complete') {
+    var s = evt.summary || {};
+    var sumEl = document.getElementById('uploadSummary');
+    sumEl.style.display = 'block';
+    sumEl.innerHTML = '<div class="upload-summary">' +
+      '<div class="upload-summary-stat"><div class="upload-summary-num">' + (s.files_processed || 0) + '</div><div class="upload-summary-label">Files</div></div>' +
+      '<div class="upload-summary-stat"><div class="upload-summary-num">' + (s.entities_created || 0) + '</div><div class="upload-summary-label">Created</div></div>' +
+      '<div class="upload-summary-stat"><div class="upload-summary-num">' + (s.entities_updated || 0) + '</div><div class="upload-summary-label">Merged</div></div>' +
+      '</div>';
+  }
+  log.scrollTop = log.scrollHeight;
+}
+
+function uploadComplete() {
+  uploadInProgress = false;
+  var btn = document.getElementById('btnStartUpload');
+  btn.textContent = 'Done — View Entities';
+  btn.disabled = false;
+  btn.onclick = function() {
+    hideUploadView();
+    api('GET', '/api/search?q=*').then(function(data) {
+      entities = data.results || [];
+      renderEntityList();
+    });
+  };
+  // Also refresh sidebar entity list
+  api('GET', '/api/search?q=*').then(function(data) {
+    entities = data.results || [];
+    renderEntityList();
+  });
 }
 
 function renderCareerLite(data) {
