@@ -2696,6 +2696,55 @@ const WIKI_HTML = `<!DOCTYPE html>
   .toast.active { display: block; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
+  /* --- Career Lite Profile --- */
+  .cl-header {
+    display: flex; gap: 16px; align-items: flex-start; margin-bottom: 6px;
+  }
+  .cl-avatar {
+    width: 64px; height: 64px; border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem; font-weight: 700; color: white; flex-shrink: 0;
+  }
+  .cl-header-info { flex: 1; min-width: 0; }
+  .cl-name { font-size: 1.4rem; font-weight: 700; color: #fff; margin-bottom: 2px; }
+  .cl-headline { font-size: 0.88rem; color: #9ca3af; margin-bottom: 4px; }
+  .cl-current { font-size: 0.82rem; color: #a78bfa; margin-bottom: 4px; }
+  .cl-location { font-size: 0.78rem; color: #6b7280; }
+  .cl-contact-row {
+    display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; font-size: 0.78rem;
+  }
+  .cl-contact-row a { color: #60a5fa; text-decoration: none; }
+  .cl-contact-row a:hover { text-decoration: underline; }
+  .cl-contact-item { color: #9ca3af; }
+  .cl-interface-badge {
+    display: inline-block; font-size: 0.6rem; font-weight: 600;
+    padding: 2px 8px; border-radius: 4px; text-transform: uppercase;
+    letter-spacing: 0.04em; background: rgba(139,92,246,0.15); color: #a78bfa;
+    margin-top: 8px;
+  }
+  .cl-exp-card {
+    background: #0d0d14; border: 1px solid #1a1a2e; border-radius: 8px;
+    padding: 12px 14px; margin-bottom: 8px;
+  }
+  .cl-exp-company { font-size: 0.88rem; font-weight: 600; color: #e0e0e0; }
+  .cl-exp-title { font-size: 0.82rem; color: #a78bfa; }
+  .cl-exp-dates { font-size: 0.72rem; color: #6b7280; margin-top: 2px; }
+  .cl-exp-desc { font-size: 0.78rem; color: #9ca3af; margin-top: 6px; line-height: 1.5; }
+  .cl-edu-card {
+    background: #0d0d14; border: 1px solid #1a1a2e; border-radius: 8px;
+    padding: 10px 14px; margin-bottom: 8px;
+  }
+  .cl-edu-institution { font-size: 0.88rem; font-weight: 600; color: #e0e0e0; }
+  .cl-edu-degree { font-size: 0.78rem; color: #9ca3af; }
+  .cl-edu-years { font-size: 0.72rem; color: #6b7280; }
+  .cl-skills-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cl-skill-tag {
+    display: inline-block; padding: 4px 10px; border-radius: 14px;
+    font-size: 0.72rem; font-weight: 500;
+    background: rgba(99,102,241,0.1); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.2);
+  }
+
   .sidebar-footer {
     padding: 10px 16px; border-top: 1px solid #1e1e2e;
     font-size: 0.7rem; color: #3a3a4a; text-align: center;
@@ -2902,7 +2951,140 @@ function calcDecay(observedAt) {
   return Math.exp(-0.03 * days);
 }
 
+function renderCareerLite(data) {
+  var e = data.entity || {};
+  var cl = data.career_lite || {};
+  var name = e.name?.full || '';
+  var initials = name.split(/\\s+/).map(function(w) { return w[0]; }).join('').toUpperCase();
+  var h = '';
+
+  // Header with avatar
+  h += '<div class="section">';
+  h += '<div class="cl-header">';
+  h += '<div class="cl-avatar">' + esc(initials) + '</div>';
+  h += '<div class="cl-header-info">';
+  h += '<div class="cl-name">' + esc(name) + '</div>';
+  if (cl.headline) h += '<div class="cl-headline">' + esc(cl.headline) + '</div>';
+  if (cl.current_role && cl.current_company) {
+    h += '<div class="cl-current">' + esc(cl.current_role) + ' @ ' + esc(cl.current_company) + '</div>';
+  } else if (cl.current_role || cl.current_company) {
+    h += '<div class="cl-current">' + esc(cl.current_role || cl.current_company) + '</div>';
+  }
+  if (cl.location) h += '<div class="cl-location">' + esc(cl.location) + '</div>';
+
+  // Contact row
+  var contacts = [];
+  var attrs = data.attributes || [];
+  for (var i = 0; i < attrs.length; i++) {
+    if (attrs[i].key === 'email' && attrs[i].value) contacts.push('<span class="cl-contact-item">' + esc(attrs[i].value) + '</span>');
+    if (attrs[i].key === 'phone' && attrs[i].value) contacts.push('<span class="cl-contact-item">' + esc(attrs[i].value) + '</span>');
+  }
+  if (cl.linkedin_url) contacts.push('<a href="' + esc(cl.linkedin_url) + '" target="_blank">LinkedIn</a>');
+  if (contacts.length > 0) h += '<div class="cl-contact-row">' + contacts.join('') + '</div>';
+
+  h += '<div class="cl-interface-badge">Career Lite Profile</div>';
+  h += '</div></div></div>';
+
+  // Summary
+  var summary = e.summary?.value || '';
+  if (summary) {
+    h += '<div class="section">';
+    h += '<div class="section-title section-title-only">Summary</div>';
+    h += '<div class="summary-text">' + esc(summary) + '</div>';
+    h += '</div>';
+  }
+
+  // Experience
+  var exp = cl.experience || [];
+  if (exp.length > 0) {
+    h += '<div class="section">';
+    h += '<div class="section-title section-title-only">Experience (' + exp.length + ')</div>';
+    for (var i = 0; i < exp.length; i++) {
+      var x = exp[i];
+      h += '<div class="cl-exp-card">';
+      if (x.company) h += '<div class="cl-exp-company">' + esc(x.company) + '</div>';
+      if (x.title) h += '<div class="cl-exp-title">' + esc(x.title) + '</div>';
+      var dates = [x.start_date, x.end_date].filter(Boolean).join(' — ');
+      if (dates) h += '<div class="cl-exp-dates">' + esc(dates) + '</div>';
+      if (x.description) h += '<div class="cl-exp-desc">' + esc(x.description) + '</div>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  // Education
+  var edu = cl.education || [];
+  if (edu.length > 0) {
+    h += '<div class="section">';
+    h += '<div class="section-title section-title-only">Education (' + edu.length + ')</div>';
+    for (var i = 0; i < edu.length; i++) {
+      var ed = edu[i];
+      h += '<div class="cl-edu-card">';
+      if (ed.institution) h += '<div class="cl-edu-institution">' + esc(ed.institution) + '</div>';
+      var degree = [ed.degree, ed.field].filter(Boolean).join(' in ');
+      if (degree) h += '<div class="cl-edu-degree">' + esc(degree) + '</div>';
+      var years = [ed.start_year, ed.end_year].filter(Boolean).join(' — ');
+      if (years) h += '<div class="cl-edu-years">' + esc(years) + '</div>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  // Skills
+  var skills = cl.skills || [];
+  if (skills.length > 0) {
+    h += '<div class="section">';
+    h += '<div class="section-title section-title-only">Skills (' + skills.length + ')</div>';
+    h += '<div class="cl-skills-wrap">';
+    for (var i = 0; i < skills.length; i++) {
+      h += '<span class="cl-skill-tag">' + esc(skills[i]) + '</span>';
+    }
+    h += '</div></div>';
+  }
+
+  // Relationships (if any)
+  var rels = data.relationships || [];
+  if (rels.length > 0) {
+    h += '<div class="section"><div class="section-title section-title-only">Connections (' + rels.length + ')</div>';
+    for (var i = 0; i < rels.length; i++) {
+      var r = rels[i];
+      h += '<div class="rel-row"><span class="rel-name">' + esc(r.name) + '</span>';
+      h += '<span class="rel-type">' + esc(r.relationship_type || '') + '</span>';
+      if (r.context) h += '<span class="rel-context">' + esc(r.context) + '</span>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  // Observations (collapsed view)
+  var obs = (data.observations || []).slice().sort(function(a, b) {
+    return new Date(b.observed_at || 0) - new Date(a.observed_at || 0);
+  });
+  if (obs.length > 0) {
+    h += '<div class="section"><div class="section-title section-title-only">Observations (' + obs.length + ')</div>';
+    for (var i = 0; i < obs.length; i++) {
+      var o = obs[i];
+      h += '<div class="obs-card">';
+      h += '<div class="obs-text">' + esc(o.observation) + '</div>';
+      h += '<div class="obs-meta">';
+      h += confidenceBadge(o.confidence, o.confidence_label);
+      if (o.source) h += '<span class="obs-source">' + esc(o.source) + '</span>';
+      h += '<span class="obs-date">' + esc((o.observed_at || '').slice(0, 10)) + '</span>';
+      h += '<button class="btn-delete" data-id="' + esc(o.observation_id || '') + '" onclick="deleteObs(this.dataset.id)">delete</button>';
+      h += '</div></div>';
+    }
+    h += '</div>';
+  }
+
+  document.getElementById('main').innerHTML = h;
+}
+
 function renderDetail(data) {
+  // Check for Career Lite profile
+  if (data.career_lite && data.career_lite.interface === 'career-lite') {
+    return renderCareerLite(data);
+  }
+
   var e = data.entity || {};
   var type = e.entity_type || '';
   var name = type === 'person' ? (e.name?.full || '') : (e.name?.common || e.name?.legal || '');

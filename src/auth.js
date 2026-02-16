@@ -85,6 +85,10 @@ router.get('/google', (req, res) => {
 
 // GET /auth/google/callback — Handle OAuth callback
 router.get('/google/callback', async (req, res) => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    return res.status(503).send('Google OAuth not configured on server. <a href="/">Go back</a>');
+  }
+
   try {
     const { code, state } = req.query;
     const savedState = req.cookies[STATE_COOKIE];
@@ -175,8 +179,9 @@ router.get('/google/callback', async (req, res) => {
 
     res.redirect('/wiki');
   } catch (err) {
-    console.error('OAuth callback error:', err);
-    res.status(500).send('Authentication failed: ' + err.message + ' <a href="/auth/google">Retry</a>');
+    console.error('OAuth callback error:', err.message);
+    console.error('  redirect_uri used:', getRedirectUri(req));
+    res.status(500).send('Authentication failed: ' + err.message + '<br/><br/><a href="/auth/google">Retry</a>');
   }
 });
 

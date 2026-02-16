@@ -32,12 +32,14 @@ JSON schema:
     }
   ],
   "skills": [],
+  "linkedin_url": "",
   "connections": [
     { "name": "", "relationship": "", "context": "" }
   ]
 }
 
 Important:
+- linkedin_url: extract any linkedin.com/in/... URL found in the text
 - Extract ALL experience entries with dates when available
 - Extract ALL education entries
 - Skills should be an array of skill strings
@@ -178,6 +180,32 @@ function linkedInResponseToEntity(parsed, sourceFilename, agentId) {
     observed_by: agentId || 'file_upload',
   }];
 
+  // Career Lite structured data — preserved for wiki display
+  const careerLite = {
+    interface: 'career-lite',
+    implements: ['Contactable', 'Identifiable', 'Experienceable'],
+    headline: parsed.headline || '',
+    location: parsed.location || '',
+    current_role: parsed.current_role || '',
+    current_company: parsed.current_company || '',
+    linkedin_url: parsed.linkedin_url || '',
+    experience: (parsed.experience || []).map(exp => ({
+      title: exp.title || '',
+      company: exp.company || '',
+      start_date: exp.start_date || '',
+      end_date: exp.end_date || '',
+      description: exp.description || '',
+    })),
+    education: (parsed.education || []).map(edu => ({
+      institution: edu.institution || '',
+      degree: edu.degree || '',
+      field: edu.field || '',
+      start_year: edu.start_year || '',
+      end_year: edu.end_year || '',
+    })),
+    skills: parsed.skills || [],
+  };
+
   return {
     schema_version: '2.0',
     schema_type: 'context_architecture_entity',
@@ -202,6 +230,7 @@ function linkedInResponseToEntity(parsed, sourceFilename, agentId) {
         ? { value: parsed.summary, confidence: 0.6, facts_layer: 2 }
         : { value: '', confidence: 0, facts_layer: 2 },
     },
+    career_lite: careerLite,
     attributes,
     relationships,
     values: [],
