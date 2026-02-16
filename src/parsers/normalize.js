@@ -35,8 +35,9 @@ async function normalizeFileToText(buffer, filename) {
 
   switch (ext) {
     case '.pdf': {
-      const pdfParse = require('pdf-parse');
-      const result = await pdfParse(buffer);
+      const { PDFParse } = require('pdf-parse');
+      const parser = new PDFParse({ data: new Uint8Array(buffer), verbosity: 0 });
+      const result = await parser.getText();
       const text = result.text || '';
       return {
         text,
