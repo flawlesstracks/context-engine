@@ -3,7 +3,10 @@
 const fs = require('fs');
 const path = require('path');
 const { execFile } = require('child_process');
-const { merge } = require('./merge-engine');
+const { ingestPipeline } = require('./src/ingest-pipeline');
+const { normalizeFileToText } = require('./src/parsers/normalize');
+const { mapContactRows } = require('./src/parsers/contacts');
+const { buildLinkedInPrompt, linkedInResponseToEntity } = require('./src/parsers/linkedin');
 
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
@@ -60,32 +63,8 @@ function detectEntityType(filename, defaultType) {
   return defaultType;
 }
 
-// --- Graph matching ---
-
-function findMatchingEntity(entityName, entityType) {
-  const graphFiles = fs.readdirSync(GRAPH_DIR).filter(f => f.endsWith('.json'));
-  for (const file of graphFiles) {
-    try {
-      const data = JSON.parse(fs.readFileSync(path.join(GRAPH_DIR, file), 'utf-8'));
-      const existingType = data.entity?.entity_type;
-      if (existingType !== entityType) continue;
-
-      let existingName = '';
-      if (existingType === 'person') {
-        existingName = (data.entity?.name?.full || '').toLowerCase();
-      } else {
-        existingName = (data.entity?.name?.common || data.entity?.name?.legal || '').toLowerCase();
-      }
-
-      if (existingName && existingName === entityName.toLowerCase()) {
-        return { file, data };
-      }
-    } catch {
-      continue;
-    }
-  }
-  return null;
-}
+// File extensions that can be parsed directly (no context-engine needed)
+const PARSEABLE_EXTENSIONS = new Set(['.pdf', '.docx', '.xlsx', '.xls', '.csv']);
 
 // --- Process a single file ---
 
@@ -103,63 +82,103 @@ async function processFile(filename, config) {
     return;
   }
 
-  const entityType = detectEntityType(filename, config.default_entity_type);
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const outputFilename = `${path.basename(filename, path.extname(filename))}_${timestamp}.json`;
-  const outputFile = path.join(OUTPUT_DIR, outputFilename);
-
-  log(`Processing: ${filename} (type: ${entityType})`);
+  const ext = path.extname(filename).toLowerCase();
+  log(`Processing: ${filename}`);
 
   try {
-    // Call context-engine.js
-    await new Promise((resolve, reject) => {
-      const args = [ENGINE_PATH, '--input', processingFile, '--output', outputFile, '--type', entityType, '--schema-version', '2.0'];
-      execFile('node', args, {
-        env: { ...process.env, PATH: `/opt/homebrew/bin:${process.env.PATH}` },
-        timeout: 180000,
-      }, (err, stdout, stderr) => {
-        if (err) {
-          err.stderr = stderr;
-          reject(err);
-        } else {
-          resolve(stdout);
-        }
-      });
-    });
+    if (PARSEABLE_EXTENSIONS.has(ext)) {
+      // New path: parse file directly, then use ingestPipeline
+      const buffer = fs.readFileSync(processingFile);
+      const { text, metadata } = await normalizeFileToText(buffer, filename);
 
-    // Read the output
-    const outputData = JSON.parse(fs.readFileSync(outputFile, 'utf-8'));
-    const entityId = outputData.entity?.entity_id || 'unknown';
+      let result;
 
-    let entityName = '';
-    if (entityType === 'person') {
-      entityName = outputData.entity?.name?.full || '';
-    } else {
-      entityName = outputData.entity?.name?.common || outputData.entity?.name?.legal || '';
-    }
+      if (metadata.isContactList && metadata.rows) {
+        const entities = mapContactRows(metadata.rows, filename, 'watcher');
+        result = await ingestPipeline(entities, GRAPH_DIR, 'watcher', {
+          source: `file_watcher:${filename}`,
+          truthLevel: 'STRONG',
+        });
+        log(`Contact list: ${result.created} created, ${result.updated} updated`);
 
-    log(`Extracted: ${entityName} (${entityId}) → ${outputFilename}`);
+      } else if (metadata.isLinkedIn) {
+        const Anthropic = require('@anthropic-ai/sdk').default;
+        const client = new Anthropic();
+        const prompt = buildLinkedInPrompt(text, filename);
+        const message = await client.messages.create({
+          model: 'claude-sonnet-4-5-20250929',
+          max_tokens: 8192,
+          messages: [{ role: 'user', content: prompt }],
+        });
+        const rawResponse = message.content[0].text;
+        const cleaned = rawResponse.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+        const parsed = JSON.parse(cleaned);
+        const entity = linkedInResponseToEntity(parsed, filename, 'watcher');
+        result = await ingestPipeline([entity], GRAPH_DIR, 'watcher', {
+          source: `file_watcher:${filename}`,
+          truthLevel: 'INFERRED',
+        });
+        log(`LinkedIn profile: ${result.created} created, ${result.updated} updated`);
 
-    // Graph handling
-    if (config.auto_merge) {
-      const match = findMatchingEntity(entityName, entityType);
-      if (match) {
-        // Merge incoming into existing graph entity
-        const { merged, error, history } = merge(match.data, outputData);
-        if (error) {
-          log(`Merge failed for ${entityName}: ${error} — saving as new entity`);
-          const graphFilename = `${entityId}.json`;
-          fs.copyFileSync(outputFile, path.join(GRAPH_DIR, graphFilename));
-        } else {
-          fs.writeFileSync(path.join(GRAPH_DIR, match.file), JSON.stringify(merged, null, 2) + '\n');
-          const changes = history?.length || 0;
-          log(`Merged into graph: ${match.file} (${changes} change${changes !== 1 ? 's' : ''})`);
-        }
       } else {
-        // New entity — copy to graph
-        const graphFilename = `${entityId}.json`;
-        fs.copyFileSync(outputFile, path.join(GRAPH_DIR, graphFilename));
-        log(`Added to graph: ${graphFilename}`);
+        // Generic text — use context-engine for extraction
+        const entityType = detectEntityType(filename, config.default_entity_type);
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const outputFilename = `${path.basename(filename, ext)}_${timestamp}.json`;
+        const outputFile = path.join(OUTPUT_DIR, outputFilename);
+
+        await new Promise((resolve, reject) => {
+          const tmpTextFile = path.join(OUTPUT_DIR, `_watcher_${Date.now()}.txt`);
+          fs.writeFileSync(tmpTextFile, text);
+          const args = [ENGINE_PATH, '--input', tmpTextFile, '--output', outputFile, '--type', entityType, '--schema-version', '2.0'];
+          execFile('node', args, {
+            env: { ...process.env, PATH: `/opt/homebrew/bin:${process.env.PATH}` },
+            timeout: 180000,
+          }, (err, stdout, stderr) => {
+            try { fs.unlinkSync(tmpTextFile); } catch {}
+            if (err) { err.stderr = stderr; reject(err); }
+            else resolve(stdout);
+          });
+        });
+
+        const outputData = JSON.parse(fs.readFileSync(outputFile, 'utf-8'));
+        result = await ingestPipeline([outputData], GRAPH_DIR, 'watcher', {
+          source: `file_watcher:${filename}`,
+          truthLevel: 'INFERRED',
+        });
+        log(`Extracted: ${result.created} created, ${result.updated} updated`);
+      }
+
+    } else {
+      // Legacy path for .txt/.md: use context-engine.js, then ingestPipeline
+      const entityType = detectEntityType(filename, config.default_entity_type);
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const outputFilename = `${path.basename(filename, ext)}_${timestamp}.json`;
+      const outputFile = path.join(OUTPUT_DIR, outputFilename);
+
+      await new Promise((resolve, reject) => {
+        const args = [ENGINE_PATH, '--input', processingFile, '--output', outputFile, '--type', entityType, '--schema-version', '2.0'];
+        execFile('node', args, {
+          env: { ...process.env, PATH: `/opt/homebrew/bin:${process.env.PATH}` },
+          timeout: 180000,
+        }, (err, stdout, stderr) => {
+          if (err) { err.stderr = stderr; reject(err); }
+          else resolve(stdout);
+        });
+      });
+
+      const outputData = JSON.parse(fs.readFileSync(outputFile, 'utf-8'));
+      const entityName = entityType === 'person'
+        ? (outputData.entity?.name?.full || '')
+        : (outputData.entity?.name?.common || outputData.entity?.name?.legal || '');
+      log(`Extracted: ${entityName} (${outputData.entity?.entity_id || 'unknown'}) → ${outputFilename}`);
+
+      if (config.auto_merge) {
+        const result = await ingestPipeline([outputData], GRAPH_DIR, 'watcher', {
+          source: `file_watcher:${filename}`,
+          truthLevel: 'INFERRED',
+        });
+        log(`Graph: ${result.created} created, ${result.updated} updated, ${result.observationsAdded} observations`);
       }
     }
 
@@ -227,7 +246,8 @@ function main() {
   console.log(`  Concurrency: ${config.max_concurrent}`);
   console.log(`  Extensions:  ${config.supported_extensions.join(', ')}`);
   console.log('');
-  console.log('  Drop .txt or .md files into watch-folder/input/ to process.');
+  console.log('  Drop files into watch-folder/input/ to process.');
+  console.log('  Supported: .txt, .md, .pdf, .docx, .xlsx, .xls, .csv');
   console.log('  Press Ctrl+C to stop.');
   console.log('');
 

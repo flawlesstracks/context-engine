@@ -6,6 +6,12 @@ const path = require('path');
 const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk').default;
 const { merge } = require('./merge-engine');
+const multer = require('multer');
+const { readEntity, writeEntity, listEntities, getNextCounter } = require('./src/graph-ops');
+const { ingestPipeline } = require('./src/ingest-pipeline');
+const { normalizeFileToText } = require('./src/parsers/normalize');
+const { buildLinkedInPrompt, linkedInResponseToEntity } = require('./src/parsers/linkedin');
+const { mapContactRows } = require('./src/parsers/contacts');
 
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
@@ -175,33 +181,6 @@ function saveConfig(config) {
   fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2) + '\n');
 }
 
-function readEntity(entityId, dir) {
-  const d = dir || GRAPH_DIR;
-  const filePath = path.join(d, `${entityId}.json`);
-  if (!fs.existsSync(filePath)) return null;
-  return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-}
-
-function writeEntity(entityId, data, dir) {
-  const d = dir || GRAPH_DIR;
-  if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
-  fs.writeFileSync(path.join(d, `${entityId}.json`), JSON.stringify(data, null, 2) + '\n');
-}
-
-function listEntities(dir) {
-  const d = dir || GRAPH_DIR;
-  if (!fs.existsSync(d)) return [];
-  return fs.readdirSync(d)
-    .filter(f => f.endsWith('.json') && f !== '_counter.json' && f !== 'tenants.json')
-    .map(f => {
-      try {
-        const data = JSON.parse(fs.readFileSync(path.join(d, f), 'utf-8'));
-        return { file: f, data };
-      } catch { return null; }
-    })
-    .filter(Boolean);
-}
-
 // --- Tenant management ---
 
 const TENANTS_PATH = path.join(GRAPH_DIR, 'tenants.json');
@@ -213,19 +192,6 @@ function loadTenants() {
 
 function saveTenants(tenants) {
   fs.writeFileSync(TENANTS_PATH, JSON.stringify(tenants, null, 2) + '\n');
-}
-
-function getNextCounter(dir, entityType) {
-  const counterPath = path.join(dir, '_counter.json');
-  let counters = { person: 1, business: 1 };
-  if (fs.existsSync(counterPath)) {
-    counters = JSON.parse(fs.readFileSync(counterPath, 'utf-8'));
-  }
-  const seq = counters[entityType] || 1;
-  counters[entityType] = seq + 1;
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(counterPath, JSON.stringify(counters, null, 2) + '\n');
-  return seq;
 }
 
 // --- ChatGPT Ingest Helpers ---
@@ -402,7 +368,6 @@ app.post('/api/ingest/chatgpt', apiAuth, async (req, res) => {
   });
 
   const client = new Anthropic();
-  const { similarity } = require('./merge-engine');
 
   for (let bi = 0; bi < batches.length; bi++) {
     const batch = batches[bi];
@@ -418,6 +383,8 @@ app.post('/api/ingest/chatgpt', apiAuth, async (req, res) => {
       const cleaned = rawResponse.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
       const parsed = JSON.parse(cleaned);
 
+      // Build v2 entities from Claude's extraction
+      const v2Entities = [];
       for (const extracted of (parsed.entities || [])) {
         const entityType = extracted.entity_type;
         if (!entityType || !['person', 'business'].includes(entityType)) continue;
@@ -427,8 +394,10 @@ app.post('/api/ingest/chatgpt', apiAuth, async (req, res) => {
           : (extracted.name?.common || extracted.name?.legal || '');
         if (!displayName) continue;
 
+        const now = new Date().toISOString();
+
         // Build observations from extracted data
-        const newObservations = (extracted.observations || []).map(obs => {
+        const observations = (extracted.observations || []).map(obs => {
           const convIdx = typeof obs.conversation_index === 'number' ? obs.conversation_index : 0;
           const conv = batch[convIdx] || batch[0];
           return {
@@ -443,206 +412,77 @@ app.post('/api/ingest/chatgpt', apiAuth, async (req, res) => {
           };
         }).filter(o => o.observation);
 
-        // Search for existing entity with similar name
-        const existingEntities = listEntities(req.graphDir);
-        let matchedData = null;
-        let matchedId = null;
-
-        for (const { file, data } of existingEntities) {
-          const e = data.entity || {};
-          if (e.entity_type !== entityType) continue;
-          const existingName = entityType === 'person'
-            ? (e.name?.full || '')
-            : (e.name?.common || e.name?.legal || '');
-          if (existingName && similarity(displayName, existingName) > 0.85) {
-            matchedData = data;
-            matchedId = e.entity_id || file.replace('.json', '');
-            break;
+        // Build attributes
+        const attributes = [];
+        if (extracted.attributes && typeof extracted.attributes === 'object') {
+          let attrSeq = 1;
+          for (const [key, value] of Object.entries(extracted.attributes)) {
+            const val = Array.isArray(value) ? value.join(', ') : String(value);
+            if (!val) continue;
+            attributes.push({
+              attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`,
+              key, value: val, confidence: 0.6, confidence_label: 'MODERATE',
+              time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+              source_attribution: { facts_layer: 2, layer_label: 'group' },
+            });
           }
         }
 
-        if (matchedData) {
-          // --- UPDATE existing entity via merge ---
-          const now = new Date().toISOString();
-          const incoming = {
-            schema_version: '2.0',
-            schema_type: 'context_architecture_entity',
-            extraction_metadata: {
-              extracted_at: now,
-              source_description: 'chatgpt_import',
-              extraction_model: 'claude-sonnet-4-5-20250929',
-              extraction_confidence: 0.6,
-              schema_version: '2.0',
-            },
-            entity: {
-              entity_type: entityType,
-              entity_id: matchedId,
-              name: { ...extracted.name, confidence: 0.6, facts_layer: 2 },
-              summary: extracted.summary
-                ? { value: extracted.summary, confidence: 0.6, facts_layer: 2 }
-                : matchedData.entity?.summary || { value: '', confidence: 0, facts_layer: 2 },
-            },
-            attributes: [],
-            relationships: [],
-            values: [],
-            key_facts: [],
-            constraints: [],
-            observations: [],
-            provenance_chain: {
-              created_at: now,
-              created_by: req.agentId,
-              source_documents: [{ source: 'chatgpt_import', ingested_at: now }],
-              merge_history: [],
-            },
-          };
-
-          // Build attributes for merge
-          if (extracted.attributes && typeof extracted.attributes === 'object') {
-            let attrSeq = 1;
-            for (const [key, value] of Object.entries(extracted.attributes)) {
-              const val = Array.isArray(value) ? value.join(', ') : String(value);
-              if (!val) continue;
-              incoming.attributes.push({
-                attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`,
-                key, value: val, confidence: 0.6, confidence_label: 'MODERATE',
-                time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
-                source_attribution: { facts_layer: 2, layer_label: 'group' },
-              });
-            }
+        // Build relationships
+        const relationships = [];
+        if (Array.isArray(extracted.relationships)) {
+          let relSeq = 1;
+          for (const rel of extracted.relationships) {
+            relationships.push({
+              relationship_id: `REL-${String(relSeq++).padStart(3, '0')}`,
+              name: rel.name || '', relationship_type: rel.relationship || '', context: rel.context || '',
+              sentiment: 'neutral', confidence: 0.6, confidence_label: 'MODERATE',
+            });
           }
-
-          // Build relationships for merge
-          if (Array.isArray(extracted.relationships)) {
-            let relSeq = 1;
-            for (const rel of extracted.relationships) {
-              incoming.relationships.push({
-                relationship_id: `REL-${String(relSeq++).padStart(3, '0')}`,
-                name: rel.name || '', relationship_type: rel.relationship || '', context: rel.context || '',
-                sentiment: 'neutral', confidence: 0.6, confidence_label: 'MODERATE',
-              });
-            }
-          }
-
-          // Merge structured data
-          const { merged } = merge(matchedData, incoming);
-          const result = merged || matchedData;
-
-          // Append observations (dedup by text)
-          if (!result.observations) result.observations = [];
-          const existingObsTexts = new Set(
-            result.observations
-              .filter(o => o.source === 'chatgpt_import')
-              .map(o => o.observation.toLowerCase().trim())
-          );
-          for (const obs of newObservations) {
-            if (existingObsTexts.has(obs.observation.toLowerCase().trim())) continue;
-            const seq = String(result.observations.length + 1).padStart(3, '0');
-            const tsCompact = obs.observed_at.replace(/[-:T]/g, '').slice(0, 14);
-            obs.observation_id = `OBS-${matchedId}-${tsCompact}-${seq}`;
-            result.observations.push(obs);
-            existingObsTexts.add(obs.observation.toLowerCase().trim());
-            observationsAdded++;
-          }
-
-          // Provenance
-          if (!result.provenance_chain) {
-            result.provenance_chain = { created_at: now, created_by: req.agentId, source_documents: [], merge_history: [] };
-          }
-          result.provenance_chain.merge_history = result.provenance_chain.merge_history || [];
-          result.provenance_chain.merge_history.push({
-            merged_at: now,
-            merged_by: req.agentId,
-            changes: ['chatgpt_import: merged data and ' + newObservations.length + ' observations'],
-          });
-
-          writeEntity(matchedId, result, req.graphDir);
-          entitiesUpdated++;
-
-        } else {
-          // --- CREATE new entity ---
-          let initials;
-          if (entityType === 'person') {
-            initials = displayName.split(/\s+/).map(w => w[0]).join('').toUpperCase();
-          } else {
-            initials = 'BIZ-' + displayName.split(/\s+/).map(w => w[0]).join('').toUpperCase();
-          }
-          const seq = getNextCounter(req.graphDir, entityType);
-          const entityId = `ENT-${initials}-${String(seq).padStart(3, '0')}`;
-          const now = new Date().toISOString();
-
-          // Set observation IDs
-          newObservations.forEach((obs, idx) => {
-            const tsCompact = obs.observed_at.replace(/[-:T]/g, '').slice(0, 14);
-            obs.observation_id = `OBS-${entityId}-${tsCompact}-${String(idx + 1).padStart(3, '0')}`;
-          });
-
-          // Build attributes
-          const attributes = [];
-          if (extracted.attributes && typeof extracted.attributes === 'object') {
-            let attrSeq = 1;
-            for (const [key, value] of Object.entries(extracted.attributes)) {
-              const val = Array.isArray(value) ? value.join(', ') : String(value);
-              if (!val) continue;
-              attributes.push({
-                attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`,
-                key, value: val, confidence: 0.6, confidence_label: 'MODERATE',
-                time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
-                source_attribution: { facts_layer: 2, layer_label: 'group' },
-              });
-            }
-          }
-
-          // Build relationships
-          const relationships = [];
-          if (Array.isArray(extracted.relationships)) {
-            let relSeq = 1;
-            for (const rel of extracted.relationships) {
-              relationships.push({
-                relationship_id: `REL-${String(relSeq++).padStart(3, '0')}`,
-                name: rel.name || '', relationship_type: rel.relationship || '', context: rel.context || '',
-                sentiment: 'neutral', confidence: 0.6, confidence_label: 'MODERATE',
-              });
-            }
-          }
-
-          const entityData = {
-            schema_version: '2.0',
-            schema_type: 'context_architecture_entity',
-            extraction_metadata: {
-              extracted_at: now,
-              updated_at: now,
-              source_description: 'chatgpt_import',
-              extraction_model: 'claude-sonnet-4-5-20250929',
-              extraction_confidence: 0.6,
-              schema_version: '2.0',
-            },
-            entity: {
-              entity_type: entityType,
-              entity_id: entityId,
-              name: { ...extracted.name, confidence: 0.6, facts_layer: 2 },
-              summary: extracted.summary
-                ? { value: extracted.summary, confidence: 0.6, facts_layer: 2 }
-                : { value: '', confidence: 0, facts_layer: 2 },
-            },
-            attributes,
-            relationships,
-            values: [],
-            key_facts: [],
-            constraints: [],
-            observations: newObservations,
-            provenance_chain: {
-              created_at: now,
-              created_by: req.agentId,
-              source_documents: [{ source: 'chatgpt_import', ingested_at: now }],
-              merge_history: [],
-            },
-          };
-
-          writeEntity(entityId, entityData, req.graphDir);
-          entitiesCreated++;
-          observationsAdded += newObservations.length;
         }
+
+        v2Entities.push({
+          schema_version: '2.0',
+          schema_type: 'context_architecture_entity',
+          extraction_metadata: {
+            extracted_at: now,
+            updated_at: now,
+            source_description: 'chatgpt_import',
+            extraction_model: 'claude-sonnet-4-5-20250929',
+            extraction_confidence: 0.6,
+            schema_version: '2.0',
+          },
+          entity: {
+            entity_type: entityType,
+            name: { ...extracted.name, confidence: 0.6, facts_layer: 2 },
+            summary: extracted.summary
+              ? { value: extracted.summary, confidence: 0.6, facts_layer: 2 }
+              : { value: '', confidence: 0, facts_layer: 2 },
+          },
+          attributes,
+          relationships,
+          values: [],
+          key_facts: [],
+          constraints: [],
+          observations,
+          provenance_chain: {
+            created_at: now,
+            created_by: req.agentId,
+            source_documents: [{ source: 'chatgpt_import', ingested_at: now }],
+            merge_history: [],
+          },
+        });
       }
+
+      // Ingest via unified pipeline
+      const result = await ingestPipeline(v2Entities, req.graphDir, req.agentId, {
+        source: 'chatgpt_import',
+        truthLevel: 'INFERRED',
+      });
+
+      entitiesCreated += result.created;
+      entitiesUpdated += result.updated;
+      observationsAdded += result.observationsAdded;
 
       conversationsProcessed += batch.length;
       sendEvent({
@@ -676,6 +516,199 @@ app.post('/api/ingest/chatgpt', apiAuth, async (req, res) => {
       observations_added: observationsAdded,
       conversations_processed: conversationsProcessed,
       processing_time_seconds: Math.round((Date.now() - startTime) / 10) / 100,
+    },
+  });
+  res.end();
+});
+
+// POST /api/ingest/files — Upload files for entity extraction
+const upload = multer({ storage: multer.memoryStorage(), limits: { files: 20, fileSize: 50 * 1024 * 1024 } });
+const ALLOWED_EXTENSIONS = new Set(['.pdf', '.docx', '.xlsx', '.xls', '.csv', '.txt', '.md']);
+
+app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, res) => {
+  const files = req.files;
+  if (!files || files.length === 0) {
+    return res.status(400).json({ error: 'No files uploaded. Send files via multipart field "files".' });
+  }
+
+  // Validate extensions
+  for (const file of files) {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (!ALLOWED_EXTENSIONS.has(ext)) {
+      return res.status(400).json({ error: `Unsupported file type: ${ext}. Allowed: ${[...ALLOWED_EXTENSIONS].join(', ')}` });
+    }
+  }
+
+  // Stream NDJSON progress
+  res.setHeader('Content-Type', 'application/x-ndjson');
+  res.setHeader('Transfer-Encoding', 'chunked');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.flushHeaders();
+
+  const sendEvent = (event) => res.write(JSON.stringify(event) + '\n');
+
+  sendEvent({ type: 'started', total_files: files.length });
+
+  let totalCreated = 0;
+  let totalUpdated = 0;
+  let totalObservations = 0;
+  const client = new Anthropic();
+
+  for (let fi = 0; fi < files.length; fi++) {
+    const file = files[fi];
+    const filename = file.originalname;
+
+    try {
+      const { text, metadata } = await normalizeFileToText(file.buffer, filename);
+
+      let result;
+
+      if (metadata.isContactList && metadata.rows) {
+        // Direct mapping — no LLM call
+        const entities = mapContactRows(metadata.rows, filename, req.agentId);
+        result = await ingestPipeline(entities, req.graphDir, req.agentId, {
+          source: filename,
+          truthLevel: 'STRONG',
+        });
+
+      } else if (metadata.isLinkedIn) {
+        // LinkedIn extraction via Claude
+        const prompt = buildLinkedInPrompt(text, filename);
+        const message = await client.messages.create({
+          model: 'claude-sonnet-4-5-20250929',
+          max_tokens: 8192,
+          messages: [{ role: 'user', content: prompt }],
+        });
+        const rawResponse = message.content[0].text;
+        const cleaned = rawResponse.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+        const parsed = JSON.parse(cleaned);
+        const entity = linkedInResponseToEntity(parsed, filename, req.agentId);
+        result = await ingestPipeline([entity], req.graphDir, req.agentId, {
+          source: filename,
+          truthLevel: 'INFERRED',
+        });
+
+      } else {
+        // Generic text extraction via Claude
+        const truncated = text.length > 50000 ? text.substring(0, 50000) + '\n[...truncated]' : text;
+        const prompt = buildIngestPrompt([{ title: filename, createTime: new Date().toISOString(), userMessages: [truncated] }]);
+        const message = await client.messages.create({
+          model: 'claude-sonnet-4-5-20250929',
+          max_tokens: 16384,
+          messages: [{ role: 'user', content: prompt }],
+        });
+        const rawResponse = message.content[0].text;
+        const cleaned = rawResponse.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+        const parsed = JSON.parse(cleaned);
+
+        const now = new Date().toISOString();
+        const v2Entities = (parsed.entities || []).map(extracted => {
+          const entityType = extracted.entity_type;
+          if (!entityType || !['person', 'business'].includes(entityType)) return null;
+
+          const observations = (extracted.observations || []).map(obs => ({
+            observation: (obs.text || '').trim(),
+            observed_at: now,
+            source: `file_import:${filename}`,
+            confidence: 0.6,
+            confidence_label: 'MODERATE',
+            facts_layer: 'L2_GROUP',
+            layer_number: 2,
+            observed_by: req.agentId,
+          })).filter(o => o.observation);
+
+          const attributes = [];
+          if (extracted.attributes && typeof extracted.attributes === 'object') {
+            let attrSeq = 1;
+            for (const [key, value] of Object.entries(extracted.attributes)) {
+              const val = Array.isArray(value) ? value.join(', ') : String(value);
+              if (!val) continue;
+              attributes.push({
+                attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`,
+                key, value: val, confidence: 0.6, confidence_label: 'MODERATE',
+                time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+                source_attribution: { facts_layer: 2, layer_label: 'group' },
+              });
+            }
+          }
+
+          const relationships = [];
+          if (Array.isArray(extracted.relationships)) {
+            let relSeq = 1;
+            for (const rel of extracted.relationships) {
+              relationships.push({
+                relationship_id: `REL-${String(relSeq++).padStart(3, '0')}`,
+                name: rel.name || '', relationship_type: rel.relationship || '', context: rel.context || '',
+                sentiment: 'neutral', confidence: 0.6, confidence_label: 'MODERATE',
+              });
+            }
+          }
+
+          return {
+            schema_version: '2.0',
+            schema_type: 'context_architecture_entity',
+            extraction_metadata: {
+              extracted_at: now, updated_at: now,
+              source_description: `file_import:${filename}`,
+              extraction_model: 'claude-sonnet-4-5-20250929',
+              extraction_confidence: 0.6, schema_version: '2.0',
+            },
+            entity: {
+              entity_type: entityType,
+              name: { ...extracted.name, confidence: 0.6, facts_layer: 2 },
+              summary: extracted.summary
+                ? { value: extracted.summary, confidence: 0.6, facts_layer: 2 }
+                : { value: '', confidence: 0, facts_layer: 2 },
+            },
+            attributes, relationships,
+            values: [], key_facts: [], constraints: [],
+            observations,
+            provenance_chain: {
+              created_at: now, created_by: req.agentId,
+              source_documents: [{ source: `file_import:${filename}`, ingested_at: now }],
+              merge_history: [],
+            },
+          };
+        }).filter(Boolean);
+
+        result = await ingestPipeline(v2Entities, req.graphDir, req.agentId, {
+          source: filename,
+          truthLevel: 'INFERRED',
+        });
+      }
+
+      totalCreated += result.created;
+      totalUpdated += result.updated;
+      totalObservations += result.observationsAdded;
+
+      sendEvent({
+        type: 'file_progress',
+        file: filename,
+        file_index: fi + 1,
+        total_files: files.length,
+        entities_created: result.created,
+        entities_updated: result.updated,
+        observations_added: result.observationsAdded,
+      });
+
+    } catch (err) {
+      sendEvent({
+        type: 'file_error',
+        file: filename,
+        file_index: fi + 1,
+        error: err.message,
+      });
+    }
+  }
+
+  sendEvent({
+    type: 'complete',
+    summary: {
+      files_processed: files.length,
+      entities_created: totalCreated,
+      entities_updated: totalUpdated,
+      observations_added: totalObservations,
     },
   });
   res.end();

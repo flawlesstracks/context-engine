@@ -14,7 +14,12 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
     "commander": "^12.1.0",
+    "csv-parse": "^6.1.0",
     "dotenv": "^16.4.7",
-    "express": "^4.21.0"
+    "express": "^4.21.0",
+    "mammoth": "^1.11.0",
+    "multer": "^2.0.2",
+    "pdf-parse": "^2.4.5",
+    "xlsx": "^0.18.5"
   }
 }

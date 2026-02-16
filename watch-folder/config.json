@@ -7,7 +7,12 @@
   "max_concurrent": 2,
   "supported_extensions": [
     ".txt",
-    ".md"
+    ".md",
+    ".pdf",
+    ".docx",
+    ".xlsx",
+    ".xls",
+    ".csv"
   ],
   "entity_id_counter": {
     "person": 1,
