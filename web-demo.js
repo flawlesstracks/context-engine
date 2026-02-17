@@ -4220,7 +4220,7 @@ function hideUploadView() {
   document.getElementById('main').innerHTML = '<div class="empty-state" id="emptyState">Select an entity from the sidebar<br/>to view its knowledge graph profile</div>';
 }
 
-var ALLOWED_UPLOAD_EXT = ['.pdf', '.docx', '.xlsx', '.xls', '.csv', '.txt', '.md'];
+var ALLOWED_UPLOAD_EXT = ['.pdf', '.docx', '.xlsx', '.xls', '.csv', '.txt', '.md', '.json'];
 
 function addUploadFiles(fileList) {
   for (var i = 0; i < fileList.length; i++) {
