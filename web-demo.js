@@ -21,9 +21,7 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 const app = express();
-
-// Trust Render's reverse proxy so req.secure and req.protocol work behind HTTPS
-app.set('trust proxy', 1);
+app.set('trust proxy', 1); // MUST be first — Render terminates HTTPS at load balancer
 
 // --- Security headers ---
 app.use(helmet({
@@ -304,6 +302,7 @@ function buildIngestPrompt(batch) {
 // --- Auth middleware (multi-tenant) ---
 
 function apiAuth(req, res, next) {
+  console.log('AUTH_DEBUG: apiAuth path:', req.path, 'cookies:', JSON.stringify(Object.keys(req.cookies || {})), 'has api-key header:', !!req.headers['x-context-api-key'], 'has ca_session:', !!(req.cookies || {}).ca_session);
   const config = loadConfig();
 
   // Source 1: X-Context-API-Key header (existing behavior for API consumers)

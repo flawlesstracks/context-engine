@@ -169,13 +169,17 @@ router.get('/google/callback', async (req, res) => {
 
     const sessionToken = jwt.sign(sessionPayload, getSessionSecret(), { expiresIn: SESSION_MAX_AGE_S });
 
-    res.cookie(SESSION_COOKIE, sessionToken, {
+    const cookieOpts = {
       httpOnly: true,
       secure: isSecure(req),
       sameSite: 'lax',
       path: '/',
       maxAge: SESSION_MAX_AGE_MS,
-    });
+    };
+    console.log('COOKIE_DEBUG: Setting cookie, secure:', req.secure, 'protocol:', req.protocol, 'x-forwarded-proto:', req.headers['x-forwarded-proto'], 'trust proxy:', req.app.get('trust proxy'));
+    console.log('COOKIE_DEBUG: options:', JSON.stringify(cookieOpts));
+    res.cookie(SESSION_COOKIE, sessionToken, cookieOpts);
+    console.log('COOKIE_DEBUG: Cookie set, redirecting to /wiki');
 
     res.redirect('/wiki');
   } catch (err) {
@@ -187,8 +191,10 @@ router.get('/google/callback', async (req, res) => {
 
 // GET /auth/me — Return current session info
 router.get('/me', (req, res) => {
+  console.log('AUTH_DEBUG: /auth/me cookies:', JSON.stringify(Object.keys(req.cookies || {})), 'has ca_session:', !!(req.cookies || {})[SESSION_COOKIE], 'path:', req.path, 'secure:', req.secure);
   const token = req.cookies[SESSION_COOKIE];
   if (!token) {
+    console.log('AUTH_DEBUG: /auth/me — no ca_session cookie found, returning 401');
     return res.status(401).json({ error: 'Not authenticated' });
   }
 
