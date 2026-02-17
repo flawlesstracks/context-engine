@@ -89,7 +89,7 @@ Watch: watcher.js polls watch-folder/input, routes to parsers, calls context-eng
 - **Google OAuth**: login → auto-provision tenant → JWT session cookie (7-day TTL)
   - Scopes: openid, email, profile, drive.readonly, gmail.readonly
   - Tenant dir: `graph/tenant-{4-byte-hex}/`
-- **File parsers**: PDF (pdf-parse), DOCX (mammoth), XLSX/XLS (xlsx), CSV (csv-parse), TXT/MD
+- **File parsers**: PDF, DOC, DOCX (mammoth), XLSX/XLS (xlsx), CSV (csv-parse), TXT, MD, JSON
   - LinkedIn detection: 2+ markers → special extraction prompt → Career Lite entity
   - Contact sheet detection: column name fuzzy match → batch person entities
 - **Google Drive connector**: browse folders, search, download files, export Google Docs→DOCX / Sheets→XLSX
@@ -113,6 +113,12 @@ Watch: watcher.js polls watch-folder/input, routes to parsers, calls context-eng
   - Rate limiting: 100 req/15min on `/api/*`, 10 req/min on `POST /api/share`, 30 req/min on `GET /shared/:shareId`
   - Input validation on `POST /api/share`: entityId format regex, sections whitelist, expiresInDays whitelist (7/30/90/365)
   - File upload limits already enforced: 50MB per file, 20 files max, extension whitelist
+- **File handling fixes**:
+  - JSON upload auto-detects ChatGPT `conversations.json` format (array with `mapping` + `title`), otherwise raw text extraction
+  - DOC (legacy Word) support via mammoth with fallback to raw text
+  - Drive search: local filter on typing, full Drive search (no parent filter) on Enter
+  - Drive folders: checkbox to select for import, click name/icon to navigate into folder
+  - Breadcrumb navigation with clickable segments (`My Drive › folder › subfolder`)
 
 ---
 
