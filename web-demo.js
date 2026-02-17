@@ -22,6 +22,9 @@ require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 const app = express();
 
+// Trust Render's reverse proxy so req.secure and req.protocol work behind HTTPS
+app.set('trust proxy', 1);
+
 // --- Security headers ---
 app.use(helmet({
   contentSecurityPolicy: false,  // inline scripts in HTML templates

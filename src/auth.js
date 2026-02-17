@@ -43,8 +43,7 @@ function getRedirectUri(req) {
 }
 
 function isSecure(req) {
-  const proto = req.headers['x-forwarded-proto'] || req.protocol;
-  return proto === 'https';
+  return req.secure || req.headers['x-forwarded-proto'] === 'https' || process.env.NODE_ENV === 'production';
 }
 
 // --- Tenant helpers (passed via mount options) ---
