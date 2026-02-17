@@ -55,6 +55,18 @@ function init({ graphDir, loadTenants, saveTenants }) {
   _saveTenants = saveTenants;
 }
 
+/**
+ * Extract session token from Bearer header or cookie.
+ * Bearer header takes priority.
+ */
+function extractSessionToken(req) {
+  const authHeader = req.headers['authorization'];
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.slice(7);
+  }
+  return (req.cookies || {})[SESSION_COOKIE] || null;
+}
+
 // GET /auth/google — Start OAuth flow
 router.get('/google', (req, res) => {
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
@@ -169,19 +181,8 @@ router.get('/google/callback', async (req, res) => {
 
     const sessionToken = jwt.sign(sessionPayload, getSessionSecret(), { expiresIn: SESSION_MAX_AGE_S });
 
-    const cookieOpts = {
-      httpOnly: true,
-      secure: isSecure(req),
-      sameSite: 'lax',
-      path: '/',
-      maxAge: SESSION_MAX_AGE_MS,
-    };
-    console.log('COOKIE_DEBUG: Setting cookie, secure:', req.secure, 'protocol:', req.protocol, 'x-forwarded-proto:', req.headers['x-forwarded-proto'], 'trust proxy:', req.app.get('trust proxy'));
-    console.log('COOKIE_DEBUG: options:', JSON.stringify(cookieOpts));
-    res.cookie(SESSION_COOKIE, sessionToken, cookieOpts);
-    console.log('COOKIE_DEBUG: Cookie set, redirecting to /wiki');
-
-    res.redirect('/wiki');
+    // Redirect to wiki with token in URL — sessionStorage picks it up client-side
+    res.redirect('/wiki?session=' + encodeURIComponent(sessionToken));
   } catch (err) {
     console.error('OAuth callback error:', err.message);
     console.error('  redirect_uri used:', getRedirectUri(req));
@@ -191,10 +192,8 @@ router.get('/google/callback', async (req, res) => {
 
 // GET /auth/me — Return current session info
 router.get('/me', (req, res) => {
-  console.log('AUTH_DEBUG: /auth/me cookies:', JSON.stringify(Object.keys(req.cookies || {})), 'has ca_session:', !!(req.cookies || {})[SESSION_COOKIE], 'path:', req.path, 'secure:', req.secure);
-  const token = req.cookies[SESSION_COOKIE];
+  const token = extractSessionToken(req);
   if (!token) {
-    console.log('AUTH_DEBUG: /auth/me — no ca_session cookie found, returning 401');
     return res.status(401).json({ error: 'Not authenticated' });
   }
 
@@ -214,17 +213,18 @@ router.get('/me', (req, res) => {
 // POST /auth/logout — Clear session
 router.post('/logout', (req, res) => {
   res.clearCookie(SESSION_COOKIE, { path: '/' });
-  res.redirect('/');
+  res.json({ ok: true });
 });
 
-// --- Helper: verify session from cookie (used by dual-auth middleware) ---
-function verifySession(cookieValue) {
-  if (!cookieValue) return null;
+// --- Helper: verify session from Bearer header or cookie ---
+function verifySession(req) {
+  const token = extractSessionToken(req);
+  if (!token) return null;
   try {
-    return jwt.verify(cookieValue, getSessionSecret());
+    return jwt.verify(token, getSessionSecret());
   } catch {
     return null;
   }
 }
 
-module.exports = { router, init, verifySession, SESSION_COOKIE };
+module.exports = { router, init, verifySession, extractSessionToken, SESSION_COOKIE };

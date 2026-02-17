@@ -31,7 +31,7 @@ app.use(helmet({
 
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, X-Context-API-Key');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, X-Context-API-Key, Authorization');
   res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   if (req.method === 'OPTIONS') return res.sendStatus(200);
   next();
@@ -302,7 +302,6 @@ function buildIngestPrompt(batch) {
 // --- Auth middleware (multi-tenant) ---
 
 function apiAuth(req, res, next) {
-  console.log('AUTH_DEBUG: apiAuth path:', req.path, 'cookies:', JSON.stringify(Object.keys(req.cookies || {})), 'has api-key header:', !!req.headers['x-context-api-key'], 'has ca_session:', !!(req.cookies || {}).ca_session);
   const config = loadConfig();
 
   // Source 1: X-Context-API-Key header (existing behavior for API consumers)
@@ -334,8 +333,8 @@ function apiAuth(req, res, next) {
     return res.status(401).json({ error: 'Invalid API key' });
   }
 
-  // Source 2: ca_session cookie (browser sessions via Google OAuth)
-  const session = auth.verifySession(req.cookies[auth.SESSION_COOKIE]);
+  // Source 2: Bearer token or ca_session cookie (browser sessions via Google OAuth)
+  const session = auth.verifySession(req);
   if (session && session.api_key) {
     const tenants = loadTenants();
     const tenant = Object.values(tenants).find(t => t.api_key === session.api_key);
@@ -4026,13 +4025,32 @@ var searchTimeout = null;
 
 function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
+// Capture OAuth session token from URL and store in sessionStorage
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var sessionToken = params.get('session');
+  if (sessionToken) {
+    sessionStorage.setItem('ca_token', sessionToken);
+    history.replaceState(null, '', '/wiki');
+  }
+})();
+
+function getAuthHeaders() {
+  var headers = { 'X-Agent-Id': 'wiki-dashboard' };
+  if (apiKey) {
+    headers['X-Context-API-Key'] = apiKey;
+  } else {
+    var token = sessionStorage.getItem('ca_token');
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+  }
+  return headers;
+}
+
 function api(method, path, body) {
   var opts = {
     method: method,
-    headers: { 'X-Agent-Id': 'wiki-dashboard' },
-    credentials: 'include',
+    headers: getAuthHeaders(),
   };
-  if (apiKey) opts.headers['X-Context-API-Key'] = apiKey;
   if (body) {
     opts.headers['Content-Type'] = 'application/json';
     opts.body = JSON.stringify(body);
@@ -4066,21 +4084,25 @@ function enterApp(user) {
 }
 
 function logout() {
-  fetch('/auth/logout', { method: 'POST', credentials: 'include' }).then(function() {
+  sessionStorage.removeItem('ca_token');
+  fetch('/auth/logout', { method: 'POST' }).then(function() {
     window.location.reload();
   });
 }
 
 /* --- Login --- */
-// Auto-login: check for existing session cookie
-fetch('/auth/me', { credentials: 'include' }).then(function(r) {
-  if (r.ok) return r.json();
-  return null;
-}).then(function(user) {
-  if (user && user.tenant_id) {
-    enterApp(user);
-  }
-}).catch(function() {});
+// Auto-login: check for existing session (Bearer token or cookie)
+(function() {
+  var headers = getAuthHeaders();
+  fetch('/auth/me', { headers: headers }).then(function(r) {
+    if (r.ok) return r.json();
+    return null;
+  }).then(function(user) {
+    if (user && user.tenant_id) {
+      enterApp(user);
+    }
+  }).catch(function() {});
+})();
 
 // Manual API key login
 function login() {
@@ -4287,13 +4309,12 @@ function startUpload() {
     formData.append('files', uploadFiles[i]);
   }
 
-  var headers = { 'X-Agent-Id': 'wiki-upload' };
-  if (apiKey) headers['X-Context-API-Key'] = apiKey;
+  var headers = getAuthHeaders();
+  headers['X-Agent-Id'] = 'wiki-upload';
 
   fetch('/api/ingest/files', {
     method: 'POST',
     headers: headers,
-    credentials: 'include',
     body: formData,
   }).then(function(response) {
     if (!response.ok) {
@@ -4617,13 +4638,13 @@ function startDriveIngest() {
   log.style.display = 'block';
   log.innerHTML = '<div class="log-info">Starting import of ' + ids.length + ' file' + (ids.length > 1 ? 's' : '') + ' from Drive...</div>';
 
-  var headers = { 'Content-Type': 'application/json', 'X-Agent-Id': 'wiki-drive' };
-  if (apiKey) headers['X-Context-API-Key'] = apiKey;
+  var headers = getAuthHeaders();
+  headers['Content-Type'] = 'application/json';
+  headers['X-Agent-Id'] = 'wiki-drive';
 
   fetch('/api/drive/ingest', {
     method: 'POST',
     headers: headers,
-    credentials: 'include',
     body: JSON.stringify({ fileIds: ids }),
   }).then(function(response) {
     if (!response.ok) {
