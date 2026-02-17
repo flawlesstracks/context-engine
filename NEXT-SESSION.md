@@ -1,5 +1,324 @@
-# Next Session
+# Context Architecture — Session Handoff Document
 
-## First Task: Serve Wiki Dashboard from Render Instance
+> Last updated: 2026-02-16 (end of Session 4)
+> Server: running on port 3000
+> Branch: main, pushed to origin
 
-The wiki dashboard needs to be served from the Render instance at the `/wiki` route to avoid CORS issues. The React component exists at `context-wiki.jsx`. Bundle it with the existing Express server in `web-demo.js` so it's served as a built-in page (same pattern as `/` and `/ingest`).
+---
+
+## 1. Architecture Overview
+
+### File Tree
+
+```
+context-architecture/
+├── web-demo.js              # Express server — API, wiki UI, shared views (~5200 lines)
+├── context-engine.js        # CLI extraction tool — reads text, calls Claude, outputs JSON
+├── merge-engine.js          # Entity dedup & merge — bigram similarity, property overlap
+├── watcher.js               # File system watcher — monitors watch-folder/input
+├── demo.js                  # Quick demo script for CLI extraction
+├── src/
+│   ├── auth.js              # Google OAuth 2.0 router — login, callback, sessions, tenants
+│   ├── drive.js             # Google Drive — list, search, download, export Google Docs/Sheets
+│   ├── graph-ops.js         # Entity CRUD — readEntity, writeEntity, listEntities, counters
+│   ├── ingest-pipeline.js   # Unified ingestion — dedup, merge, create, multi-source
+│   └── parsers/
+│       ├── normalize.js     # File format detection — PDF, DOCX, XLSX, CSV, TXT → text
+│       ├── linkedin.js      # LinkedIn profile → Career Lite entity with experience/education
+│       └── contacts.js      # Spreadsheet contact rows → person entities
+├── watch-folder/
+│   ├── config.json          # API key, model, poll interval, supported extensions
+│   └── graph/               # Entity database root (tenant dirs inside)
+│       ├── tenant-{id}/     # Per-tenant entity storage
+│       │   ├── ENT-*.json   # Entity files
+│       │   ├── _counter.json
+│       │   └── shares.json  # Share link records
+│       └── tenants.json     # Tenant registry (gitignored — contains OAuth tokens)
+├── samples/                 # Sample input text files for testing
+├── output/                  # Historical extraction outputs
+├── openapi-spec.json        # REST API spec (v2.0)
+├── render.yaml              # Render.com deployment config (1GB persistent disk)
+├── custom-gpt-system-prompt.md  # ChatGPT system prompt for Context Engine agent
+└── package.json             # Dependencies: express, anthropic-sdk, googleapis, etc.
+```
+
+### How Files Connect
+
+```
+User → web-demo.js (Express)
+         ├─ /auth/* → src/auth.js (Google OAuth → tenant creation)
+         ├─ /api/* → apiAuth middleware → src/graph-ops.js (entity CRUD)
+         ├─ /api/ingest/* → src/parsers/normalize.js → src/ingest-pipeline.js
+         │                   ├─ LinkedIn detected → src/parsers/linkedin.js
+         │                   └─ Contact sheet detected → src/parsers/contacts.js
+         ├─ /api/drive/* → src/drive.js (browse/download) → ingest pipeline
+         ├─ /api/share → loadShares/saveShares (shares.json per tenant)
+         ├─ /shared/:id → public view (no auth, scans all tenant dirs)
+         ├─ /wiki → inline HTML SPA (dark theme dashboard)
+         └─ / → inline HTML SPA (original extraction UI)
+
+Dedup: ingest-pipeline.js calls merge-engine.js for every incoming entity
+CLI:   context-engine.js runs standalone (no Express), calls Claude directly
+Watch: watcher.js polls watch-folder/input, routes to parsers, calls context-engine
+```
+
+### Entity Schema (v2.0)
+
+```json
+{
+  "schema_version": "2.0",
+  "entity": { "entity_type": "person|business", "entity_id": "ENT-XX-001", "name": {}, "summary": {} },
+  "attributes": [{ "key": "", "value": "", "confidence": 0.8, "time_decay": {}, "source_attribution": {} }],
+  "relationships": [{ "name": "", "relationship_type": "", "confidence": 0.6, "context": "" }],
+  "observations": [{ "observation_id": "", "fact": "", "confidence": 0.8, "facts_layer": "", "timestamp": "" }],
+  "career_lite": { "interface": "career-lite", "experience": [], "education": [], "skills": [] }
+}
+```
+
+---
+
+## 2. Features Shipped
+
+### Session 1-2: Core Engine
+- **CLI extraction** (`context-engine.js`): text → Claude → structured JSON entity
+- **File watcher** (`watcher.js`): monitors input folder, auto-processes files
+- **Merge engine**: bigram Dice similarity, nickname/alias matching, initials detection, property overlap (company, email, LinkedIn URL, skills)
+- **Entity ID generation**: `ENT-{initials}-{seq}` (person), `ENT-BIZ-{initials}-{seq}` (business)
+
+### Session 3: Multi-Tenant + Connectors
+- **Google OAuth**: login → auto-provision tenant → JWT session cookie (7-day TTL)
+  - Scopes: openid, email, profile, drive.readonly, gmail.readonly
+  - Tenant dir: `graph/tenant-{4-byte-hex}/`
+- **File parsers**: PDF (pdf-parse), DOCX (mammoth), XLSX/XLS (xlsx), CSV (csv-parse), TXT/MD
+  - LinkedIn detection: 2+ markers → special extraction prompt → Career Lite entity
+  - Contact sheet detection: column name fuzzy match → batch person entities
+- **Google Drive connector**: browse folders, search, download files, export Google Docs→DOCX / Sheets→XLSX
+  - Token refresh with `withTokenRefresh()` wrapper
+- **Ingest pipeline**: unified path for all sources — dedup against existing, merge or create
+- **ChatGPT import**: parse conversation exports, batch extraction, NDJSON streaming progress
+
+### Session 4: Wiki UI + Career Lite + Sharing
+- **Wiki dashboard** (`/wiki`): dark-theme SaaS UI with CSS custom properties
+  - Entity sidebar with search, entity detail view, observation management
+  - Career Lite renderer for LinkedIn-imported profiles (avatar, experience, education, skills)
+- **Profile sharing system**:
+  - Share modal with per-section toggles (summary, experience, education, skills, connections)
+  - Configurable expiry (7/30/90/365 days)
+  - Public route `GET /shared/:shareId` — no auth, server-rendered, light theme
+  - Share records in `shares.json` per tenant
+  - Revoke support, active shares listing
+- **Dedup improvements**: nickname-aware matching, property overlap scoring, Drive folder search
+
+---
+
+## 3. API Endpoints
+
+### Authentication Routes (src/auth.js, mounted at /auth)
+
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/auth/google` | None | Initiates Google OAuth flow with CSRF state token |
+| GET | `/auth/google/callback` | None | OAuth callback — exchanges code, creates/updates tenant, sets session cookie |
+| GET | `/auth/me` | Cookie | Returns current session user info (tenant_id, email, name, picture) |
+| POST | `/auth/logout` | None | Clears session cookie |
+
+### Entity API (apiAuth required)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/search?q=` | Fuzzy search entities by name/attributes/summary (`q=*` for all) |
+| GET | `/api/entity/:id` | Get full entity JSON |
+| GET | `/api/entity/:id/summary` | Get entity summary (type, name, confidence, counts) |
+| GET | `/api/entity/:id/context` | Entity profile + top 20 observations weighted by relevance |
+| POST | `/api/entity` | Create new entity (validates name uniqueness >0.85 similarity) |
+| PATCH | `/api/entity/:id` | Merge-update entity fields |
+| DELETE | `/api/entity/:id` | Delete entity |
+
+### Observations API (apiAuth required)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/observe` | Add observation to entity (body: entity_id, observation, confidence_label, facts_layer) |
+| DELETE | `/api/observe/:id` | Delete observation by ID |
+
+### Ingestion API (apiAuth required)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/ingest/chatgpt` | Import ChatGPT conversation export (streams NDJSON progress) |
+| POST | `/api/ingest/files` | Upload files for extraction (multipart, streams NDJSON progress) |
+| POST | `/api/extract` | Extract entity from raw text via Claude, auto-add to graph |
+
+### Drive API (apiAuth required)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/drive/files?folderId=&q=` | List Drive folder contents or search files |
+| POST | `/api/drive/ingest` | Download + ingest selected Drive files (streams NDJSON progress) |
+
+### Share API (apiAuth required)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/share` | Create share link (body: entityId, sections, expiresInDays) |
+| GET | `/api/shares/:entityId` | List non-expired shares for an entity |
+| DELETE | `/api/share/:shareId` | Revoke a share link |
+
+### Admin API (apiAuth + adminOnly)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/tenant` | Create new tenant (admin only) |
+| GET | `/api/graph/stats` | Knowledge graph health check (entity counts, merges, last updated) |
+
+### Public Routes (no auth)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/` | Original extraction UI (HTML SPA) |
+| GET | `/wiki` | Wiki dashboard (HTML SPA, dark theme) |
+| GET | `/ingest` | ChatGPT import UI |
+| GET | `/shared/:shareId` | Public shared profile view (server-rendered, light theme) |
+| POST | `/extract` | Public extraction endpoint (text + type → entity JSON) |
+
+---
+
+## 4. Environment Variables
+
+```bash
+# Required — Claude API for entity extraction
+ANTHROPIC_API_KEY=sk-ant-...
+
+# Required for OAuth login and Drive integration
+GOOGLE_CLIENT_ID=...apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=GOCSPX-...
+
+# Required — JWT signing key for session cookies
+# Generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+SESSION_SECRET=<64-char-hex>
+
+# Production only (set in render.yaml)
+NODE_ENV=production
+RENDER_DISK_PATH=/var/data
+```
+
+Without `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, the server starts but OAuth endpoints return 503. Without `ANTHROPIC_API_KEY`, extraction endpoints fail. Without `SESSION_SECRET`, a random one is generated per boot (invalidates all sessions on restart).
+
+---
+
+## 5. What's Left to Build
+
+### Session 5: Interface Composer (full implementation)
+
+Career Lite was the first interface — a fixed layout for LinkedIn-imported profiles. The Interface Composer generalizes this:
+
+- **Interface registry**: define reusable interfaces (Contactable, Experienceable, Summarizable, etc.)
+- **Compose interfaces per entity**: attach/detach interfaces, each with its own schema and renderer
+- **Dynamic rendering**: wiki detail view dispatches to the correct renderer based on attached interfaces
+- **Custom interface builder**: UI for defining new interfaces with field schemas
+- **Truth level projection**: interfaces control what's visible at each truth level (self, trusted, public)
+
+### Session 6: Orchestration Layer
+
+- **Agent protocol**: standardized request/response format for AI agents to query the knowledge graph
+- **Context window management**: smart entity selection based on relevance to current conversation
+- **Multi-agent coordination**: agents can create observations, update entities, trigger merges
+- **Streaming context delivery**: real-time entity updates pushed to connected agents
+- **Rate limiting and quotas**: per-tenant API usage tracking
+
+### Session 7: Security & Hardening
+
+- **Input validation**: JSON schema validation on all API inputs
+- **Rate limiting**: per-tenant, per-endpoint throttling
+- **Audit logging**: track all entity reads/writes/shares with timestamps and actor
+- **Share link hardening**: add HMAC signatures, IP-based restrictions, view counting
+- **CSRF protection**: on all state-mutating endpoints (currently only on OAuth)
+- **Content Security Policy**: headers on all HTML responses
+- **Secrets management**: rotate API keys, tenant keys, session secrets
+
+### Session 8: Student Test / Integration Test Suite
+
+- **End-to-end tests**: OAuth flow → entity creation → merge → share → public view
+- **Unit tests**: merge-engine similarity, ingest pipeline dedup, parser detection
+- **Load testing**: concurrent tenant operations, large file ingestion
+- **Student scenario**: fresh user onboarding, ChatGPT import, Drive ingest, Career Lite creation, share with recruiter
+
+---
+
+## 6. Known Issues & Shortcuts
+
+### Technical Debt
+
+| Issue | Location | Severity | Notes |
+|-------|----------|----------|-------|
+| Inline HTML templates | web-demo.js (entire file) | Medium | ~5200 lines in one file. Wiki UI, Career Lite renderer, shared view all built via string concatenation. No templating engine. |
+| Hardcoded model name | Multiple files | Low | `claude-sonnet-4-5-20250929` hardcoded in 5+ places. Should be config-driven. |
+| No input validation | All API routes | High | No JSON schema validation on request bodies. Malformed input could cause crashes. |
+| No rate limiting | All API routes | High | Any client can hammer endpoints. `q=*` search loads all entities. |
+| Silent 50KB truncation | web-demo.js:633,888 | Medium | Large documents truncated without warning to user. |
+| Drive tokens in-memory only | web-demo.js | Medium | Drive access tokens stored in memory — lost on server restart. Users must re-authorize. |
+| No session refresh | src/auth.js | Low | JWT sessions expire in 7 days with no sliding window. User must re-login. |
+| Mixed HTML escaping | web-demo.js | Low | Client-side uses `esc()` (DOM-based), server-side uses `escHtml()` (regex-based). Both work but inconsistent. |
+| Share brute-force | web-demo.js | Low | 72-bit entropy is strong but no rate limiting on `/shared/:shareId` lookups. |
+| No test suite | package.json | High | `npm test` exits with error. Zero tests exist. |
+| Observation ID collisions | src/ingest-pipeline.js | Low | Timestamp precision to seconds — multiple observations in same second get sequential suffix but pattern is fragile. |
+| Fragile company extraction | merge-engine.js:127 | Low | Parses "at {company}" from role string. English-only, breaks on other patterns. |
+
+### Shortcuts Taken Today (Session 4)
+
+1. **Share scanning is O(tenants)**: `GET /shared/:shareId` reads every `tenant-*/shares.json` to find the matching share. Fine for small deployments, won't scale.
+2. **No share link pagination**: `GET /api/shares/:entityId` returns all active shares. No limit.
+3. **Shared view is fully server-rendered**: No client-side JS. Intentional for simplicity but limits interactivity.
+4. **Share modal uses escaped single quotes in onclick handlers**: Works but fragile — a shareId or URL containing `'` would break. Base64url encoding prevents this in practice.
+
+---
+
+## 7. How to Run Locally
+
+```bash
+# Clone and install
+git clone https://github.com/flawlesstracks/context-engine.git context-architecture
+cd context-architecture
+npm install
+
+# Configure environment
+cp .env.example .env
+# Edit .env — add your keys:
+#   ANTHROPIC_API_KEY (required for extraction)
+#   GOOGLE_CLIENT_ID + GOOGLE_CLIENT_SECRET (required for OAuth/Drive)
+#   SESSION_SECRET (required for sessions — generate a random hex string)
+
+# Start server
+node web-demo.js
+
+# Output:
+#   UI:     http://localhost:3000
+#   Wiki:   http://localhost:3000/wiki
+#   Import: http://localhost:3000/ingest
+#   API:    http://localhost:3000/api/graph/stats
+#   Share:  http://localhost:3000/shared/:shareId
+#   Auth:   http://localhost:3000/auth/google
+
+# Alternative: file watcher mode (processes files dropped into watch-folder/input)
+node watcher.js
+
+# CLI extraction (standalone, no server)
+node context-engine.js --input samples/cj-mitchell.txt --output output/cj.json --type person
+```
+
+### Quick Verification
+
+```bash
+# Check API health (needs API key from watch-folder/config.json)
+curl -H "X-Context-API-Key: ctx-dev-key-001" http://localhost:3000/api/graph/stats
+
+# Search all entities
+curl -H "X-Context-API-Key: ctx-dev-key-001" "http://localhost:3000/api/search?q=*"
+
+# Open wiki in browser
+open http://localhost:3000/wiki
+```
+
+### Production Deployment
+
+Deployed on Render.com via `render.yaml`. Persistent disk at `/var/data` (1GB). Entity data at `/var/data/graph/`. Set all env vars in Render dashboard.
