@@ -107,6 +107,27 @@ async function normalizeFileToText(buffer, filename) {
       return { text, metadata: { isContactList: false, isLinkedIn: false } };
     }
 
+    case '.doc': {
+      // .doc (legacy Word) — extract with mammoth (limited support) or fall back to raw text
+      try {
+        const mammoth = require('mammoth');
+        const result = await mammoth.extractRawText({ buffer });
+        const text = result.value || '';
+        return {
+          text,
+          metadata: { isLinkedIn: detectLinkedIn(text), isContactList: false },
+        };
+      } catch {
+        const text = buffer.toString('utf-8').replace(/[^\x20-\x7E\n\r\t]/g, ' ');
+        return { text, metadata: { isContactList: false, isLinkedIn: false } };
+      }
+    }
+
+    case '.json': {
+      const text = buffer.toString('utf-8');
+      return { text, metadata: { isContactList: false, isLinkedIn: false } };
+    }
+
     case '.txt':
     case '.md': {
       const text = buffer.toString('utf-8');

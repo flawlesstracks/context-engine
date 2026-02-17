@@ -598,7 +598,7 @@ app.post('/api/ingest/chatgpt', apiAuth, async (req, res) => {
 
 // POST /api/ingest/files — Upload files for entity extraction
 const upload = multer({ storage: multer.memoryStorage(), limits: { files: 20, fileSize: 50 * 1024 * 1024 } });
-const ALLOWED_EXTENSIONS = new Set(['.pdf', '.docx', '.xlsx', '.xls', '.csv', '.txt', '.md']);
+const ALLOWED_EXTENSIONS = new Set(['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv', '.txt', '.md', '.json']);
 
 app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, res) => {
   const files = req.files;
@@ -635,6 +635,43 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
     const filename = file.originalname;
 
     try {
+      // JSON files: detect ChatGPT conversations format, otherwise treat as raw text
+      if (path.extname(filename).toLowerCase() === '.json') {
+        const raw = file.buffer.toString('utf-8');
+        let parsed;
+        try { parsed = JSON.parse(raw); } catch { parsed = null; }
+
+        if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].mapping && parsed[0].title !== undefined) {
+          // ChatGPT conversations.json format
+          const conversations = parseChatGPTExport(parsed);
+          if (conversations.length > 0) {
+            const BATCH_SIZE = 5;
+            let created = 0, updated = 0, obsAdded = 0;
+            for (let b = 0; b < conversations.length; b += BATCH_SIZE) {
+              const batch = conversations.slice(b, b + BATCH_SIZE);
+              const prompt = buildIngestPrompt(batch);
+              const message = await client.messages.create({
+                model: 'claude-sonnet-4-5-20250929',
+                max_tokens: 16384,
+                messages: [{ role: 'user', content: prompt }],
+              });
+              const rawResp = message.content[0].text;
+              const cleaned = rawResp.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+              const batchParsed = JSON.parse(cleaned);
+              const entities = (batchParsed.entities || []).filter(e => e && ['person', 'business'].includes(e.entity_type));
+              if (entities.length > 0) {
+                const r = await ingestPipeline(entities, req.graphDir, req.agentId, { source: filename, truthLevel: 'INFERRED' });
+                created += r.created; updated += r.updated; obsAdded += r.observationsAdded;
+              }
+            }
+            sendEvent({ type: 'file_progress', file: filename, file_index: fi + 1, total_files: files.length, entities_created: created, entities_updated: updated, observations_added: obsAdded });
+            totalCreated += created; totalUpdated += updated; totalObservations += obsAdded;
+            continue;
+          }
+        }
+        // Not ChatGPT format — fall through to generic text extraction
+      }
+
       const { text, metadata } = await normalizeFileToText(file.buffer, filename);
 
       let result;
@@ -3942,7 +3979,7 @@ const WIKI_HTML = `<!DOCTYPE html>
 </div>
 
 <div class="toast" id="toast"></div>
-<input type="file" id="uploadFileInput" multiple accept=".pdf,.docx,.xlsx,.xls,.csv,.txt,.md" style="display:none" />
+<input type="file" id="uploadFileInput" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.json" style="display:none" />
 
 <script>
 var apiKey = '';
@@ -4115,7 +4152,7 @@ function showUploadView() {
   h += '<div class="upload-dropzone" id="uploadDropzone">';
   h += '<div class="upload-dropzone-icon">+</div>';
   h += '<div class="upload-dropzone-text">Drag & drop files here, or click to browse</div>';
-  h += '<div class="upload-dropzone-hint">PDF, DOCX, XLSX, CSV, TXT, MD &mdash; up to 50 MB per file</div>';
+  h += '<div class="upload-dropzone-hint">PDF, DOC, DOCX, XLSX, CSV, TXT, MD, JSON &mdash; up to 50 MB per file</div>';
   h += '</div>';
   h += '<div class="upload-file-list" id="uploadFileList"></div>';
   h += '<div id="uploadProgressLog" class="upload-progress-log" style="display:none;"></div>';
@@ -4341,7 +4378,7 @@ function renderDrivePanel() {
 
   // Search bar
   h += '<div class="drive-search-bar">';
-  h += '<input type="text" id="driveSearchInput" placeholder="Filter files or press Enter to search Drive..." value="' + esc(driveSearchQuery) + '" oninput="onDriveFilter()" onkeydown="if(event.key===\\'Enter\\')driveFullSearch()" />';
+  h += '<input type="text" id="driveSearchInput" placeholder="Type to filter current view, press Enter to search all of Drive" value="' + esc(driveSearchQuery) + '" oninput="onDriveFilter()" onkeydown="if(event.key===\\'Enter\\')driveFullSearch()" />';
   if (driveSearchMode) {
     h += '<button class="drive-search-clear" onclick="clearDriveSearch()">Clear</button>';
   } else {
@@ -4356,7 +4393,7 @@ function renderDrivePanel() {
     // Breadcrumb
     h += '<div class="drive-breadcrumb">';
     for (var i = 0; i < driveBreadcrumb.length; i++) {
-      if (i > 0) h += '<span class="sep">/</span>';
+      if (i > 0) h += '<span class="sep">&rsaquo;</span>';
       if (i < driveBreadcrumb.length - 1) {
         h += '<a onclick="navigateDrive(' + i + ')">' + esc(driveBreadcrumb[i].name) + '</a>';
       } else {
@@ -4461,9 +4498,12 @@ function renderDriveFiles(localFilter) {
   for (var i = 0; i < filtered.length; i++) {
     var f = filtered[i];
     if (f.isFolder) {
-      h += '<div class="drive-file-row" onclick="openDriveFolder(\\'' + esc(f.id) + '\\', \\'' + esc(f.name).replace(/'/g, "\\\\'") + '\\')">';
-      h += '<div class="drive-file-icon">\\ud83d\\udcc1</div>';
-      h += '<div class="drive-file-name folder">' + esc(f.name) + '</div>';
+      var fChecked = driveSelected[f.id] ? ' checked' : '';
+      var fSelCls = driveSelected[f.id] ? ' selected' : '';
+      h += '<div class="drive-file-row' + fSelCls + '">';
+      h += '<input type="checkbox" class="drive-file-check"' + fChecked + ' onclick="event.stopPropagation(); toggleDriveFile(\\'' + esc(f.id) + '\\', \\'' + esc(f.name).replace(/'/g, "\\\\'") + '\\')" />';
+      h += '<div class="drive-file-icon" onclick="openDriveFolder(\\'' + esc(f.id) + '\\', \\'' + esc(f.name).replace(/'/g, "\\\\'") + '\\')" style="cursor:pointer;">\\ud83d\\udcc1</div>';
+      h += '<div class="drive-file-name folder" onclick="openDriveFolder(\\'' + esc(f.id) + '\\', \\'' + esc(f.name).replace(/'/g, "\\\\'") + '\\')" style="cursor:pointer;">' + esc(f.name) + '</div>';
       h += '<div class="drive-file-meta">' + formatDriveDate(f.modifiedTime) + '</div>';
       h += '</div>';
     } else {
