@@ -198,6 +198,18 @@ function saveTenants(tenants) {
   fs.writeFileSync(TENANTS_PATH, JSON.stringify(tenants, null, 2) + '\n');
 }
 
+// --- Share helpers ---
+
+function loadShares(tenantDir) {
+  const sharesPath = path.join(tenantDir, 'shares.json');
+  if (!fs.existsSync(sharesPath)) return [];
+  return JSON.parse(fs.readFileSync(sharesPath, 'utf-8'));
+}
+
+function saveShares(tenantDir, shares) {
+  fs.writeFileSync(path.join(tenantDir, 'shares.json'), JSON.stringify(shares, null, 2) + '\n');
+}
+
 // --- Google OAuth routes ---
 
 auth.init({ graphDir: GRAPH_DIR, loadTenants, saveTenants });
@@ -1563,6 +1575,68 @@ app.get('/api/graph/stats', apiAuth, (req, res) => {
   });
 });
 
+// --- Share API routes ---
+
+// POST /api/share — Create a new share link for a Career Lite entity
+app.post('/api/share', apiAuth, (req, res) => {
+  const { entityId, sections, expiresInDays } = req.body;
+  if (!entityId) return res.status(400).json({ error: 'Missing entityId' });
+
+  const entityPath = path.join(req.graphDir, entityId + '.json');
+  if (!fs.existsSync(entityPath)) return res.status(404).json({ error: 'Entity not found' });
+
+  const entityData = JSON.parse(fs.readFileSync(entityPath, 'utf-8'));
+  if (!entityData.career_lite || entityData.career_lite.interface !== 'career-lite') {
+    return res.status(400).json({ error: 'Entity is not a Career Lite profile' });
+  }
+
+  const shareId = crypto.randomBytes(9).toString('base64url');
+  const now = new Date();
+  const days = expiresInDays || 30;
+  const expiresAt = new Date(now.getTime() + days * 86400000).toISOString();
+
+  const allowedSections = ['summary', 'experience', 'education', 'skills', 'connections'];
+  const selectedSections = (sections || ['summary', 'experience', 'education', 'skills'])
+    .filter(s => allowedSections.includes(s));
+
+  const share = {
+    shareId,
+    tenantId: req.tenantId,
+    entityId,
+    sections: selectedSections,
+    createdAt: now.toISOString(),
+    expiresAt,
+  };
+
+  const shares = loadShares(req.graphDir);
+  shares.push(share);
+  saveShares(req.graphDir, shares);
+
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  const host = req.headers['x-forwarded-host'] || req.get('host');
+  const shareUrl = `${protocol}://${host}/shared/${shareId}`;
+
+  res.json({ shareId, shareUrl, sections: selectedSections, expiresAt });
+});
+
+// GET /api/shares/:entityId — List non-expired shares for an entity
+app.get('/api/shares/:entityId', apiAuth, (req, res) => {
+  const shares = loadShares(req.graphDir);
+  const now = new Date().toISOString();
+  const active = shares.filter(s => s.entityId === req.params.entityId && s.expiresAt > now);
+  res.json(active);
+});
+
+// DELETE /api/share/:shareId — Revoke a share
+app.delete('/api/share/:shareId', apiAuth, (req, res) => {
+  const shares = loadShares(req.graphDir);
+  const idx = shares.findIndex(s => s.shareId === req.params.shareId);
+  if (idx === -1) return res.status(404).json({ error: 'Share not found' });
+  shares.splice(idx, 1);
+  saveShares(req.graphDir, shares);
+  res.json({ ok: true });
+});
+
 // --- Serve the UI ---
 
 app.get('/', (req, res) => {
@@ -2691,6 +2765,196 @@ app.get('/wiki', (req, res) => {
   res.send(WIKI_HTML);
 });
 
+// --- Public shared profile view (NO auth) ---
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function renderSharedErrorPage(title, message) {
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escHtml(title)}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8f9fa; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .error-card { background: #fff; border-radius: 12px; padding: 48px; max-width: 420px; text-align: center; box-shadow: 0 2px 12px rgba(0,0,0,0.08); }
+  .error-card h1 { font-size: 1.4rem; color: #1a1a2e; margin-bottom: 12px; }
+  .error-card p { font-size: 0.95rem; color: #64748b; line-height: 1.6; }
+  .footer { margin-top: 32px; font-size: 0.75rem; color: #94a3b8; }
+</style></head><body>
+<div class="error-card">
+  <h1>${escHtml(title)}</h1>
+  <p>${escHtml(message)}</p>
+  <div class="footer">Shared via Context Architecture</div>
+</div></body></html>`;
+}
+
+function renderSharedProfilePage(entity, share) {
+  const e = entity.entity || {};
+  const cl = entity.career_lite || {};
+  const name = e.name?.full || 'Unknown';
+  const initials = name.split(/\s+/).map(w => w[0] || '').join('').toUpperCase();
+  const sections = share.sections || [];
+
+  let body = '';
+
+  // Summary
+  if (sections.includes('summary') && e.summary?.value) {
+    body += '<div class="sp-section"><h2>Summary</h2><p>' + escHtml(e.summary.value) + '</p></div>';
+  }
+
+  // Experience
+  if (sections.includes('experience') && cl.experience?.length) {
+    body += '<div class="sp-section"><h2>Experience</h2>';
+    for (const x of cl.experience) {
+      body += '<div class="sp-card">';
+      if (x.company) body += '<div class="sp-card-title">' + escHtml(x.company) + '</div>';
+      if (x.title) body += '<div class="sp-card-subtitle">' + escHtml(x.title) + '</div>';
+      const dates = [x.start_date, x.end_date].filter(Boolean).join(' — ');
+      if (dates) body += '<div class="sp-card-meta">' + escHtml(dates) + '</div>';
+      if (x.description) body += '<div class="sp-card-desc">' + escHtml(x.description) + '</div>';
+      body += '</div>';
+    }
+    body += '</div>';
+  }
+
+  // Education
+  if (sections.includes('education') && cl.education?.length) {
+    body += '<div class="sp-section"><h2>Education</h2>';
+    for (const ed of cl.education) {
+      body += '<div class="sp-card">';
+      if (ed.institution) body += '<div class="sp-card-title">' + escHtml(ed.institution) + '</div>';
+      const degree = [ed.degree, ed.field].filter(Boolean).join(', ');
+      if (degree) body += '<div class="sp-card-subtitle">' + escHtml(degree) + '</div>';
+      if (ed.years) body += '<div class="sp-card-meta">' + escHtml(ed.years) + '</div>';
+      body += '</div>';
+    }
+    body += '</div>';
+  }
+
+  // Skills
+  if (sections.includes('skills') && cl.skills?.length) {
+    body += '<div class="sp-section"><h2>Skills</h2><div class="sp-skills">';
+    for (const s of cl.skills) {
+      body += '<span class="sp-skill-tag">' + escHtml(s) + '</span>';
+    }
+    body += '</div></div>';
+  }
+
+  // Connections
+  if (sections.includes('connections') && e.relationships?.length) {
+    body += '<div class="sp-section"><h2>Connections</h2>';
+    for (const r of e.relationships) {
+      body += '<div class="sp-card">';
+      if (r.name) body += '<div class="sp-card-title">' + escHtml(r.name) + '</div>';
+      const detail = [r.relationship, r.context].filter(Boolean).join(' — ');
+      if (detail) body += '<div class="sp-card-subtitle">' + escHtml(detail) + '</div>';
+      body += '</div>';
+    }
+    body += '</div>';
+  }
+
+  // Role / Location
+  let subtitle = '';
+  if (e.attributes?.role) subtitle += escHtml(e.attributes.role);
+  if (e.attributes?.location) subtitle += (subtitle ? ' &middot; ' : '') + escHtml(e.attributes.location);
+
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escHtml(name)} — Shared Profile</title>
+<meta property="og:title" content="${escHtml(name)} — Shared Profile">
+<meta property="og:description" content="${escHtml(subtitle || 'Career profile shared via Context Architecture')}">
+<meta property="og:type" content="profile">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8f9fa; color: #1a1a2e; min-height: 100vh; }
+  .sp-header { background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 48px 24px 36px; text-align: center; color: #fff; }
+  .sp-avatar { width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,0.2); display: inline-flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: 700; margin-bottom: 16px; border: 3px solid rgba(255,255,255,0.3); }
+  .sp-name { font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; }
+  .sp-subtitle { font-size: 0.95rem; opacity: 0.85; }
+  .sp-body { max-width: 640px; margin: -20px auto 40px; padding: 0 16px; }
+  .sp-section { background: #fff; border-radius: 10px; padding: 24px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+  .sp-section h2 { font-size: 1rem; font-weight: 600; color: #6366f1; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.8rem; }
+  .sp-section > p { font-size: 0.92rem; line-height: 1.7; color: #475569; }
+  .sp-card { padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
+  .sp-card:last-child { border-bottom: none; padding-bottom: 0; }
+  .sp-card:first-of-type { padding-top: 0; }
+  .sp-card-title { font-size: 0.92rem; font-weight: 600; color: #1a1a2e; }
+  .sp-card-subtitle { font-size: 0.85rem; color: #475569; margin-top: 2px; }
+  .sp-card-meta { font-size: 0.78rem; color: #94a3b8; margin-top: 2px; }
+  .sp-card-desc { font-size: 0.85rem; color: #64748b; margin-top: 6px; line-height: 1.5; }
+  .sp-skills { display: flex; flex-wrap: wrap; gap: 8px; }
+  .sp-skill-tag { display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 500; background: #ede9fe; color: #6366f1; }
+  .sp-footer { text-align: center; padding: 24px; font-size: 0.75rem; color: #94a3b8; }
+  @media (max-width: 600px) {
+    .sp-header { padding: 32px 16px 28px; }
+    .sp-name { font-size: 1.3rem; }
+    .sp-body { margin-top: -12px; }
+    .sp-section { padding: 18px; }
+  }
+</style></head><body>
+<div class="sp-header">
+  <div class="sp-avatar">${escHtml(initials)}</div>
+  <div class="sp-name">${escHtml(name)}</div>
+  ${subtitle ? '<div class="sp-subtitle">' + subtitle + '</div>' : ''}
+</div>
+<div class="sp-body">${body}</div>
+<div class="sp-footer">Shared via Context Architecture</div>
+</body></html>`;
+}
+
+app.get('/shared/:shareId', (req, res) => {
+  const { shareId } = req.params;
+
+  // Scan all tenant directories for this shareId
+  let matchedShare = null;
+  let tenantDir = null;
+
+  try {
+    const entries = fs.readdirSync(GRAPH_DIR).filter(f => f.startsWith('tenant-'));
+    for (const dir of entries) {
+      const fullDir = path.join(GRAPH_DIR, dir);
+      const shares = loadShares(fullDir);
+      const found = shares.find(s => s.shareId === shareId);
+      if (found) {
+        matchedShare = found;
+        tenantDir = fullDir;
+        break;
+      }
+    }
+  } catch (err) {
+    // GRAPH_DIR might not exist yet
+  }
+
+  if (!matchedShare) {
+    return res.status(404).send(renderSharedErrorPage(
+      'Profile Not Found',
+      'This link is invalid or has been revoked. Please ask the profile owner for a new link.'
+    ));
+  }
+
+  // Check expiry
+  if (new Date(matchedShare.expiresAt) < new Date()) {
+    return res.status(410).send(renderSharedErrorPage(
+      'Link Expired',
+      'This shared profile link has expired. Please ask the profile owner to generate a new link.'
+    ));
+  }
+
+  // Load entity
+  const entityPath = path.join(tenantDir, matchedShare.entityId + '.json');
+  if (!fs.existsSync(entityPath)) {
+    return res.status(404).send(renderSharedErrorPage(
+      'Profile Not Found',
+      'The profile could not be loaded. It may have been deleted.'
+    ));
+  }
+
+  const entity = JSON.parse(fs.readFileSync(entityPath, 'utf-8'));
+  res.send(renderSharedProfilePage(entity, matchedShare));
+});
+
 const WIKI_HTML = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -3416,6 +3680,101 @@ const WIKI_HTML = `<!DOCTYPE html>
     transition: all var(--transition-fast);
   }
   .cl-skill-tag:hover { background: rgba(99,102,241,0.15); }
+
+  /* --- Share Modal --- */
+  .share-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6); z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .share-modal {
+    background: var(--bg-primary); border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg); padding: 28px; width: 440px; max-width: 90vw;
+    max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+  .share-modal h3 {
+    font-size: 1.05rem; font-weight: 600; color: var(--text-primary);
+    margin-bottom: 20px;
+  }
+  .share-section-toggles { margin-bottom: 20px; }
+  .share-toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid var(--border-subtle);
+  }
+  .share-toggle-row:last-child { border-bottom: none; }
+  .share-toggle-row label {
+    font-size: 0.85rem; color: var(--text-secondary); cursor: pointer;
+  }
+  .share-toggle-row input[type="checkbox"] { accent-color: var(--accent-light); width: 16px; height: 16px; cursor: pointer; }
+  .share-expiry-row {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px; padding: 10px 0;
+  }
+  .share-expiry-row label { font-size: 0.85rem; color: var(--text-secondary); }
+  .share-expiry-row select {
+    background: var(--bg-secondary); border: 1px solid var(--border-primary);
+    color: var(--text-primary); border-radius: var(--radius-sm); padding: 6px 10px;
+    font-size: 0.82rem;
+  }
+  .share-actions {
+    display: flex; gap: 10px; margin-bottom: 16px;
+  }
+  .share-actions button {
+    flex: 1; padding: 10px; border-radius: var(--radius-sm); font-size: 0.85rem;
+    font-weight: 500; cursor: pointer; border: 1px solid var(--border-primary);
+    transition: all var(--transition-fast);
+  }
+  .btn-generate {
+    background: var(--accent-gradient); color: #fff; border: none !important;
+  }
+  .btn-generate:hover { opacity: 0.9; }
+  .btn-cancel {
+    background: var(--bg-secondary); color: var(--text-secondary);
+  }
+  .btn-cancel:hover { border-color: var(--text-muted); }
+  .share-result {
+    background: var(--bg-secondary); border: 1px solid var(--border-primary);
+    border-radius: var(--radius-sm); padding: 12px; margin-bottom: 16px;
+  }
+  .share-result-url {
+    font-size: 0.8rem; color: var(--accent-light); word-break: break-all;
+    margin-bottom: 8px; font-family: monospace;
+  }
+  .btn-copy-link {
+    background: var(--bg-tertiary); border: 1px solid var(--border-primary);
+    color: var(--text-primary); padding: 6px 14px; border-radius: var(--radius-sm);
+    font-size: 0.78rem; cursor: pointer; transition: all var(--transition-fast);
+  }
+  .btn-copy-link:hover { border-color: var(--accent-light); color: var(--accent-light); }
+  .share-active-list { margin-top: 16px; }
+  .share-active-list h4 {
+    font-size: 0.82rem; font-weight: 600; color: var(--text-secondary);
+    margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .share-active-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0; border-bottom: 1px solid var(--border-subtle);
+    font-size: 0.8rem;
+  }
+  .share-active-item:last-child { border-bottom: none; }
+  .share-active-info { color: var(--text-tertiary); }
+  .share-active-sections { color: var(--text-muted); font-size: 0.72rem; }
+  .btn-revoke {
+    background: none; border: 1px solid rgba(239,68,68,0.3); color: #ef4444;
+    padding: 4px 10px; border-radius: var(--radius-sm); font-size: 0.72rem;
+    cursor: pointer; transition: all var(--transition-fast);
+  }
+  .btn-revoke:hover { background: rgba(239,68,68,0.1); border-color: #ef4444; }
+  .btn-share {
+    background: var(--accent-gradient); color: #fff; border: none;
+    padding: 5px 14px; border-radius: var(--radius-sm); font-size: 0.75rem;
+    font-weight: 500; cursor: pointer; transition: opacity var(--transition-fast);
+  }
+  .btn-share:hover { opacity: 0.85; }
+  .cl-header-actions {
+    display: flex; align-items: center; gap: 10px;
+  }
 
   /* --- Sidebar Footer --- */
   .sidebar-footer {
@@ -4244,7 +4603,8 @@ function renderCareerLite(data) {
   if (cl.linkedin_url) contacts.push('<a href="' + esc(cl.linkedin_url) + '" target="_blank">LinkedIn</a>');
   if (contacts.length > 0) h += '<div class="cl-contact-row">' + contacts.join('') + '</div>';
 
-  h += '<div class="cl-interface-badge">Career Lite Profile</div>';
+  h += '<div class="cl-header-actions"><div class="cl-interface-badge">Career Lite Profile</div>';
+  h += '<button class="btn-share" onclick="openShareModal()">Share</button></div>';
   h += '</div></div></div>';
 
   // Summary
@@ -4500,6 +4860,148 @@ function deleteObs(obsId) {
     selectEntity(selectedId);
   }).catch(function(err) { toast('Error: ' + err.message); });
 }
+
+// --- Share functions ---
+
+function openShareModal() {
+  if (!selectedId) return;
+  api('GET', '/api/shares/' + selectedId).then(function(shares) {
+    showShareModal(shares);
+  }).catch(function() {
+    showShareModal([]);
+  });
+}
+
+function showShareModal(existingShares) {
+  var overlay = document.createElement('div');
+  overlay.className = 'share-overlay';
+  overlay.id = 'shareOverlay';
+  overlay.onclick = function(e) { if (e.target === overlay) closeShareModal(); };
+
+  var sections = [
+    { id: 'summary', label: 'Summary', defaultOn: true },
+    { id: 'experience', label: 'Experience', defaultOn: true },
+    { id: 'education', label: 'Education', defaultOn: true },
+    { id: 'skills', label: 'Skills', defaultOn: true },
+    { id: 'connections', label: 'Connections', defaultOn: false },
+  ];
+
+  var togglesHtml = '<div class="share-section-toggles">';
+  for (var i = 0; i < sections.length; i++) {
+    var s = sections[i];
+    togglesHtml += '<div class="share-toggle-row">' +
+      '<label for="share-sec-' + s.id + '">' + esc(s.label) + '</label>' +
+      '<input type="checkbox" id="share-sec-' + s.id + '" ' + (s.defaultOn ? 'checked' : '') + '>' +
+      '</div>';
+  }
+  togglesHtml += '</div>';
+
+  var expiryHtml = '<div class="share-expiry-row">' +
+    '<label>Expires in</label>' +
+    '<select id="shareExpiry">' +
+    '<option value="7">7 days</option>' +
+    '<option value="30" selected>30 days</option>' +
+    '<option value="90">90 days</option>' +
+    '<option value="365">1 year</option>' +
+    '</select></div>';
+
+  var activeHtml = '';
+  if (existingShares.length > 0) {
+    activeHtml = '<div class="share-active-list"><h4>Active Links</h4>';
+    for (var i = 0; i < existingShares.length; i++) {
+      var sh = existingShares[i];
+      var expDate = new Date(sh.expiresAt).toLocaleDateString();
+      activeHtml += '<div class="share-active-item">' +
+        '<div><div class="share-active-info">Expires ' + esc(expDate) + '</div>' +
+        '<div class="share-active-sections">' + esc(sh.sections.join(', ')) + '</div></div>' +
+        '<button class="btn-revoke" onclick="revokeShare(\\'' + sh.shareId + '\\')">Revoke</button>' +
+        '</div>';
+    }
+    activeHtml += '</div>';
+  }
+
+  var html = '<div class="share-modal">' +
+    '<h3>Share Profile</h3>' +
+    togglesHtml +
+    expiryHtml +
+    '<div class="share-actions">' +
+    '<button class="btn-cancel" onclick="closeShareModal()">Cancel</button>' +
+    '<button class="btn-generate" onclick="generateShareLink()">Generate Link</button>' +
+    '</div>' +
+    '<div id="shareResult"></div>' +
+    activeHtml +
+    '</div>';
+
+  overlay.innerHTML = html;
+  document.body.appendChild(overlay);
+}
+
+function closeShareModal() {
+  var overlay = document.getElementById('shareOverlay');
+  if (overlay) overlay.remove();
+}
+
+function generateShareLink() {
+  var sections = [];
+  var ids = ['summary', 'experience', 'education', 'skills', 'connections'];
+  for (var i = 0; i < ids.length; i++) {
+    var cb = document.getElementById('share-sec-' + ids[i]);
+    if (cb && cb.checked) sections.push(ids[i]);
+  }
+  var expiry = document.getElementById('shareExpiry');
+  var days = expiry ? parseInt(expiry.value) : 30;
+
+  api('POST', '/api/share', {
+    entityId: selectedId,
+    sections: sections,
+    expiresInDays: days
+  }).then(function(data) {
+    var resultDiv = document.getElementById('shareResult');
+    if (resultDiv) {
+      resultDiv.innerHTML = '<div class="share-result">' +
+        '<div class="share-result-url">' + esc(data.shareUrl) + '</div>' +
+        '<button class="btn-copy-link" onclick="copyShareLink(\\'' + data.shareUrl.replace(/'/g, "\\\\'") + '\\')">Copy Link</button>' +
+        '</div>';
+    }
+  }).catch(function(err) {
+    toast('Error creating share: ' + err.message);
+  });
+}
+
+function copyShareLink(url) {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(function() {
+      toast('Link copied to clipboard');
+    }).catch(function() {
+      fallbackCopy(url);
+    });
+  } else {
+    fallbackCopy(url);
+  }
+}
+
+function fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.left = '-9999px';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); toast('Link copied to clipboard'); }
+  catch(e) { toast('Copy failed — select the URL manually'); }
+  document.body.removeChild(ta);
+}
+
+function revokeShare(shareId) {
+  if (!confirm('Revoke this share link? Anyone with this link will no longer be able to view the profile.')) return;
+  api('DELETE', '/api/share/' + shareId).then(function() {
+    toast('Share link revoked');
+    closeShareModal();
+    openShareModal();
+  }).catch(function(err) {
+    toast('Error revoking share: ' + err.message);
+  });
+}
 </script>
 </body>
 </html>`;
@@ -4515,6 +5017,7 @@ app.listen(PORT, () => {
   console.log('  Wiki:   http://localhost:' + PORT + '/wiki');
   console.log('  Import: http://localhost:' + PORT + '/ingest');
   console.log('  API:    http://localhost:' + PORT + '/api/graph/stats');
+  console.log('  Share:  http://localhost:' + PORT + '/shared/:shareId');
   console.log('  Auth:   http://localhost:' + PORT + '/auth/google' + (process.env.GOOGLE_CLIENT_ID ? '' : ' (not configured)'));
   console.log('  Graph:  ' + GRAPH_DIR + (GRAPH_IS_PERSISTENT ? ' (persistent disk)' : ' (local)'));
   console.log('');

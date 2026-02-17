@@ -49,7 +49,7 @@ function listEntities(dir) {
   const d = dir || LOCAL_GRAPH_DIR;
   if (!fs.existsSync(d)) return [];
   return fs.readdirSync(d)
-    .filter(f => f.endsWith('.json') && f !== '_counter.json' && f !== 'tenants.json')
+    .filter(f => f.endsWith('.json') && f !== '_counter.json' && f !== 'tenants.json' && f !== 'shares.json')
     .map(f => {
       try {
         const data = JSON.parse(fs.readFileSync(path.join(d, f), 'utf-8'));
