@@ -4985,7 +4985,7 @@ function renderDetail(data) {
       if (items.length === 0) continue;
       h += '<div style="margin-bottom:12px;"><div style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">' + groupLabels[gk] + '</div>';
       for (var j = 0; j < items.length; j++) {
-        h += '<div class="entity-item" style="padding:6px 10px;cursor:pointer;" onclick="selectEntity(\'' + esc(items[j].entity_id) + '\')">';
+        h += '<div class="entity-item" style="padding:6px 10px;cursor:pointer;" onclick="selectEntity(\\'' + esc(items[j].entity_id) + '\\')">';
         h += '<span class="entity-item-name">' + esc(items[j].label) + '</span>';
         h += '<span class="type-badge ' + esc(items[j].entity_type) + '">' + esc(items[j].entity_type) + '</span>';
         h += '</div>';
@@ -5029,7 +5029,7 @@ function renderConnectedDetail(data) {
   if (parentId) {
     h += '<div class="section" style="padding:8px 0;">';
     h += '<span style="font-size:0.82rem;color:var(--text-muted);">Parent: </span>';
-    h += '<a href="#" style="font-size:0.82rem;color:#6366f1;text-decoration:none;" onclick="event.preventDefault();selectEntity(\'' + esc(parentId) + '\')">' + esc(parentId) + '</a>';
+    h += '<a href="#" style="font-size:0.82rem;color:#6366f1;text-decoration:none;" onclick="event.preventDefault();selectEntity(\\'' + esc(parentId) + '\\')">' + esc(parentId) + '</a>';
     h += '</div>';
   }
 
