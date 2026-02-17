@@ -3958,7 +3958,7 @@ function api(method, path, body) {
   var opts = {
     method: method,
     headers: { 'X-Agent-Id': 'wiki-dashboard' },
-    credentials: 'same-origin',
+    credentials: 'include',
   };
   if (apiKey) opts.headers['X-Context-API-Key'] = apiKey;
   if (body) {
@@ -3994,14 +3994,14 @@ function enterApp(user) {
 }
 
 function logout() {
-  fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' }).then(function() {
+  fetch('/auth/logout', { method: 'POST', credentials: 'include' }).then(function() {
     window.location.reload();
   });
 }
 
 /* --- Login --- */
 // Auto-login: check for existing session cookie
-fetch('/auth/me', { credentials: 'same-origin' }).then(function(r) {
+fetch('/auth/me', { credentials: 'include' }).then(function(r) {
   if (r.ok) return r.json();
   return null;
 }).then(function(user) {
@@ -4220,7 +4220,7 @@ function startUpload() {
   fetch('/api/ingest/files', {
     method: 'POST',
     headers: headers,
-    credentials: 'same-origin',
+    credentials: 'include',
     body: formData,
   }).then(function(response) {
     if (!response.ok) {
@@ -4547,7 +4547,7 @@ function startDriveIngest() {
   fetch('/api/drive/ingest', {
     method: 'POST',
     headers: headers,
-    credentials: 'same-origin',
+    credentials: 'include',
     body: JSON.stringify({ fileIds: ids }),
   }).then(function(response) {
     if (!response.ok) {
