@@ -693,5 +693,202 @@
     ]
   },
   "active_projects": [],
-  "translations": []
+  "translations": [],
+  "connected_objects": [
+    {
+      "entity_id": "ENT-ORG-001",
+      "entity_type": "organization",
+      "label": "Amazon (Relay)"
+    },
+    {
+      "entity_id": "ENT-ORG-002",
+      "entity_type": "organization",
+      "label": "Fandom"
+    },
+    {
+      "entity_id": "ENT-ORG-003",
+      "entity_type": "organization",
+      "label": "Wayfair"
+    },
+    {
+      "entity_id": "ENT-ORG-004",
+      "entity_type": "organization",
+      "label": "Walmart"
+    },
+    {
+      "entity_id": "ENT-ORG-005",
+      "entity_type": "organization",
+      "label": "Dell EMC"
+    },
+    {
+      "entity_id": "ENT-ORG-006",
+      "entity_type": "organization",
+      "label": "Deloitte"
+    },
+    {
+      "entity_id": "ENT-ORG-007",
+      "entity_type": "organization",
+      "label": "Putchuon Channel"
+    },
+    {
+      "entity_id": "ENT-ORG-008",
+      "entity_type": "organization",
+      "label": "Self-employed"
+    },
+    {
+      "entity_id": "ENT-ORG-009",
+      "entity_type": "organization",
+      "label": "Harvard University"
+    },
+    {
+      "entity_id": "ENT-ORG-010",
+      "entity_type": "organization",
+      "label": "Clark Atlanta University"
+    },
+    {
+      "entity_id": "ENT-ORG-011",
+      "entity_type": "organization",
+      "label": "Howard University"
+    },
+    {
+      "entity_id": "ENT-ROLE-017",
+      "entity_type": "role",
+      "label": "Principal Product Manager at Amazon (Relay)"
+    },
+    {
+      "entity_id": "ENT-ROLE-018",
+      "entity_type": "role",
+      "label": "AI/DS Lead at Fandom"
+    },
+    {
+      "entity_id": "ENT-ROLE-019",
+      "entity_type": "role",
+      "label": "AI/DS Lead at Wayfair"
+    },
+    {
+      "entity_id": "ENT-ROLE-020",
+      "entity_type": "role",
+      "label": "AI/DS Lead at Walmart"
+    },
+    {
+      "entity_id": "ENT-ROLE-021",
+      "entity_type": "role",
+      "label": "Position at Dell EMC"
+    },
+    {
+      "entity_id": "ENT-ROLE-022",
+      "entity_type": "role",
+      "label": "Position at Deloitte"
+    },
+    {
+      "entity_id": "ENT-ROLE-023",
+      "entity_type": "role",
+      "label": "YouTube Creator at Putchuon Channel"
+    },
+    {
+      "entity_id": "ENT-ROLE-024",
+      "entity_type": "role",
+      "label": "Context Architecture Consultant at Self-employed"
+    },
+    {
+      "entity_id": "ENT-CRED-007",
+      "entity_type": "credential",
+      "label": "Master of Business Administration - MBA Entrepreneurship/Entrepreneurial Studies, Harvard University"
+    },
+    {
+      "entity_id": "ENT-CRED-008",
+      "entity_type": "credential",
+      "label": "MBA, Clark Atlanta University"
+    },
+    {
+      "entity_id": "ENT-CRED-009",
+      "entity_type": "credential",
+      "label": "BBA, Howard University"
+    },
+    {
+      "entity_id": "ENT-SKILL-001",
+      "entity_type": "skill",
+      "label": "AI/ML"
+    },
+    {
+      "entity_id": "ENT-SKILL-002",
+      "entity_type": "skill",
+      "label": "Transformers (BERT)"
+    },
+    {
+      "entity_id": "ENT-SKILL-003",
+      "entity_type": "skill",
+      "label": "CNNs"
+    },
+    {
+      "entity_id": "ENT-SKILL-004",
+      "entity_type": "skill",
+      "label": "RLHF"
+    },
+    {
+      "entity_id": "ENT-SKILL-005",
+      "entity_type": "skill",
+      "label": "NLP"
+    },
+    {
+      "entity_id": "ENT-SKILL-006",
+      "entity_type": "skill",
+      "label": "TensorFlow"
+    },
+    {
+      "entity_id": "ENT-SKILL-007",
+      "entity_type": "skill",
+      "label": "PyTorch"
+    },
+    {
+      "entity_id": "ENT-SKILL-008",
+      "entity_type": "skill",
+      "label": "Forecasting"
+    },
+    {
+      "entity_id": "ENT-SKILL-009",
+      "entity_type": "skill",
+      "label": "Product Management"
+    },
+    {
+      "entity_id": "ENT-SKILL-010",
+      "entity_type": "skill",
+      "label": "SEO Generative AI"
+    },
+    {
+      "entity_id": "ENT-SKILL-011",
+      "entity_type": "skill",
+      "label": "Strategic Planning"
+    },
+    {
+      "entity_id": "ENT-SKILL-012",
+      "entity_type": "skill",
+      "label": "Content Creation"
+    },
+    {
+      "entity_id": "ENT-SKILL-013",
+      "entity_type": "skill",
+      "label": "Knowledge Graph Architecture"
+    },
+    {
+      "entity_id": "ENT-SKILL-014",
+      "entity_type": "skill",
+      "label": "Neo4j"
+    },
+    {
+      "entity_id": "ENT-SKILL-015",
+      "entity_type": "skill",
+      "label": "Investment Analysis"
+    },
+    {
+      "entity_id": "ENT-SKILL-016",
+      "entity_type": "skill",
+      "label": "YouTube Production"
+    },
+    {
+      "entity_id": "ENT-SKILL-017",
+      "entity_type": "skill",
+      "label": "AI Infrastructure Analysis"
+    }
+  ]
 }

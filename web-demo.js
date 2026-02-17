@@ -8,7 +8,7 @@ const Anthropic = require('@anthropic-ai/sdk').default;
 const { merge } = require('./merge-engine');
 const multer = require('multer');
 const cookieParser = require('cookie-parser');
-const { readEntity, writeEntity, listEntities, getNextCounter } = require('./src/graph-ops');
+const { readEntity, writeEntity, listEntities, listEntitiesByType, getNextCounter, loadConnectedObjects } = require('./src/graph-ops');
 const { ingestPipeline } = require('./src/ingest-pipeline');
 const { normalizeFileToText } = require('./src/parsers/normalize');
 const { buildLinkedInPrompt, linkedInResponseToEntity } = require('./src/parsers/linkedin');
@@ -1088,6 +1088,13 @@ app.get('/api/entity/:id', apiAuth, (req, res) => {
   res.json(entity);
 });
 
+// GET /api/entity/:id/connected — Entity + all connected objects
+app.get('/api/entity/:id/connected', apiAuth, (req, res) => {
+  const result = loadConnectedObjects(req.params.id, req.graphDir);
+  if (!result) return res.status(404).json({ error: 'Entity not found' });
+  res.json(result);
+});
+
 // GET /api/entity/:id/summary — Lightweight summary
 app.get('/api/entity/:id/summary', apiAuth, (req, res) => {
   const entity = readEntity(req.params.id, req.graphDir);
@@ -1165,21 +1172,40 @@ app.get('/api/entity/:id/context', apiAuth, (req, res) => {
   });
 });
 
-// GET /api/search?q= — Fuzzy search entities
+// GET /api/search?q=&type= — Fuzzy search entities with optional type filter
 app.get('/api/search', apiAuth, (req, res) => {
   const q = (req.query.q || '').toLowerCase().trim();
   if (!q) return res.status(400).json({ error: 'Missing query parameter q' });
 
+  const typeFilter = req.query.type
+    ? req.query.type.split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
+    : null;
+
   const { similarity } = require('./merge-engine');
-  const entities = listEntities(req.graphDir);
+  let entities = listEntities(req.graphDir);
+
+  // Apply type filter if specified
+  if (typeFilter) {
+    entities = entities.filter(({ data }) => {
+      const type = (data.entity || {}).entity_type;
+      return typeFilter.includes(type);
+    });
+  }
+
+  // Resolve entity name across all types
+  function getEntityName(e) {
+    var type = e.entity_type;
+    if (type === 'person') return e.name?.full || '';
+    if (type === 'business') return e.name?.common || e.name?.legal || '';
+    return e.name?.full || e.name?.common || '';
+  }
 
   // Wildcard: return all entities
   if (q === '*') {
     const all = entities.map(({ data }) => {
       const e = data.entity || {};
-      const type = e.entity_type;
-      const name = type === 'person' ? (e.name?.full || '') : (e.name?.common || e.name?.legal || '');
-      return { entity_id: e.entity_id, entity_type: type, name, summary: e.summary?.value || '', match_score: 1.0 };
+      const name = getEntityName(e);
+      return { entity_id: e.entity_id, entity_type: e.entity_type, name, summary: e.summary?.value || '', match_score: 1.0 };
     });
     return res.json({ query: q, count: all.length, results: all });
   }
@@ -1189,7 +1215,7 @@ app.get('/api/search', apiAuth, (req, res) => {
   for (const { data } of entities) {
     const e = data.entity || {};
     const type = e.entity_type;
-    let name = type === 'person' ? (e.name?.full || '') : (e.name?.common || e.name?.legal || '');
+    let name = getEntityName(e);
     let score = 0;
 
     // Check name similarity
@@ -3316,6 +3342,10 @@ const WIKI_HTML = `<!DOCTYPE html>
   }
   .type-badge.person { background: rgba(99,102,241,0.1); color: #6366f1; }
   .type-badge.business { background: rgba(14,165,233,0.1); color: #0284c7; }
+  .type-badge.role { background: rgba(59,130,246,0.1); color: #2563eb; }
+  .type-badge.organization { background: rgba(34,197,94,0.1); color: #16a34a; }
+  .type-badge.credential { background: rgba(245,158,11,0.1); color: #d97706; }
+  .type-badge.skill { background: rgba(20,184,166,0.1); color: #0d9488; }
 
   /* --- Main Panel --- */
   #main {
@@ -4075,7 +4105,8 @@ function onSearch() {
   clearTimeout(searchTimeout);
   searchTimeout = setTimeout(function() {
     var q = document.getElementById('searchInput').value.trim() || '*';
-    api('GET', '/api/search?q=' + encodeURIComponent(q)).then(function(data) {
+    var url = '/api/search?q=' + encodeURIComponent(q) + '&type=person,business';
+    api('GET', url).then(function(data) {
       entities = data.results || [];
       renderEntityList();
     });
@@ -4809,6 +4840,11 @@ function renderDetail(data) {
 
   var e = data.entity || {};
   var type = e.entity_type || '';
+
+  // Route connected object types to their own renderer
+  if (['role', 'organization', 'credential', 'skill'].indexOf(type) !== -1) {
+    return renderConnectedDetail(data);
+  }
   var name = type === 'person' ? (e.name?.full || '') : (e.name?.common || e.name?.legal || '');
   var summary = e.summary?.value || '';
   var meta = data.extraction_metadata || {};
@@ -4900,6 +4936,33 @@ function renderDetail(data) {
   }
   h += '</div>';
 
+  // Connected Objects
+  var connected = data.connected_objects || [];
+  if (connected.length > 0) {
+    h += '<div class="section"><div class="section-title section-title-only">Connected Objects (' + connected.length + ')</div>';
+    var groups = { role: [], organization: [], credential: [], skill: [] };
+    for (var i = 0; i < connected.length; i++) {
+      var c = connected[i];
+      if (groups[c.entity_type]) groups[c.entity_type].push(c);
+    }
+    var groupLabels = { role: 'Roles', organization: 'Organizations', credential: 'Credentials', skill: 'Skills' };
+    var groupKeys = ['role', 'organization', 'credential', 'skill'];
+    for (var g = 0; g < groupKeys.length; g++) {
+      var gk = groupKeys[g];
+      var items = groups[gk];
+      if (items.length === 0) continue;
+      h += '<div style="margin-bottom:12px;"><div style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">' + groupLabels[gk] + '</div>';
+      for (var j = 0; j < items.length; j++) {
+        h += '<div class="entity-item" style="padding:6px 10px;cursor:pointer;" onclick="selectEntity(\'' + esc(items[j].entity_id) + '\')">';
+        h += '<span class="entity-item-name">' + esc(items[j].label) + '</span>';
+        h += '<span class="type-badge ' + esc(items[j].entity_type) + '">' + esc(items[j].entity_type) + '</span>';
+        h += '</div>';
+      }
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
   // Add Observation Form
   h += '<div class="section"><div class="section-title section-title-only">Add Observation</div>';
   h += '<div class="add-obs-form">';
@@ -4912,6 +4975,71 @@ function renderDetail(data) {
   h += '<option value="L2_GROUP" selected>L2 Group</option><option value="L3_PERSONAL">L3 Personal</option></select>';
   h += '<button class="btn-add" id="btnAddObs" onclick="addObs()">Add Observation</button>';
   h += '</div></div></div>';
+
+  document.getElementById('main').innerHTML = h;
+}
+
+function renderConnectedDetail(data) {
+  var e = data.entity || {};
+  var type = e.entity_type || '';
+  var name = e.name?.full || e.name?.common || '';
+  var parentId = e.parent_entity_id || '';
+  var h = '';
+
+  // Header
+  h += '<div class="detail-header">';
+  h += '<h2>' + esc(name) + '</h2>';
+  h += '<span class="type-badge ' + type + '">' + type + '</span>';
+  h += '<span class="entity-id-badge">' + esc(e.entity_id || '') + '</span>';
+  h += '</div>';
+
+  // Parent link
+  if (parentId) {
+    h += '<div class="section" style="padding:8px 0;">';
+    h += '<span style="font-size:0.82rem;color:var(--text-muted);">Parent: </span>';
+    h += '<a href="#" style="font-size:0.82rem;color:#6366f1;text-decoration:none;" onclick="event.preventDefault();selectEntity(\'' + esc(parentId) + '\')">' + esc(parentId) + '</a>';
+    h += '</div>';
+  }
+
+  // Type-specific data
+  if (type === 'role' && data.role_data) {
+    var rd = data.role_data;
+    h += '<div class="section"><div class="section-title section-title-only">Role Details</div>';
+    if (rd.title) h += '<div class="attr-row"><span class="attr-key">Title</span><span class="attr-value">' + esc(rd.title) + '</span></div>';
+    if (rd.company) h += '<div class="attr-row"><span class="attr-key">Company</span><span class="attr-value">' + esc(rd.company) + '</span></div>';
+    if (rd.start_date || rd.end_date) h += '<div class="attr-row"><span class="attr-key">Period</span><span class="attr-value">' + esc(rd.start_date || '?') + ' — ' + esc(rd.end_date || 'Present') + '</span></div>';
+    if (rd.description) h += '<div style="margin-top:8px;font-size:0.82rem;color:var(--text-primary);line-height:1.5;">' + esc(rd.description) + '</div>';
+    h += '</div>';
+  }
+
+  if (type === 'organization' && data.organization_data) {
+    h += '<div class="section"><div class="section-title section-title-only">Organization Details</div>';
+    h += '<div class="attr-row"><span class="attr-key">Name</span><span class="attr-value">' + esc(data.organization_data.name || name) + '</span></div>';
+    h += '</div>';
+  }
+
+  if (type === 'credential' && data.credential_data) {
+    var cd = data.credential_data;
+    h += '<div class="section"><div class="section-title section-title-only">Credential Details</div>';
+    if (cd.institution) h += '<div class="attr-row"><span class="attr-key">Institution</span><span class="attr-value">' + esc(cd.institution) + '</span></div>';
+    if (cd.degree) h += '<div class="attr-row"><span class="attr-key">Degree</span><span class="attr-value">' + esc(cd.degree) + '</span></div>';
+    if (cd.field) h += '<div class="attr-row"><span class="attr-key">Field</span><span class="attr-value">' + esc(cd.field) + '</span></div>';
+    if (cd.start_year || cd.end_year) h += '<div class="attr-row"><span class="attr-key">Years</span><span class="attr-value">' + esc(cd.start_year || '?') + ' — ' + esc(cd.end_year || '?') + '</span></div>';
+    h += '</div>';
+  }
+
+  if (type === 'skill' && data.skill_data) {
+    h += '<div class="section"><div class="section-title section-title-only">Skill Details</div>';
+    h += '<div class="attr-row"><span class="attr-key">Skill</span><span class="attr-value">' + esc(data.skill_data.name || name) + '</span></div>';
+    h += '</div>';
+  }
+
+  // Summary if present
+  var summary = e.summary?.value || '';
+  if (summary) {
+    h += '<div class="section"><div class="section-title section-title-only">Summary</div>';
+    h += '<div class="summary-text">' + esc(summary) + '</div></div>';
+  }
 
   document.getElementById('main').innerHTML = h;
 }

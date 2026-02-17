@@ -2,6 +2,7 @@
 
 const { readEntity, writeEntity, listEntities, getNextCounter } = require('./graph-ops');
 const { merge, similarity, entitiesMatch } = require('../merge-engine');
+const { decomposePersonEntity } = require('./object-decomposer');
 
 /**
  * Unified ingest pipeline — all extraction sources go through here.
@@ -114,6 +115,12 @@ async function ingestPipeline(entities, graphDir, agentId, options = {}) {
       });
 
       writeEntity(matchedId, result, graphDir);
+
+      // Decompose person entity into connected objects
+      if (entityType === 'person') {
+        decomposePersonEntity(result, matchedId, graphDir);
+      }
+
       updated++;
     } else {
       // --- CREATE new entity ---
@@ -148,6 +155,12 @@ async function ingestPipeline(entities, graphDir, agentId, options = {}) {
       }
 
       writeEntity(entityId, entityData, graphDir);
+
+      // Decompose person entity into connected objects
+      if (entityType === 'person') {
+        decomposePersonEntity(entityData, entityId, graphDir);
+      }
+
       created++;
       observationsAdded += newObservations.length;
     }

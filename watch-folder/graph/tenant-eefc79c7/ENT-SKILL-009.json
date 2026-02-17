@@ -1,0 +1,42 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-17T16:28:43.028Z",
+    "source_description": "decomposed from ENT-CM-001",
+    "extraction_model": "object-decomposer",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "skill",
+    "entity_id": "ENT-SKILL-009",
+    "parent_entity_id": "ENT-CM-001",
+    "name": {
+      "full": "Product Management",
+      "aliases": []
+    },
+    "summary": {
+      "value": "",
+      "confidence": 0.6,
+      "facts_layer": 2
+    }
+  },
+  "skill_data": {
+    "name": "Product Management"
+  },
+  "attributes": [],
+  "relationships": [],
+  "observations": [],
+  "provenance_chain": {
+    "created_at": "2026-02-17T16:28:43.028Z",
+    "created_by": "object-decomposer",
+    "source_documents": [
+      {
+        "source": "decomposed from ENT-CM-001",
+        "ingested_at": "2026-02-17T16:28:43.028Z"
+      }
+    ],
+    "merge_history": []
+  }
+}

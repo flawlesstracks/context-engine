@@ -61,7 +61,7 @@ function listEntities(dir) {
 
 function getNextCounter(dir, entityType) {
   const counterPath = path.join(dir, '_counter.json');
-  let counters = { person: 1, business: 1 };
+  let counters = { person: 1, business: 1, role: 1, organization: 1, credential: 1, skill: 1 };
   if (fs.existsSync(counterPath)) {
     counters = JSON.parse(fs.readFileSync(counterPath, 'utf-8'));
   }
@@ -72,4 +72,30 @@ function getNextCounter(dir, entityType) {
   return seq;
 }
 
-module.exports = { readEntity, writeEntity, listEntities, getNextCounter, resolveGraphDir, LOCAL_GRAPH_DIR };
+function listEntitiesByType(dir, type) {
+  return listEntities(dir).filter(({ data }) => {
+    return (data.entity || {}).entity_type === type;
+  });
+}
+
+function loadConnectedObjects(entityId, dir) {
+  const entity = readEntity(entityId, dir);
+  if (!entity) return null;
+
+  const connected = [];
+  for (const ref of (entity.connected_objects || [])) {
+    const obj = readEntity(ref.entity_id, dir);
+    if (obj) {
+      connected.push({
+        entity_id: ref.entity_id,
+        entity_type: ref.entity_type,
+        label: ref.label,
+        data: obj,
+      });
+    }
+  }
+
+  return { entity, connected };
+}
+
+module.exports = { readEntity, writeEntity, listEntities, listEntitiesByType, getNextCounter, resolveGraphDir, loadConnectedObjects, LOCAL_GRAPH_DIR };
