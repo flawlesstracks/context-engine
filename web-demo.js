@@ -4438,7 +4438,7 @@ function renderDrivePanel() {
 
   // Search bar
   h += '<div class="drive-search-bar">';
-  h += '<input type="text" id="driveSearchInput" placeholder="Type to filter current view, press Enter to search all of Drive" value="' + esc(driveSearchQuery) + '" oninput="onDriveFilter()" onkeydown="if(event.key===\\'Enter\\')driveFullSearch()" />';
+  h += '<input type="text" id="driveSearchInput" placeholder="Type to filter, press Enter to search all of Drive" value="' + esc(driveSearchQuery) + '" oninput="onDriveFilter()" onkeydown="if(event.key===\\'Enter\\')driveFullSearch()" />';
   if (driveSearchMode) {
     h += '<button class="drive-search-clear" onclick="clearDriveSearch()">Clear</button>';
   } else {
