@@ -174,6 +174,7 @@ router.get('/google/callback', async (req, res) => {
       httpOnly: true,
       secure: isSecure(req),
       sameSite: 'lax',
+      path: '/',
       maxAge: SESSION_MAX_AGE_MS,
     });
 
@@ -207,7 +208,7 @@ router.get('/me', (req, res) => {
 
 // POST /auth/logout — Clear session
 router.post('/logout', (req, res) => {
-  res.clearCookie(SESSION_COOKIE);
+  res.clearCookie(SESSION_COOKIE, { path: '/' });
   res.redirect('/');
 });
 
