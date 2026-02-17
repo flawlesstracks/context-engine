@@ -39,7 +39,7 @@ context-architecture/
 ├── openapi-spec.json        # REST API spec (v2.0)
 ├── render.yaml              # Render.com deployment config (1GB persistent disk)
 ├── custom-gpt-system-prompt.md  # ChatGPT system prompt for Context Engine agent
-└── package.json             # Dependencies: express, anthropic-sdk, googleapis, etc.
+└── package.json             # Dependencies: express, anthropic-sdk, googleapis, helmet, express-rate-limit, etc.
 ```
 
 ### How Files Connect
@@ -108,6 +108,11 @@ Watch: watcher.js polls watch-folder/input, routes to parsers, calls context-eng
   - Share records in `shares.json` per tenant
   - Revoke support, active shares listing
 - **Dedup improvements**: nickname-aware matching, property overlap scoring, Drive folder search
+- **Security hardening**:
+  - helmet middleware: HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, etc.
+  - Rate limiting: 100 req/15min on `/api/*`, 10 req/min on `POST /api/share`, 30 req/min on `GET /shared/:shareId`
+  - Input validation on `POST /api/share`: entityId format regex, sections whitelist, expiresInDays whitelist (7/30/90/365)
+  - File upload limits already enforced: 50MB per file, 20 files max, extension whitelist
 
 ---
 
@@ -228,12 +233,19 @@ Career Lite was the first interface — a fixed layout for LinkedIn-imported pro
 
 ### Session 7: Security & Hardening
 
-- **Input validation**: JSON schema validation on all API inputs
-- **Rate limiting**: per-tenant, per-endpoint throttling
+Already done (Session 4):
+- ~~Security headers (helmet)~~
+- ~~Rate limiting on API, share creation, shared view~~
+- ~~Input validation on POST /api/share~~
+- ~~File upload size/count/extension validation~~
+
+Still needed:
+- **Input validation on remaining routes**: JSON schema validation on POST /api/entity, PATCH /api/entity, POST /api/observe, etc.
+- **Per-tenant rate limiting**: current limits are per-IP, not per-tenant
 - **Audit logging**: track all entity reads/writes/shares with timestamps and actor
-- **Share link hardening**: add HMAC signatures, IP-based restrictions, view counting
+- **Share link hardening**: HMAC signatures, IP-based restrictions, view counting
 - **CSRF protection**: on all state-mutating endpoints (currently only on OAuth)
-- **Content Security Policy**: headers on all HTML responses
+- **Content Security Policy**: currently disabled for inline scripts — needs refactor to external JS
 - **Secrets management**: rotate API keys, tenant keys, session secrets
 
 ### Session 8: Student Test / Integration Test Suite
@@ -253,13 +265,13 @@ Career Lite was the first interface — a fixed layout for LinkedIn-imported pro
 |-------|----------|----------|-------|
 | Inline HTML templates | web-demo.js (entire file) | Medium | ~5200 lines in one file. Wiki UI, Career Lite renderer, shared view all built via string concatenation. No templating engine. |
 | Hardcoded model name | Multiple files | Low | `claude-sonnet-4-5-20250929` hardcoded in 5+ places. Should be config-driven. |
-| No input validation | All API routes | High | No JSON schema validation on request bodies. Malformed input could cause crashes. |
-| No rate limiting | All API routes | High | Any client can hammer endpoints. `q=*` search loads all entities. |
+| Partial input validation | Most API routes | Medium | POST /api/share validated; other routes (POST /api/entity, PATCH, POST /api/observe) still lack schema validation. |
+| Per-IP rate limiting only | All API routes | Medium | Rate limiting added via express-rate-limit but keyed by IP, not tenant. Shared IPs (corporate NAT) could hit limits unfairly. |
 | Silent 50KB truncation | web-demo.js:633,888 | Medium | Large documents truncated without warning to user. |
 | Drive tokens in-memory only | web-demo.js | Medium | Drive access tokens stored in memory — lost on server restart. Users must re-authorize. |
 | No session refresh | src/auth.js | Low | JWT sessions expire in 7 days with no sliding window. User must re-login. |
 | Mixed HTML escaping | web-demo.js | Low | Client-side uses `esc()` (DOM-based), server-side uses `escHtml()` (regex-based). Both work but inconsistent. |
-| Share brute-force | web-demo.js | Low | 72-bit entropy is strong but no rate limiting on `/shared/:shareId` lookups. |
+| Share brute-force | web-demo.js | Low | 72-bit entropy is strong. Rate limited to 30 req/min but no per-IP tracking across restarts. |
 | No test suite | package.json | High | `npm test` exits with error. Zero tests exist. |
 | Observation ID collisions | src/ingest-pipeline.js | Low | Timestamp precision to seconds — multiple observations in same second get sequential suffix but pattern is fragile. |
 | Fragile company extraction | merge-engine.js:127 | Low | Parses "at {company}" from role string. English-only, breaks on other patterns. |
