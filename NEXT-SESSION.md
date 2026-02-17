@@ -98,7 +98,9 @@ Watch: watcher.js polls watch-folder/input, routes to parsers, calls context-eng
 - **ChatGPT import**: parse conversation exports, batch extraction, NDJSON streaming progress
 
 ### Session 4: Wiki UI + Career Lite + Sharing
-- **Wiki dashboard** (`/wiki`): dark-theme SaaS UI with CSS custom properties
+- **Wiki dashboard** (`/wiki`): light-theme SaaS UI with CSS custom properties (Linear/Notion aesthetic)
+  - White/light-gray backgrounds (#f5f5f7 body, #fff cards), dark text, subtle borders and shadows
+  - Purple accent preserved for logo, buttons, links, gradients
   - Entity sidebar with search, entity detail view, observation management
   - Career Lite renderer for LinkedIn-imported profiles (avatar, experience, education, skills)
 - **Profile sharing system**:
