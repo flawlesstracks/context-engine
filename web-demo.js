@@ -4202,7 +4202,7 @@ function categorizeRelationship(relType, rel) {
   for (var i = 0; i < familyTerms.length; i++) {
     if (r.indexOf(familyTerms[i]) !== -1) return 'family';
   }
-  var innerTerms = ['best friend', 'close friend', 'groomsman', 'loyalty anchor', 'accountability partner', 'ai assistant', 'collaborator'];
+  var innerTerms = ['close friend', 'best friend', 'groomsman', 'loyalty anchor', 'accountability partner', 'ai assistant', 'collaborator', 'co-founder'];
   for (var i = 0; i < innerTerms.length; i++) {
     if (r.indexOf(innerTerms[i]) !== -1) return 'inner_circle';
   }
