@@ -4029,8 +4029,10 @@ function esc(s) { var d = document.createElement('div'); d.textContent = s || ''
 (function() {
   var params = new URLSearchParams(window.location.search);
   var sessionToken = params.get('session');
+  console.log('[AUTH] URL has session param:', !!sessionToken);
   if (sessionToken) {
     sessionStorage.setItem('ca_token', sessionToken);
+    console.log('[AUTH] Token stored in sessionStorage, length:', sessionToken.length);
     history.replaceState(null, '', '/wiki');
   }
 })();
@@ -4091,17 +4093,24 @@ function logout() {
 }
 
 /* --- Login --- */
-// Auto-login: check for existing session (Bearer token or cookie)
+// Auto-login: check for existing session (Bearer token from sessionStorage)
 (function() {
-  var headers = getAuthHeaders();
-  fetch('/auth/me', { headers: headers }).then(function(r) {
+  var token = sessionStorage.getItem('ca_token');
+  console.log('[AUTH] Auto-login check, has token:', !!token);
+  if (!token) return; // No token — show login screen
+  fetch('/auth/me', { headers: { 'Authorization': 'Bearer ' + token } }).then(function(r) {
+    console.log('[AUTH] /auth/me response:', r.status);
     if (r.ok) return r.json();
-    return null;
+    throw new Error('auth failed: ' + r.status);
   }).then(function(user) {
+    console.log('[AUTH] User:', JSON.stringify(user));
     if (user && user.tenant_id) {
       enterApp(user);
     }
-  }).catch(function() {});
+  }).catch(function(err) {
+    console.error('[AUTH] Auto-login failed:', err);
+    sessionStorage.removeItem('ca_token');
+  });
 })();
 
 // Manual API key login
