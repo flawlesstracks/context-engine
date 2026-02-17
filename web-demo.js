@@ -22,6 +22,7 @@ require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 const app = express();
 app.set('trust proxy', 1); // MUST be first — Render terminates HTTPS at load balancer
+app.set('etag', false);
 
 // --- Security headers ---
 app.use(helmet({
@@ -2883,6 +2884,9 @@ function showSummary(s) {
 // --- Wiki Dashboard ---
 
 app.get('/wiki', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.removeHeader('ETag');
   res.send(WIKI_HTML);
 });
 
@@ -3923,14 +3927,13 @@ const WIKI_HTML = `<!DOCTYPE html>
   .sidebar-section-header {
     display: flex; align-items: center; gap: 8px;
     padding: 10px 16px; cursor: pointer;
-    font-size: 0.78rem; font-weight: 700; color: var(--text-secondary);
-    text-transform: uppercase; letter-spacing: 0.05em;
+    font-size: 14px; font-weight: 700; color: var(--text-secondary);
     transition: background var(--transition-fast);
     user-select: none;
   }
   .sidebar-section-header:hover { background: var(--bg-hover); }
   .sidebar-section-chevron {
-    display: inline-block; font-size: 0.6rem; transition: transform 0.15s ease;
+    display: inline-block; font-size: 0.6rem; transition: transform 0.2s ease;
     color: var(--text-muted); flex-shrink: 0;
   }
   .sidebar-section-chevron.collapsed { transform: rotate(-90deg); }
@@ -3941,32 +3944,32 @@ const WIKI_HTML = `<!DOCTYPE html>
   }
   .sidebar-section-body { overflow: hidden; }
   .sidebar-section-body.collapsed { display: none; }
-  .sidebar-you-header {
+  .sidebar-profile-header {
     display: flex; align-items: center; gap: 10px;
     padding: 8px 20px 4px;
   }
-  .sidebar-you-avatar {
+  .sidebar-profile-avatar {
     width: 32px; height: 32px; border-radius: 50%;
     background: var(--accent-gradient);
     display: flex; align-items: center; justify-content: center;
     font-size: 0.7rem; font-weight: 700; color: white; flex-shrink: 0;
     overflow: hidden;
   }
-  .sidebar-you-avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .sidebar-you-name {
+  .sidebar-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .sidebar-profile-name {
     font-size: 0.85rem; font-weight: 600; color: var(--text-primary);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .sidebar-view-item {
     display: flex; align-items: center; gap: 8px;
     padding: 7px 20px 7px 36px; cursor: pointer;
-    font-size: 0.8rem; color: var(--text-tertiary);
+    font-size: 13px; color: var(--text-tertiary);
     transition: all var(--transition-fast);
   }
   .sidebar-view-item:hover { background: var(--bg-hover); color: var(--text-primary); }
   .sidebar-view-item.active {
-    background: var(--bg-active); color: var(--accent-primary);
-    border-left: 3px solid var(--accent-primary);
+    background: #f5f0ff; color: #6366f1;
+    border-left: 3px solid #6366f1;
     padding-left: 33px;
   }
   .sidebar-view-item .view-icon { font-size: 0.85rem; flex-shrink: 0; width: 18px; text-align: center; }
@@ -3978,37 +3981,54 @@ const WIKI_HTML = `<!DOCTYPE html>
     text-transform: uppercase; letter-spacing: 0.04em;
   }
   .sidebar-group-label {
-    font-size: 0.65rem; font-weight: 600; color: var(--text-muted);
+    font-size: 11px; font-weight: 600; color: var(--text-muted);
     text-transform: uppercase; letter-spacing: 0.06em;
     padding: 8px 20px 4px;
   }
-  .sidebar-entity-subtitle {
-    font-size: 0.72rem; color: var(--text-muted);
+  .sidebar-entity-row {
+    display: block; padding: 6px 20px 6px 36px; cursor: pointer;
+    font-size: 13px; color: var(--text-primary);
+    transition: background var(--transition-fast);
+  }
+  .sidebar-entity-row:hover { background: #f0f0ff; }
+  .sidebar-entity-row.active {
+    background: #f5f0ff;
+    border-left: 3px solid #6366f1;
+    padding-left: 33px;
+  }
+  .sidebar-entity-row .entity-name {
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: flex; align-items: center; gap: 6px;
   }
-  .sidebar-add-btn {
-    display: block; padding: 6px 20px; font-size: 0.75rem;
-    color: var(--accent-primary); cursor: pointer;
-    transition: color var(--transition-fast);
+  .sidebar-entity-row .entity-subtitle {
+    font-size: 12px; color: var(--text-muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    padding-left: 0;
   }
-  .sidebar-add-btn:hover { color: var(--accent-tertiary); }
+  .sidebar-empty-hint {
+    padding: 8px 20px 8px 36px; font-size: 12px; color: var(--text-muted);
+    font-style: italic;
+  }
   .sidebar-footer-user {
     display: flex; align-items: center; gap: 8px;
     margin-bottom: 6px; justify-content: center;
   }
   .sidebar-user-avatar {
-    width: 22px; height: 22px; border-radius: 50%;
+    width: 32px; height: 32px; border-radius: 50%;
     background: var(--accent-gradient);
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.5rem; font-weight: 700; color: white; flex-shrink: 0;
+    font-size: 0.6rem; font-weight: 700; color: white; flex-shrink: 0;
     overflow: hidden;
   }
   .sidebar-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .sidebar-footer-user-name {
+    font-size: 13px; font-weight: 600; color: var(--text-primary);
+  }
   .sidebar-footer-actions {
     display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;
   }
   .sidebar-footer-actions a, .sidebar-footer-actions span a {
-    color: var(--text-muted); text-decoration: none; font-size: 0.7rem;
+    color: var(--text-muted); text-decoration: none; font-size: 12px;
     transition: color var(--transition-fast);
   }
   .sidebar-footer-actions a:hover { color: var(--accent-tertiary); }
@@ -4124,42 +4144,99 @@ function findPrimaryUser(ents, user) {
   var persons = ents.filter(function(e) { return e.entity_type === 'person'; });
   if (persons.length === 0) return null;
   var uname = user.name.toLowerCase().trim();
-  // Exact match
+  var uemail = (user.email || '').toLowerCase().trim();
+
   for (var i = 0; i < persons.length; i++) {
-    if (persons[i].name && persons[i].name.toLowerCase().trim() === uname) return persons[i].entity_id;
+    console.log('SIDEBAR_DEBUG: comparing entity:', persons[i].name, 'to user:', user.name, uemail);
   }
-  // Substring match (e.g. "Clarence Mitchell" matches "Clarence James Mitchell")
-  var uparts = uname.split(/\s+/);
-  for (var i = 0; i < persons.length; i++) {
-    var pname = (persons[i].name || '').toLowerCase();
-    var allMatch = true;
-    for (var j = 0; j < uparts.length; j++) {
-      if (pname.indexOf(uparts[j]) === -1) { allMatch = false; break; }
+
+  // 1. Exact email match
+  if (uemail) {
+    for (var i = 0; i < persons.length; i++) {
+      var pemail = (persons[i].email || '').toLowerCase().trim();
+      if (pemail && pemail === uemail) { console.log('SIDEBAR_DEBUG: matched by email'); return persons[i].entity_id; }
     }
-    if (allMatch) return persons[i].entity_id;
   }
+
+  // 2. Exact name match
+  for (var i = 0; i < persons.length; i++) {
+    if (persons[i].name && persons[i].name.toLowerCase().trim() === uname) { console.log('SIDEBAR_DEBUG: matched by exact name'); return persons[i].entity_id; }
+  }
+
+  // 3. Substring match (either direction)
+  for (var i = 0; i < persons.length; i++) {
+    var pname = (persons[i].name || '').toLowerCase().trim();
+    if (pname.indexOf(uname) !== -1 || uname.indexOf(pname) !== -1) { console.log('SIDEBAR_DEBUG: matched by substring'); return persons[i].entity_id; }
+  }
+
+  // 4. First+last word match: check if first AND last word of one appear in the other
+  var uwords = uname.split(/\\s+/);
+  if (uwords.length >= 2) {
+    var ufirst = uwords[0];
+    var ulast = uwords[uwords.length - 1];
+    for (var i = 0; i < persons.length; i++) {
+      var pname = (persons[i].name || '').toLowerCase();
+      if (pname.indexOf(ufirst) !== -1 && pname.indexOf(ulast) !== -1) { console.log('SIDEBAR_DEBUG: matched by first+last'); return persons[i].entity_id; }
+    }
+  }
+  // Also check reverse: entity first+last in user name
+  for (var i = 0; i < persons.length; i++) {
+    var pwords = (persons[i].name || '').toLowerCase().split(/\\s+/);
+    if (pwords.length >= 2) {
+      var pfirst = pwords[0];
+      var plast = pwords[pwords.length - 1];
+      if (uname.indexOf(pfirst) !== -1 && uname.indexOf(plast) !== -1) { console.log('SIDEBAR_DEBUG: matched by entity first+last in user'); return persons[i].entity_id; }
+    }
+  }
+
   // Fallback: single person entity
   if (persons.length === 1) return persons[0].entity_id;
+  console.log('SIDEBAR_DEBUG: NO MATCH FOUND');
   return null;
 }
 
-function categorizeRelationship(relType) {
+function categorizeRelationship(relType, rel) {
   if (!relType) return 'other';
   var r = relType.toLowerCase();
-  var familyTerms = ['spouse', 'son', 'daughter', 'ex-spouse', 'sister', 'brother', 'mother', 'father', 'wife', 'husband', 'partner', 'child', 'parent'];
+  var familyTerms = ['spouse', 'wife', 'husband', 'parent', 'mother', 'father', 'son', 'daughter', 'child', 'brother', 'sister', 'sibling', 'nephew', 'niece', 'uncle', 'aunt', 'cousin', 'in-law', 'grandparent', 'grandmother', 'grandfather', 'ex-spouse'];
   for (var i = 0; i < familyTerms.length; i++) {
     if (r.indexOf(familyTerms[i]) !== -1) return 'family';
   }
-  var innerTerms = ['close friend', 'best friend', 'ai assistant', 'collaborator'];
+  var innerTerms = ['best friend', 'close friend', 'groomsman', 'loyalty anchor', 'accountability partner', 'ai assistant', 'collaborator'];
   for (var i = 0; i < innerTerms.length; i++) {
     if (r.indexOf(innerTerms[i]) !== -1) return 'inner_circle';
   }
-  var proTerms = ['professional', 'colleague', 'from your school', 'security architect', 'mentor'];
+  // Check strength/trust_level fields on the relationship object
+  if (rel) {
+    if (rel.strength === 'close') return 'inner_circle';
+    var tl = String(rel.trust_level || '');
+    if (tl.indexOf('9') !== -1 || tl.indexOf('10') !== -1) return 'inner_circle';
+  }
+  var proTerms = ['colleague', 'mentor', 'manager', 'coworker', 'professional', 'security architect', 'from your school'];
   for (var i = 0; i < proTerms.length; i++) {
     if (r.indexOf(proTerms[i]) !== -1) return 'professional';
   }
-  if (r.indexOf('degree') !== -1) return 'other';
   return 'other';
+}
+
+function sortPeopleGroup(group, category) {
+  if (category === 'family') {
+    var priority = { 'spouse': 1, 'wife': 1, 'husband': 1, 'son': 2, 'daughter': 2, 'child': 2, 'brother': 3, 'sister': 3, 'sibling': 3 };
+    group.sort(function(a, b) {
+      var ra = (a._relType || '').toLowerCase();
+      var rb = (b._relType || '').toLowerCase();
+      var pa = 99, pb = 99;
+      for (var k in priority) {
+        if (ra.indexOf(k) !== -1) { pa = Math.min(pa, priority[k]); }
+        if (rb.indexOf(k) !== -1) { pb = Math.min(pb, priority[k]); }
+      }
+      if (pa !== pb) return pa - pb;
+      return (a.name || '').localeCompare(b.name || '');
+    });
+  } else {
+    group.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+  }
+  return group;
 }
 
 function buildSidebarData() {
@@ -4174,15 +4251,40 @@ function buildSidebarData() {
     for (var i = 0; i < rels.length; i++) {
       var rname = (rels[i].name || '').toLowerCase().trim();
       relMap[rname] = {
-        category: categorizeRelationship(rels[i].relationship_type),
+        category: categorizeRelationship(rels[i].relationship_type, rels[i]),
         type: rels[i].relationship_type || ''
       };
     }
   }
 
+  // Build role/credential maps from connected objects for org grouping
+  var roleByOrg = {};  // orgName -> roleTitle
+  var credByOrg = {}; // orgName -> credLabel
+  var connected = (primaryEntityData && primaryEntityData.connected_objects) || [];
+  for (var i = 0; i < connected.length; i++) {
+    var c = connected[i];
+    if (c.entity_type === 'role' && c.label) {
+      // Role labels follow "Title at OrgName" pattern
+      var atIdx = c.label.indexOf(' at ');
+      if (atIdx !== -1) {
+        var orgName = c.label.substring(atIdx + 4).trim();
+        roleByOrg[orgName.toLowerCase()] = c.label.substring(0, atIdx).trim();
+      }
+    }
+    if (c.entity_type === 'credential' && c.label) {
+      // Credential labels follow "Degree, Institution" pattern
+      var commaIdx = c.label.indexOf(', ');
+      if (commaIdx !== -1) {
+        var instName = c.label.substring(commaIdx + 2).trim();
+        credByOrg[instName.toLowerCase()] = c.label;
+      }
+    }
+  }
+
   var you = null;
   var people = { family: [], inner_circle: [], professional: [], other: [] };
-  var organizations = [];
+  var organizations = { career: [], education: [], other: [] };
+  var projects = { active: [], rnd: [], archive: [] };
 
   var src = isSearching ? entities : allEntities;
   for (var i = 0; i < src.length; i++) {
@@ -4191,13 +4293,17 @@ function buildSidebarData() {
     // Skip role/credential/skill from sidebar
     if (t === 'role' || t === 'credential' || t === 'skill') continue;
 
+    // Filter out test entities
+    var ename = (e.name || '');
+    if (ename.match(/\\btest\\b/i) || ename.match(/\\bTestCorp\\b/i) || ename.match(/\\bBigTech\\b/i)) continue;
+
     if (e.entity_id === primaryEntityId) {
       you = e;
       continue;
     }
-    if (t === 'person' || t === 'business') {
-      var ename = (e.name || '').toLowerCase().trim();
-      var rel = relMap[ename];
+    if (t === 'person') {
+      var elower = ename.toLowerCase().trim();
+      var rel = relMap[elower];
       if (rel) {
         e._relType = rel.type;
         people[rel.category].push(e);
@@ -4205,17 +4311,33 @@ function buildSidebarData() {
         e._relType = '';
         people.other.push(e);
       }
-    } else if (t === 'organization') {
-      organizations.push(e);
+    } else if (t === 'organization' || t === 'business') {
+      var oname = ename.toLowerCase().trim();
+      if (roleByOrg[oname]) {
+        organizations.career.push({ org: e, roleTitle: roleByOrg[oname] });
+      } else if (credByOrg[oname]) {
+        organizations.education.push({ org: e, credLabel: credByOrg[oname] });
+      } else {
+        organizations.other.push(e);
+      }
+    } else if (t === 'project') {
+      projects.active.push(e);
     }
   }
+
+  // Sort people groups
+  sortPeopleGroup(people.family, 'family');
+  sortPeopleGroup(people.inner_circle, 'inner_circle');
+  sortPeopleGroup(people.professional, 'professional');
+  sortPeopleGroup(people.other, 'other');
+
   // If not searching and primary not in allEntities, still show You if we have data
   if (!you && primaryEntityId && !isSearching) {
     for (var i = 0; i < allEntities.length; i++) {
       if (allEntities[i].entity_id === primaryEntityId) { you = allEntities[i]; break; }
     }
   }
-  return { you: you, people: people, organizations: organizations };
+  return { you: you, people: people, organizations: organizations, projects: projects };
 }
 
 function selectView(viewId) {
@@ -4237,30 +4359,128 @@ function selectView(viewId) {
     }
   } else if (viewId === 'overview') {
     if (primaryEntityData) {
-      renderOverview(primaryEntityData);
+      renderProfileOverview(primaryEntityData);
     } else {
       api('GET', '/api/entity/' + primaryEntityId).then(function(data) {
         primaryEntityData = data;
         selectedData = data;
-        renderOverview(data);
+        renderProfileOverview(data);
       });
     }
-  } else if (viewId === 'skills') {
-    if (primaryEntityData) {
-      renderSkillsView(primaryEntityData);
-    } else {
-      api('GET', '/api/entity/' + primaryEntityId).then(function(data) {
-        primaryEntityData = data;
-        selectedData = data;
-        renderSkillsView(data);
-      });
-    }
+  } else if (viewId === 'executive-brief') {
+    document.getElementById('main').innerHTML = '<div class="empty-state"><div style="font-size:1.1rem;font-weight:600;color:var(--text-primary);margin-bottom:8px;">Executive Brief</div><div style="color:var(--text-muted);">Coming soon &mdash; Achievement-led professional profile</div></div>';
+  } else if (viewId === 'creator-profile') {
+    document.getElementById('main').innerHTML = '<div class="empty-state"><div style="font-size:1.1rem;font-weight:600;color:var(--text-primary);margin-bottom:8px;">Creator Profile</div><div style="color:var(--text-muted);">Coming soon &mdash; Projects, content, and ventures</div></div>';
+  } else if (viewId === 'values-identity') {
+    document.getElementById('main').innerHTML = '<div class="empty-state"><div style="font-size:1.1rem;font-weight:600;color:var(--text-primary);margin-bottom:8px;">Values &amp; Identity</div><div style="color:var(--text-muted);">Coming soon &mdash; Core values, interests, and personality</div></div>';
   } else {
-    // Placeholder views
     var label = viewId.replace(/-/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
     document.getElementById('main').innerHTML = '<div class="empty-state"><div style="font-size:1.1rem;font-weight:600;color:var(--text-primary);margin-bottom:8px;">' + esc(label) + '</div><div style="color:var(--text-muted);">Coming soon</div></div>';
   }
   renderSidebar();
+}
+
+function renderProfileOverview(data) {
+  var e = data.entity || {};
+  var name = (e.name && e.name.full) ? e.name.full : (e.name && e.name.common) || '';
+  var summary = (e.summary && e.summary.value) || '';
+  var attrs = data.attributes || [];
+  var connected = data.connected_objects || [];
+  var obs = (data.observations || []).slice().sort(function(a, b) {
+    return new Date(b.observed_at || 0) - new Date(a.observed_at || 0);
+  });
+  var rels = data.relationships || [];
+
+  // Extract key attributes
+  var headline = '', location = '';
+  for (var i = 0; i < attrs.length; i++) {
+    if (attrs[i].key === 'headline') headline = String(attrs[i].value || '');
+    if (attrs[i].key === 'location') location = String(attrs[i].value || '');
+  }
+
+  // Count connected objects by type
+  var connCounts = {};
+  for (var i = 0; i < connected.length; i++) {
+    var ct = connected[i].entity_type;
+    connCounts[ct] = (connCounts[ct] || 0) + 1;
+  }
+
+  var h = '';
+
+  // Profile header with large avatar
+  h += '<div style="display:flex;align-items:center;gap:20px;padding:24px 0 16px;">';
+  h += '<div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;color:white;flex-shrink:0;overflow:hidden;">';
+  if (sessionUser && sessionUser.picture) {
+    h += '<img src="' + esc(sessionUser.picture) + '" alt="" style="width:100%;height:100%;object-fit:cover;" />';
+  } else {
+    var initials = name.split(/\\s+/).map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
+    h += initials;
+  }
+  h += '</div>';
+  h += '<div>';
+  h += '<h2 style="font-size:1.4rem;font-weight:700;color:var(--text-primary);margin:0 0 4px;">' + esc(name) + '</h2>';
+  if (headline) h += '<div style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:4px;">' + esc(headline) + '</div>';
+  if (location) h += '<div style="font-size:0.82rem;color:var(--text-muted);display:flex;align-items:center;gap:4px;">&#128205; ' + esc(location) + '</div>';
+  h += '</div></div>';
+
+  // Key stats card
+  var roleCount = connCounts['role'] || 0;
+  var skillCount = connCounts['skill'] || 0;
+  var relCount = rels.length;
+  h += '<div style="display:flex;gap:16px;margin-bottom:20px;">';
+  var stats = [
+    { n: roleCount, l: 'Roles' },
+    { n: skillCount, l: 'Skills' },
+    { n: relCount, l: 'Connections' }
+  ];
+  for (var i = 0; i < stats.length; i++) {
+    h += '<div style="flex:1;background:var(--bg-card);border:1px solid var(--border-primary);border-radius:var(--radius-md);padding:12px 16px;text-align:center;">';
+    h += '<div style="font-size:1.3rem;font-weight:700;color:#6366f1;">' + stats[i].n + '</div>';
+    h += '<div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">' + stats[i].l + '</div>';
+    h += '</div>';
+  }
+  h += '</div>';
+
+  // Summary
+  if (summary) {
+    h += '<div class="section"><div class="section-title section-title-only">Summary</div>';
+    h += '<div class="summary-text">' + esc(summary) + '</div></div>';
+  }
+
+  // Top 3 recent observations
+  if (obs.length > 0) {
+    var topObs = obs.slice(0, 3);
+    h += '<div class="section"><div class="section-title section-title-only">Recent Observations</div>';
+    for (var i = 0; i < topObs.length; i++) {
+      var o = topObs[i];
+      var decay = calcDecay(o.observed_at);
+      h += '<div class="obs-card" style="opacity:' + Math.max(0.5, decay).toFixed(2) + '">';
+      h += '<div class="obs-text">' + esc(o.observation) + '</div>';
+      h += '<div class="obs-meta">';
+      h += '<span class="obs-date">' + esc((o.observed_at || '').slice(0, 10)) + '</span>';
+      h += confidenceBadge(o.confidence, o.confidence_label);
+      h += '</div></div>';
+    }
+    h += '</div>';
+  }
+
+  // Connected objects summary
+  var connKeys = Object.keys(connCounts);
+  if (connKeys.length > 0) {
+    h += '<div class="section"><div class="section-title section-title-only">Connected Objects</div>';
+    h += '<div style="display:flex;flex-wrap:wrap;gap:10px;">';
+    var connLabels = { role: 'Roles', organization: 'Organizations', credential: 'Credentials', skill: 'Skills' };
+    for (var i = 0; i < connKeys.length; i++) {
+      var ck = connKeys[i];
+      var cl = connLabels[ck] || (ck.charAt(0).toUpperCase() + ck.slice(1) + 's');
+      h += '<div style="background:var(--bg-card);border:1px solid var(--border-primary);border-radius:var(--radius-md);padding:8px 14px;font-size:0.82rem;">';
+      h += '<span style="font-weight:600;color:#6366f1;">' + connCounts[ck] + '</span> ' + esc(cl);
+      h += '</div>';
+    }
+    h += '</div></div>';
+  }
+
+  document.getElementById('main').innerHTML = h;
 }
 
 function renderOverview(data) {
@@ -4395,25 +4615,6 @@ function renderOverview(data) {
   document.getElementById('main').innerHTML = h;
 }
 
-function renderSkillsView(data) {
-  var connected = data.connected_objects || [];
-  var skills = connected.filter(function(c) { return c.entity_type === 'skill'; });
-  var name = (data.entity && data.entity.name) ? (data.entity.name.full || '') : '';
-  var h = '';
-  h += '<div class="detail-header"><h2>Skills &amp; Expertise</h2>';
-  h += '<span style="font-size:0.85rem;color:var(--text-muted);">' + esc(name) + '</span></div>';
-  if (skills.length === 0) {
-    h += '<div class="section"><div style="color:var(--text-muted);font-size:0.85rem;padding:16px 0;">No skills connected to this entity yet.</div></div>';
-  } else {
-    h += '<div class="section"><div class="cl-skills-wrap">';
-    for (var i = 0; i < skills.length; i++) {
-      h += '<span class="cl-skill-tag" style="cursor:pointer;" onclick="selectEntity(' + "'" + esc(skills[i].entity_id) + "'" + ')">' + esc(skills[i].label) + '</span>';
-    }
-    h += '</div></div>';
-  }
-  document.getElementById('main').innerHTML = h;
-}
-
 function toggleSection(sectionId) {
   collapsedSections[sectionId] = !collapsedSections[sectionId];
   try { sessionStorage.setItem('ca_collapsed', JSON.stringify(collapsedSections)); } catch(e) {}
@@ -4475,7 +4676,7 @@ function enterApp(user) {
 
   // Set up footer user info
   if (user && user.name) {
-    document.getElementById('userInfo').textContent = user.name;
+    document.getElementById('userInfo').innerHTML = '<span class="sidebar-footer-user-name">' + esc(user.name) + '</span>';
     document.getElementById('logoutLink').innerHTML = '<a href="#" onclick="logout();return false;">Logout</a>';
     document.getElementById('btnDrive').style.display = 'inline';
     document.getElementById('driveSep').style.display = 'inline';
@@ -4484,7 +4685,7 @@ function enterApp(user) {
     if (user.picture) {
       avatarEl.innerHTML = '<img src="' + esc(user.picture) + '" alt="" />';
     } else {
-      var initials = user.name.split(/\s+/).map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
+      var initials = user.name.split(/\\s+/).map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
       avatarEl.textContent = initials;
     }
   }
@@ -4498,6 +4699,7 @@ function enterApp(user) {
       return api('GET', '/api/entity/' + primaryEntityId).then(function(fullData) {
         primaryEntityData = fullData;
         renderSidebar();
+        selectView('overview');
       });
     } else {
       renderSidebar();
@@ -4583,47 +4785,59 @@ function renderSidebarSection(id, emoji, title, count, contentFn, defaultCollaps
   return html;
 }
 
-function renderEntityItem(e, subtitle) {
-  var cls = (e.entity_id === selectedId && selectedView === null) ? 'entity-item active' : 'entity-item';
+function renderSidebarEntityRow(e, subtitle) {
+  var cls = (e.entity_id === selectedId && selectedView === null) ? 'sidebar-entity-row active' : 'sidebar-entity-row';
   var html = '<div class="' + cls + '" onclick="selectEntity(' + "'" + esc(e.entity_id) + "'" + ')">';
-  html += '<div><span class="entity-item-name">' + esc(e.name) + '</span>';
-  html += '<span class="type-badge ' + e.entity_type + '">' + e.entity_type + '</span></div>';
-  if (subtitle) html += '<div class="sidebar-entity-subtitle">' + esc(subtitle) + '</div>';
-  else if (e.summary) html += '<div class="entity-item-summary">' + esc(e.summary) + '</div>';
+  html += '<div class="entity-name">' + esc(e.name) + ' <span class="type-badge ' + e.entity_type + '">' + e.entity_type + '</span></div>';
+  if (subtitle) html += '<div class="entity-subtitle">' + esc(subtitle) + '</div>';
   html += '</div>';
   return html;
 }
 
 function renderSidebar() {
   var data = buildSidebarData();
+  console.log('SIDEBAR_DEBUG: buildSidebarData called');
+  console.log('SIDEBAR_DEBUG: you:', data.you ? data.you.name : 'NOT FOUND');
+  console.log('SIDEBAR_DEBUG: allEntities:', allEntities.length, 'entities:', entities.length);
+  console.log('SIDEBAR_DEBUG: primaryEntityId:', primaryEntityId);
+  console.log('SIDEBAR_DEBUG: primaryEntityData:', primaryEntityData ? 'loaded' : 'null');
+  console.log('SIDEBAR_DEBUG: people fam/inner/pro/other:', data.people.family.length, data.people.inner_circle.length, data.people.professional.length, data.people.other.length);
+  console.log('SIDEBAR_DEBUG: orgs career/edu/other:', data.organizations.career.length, data.organizations.education.length, data.organizations.other.length);
   var html = '';
   var totalCount = 0;
 
-  // Section 1: You
+  // Section 1: My Profiles
   if (data.you) {
-    html += renderSidebarSection('you', '\uD83D\uDC64', 'You', null, function() {
+    html += renderSidebarSection('you', '\uD83D\uDC64', 'My Profiles', null, function() {
       var h = '';
-      // User header with avatar
-      h += '<div class="sidebar-you-header">';
-      h += '<div class="sidebar-you-avatar">';
+      // Profile card with avatar + name + headline
+      var headline = '';
+      var pAttrs = (primaryEntityData && primaryEntityData.attributes) || [];
+      for (var a = 0; a < pAttrs.length; a++) {
+        if (pAttrs[a].key === 'headline') { headline = String(pAttrs[a].value || ''); break; }
+      }
+      h += '<div class="sidebar-profile-header">';
+      h += '<div class="sidebar-profile-avatar">';
       if (sessionUser && sessionUser.picture) {
         h += '<img src="' + esc(sessionUser.picture) + '" alt="" />';
       } else {
         var n = data.you.name || (sessionUser && sessionUser.name) || '';
-        var init = n.split(/\s+/).map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
+        var init = n.split(/\\s+/).map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
         h += init;
       }
       h += '</div>';
-      h += '<div class="sidebar-you-name">' + esc(data.you.name || '') + '</div>';
+      h += '<div style="overflow:hidden;">';
+      h += '<div class="sidebar-profile-name">' + esc(data.you.name || '') + '</div>';
+      if (headline) h += '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(headline) + '</div>';
+      h += '</div>';
       h += '</div>';
       // Interface sub-items
       var views = [
         { id: 'overview', icon: '\uD83D\uDCCB', label: 'Overview' },
         { id: 'career-lite', icon: '\uD83D\uDCBC', label: 'Career Lite' },
         { id: 'executive-brief', icon: '\uD83D\uDCC4', label: 'Executive Brief', soon: true },
-        { id: 'skills', icon: '\u2B50', label: 'Skills & Expertise' },
-        { id: 'achievements', icon: '\uD83C\uDFC6', label: 'Achievements', soon: true },
-        { id: 'values', icon: '\uD83C\uDFAF', label: 'Values & Interests', soon: true }
+        { id: 'creator-profile', icon: '\uD83C\uDFA8', label: 'Creator Profile', soon: true },
+        { id: 'values-identity', icon: '\uD83E\uDDED', label: 'Values & Identity', soon: true }
       ];
       for (var i = 0; i < views.length; i++) {
         var v = views[i];
@@ -4651,21 +4865,21 @@ function renderSidebar() {
     html += renderSidebarSection('people', '\uD83D\uDC65', 'People', peopleCount, function() {
       var h = '';
       var groups = [
-        { key: 'family', label: 'Family' },
-        { key: 'inner_circle', label: 'Inner Circle' },
-        { key: 'professional', label: 'Professional' },
-        { key: 'other', label: 'Other' }
+        { key: 'family', emoji: '\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC66', label: 'Family' },
+        { key: 'inner_circle', emoji: '\uD83E\uDD1D', label: 'Inner Circle' },
+        { key: 'professional', emoji: '\uD83D\uDCBC', label: 'Professional' },
+        { key: 'other', emoji: '\uD83D\uDC65', label: 'Other' }
       ];
       for (var g = 0; g < groups.length; g++) {
         var items = data.people[groups[g].key];
         if (items.length === 0) continue;
-        h += '<div class="sidebar-group-label">' + groups[g].label + '</div>';
+        h += '<div class="sidebar-group-label">' + groups[g].emoji + ' ' + groups[g].label + '</div>';
         for (var i = 0; i < items.length; i++) {
-          h += renderEntityItem(items[i], items[i]._relType || '');
+          h += renderSidebarEntityRow(items[i], items[i]._relType || '');
         }
       }
       if (peopleCount === 0) {
-        h += '<div style="padding:8px 20px;font-size:0.8rem;color:var(--text-muted);">No people found</div>';
+        h += '<div class="sidebar-empty-hint">No people found</div>';
       }
       return h;
     }, false);
@@ -4673,29 +4887,68 @@ function renderSidebar() {
   }
 
   // Section 3: Organizations
-  if (data.organizations.length > 0) {
-    html += renderSidebarSection('orgs', '\uD83C\uDFE2', 'Organizations', data.organizations.length, function() {
+  var orgCount = data.organizations.career.length + data.organizations.education.length + data.organizations.other.length;
+  if (orgCount > 0) {
+    html += renderSidebarSection('orgs', '\uD83C\uDFE2', 'Organizations', orgCount, function() {
       var h = '';
-      for (var i = 0; i < data.organizations.length; i++) {
-        h += renderEntityItem(data.organizations[i], '');
+      // Career orgs (with roles)
+      if (data.organizations.career.length > 0) {
+        h += '<div class="sidebar-group-label">\uD83D\uDCBC Career</div>';
+        for (var i = 0; i < data.organizations.career.length; i++) {
+          var item = data.organizations.career[i];
+          h += renderSidebarEntityRow(item.org, item.roleTitle);
+        }
+      }
+      // Education orgs (with credentials)
+      if (data.organizations.education.length > 0) {
+        h += '<div class="sidebar-group-label">\uD83C\uDF93 Education</div>';
+        for (var i = 0; i < data.organizations.education.length; i++) {
+          var item = data.organizations.education[i];
+          h += renderSidebarEntityRow(item.org, item.credLabel);
+        }
+      }
+      // Other orgs
+      if (data.organizations.other.length > 0) {
+        if (data.organizations.career.length > 0 || data.organizations.education.length > 0) {
+          h += '<div class="sidebar-group-label">Other</div>';
+        }
+        for (var i = 0; i < data.organizations.other.length; i++) {
+          h += renderSidebarEntityRow(data.organizations.other[i], '');
+        }
       }
       return h;
     }, true);
-    totalCount += data.organizations.length;
+    totalCount += orgCount;
   }
 
-  // Section 4: Projects (placeholder — only if project entities exist)
-  var projects = (allEntities || []).filter(function(e) { return e.entity_type === 'project'; });
-  if (projects.length > 0) {
-    html += renderSidebarSection('projects', '\uD83D\uDCC1', 'Projects', projects.length, function() {
-      var h = '';
-      for (var i = 0; i < projects.length; i++) {
-        h += renderEntityItem(projects[i], '');
-      }
+  // Section 4: Projects
+  var projCount = data.projects.active.length + data.projects.rnd.length + data.projects.archive.length;
+  html += renderSidebarSection('projects', '\uD83D\uDD28', 'Projects', projCount, function() {
+    var h = '';
+    if (projCount === 0) {
+      h += '<div class="sidebar-empty-hint">No projects yet &mdash; upload project docs to get started</div>';
       return h;
-    }, true);
-    totalCount += projects.length;
-  }
+    }
+    if (data.projects.active.length > 0) {
+      h += '<div class="sidebar-group-label">\uD83D\uDFE2 Active</div>';
+      for (var i = 0; i < data.projects.active.length; i++) {
+        h += renderSidebarEntityRow(data.projects.active[i], '');
+      }
+    }
+    if (data.projects.rnd.length > 0) {
+      h += '<div class="sidebar-group-label">\uD83D\uDD2C R&amp;D</div>';
+      for (var i = 0; i < data.projects.rnd.length; i++) {
+        h += renderSidebarEntityRow(data.projects.rnd[i], '');
+      }
+    }
+    if (data.projects.archive.length > 0) {
+      h += '<div class="sidebar-group-label">\uD83D\uDCE6 Archive</div>';
+      for (var i = 0; i < data.projects.archive.length; i++) {
+        h += renderSidebarEntityRow(data.projects.archive[i], '');
+      }
+    }
+    return h;
+  }, true);
 
   // Section 5: Timeline placeholder
   html += renderSidebarSection('timeline', '\uD83D\uDCC5', 'Timeline', null, function() {
