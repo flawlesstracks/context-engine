@@ -15,10 +15,19 @@ const { buildLinkedInPrompt, linkedInResponseToEntity } = require('./src/parsers
 const { mapContactRows } = require('./src/parsers/contacts');
 const auth = require('./src/auth');
 const drive = require('./src/drive');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 const app = express();
+
+// --- Security headers ---
+app.use(helmet({
+  contentSecurityPolicy: false,  // inline scripts in HTML templates
+  crossOriginEmbedderPolicy: false,
+}));
+
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Headers', 'Content-Type, X-Context-API-Key');
@@ -28,6 +37,33 @@ app.use((req, res, next) => {
 });
 app.use(express.json({ limit: '200mb' }));
 app.use(cookieParser());
+
+// --- Rate limiting ---
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' },
+});
+
+const shareLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many share requests, please try again later.' },
+});
+
+const sharedViewLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: 'Too many requests. Please try again in a minute.',
+});
+
+app.use('/api/', apiLimiter);
 
 // --- Shared extraction logic ---
 
@@ -1578,9 +1614,31 @@ app.get('/api/graph/stats', apiAuth, (req, res) => {
 // --- Share API routes ---
 
 // POST /api/share — Create a new share link for a Career Lite entity
-app.post('/api/share', apiAuth, (req, res) => {
+app.post('/api/share', apiAuth, shareLimiter, (req, res) => {
   const { entityId, sections, expiresInDays } = req.body;
-  if (!entityId) return res.status(400).json({ error: 'Missing entityId' });
+
+  // Validate entityId
+  if (!entityId || typeof entityId !== 'string') {
+    return res.status(400).json({ error: 'Missing or invalid entityId' });
+  }
+  if (!/^[\w-]+$/.test(entityId)) {
+    return res.status(400).json({ error: 'Invalid entityId format' });
+  }
+
+  // Validate sections
+  const allowedSections = ['summary', 'experience', 'education', 'skills', 'connections'];
+  if (sections !== undefined && !Array.isArray(sections)) {
+    return res.status(400).json({ error: 'sections must be an array of strings' });
+  }
+  if (sections && !sections.every(s => typeof s === 'string' && allowedSections.includes(s))) {
+    return res.status(400).json({ error: 'Invalid section. Allowed: ' + allowedSections.join(', ') });
+  }
+
+  // Validate expiresInDays
+  const validExpiries = [7, 30, 90, 365];
+  if (expiresInDays !== undefined && !validExpiries.includes(expiresInDays)) {
+    return res.status(400).json({ error: 'expiresInDays must be one of: ' + validExpiries.join(', ') });
+  }
 
   const entityPath = path.join(req.graphDir, entityId + '.json');
   if (!fs.existsSync(entityPath)) return res.status(404).json({ error: 'Entity not found' });
@@ -1595,7 +1653,6 @@ app.post('/api/share', apiAuth, (req, res) => {
   const days = expiresInDays || 30;
   const expiresAt = new Date(now.getTime() + days * 86400000).toISOString();
 
-  const allowedSections = ['summary', 'experience', 'education', 'skills', 'connections'];
   const selectedSections = (sections || ['summary', 'experience', 'education', 'skills'])
     .filter(s => allowedSections.includes(s));
 
@@ -2904,7 +2961,7 @@ function renderSharedProfilePage(entity, share) {
 </body></html>`;
 }
 
-app.get('/shared/:shareId', (req, res) => {
+app.get('/shared/:shareId', sharedViewLimiter, (req, res) => {
   const { shareId } = req.params;
 
   // Scan all tenant directories for this shareId
