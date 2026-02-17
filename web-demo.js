@@ -3917,6 +3917,103 @@ const WIKI_HTML = `<!DOCTYPE html>
   }
   .sidebar-footer a:hover { color: var(--accent-tertiary); }
 
+  /* --- Sidebar Hierarchical Nav --- */
+  .sidebar-section { border-bottom: 1px solid var(--border-subtle); }
+  .sidebar-section:last-child { border-bottom: none; }
+  .sidebar-section-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px; cursor: pointer;
+    font-size: 0.78rem; font-weight: 700; color: var(--text-secondary);
+    text-transform: uppercase; letter-spacing: 0.05em;
+    transition: background var(--transition-fast);
+    user-select: none;
+  }
+  .sidebar-section-header:hover { background: var(--bg-hover); }
+  .sidebar-section-chevron {
+    display: inline-block; font-size: 0.6rem; transition: transform 0.15s ease;
+    color: var(--text-muted); flex-shrink: 0;
+  }
+  .sidebar-section-chevron.collapsed { transform: rotate(-90deg); }
+  .sidebar-section-title { flex: 1; }
+  .sidebar-section-count {
+    font-size: 0.65rem; font-weight: 500; color: var(--text-muted);
+    background: var(--bg-tertiary); padding: 1px 7px; border-radius: 10px;
+  }
+  .sidebar-section-body { overflow: hidden; }
+  .sidebar-section-body.collapsed { display: none; }
+  .sidebar-you-header {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 20px 4px;
+  }
+  .sidebar-you-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--accent-gradient);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 700; color: white; flex-shrink: 0;
+    overflow: hidden;
+  }
+  .sidebar-you-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .sidebar-you-name {
+    font-size: 0.85rem; font-weight: 600; color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .sidebar-view-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 20px 7px 36px; cursor: pointer;
+    font-size: 0.8rem; color: var(--text-tertiary);
+    transition: all var(--transition-fast);
+  }
+  .sidebar-view-item:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .sidebar-view-item.active {
+    background: var(--bg-active); color: var(--accent-primary);
+    border-left: 3px solid var(--accent-primary);
+    padding-left: 33px;
+  }
+  .sidebar-view-item .view-icon { font-size: 0.85rem; flex-shrink: 0; width: 18px; text-align: center; }
+  .sidebar-view-item.placeholder { color: var(--text-muted); cursor: default; }
+  .sidebar-view-item.placeholder:hover { background: transparent; color: var(--text-muted); }
+  .coming-soon-badge {
+    font-size: 0.55rem; font-weight: 600; color: var(--text-muted);
+    background: var(--bg-tertiary); padding: 1px 6px; border-radius: 8px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .sidebar-group-label {
+    font-size: 0.65rem; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    padding: 8px 20px 4px;
+  }
+  .sidebar-entity-subtitle {
+    font-size: 0.72rem; color: var(--text-muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .sidebar-add-btn {
+    display: block; padding: 6px 20px; font-size: 0.75rem;
+    color: var(--accent-primary); cursor: pointer;
+    transition: color var(--transition-fast);
+  }
+  .sidebar-add-btn:hover { color: var(--accent-tertiary); }
+  .sidebar-footer-user {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 6px; justify-content: center;
+  }
+  .sidebar-user-avatar {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--accent-gradient);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.5rem; font-weight: 700; color: white; flex-shrink: 0;
+    overflow: hidden;
+  }
+  .sidebar-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .sidebar-footer-actions {
+    display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;
+  }
+  .sidebar-footer-actions a, .sidebar-footer-actions span a {
+    color: var(--text-muted); text-decoration: none; font-size: 0.7rem;
+    transition: color var(--transition-fast);
+  }
+  .sidebar-footer-actions a:hover { color: var(--accent-tertiary); }
+  .sidebar-footer-separator { color: var(--text-faint); }
+
   /* --- Skeleton Loading --- */
   @keyframes shimmer {
     0% { background-position: -200% 0; }
@@ -3967,22 +4064,6 @@ const WIKI_HTML = `<!DOCTYPE html>
       <div class="brand-icon">CA</div>
       <div class="brand-text">Context Architecture</div>
     </div>
-    <nav class="sidebar-nav">
-      <button class="nav-item" onclick="showUploadView()" title="Upload Files">
-        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8 10V2m0 0L5 5m3-3l3 3"/>
-          <path d="M2 10v2a2 2 0 002 2h8a2 2 0 002-2v-2"/>
-        </svg>
-        <span>Upload Files</span>
-      </button>
-      <button class="nav-item" onclick="showDriveView()" id="btnDrive" style="display:none;" title="Import from Drive">
-        <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14 10V3a1 1 0 00-1-1H3a1 1 0 00-1 1v7"/>
-          <path d="M1 10l3.5-3.5L7 9l3-3 5 5H1z"/>
-        </svg>
-        <span>Import from Drive</span>
-      </button>
-    </nav>
     <div class="sidebar-search">
       <div class="search-wrapper">
         <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
@@ -3995,9 +4076,17 @@ const WIKI_HTML = `<!DOCTYPE html>
     <div class="sidebar-count" id="sidebarCount"></div>
     <div id="entityList"></div>
     <div class="sidebar-footer">
-      <span id="userInfo"></span>
-      <a href="/">&larr; Context Engine</a> &middot; <a href="/ingest">Import</a>
-      <span id="logoutLink"></span>
+      <div class="sidebar-footer-user">
+        <div class="sidebar-user-avatar" id="userAvatar"></div>
+        <span id="userInfo"></span>
+      </div>
+      <div class="sidebar-footer-actions">
+        <a href="#" onclick="showUploadView();return false;">Upload</a>
+        <span class="sidebar-footer-separator">&middot;</span>
+        <a href="#" onclick="showDriveView();return false;" id="btnDrive" style="display:none;">Drive</a>
+        <span class="sidebar-footer-separator" id="driveSep" style="display:none;">&middot;</span>
+        <span id="logoutLink"></span>
+      </div>
     </div>
   </div>
   <div id="main">
@@ -4022,8 +4111,314 @@ var entities = [];
 var selectedId = null;
 var selectedData = null;
 var searchTimeout = null;
+var primaryEntityId = null;
+var primaryEntityData = null;
+var allEntities = [];
+var selectedView = null;
+var collapsedSections = {};
 
 function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+function findPrimaryUser(ents, user) {
+  if (!user || !user.name) return null;
+  var persons = ents.filter(function(e) { return e.entity_type === 'person'; });
+  if (persons.length === 0) return null;
+  var uname = user.name.toLowerCase().trim();
+  // Exact match
+  for (var i = 0; i < persons.length; i++) {
+    if (persons[i].name && persons[i].name.toLowerCase().trim() === uname) return persons[i].entity_id;
+  }
+  // Substring match (e.g. "Clarence Mitchell" matches "Clarence James Mitchell")
+  var uparts = uname.split(/\s+/);
+  for (var i = 0; i < persons.length; i++) {
+    var pname = (persons[i].name || '').toLowerCase();
+    var allMatch = true;
+    for (var j = 0; j < uparts.length; j++) {
+      if (pname.indexOf(uparts[j]) === -1) { allMatch = false; break; }
+    }
+    if (allMatch) return persons[i].entity_id;
+  }
+  // Fallback: single person entity
+  if (persons.length === 1) return persons[0].entity_id;
+  return null;
+}
+
+function categorizeRelationship(relType) {
+  if (!relType) return 'other';
+  var r = relType.toLowerCase();
+  var familyTerms = ['spouse', 'son', 'daughter', 'ex-spouse', 'sister', 'brother', 'mother', 'father', 'wife', 'husband', 'partner', 'child', 'parent'];
+  for (var i = 0; i < familyTerms.length; i++) {
+    if (r.indexOf(familyTerms[i]) !== -1) return 'family';
+  }
+  var innerTerms = ['close friend', 'best friend', 'ai assistant', 'collaborator'];
+  for (var i = 0; i < innerTerms.length; i++) {
+    if (r.indexOf(innerTerms[i]) !== -1) return 'inner_circle';
+  }
+  var proTerms = ['professional', 'colleague', 'from your school', 'security architect', 'mentor'];
+  for (var i = 0; i < proTerms.length; i++) {
+    if (r.indexOf(proTerms[i]) !== -1) return 'professional';
+  }
+  if (r.indexOf('degree') !== -1) return 'other';
+  return 'other';
+}
+
+function buildSidebarData() {
+  var q = (document.getElementById('searchInput') || {}).value;
+  q = (q || '').trim().toLowerCase();
+  var isSearching = q.length > 0;
+
+  // Build relationship map from primary entity
+  var relMap = {};
+  if (primaryEntityData && primaryEntityData.relationships) {
+    var rels = primaryEntityData.relationships;
+    for (var i = 0; i < rels.length; i++) {
+      var rname = (rels[i].name || '').toLowerCase().trim();
+      relMap[rname] = {
+        category: categorizeRelationship(rels[i].relationship_type),
+        type: rels[i].relationship_type || ''
+      };
+    }
+  }
+
+  var you = null;
+  var people = { family: [], inner_circle: [], professional: [], other: [] };
+  var organizations = [];
+
+  var src = isSearching ? entities : allEntities;
+  for (var i = 0; i < src.length; i++) {
+    var e = src[i];
+    var t = e.entity_type;
+    // Skip role/credential/skill from sidebar
+    if (t === 'role' || t === 'credential' || t === 'skill') continue;
+
+    if (e.entity_id === primaryEntityId) {
+      you = e;
+      continue;
+    }
+    if (t === 'person' || t === 'business') {
+      var ename = (e.name || '').toLowerCase().trim();
+      var rel = relMap[ename];
+      if (rel) {
+        e._relType = rel.type;
+        people[rel.category].push(e);
+      } else {
+        e._relType = '';
+        people.other.push(e);
+      }
+    } else if (t === 'organization') {
+      organizations.push(e);
+    }
+  }
+  // If not searching and primary not in allEntities, still show You if we have data
+  if (!you && primaryEntityId && !isSearching) {
+    for (var i = 0; i < allEntities.length; i++) {
+      if (allEntities[i].entity_id === primaryEntityId) { you = allEntities[i]; break; }
+    }
+  }
+  return { you: you, people: people, organizations: organizations };
+}
+
+function selectView(viewId) {
+  if (!primaryEntityId) return;
+  selectedId = primaryEntityId;
+  selectedView = viewId;
+  var empty = document.getElementById('emptyState');
+  if (empty) empty.style.display = 'none';
+
+  if (viewId === 'career-lite') {
+    if (primaryEntityData) {
+      renderCareerLite(primaryEntityData);
+    } else {
+      api('GET', '/api/entity/' + primaryEntityId).then(function(data) {
+        primaryEntityData = data;
+        selectedData = data;
+        renderCareerLite(data);
+      });
+    }
+  } else if (viewId === 'overview') {
+    if (primaryEntityData) {
+      renderOverview(primaryEntityData);
+    } else {
+      api('GET', '/api/entity/' + primaryEntityId).then(function(data) {
+        primaryEntityData = data;
+        selectedData = data;
+        renderOverview(data);
+      });
+    }
+  } else if (viewId === 'skills') {
+    if (primaryEntityData) {
+      renderSkillsView(primaryEntityData);
+    } else {
+      api('GET', '/api/entity/' + primaryEntityId).then(function(data) {
+        primaryEntityData = data;
+        selectedData = data;
+        renderSkillsView(data);
+      });
+    }
+  } else {
+    // Placeholder views
+    var label = viewId.replace(/-/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+    document.getElementById('main').innerHTML = '<div class="empty-state"><div style="font-size:1.1rem;font-weight:600;color:var(--text-primary);margin-bottom:8px;">' + esc(label) + '</div><div style="color:var(--text-muted);">Coming soon</div></div>';
+  }
+  renderSidebar();
+}
+
+function renderOverview(data) {
+  var e = data.entity || {};
+  var type = e.entity_type || '';
+  if (['role', 'organization', 'credential', 'skill'].indexOf(type) !== -1) {
+    return renderConnectedDetail(data);
+  }
+  var name = type === 'person' ? (e.name?.full || '') : (e.name?.common || e.name?.legal || '');
+  var summary = e.summary?.value || '';
+  var meta = data.extraction_metadata || {};
+  var h = '';
+
+  h += '<div class="detail-header">';
+  h += '<h2>' + esc(name) + '</h2>';
+  h += '<span class="type-badge ' + type + '">' + type + '</span>';
+  h += '<span class="entity-id-badge">' + esc(e.entity_id || '') + '</span>';
+  h += confidenceBadge(meta.extraction_confidence);
+  h += '</div>';
+
+  h += '<div class="section">';
+  h += '<div class="section-header"><span class="section-title">Summary</span>';
+  h += '<button class="btn-sm" id="btnEditSummary" onclick="toggleSummaryEdit()">Edit</button></div>';
+  h += '<div id="summaryDisplay" class="summary-text">' + esc(summary) + '</div>';
+  h += '<div id="summaryEditSection" style="display:none">';
+  h += '<textarea class="summary-edit" id="summaryEdit">' + esc(summary) + '</textarea>';
+  h += '<div class="edit-actions"><button class="btn-save" onclick="saveSummary()">Save</button>';
+  h += '<button class="btn-cancel" onclick="toggleSummaryEdit()">Cancel</button></div>';
+  h += '</div></div>';
+
+  var attrs = data.attributes || [];
+  if (attrs.length > 0) {
+    h += '<div class="section"><div class="section-title section-title-only">Attributes</div>';
+    for (var i = 0; i < attrs.length; i++) {
+      var a = attrs[i];
+      h += '<div class="attr-row"><span class="attr-key">' + esc(a.key) + '</span>';
+      h += '<span class="attr-value">' + esc(String(a.value || '')) + '</span>';
+      h += confidenceBadge(a.confidence, a.confidence_label);
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  var rels = data.relationships || [];
+  if (rels.length > 0) {
+    h += '<div class="section"><div class="section-title section-title-only">Relationships</div>';
+    for (var i = 0; i < rels.length; i++) {
+      var r = rels[i];
+      h += '<div class="rel-row"><span class="rel-name">' + esc(r.name) + '</span>';
+      h += '<span class="rel-type">' + esc(r.relationship_type || '') + '</span>';
+      if (r.context) h += '<span class="rel-context">' + esc(r.context) + '</span>';
+      h += sentimentBadge(r.sentiment);
+      h += confidenceBadge(r.confidence, r.confidence_label);
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  var vals = data.values || [];
+  if (vals.length > 0) {
+    h += '<div class="section"><div class="section-title section-title-only">Values</div>';
+    for (var i = 0; i < vals.length; i++) {
+      h += '<div class="value-item"><span class="value-text">' + esc(vals[i].value || '') + '</span>';
+      h += confidenceBadge(vals[i].confidence, vals[i].confidence_label);
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  var obs = (data.observations || []).slice().sort(function(a, b) {
+    return new Date(b.observed_at || 0) - new Date(a.observed_at || 0);
+  });
+  h += '<div class="section"><div class="section-title section-title-only">Observations (' + obs.length + ')</div>';
+  if (obs.length === 0) {
+    h += '<div style="color:#3a3a4a;font-size:0.82rem;padding:8px 0;">No observations yet</div>';
+  }
+  for (var i = 0; i < obs.length; i++) {
+    var o = obs[i];
+    var decay = calcDecay(o.observed_at);
+    var opacity = Math.max(0.35, decay);
+    h += '<div class="obs-card" style="opacity:' + opacity.toFixed(2) + '">';
+    h += '<div class="obs-text">' + esc(o.observation) + '</div>';
+    h += '<div class="obs-meta">';
+    h += confidenceBadge(o.confidence, o.confidence_label);
+    h += layerBadge(o.layer_number);
+    if (o.source) h += '<span class="obs-source">' + esc(o.source) + '</span>';
+    h += '<span class="obs-date">' + esc((o.observed_at || '').slice(0, 10)) + '</span>';
+    h += '<span class="obs-decay">' + (decay * 100).toFixed(0) + '% weight</span>';
+    h += '<button class="btn-delete" data-id="' + esc(o.observation_id || '') + '" onclick="deleteObs(this.dataset.id)">delete</button>';
+    h += '</div></div>';
+  }
+  h += '</div>';
+
+  var connected = data.connected_objects || [];
+  if (connected.length > 0) {
+    h += '<div class="section"><div class="section-title section-title-only">Connected Objects (' + connected.length + ')</div>';
+    var groups = { role: [], organization: [], credential: [], skill: [] };
+    for (var i = 0; i < connected.length; i++) {
+      var c = connected[i];
+      if (groups[c.entity_type]) groups[c.entity_type].push(c);
+    }
+    var groupLabels = { role: 'Roles', organization: 'Organizations', credential: 'Credentials', skill: 'Skills' };
+    var groupKeys = ['role', 'organization', 'credential', 'skill'];
+    for (var g = 0; g < groupKeys.length; g++) {
+      var gk = groupKeys[g];
+      var items = groups[gk];
+      if (items.length === 0) continue;
+      h += '<div style="margin-bottom:12px;"><div style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">' + groupLabels[gk] + '</div>';
+      for (var j = 0; j < items.length; j++) {
+        h += '<div class="entity-item" style="padding:6px 10px;cursor:pointer;" onclick="selectEntity(' + "'" + esc(items[j].entity_id) + "'" + ')">';
+        h += '<span class="entity-item-name">' + esc(items[j].label) + '</span>';
+        h += '<span class="type-badge ' + esc(items[j].entity_type) + '">' + esc(items[j].entity_type) + '</span>';
+        h += '</div>';
+      }
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  h += '<div class="section"><div class="section-title section-title-only">Add Observation</div>';
+  h += '<div class="add-obs-form">';
+  h += '<textarea class="obs-textarea" id="obsText" placeholder="What did you learn about this entity?"></textarea>';
+  h += '<div class="obs-form-row">';
+  h += '<select id="obsConfidence"><option value="VERIFIED">Verified</option>';
+  h += '<option value="STRONG" selected>Strong</option><option value="MODERATE">Moderate</option>';
+  h += '<option value="SPECULATIVE">Speculative</option><option value="UNCERTAIN">Uncertain</option></select>';
+  h += '<select id="obsLayer"><option value="L1_OBJECTIVE">L1 Objective</option>';
+  h += '<option value="L2_GROUP" selected>L2 Group</option><option value="L3_PERSONAL">L3 Personal</option></select>';
+  h += '<button class="btn-add" id="btnAddObs" onclick="addObs()">Add Observation</button>';
+  h += '</div></div></div>';
+
+  document.getElementById('main').innerHTML = h;
+}
+
+function renderSkillsView(data) {
+  var connected = data.connected_objects || [];
+  var skills = connected.filter(function(c) { return c.entity_type === 'skill'; });
+  var name = (data.entity && data.entity.name) ? (data.entity.name.full || '') : '';
+  var h = '';
+  h += '<div class="detail-header"><h2>Skills &amp; Expertise</h2>';
+  h += '<span style="font-size:0.85rem;color:var(--text-muted);">' + esc(name) + '</span></div>';
+  if (skills.length === 0) {
+    h += '<div class="section"><div style="color:var(--text-muted);font-size:0.85rem;padding:16px 0;">No skills connected to this entity yet.</div></div>';
+  } else {
+    h += '<div class="section"><div class="cl-skills-wrap">';
+    for (var i = 0; i < skills.length; i++) {
+      h += '<span class="cl-skill-tag" style="cursor:pointer;" onclick="selectEntity(' + "'" + esc(skills[i].entity_id) + "'" + ')">' + esc(skills[i].label) + '</span>';
+    }
+    h += '</div></div>';
+  }
+  document.getElementById('main').innerHTML = h;
+}
+
+function toggleSection(sectionId) {
+  collapsedSections[sectionId] = !collapsedSections[sectionId];
+  try { sessionStorage.setItem('ca_collapsed', JSON.stringify(collapsedSections)); } catch(e) {}
+  renderSidebar();
+}
 
 // Capture OAuth session token from URL and store in sessionStorage
 (function() {
@@ -4071,15 +4466,42 @@ function enterApp(user) {
   sessionUser = user;
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
+
+  // Restore collapsed sections from sessionStorage
+  try {
+    var saved = sessionStorage.getItem('ca_collapsed');
+    if (saved) collapsedSections = JSON.parse(saved);
+  } catch(e) {}
+
+  // Set up footer user info
   if (user && user.name) {
-    document.getElementById('userInfo').textContent = user.name + ' ';
-    document.getElementById('logoutLink').innerHTML = ' &middot; <a href="#" onclick="logout();return false;">Logout</a>';
-    // Show Drive button for Google OAuth users
-    document.getElementById('btnDrive').style.display = 'block';
+    document.getElementById('userInfo').textContent = user.name;
+    document.getElementById('logoutLink').innerHTML = '<a href="#" onclick="logout();return false;">Logout</a>';
+    document.getElementById('btnDrive').style.display = 'inline';
+    document.getElementById('driveSep').style.display = 'inline';
+    // User avatar
+    var avatarEl = document.getElementById('userAvatar');
+    if (user.picture) {
+      avatarEl.innerHTML = '<img src="' + esc(user.picture) + '" alt="" />';
+    } else {
+      var initials = user.name.split(/\s+/).map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
+      avatarEl.textContent = initials;
+    }
   }
+
+  // Two-phase load: fetch all entities, then identify primary user
   api('GET', '/api/search?q=*').then(function(data) {
-    entities = data.results || [];
-    renderEntityList();
+    allEntities = data.results || [];
+    entities = allEntities.slice();
+    primaryEntityId = findPrimaryUser(allEntities, sessionUser);
+    if (primaryEntityId) {
+      return api('GET', '/api/entity/' + primaryEntityId).then(function(fullData) {
+        primaryEntityData = fullData;
+        renderSidebar();
+      });
+    } else {
+      renderSidebar();
+    }
   });
 }
 
@@ -4113,10 +4535,11 @@ function login() {
   if (!apiKey) return;
   document.getElementById('btnLogin').disabled = true;
   api('GET', '/api/search?q=*').then(function(data) {
-    entities = data.results || [];
+    allEntities = data.results || [];
+    entities = allEntities.slice();
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
-    renderEntityList();
+    renderSidebar();
   }).catch(function(err) {
     var el = document.getElementById('loginError');
     el.textContent = err.message; el.classList.add('active');
@@ -4131,39 +4554,171 @@ document.getElementById('apiKeyInput').addEventListener('keydown', function(e) {
 function onSearch() {
   clearTimeout(searchTimeout);
   searchTimeout = setTimeout(function() {
-    var q = document.getElementById('searchInput').value.trim() || '*';
-    var url = '/api/search?q=' + encodeURIComponent(q) + '&type=person,business';
+    var q = document.getElementById('searchInput').value.trim();
+    if (!q) {
+      // Empty search — restore all entities
+      entities = allEntities.slice();
+      renderSidebar();
+      return;
+    }
+    var url = '/api/search?q=' + encodeURIComponent(q);
     api('GET', url).then(function(data) {
       entities = data.results || [];
-      renderEntityList();
+      renderSidebar();
     });
   }, 250);
 }
 
-function renderEntityList() {
-  var html = '';
-  for (var i = 0; i < entities.length; i++) {
-    var e = entities[i];
-    var cls = e.entity_id === selectedId ? 'entity-item active' : 'entity-item';
-    html += '<div class="' + cls + '" onclick="selectEntity(\\'' + esc(e.entity_id) + '\\')">';
-    html += '<div><span class="entity-item-name">' + esc(e.name) + '</span>';
-    html += '<span class="type-badge ' + e.entity_type + '">' + e.entity_type + '</span></div>';
-    if (e.summary) html += '<div class="entity-item-summary">' + esc(e.summary) + '</div>';
-    html += '</div>';
-  }
-  document.getElementById('entityList').innerHTML = html || '<div style="padding:16px;color:#3a3a4a;font-size:0.82rem;">No entities found</div>';
-  document.getElementById('sidebarCount').textContent = entities.length + ' entit' + (entities.length === 1 ? 'y' : 'ies');
+function renderSidebarSection(id, emoji, title, count, contentFn, defaultCollapsed) {
+  var isCollapsed = collapsedSections[id] !== undefined ? collapsedSections[id] : !!defaultCollapsed;
+  var html = '<div class="sidebar-section">';
+  html += '<div class="sidebar-section-header" onclick="toggleSection(' + "'" + id + "'" + ')">';
+  html += '<span class="sidebar-section-chevron' + (isCollapsed ? ' collapsed' : '') + '">&#9660;</span>';
+  html += '<span class="sidebar-section-title">' + emoji + ' ' + esc(title) + '</span>';
+  if (count != null) html += '<span class="sidebar-section-count">' + count + '</span>';
+  html += '</div>';
+  html += '<div class="sidebar-section-body' + (isCollapsed ? ' collapsed' : '') + '">';
+  html += contentFn();
+  html += '</div></div>';
+  return html;
 }
+
+function renderEntityItem(e, subtitle) {
+  var cls = (e.entity_id === selectedId && selectedView === null) ? 'entity-item active' : 'entity-item';
+  var html = '<div class="' + cls + '" onclick="selectEntity(' + "'" + esc(e.entity_id) + "'" + ')">';
+  html += '<div><span class="entity-item-name">' + esc(e.name) + '</span>';
+  html += '<span class="type-badge ' + e.entity_type + '">' + e.entity_type + '</span></div>';
+  if (subtitle) html += '<div class="sidebar-entity-subtitle">' + esc(subtitle) + '</div>';
+  else if (e.summary) html += '<div class="entity-item-summary">' + esc(e.summary) + '</div>';
+  html += '</div>';
+  return html;
+}
+
+function renderSidebar() {
+  var data = buildSidebarData();
+  var html = '';
+  var totalCount = 0;
+
+  // Section 1: You
+  if (data.you) {
+    html += renderSidebarSection('you', '\uD83D\uDC64', 'You', null, function() {
+      var h = '';
+      // User header with avatar
+      h += '<div class="sidebar-you-header">';
+      h += '<div class="sidebar-you-avatar">';
+      if (sessionUser && sessionUser.picture) {
+        h += '<img src="' + esc(sessionUser.picture) + '" alt="" />';
+      } else {
+        var n = data.you.name || (sessionUser && sessionUser.name) || '';
+        var init = n.split(/\s+/).map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
+        h += init;
+      }
+      h += '</div>';
+      h += '<div class="sidebar-you-name">' + esc(data.you.name || '') + '</div>';
+      h += '</div>';
+      // Interface sub-items
+      var views = [
+        { id: 'overview', icon: '\uD83D\uDCCB', label: 'Overview' },
+        { id: 'career-lite', icon: '\uD83D\uDCBC', label: 'Career Lite' },
+        { id: 'executive-brief', icon: '\uD83D\uDCC4', label: 'Executive Brief', soon: true },
+        { id: 'skills', icon: '\u2B50', label: 'Skills & Expertise' },
+        { id: 'achievements', icon: '\uD83C\uDFC6', label: 'Achievements', soon: true },
+        { id: 'values', icon: '\uD83C\uDFAF', label: 'Values & Interests', soon: true }
+      ];
+      for (var i = 0; i < views.length; i++) {
+        var v = views[i];
+        var active = (selectedId === primaryEntityId && selectedView === v.id);
+        var cls = 'sidebar-view-item' + (active ? ' active' : '') + (v.soon ? ' placeholder' : '');
+        if (v.soon) {
+          h += '<div class="' + cls + '">';
+        } else {
+          h += '<div class="' + cls + '" onclick="selectView(' + "'" + v.id + "'" + ')">';
+        }
+        h += '<span class="view-icon">' + v.icon + '</span>';
+        h += '<span>' + esc(v.label) + '</span>';
+        if (v.soon) h += ' <span class="coming-soon-badge">Soon</span>';
+        h += '</div>';
+      }
+      totalCount++;
+      return h;
+    }, false);
+  }
+
+  // Section 2: People
+  var peopleCount = data.people.family.length + data.people.inner_circle.length +
+                    data.people.professional.length + data.people.other.length;
+  if (peopleCount > 0 || !data.you) {
+    html += renderSidebarSection('people', '\uD83D\uDC65', 'People', peopleCount, function() {
+      var h = '';
+      var groups = [
+        { key: 'family', label: 'Family' },
+        { key: 'inner_circle', label: 'Inner Circle' },
+        { key: 'professional', label: 'Professional' },
+        { key: 'other', label: 'Other' }
+      ];
+      for (var g = 0; g < groups.length; g++) {
+        var items = data.people[groups[g].key];
+        if (items.length === 0) continue;
+        h += '<div class="sidebar-group-label">' + groups[g].label + '</div>';
+        for (var i = 0; i < items.length; i++) {
+          h += renderEntityItem(items[i], items[i]._relType || '');
+        }
+      }
+      if (peopleCount === 0) {
+        h += '<div style="padding:8px 20px;font-size:0.8rem;color:var(--text-muted);">No people found</div>';
+      }
+      return h;
+    }, false);
+    totalCount += peopleCount;
+  }
+
+  // Section 3: Organizations
+  if (data.organizations.length > 0) {
+    html += renderSidebarSection('orgs', '\uD83C\uDFE2', 'Organizations', data.organizations.length, function() {
+      var h = '';
+      for (var i = 0; i < data.organizations.length; i++) {
+        h += renderEntityItem(data.organizations[i], '');
+      }
+      return h;
+    }, true);
+    totalCount += data.organizations.length;
+  }
+
+  // Section 4: Projects (placeholder — only if project entities exist)
+  var projects = (allEntities || []).filter(function(e) { return e.entity_type === 'project'; });
+  if (projects.length > 0) {
+    html += renderSidebarSection('projects', '\uD83D\uDCC1', 'Projects', projects.length, function() {
+      var h = '';
+      for (var i = 0; i < projects.length; i++) {
+        h += renderEntityItem(projects[i], '');
+      }
+      return h;
+    }, true);
+    totalCount += projects.length;
+  }
+
+  // Section 5: Timeline placeholder
+  html += renderSidebarSection('timeline', '\uD83D\uDCC5', 'Timeline', null, function() {
+    return '<div class="sidebar-view-item placeholder"><span class="view-icon">\uD83D\uDCC5</span><span>Coming soon</span> <span class="coming-soon-badge">Soon</span></div>';
+  }, true);
+
+  document.getElementById('entityList').innerHTML = html || '<div style="padding:16px;color:#3a3a4a;font-size:0.82rem;">No entities found</div>';
+  document.getElementById('sidebarCount').textContent = totalCount + ' entit' + (totalCount === 1 ? 'y' : 'ies');
+}
+
+// Backward-compat alias
+function renderEntityList() { renderSidebar(); }
 
 /* --- Entity Detail --- */
 function selectEntity(id) {
   selectedId = id;
+  selectedView = null;
   var empty = document.getElementById('emptyState');
   if (empty) empty.style.display = 'none';
   api('GET', '/api/entity/' + id).then(function(data) {
     selectedData = data;
     renderDetail(data);
-    renderEntityList();
+    renderSidebar();
   }).catch(function(err) {
     document.getElementById('main').innerHTML = '<div class="empty-state">Error loading entity: ' + esc(err.message) + '</div>';
   });
@@ -4206,6 +4761,7 @@ var uploadInProgress = false;
 
 function showUploadView() {
   selectedId = null;
+  selectedView = null;
   uploadFiles = [];
   uploadInProgress = false;
   var h = '<div class="upload-view active">';
@@ -4399,14 +4955,16 @@ function uploadComplete() {
   btn.onclick = function() {
     hideUploadView();
     api('GET', '/api/search?q=*').then(function(data) {
-      entities = data.results || [];
-      renderEntityList();
+      allEntities = data.results || [];
+      entities = allEntities.slice();
+      renderSidebar();
     });
   };
   // Also refresh sidebar entity list
   api('GET', '/api/search?q=*').then(function(data) {
-    entities = data.results || [];
-    renderEntityList();
+    allEntities = data.results || [];
+    entities = allEntities.slice();
+    renderSidebar();
   });
 }
 
@@ -4421,6 +4979,7 @@ var driveFilterTimeout = null;
 
 function showDriveView() {
   selectedId = null;
+  selectedView = null;
   driveBreadcrumb = [{ id: null, name: 'My Drive' }];
   driveFiles = [];
   driveSelected = {};
@@ -4438,7 +4997,7 @@ function renderDrivePanel() {
 
   // Search bar
   h += '<div class="drive-search-bar">';
-  h += '<input type="text" id="driveSearchInput" placeholder="Type to filter, press Enter to search all of Drive" value="' + esc(driveSearchQuery) + '" oninput="onDriveFilter()" onkeydown="if(event.key===\\'Enter\\')driveFullSearch()" />';
+  h += '<input type="text" id="driveSearchInput" placeholder="Type to filter, press Enter to search all of Drive" value="' + esc(driveSearchQuery) + '" oninput="onDriveFilter()" onkeydown="if(event.key===' + "'" + 'Enter' + "'" + ')driveFullSearch()" />';
   if (driveSearchMode) {
     h += '<button class="drive-search-clear" onclick="clearDriveSearch()">Clear</button>';
   } else {
@@ -4561,16 +5120,16 @@ function renderDriveFiles(localFilter) {
       var fChecked = driveSelected[f.id] ? ' checked' : '';
       var fSelCls = driveSelected[f.id] ? ' selected' : '';
       h += '<div class="drive-file-row' + fSelCls + '">';
-      h += '<input type="checkbox" class="drive-file-check"' + fChecked + ' onclick="event.stopPropagation(); toggleDriveFile(\\'' + esc(f.id) + '\\', \\'' + esc(f.name).replace(/'/g, "\\\\'") + '\\')" />';
-      h += '<div class="drive-file-icon" onclick="openDriveFolder(\\'' + esc(f.id) + '\\', \\'' + esc(f.name).replace(/'/g, "\\\\'") + '\\')" style="cursor:pointer;">\\ud83d\\udcc1</div>';
-      h += '<div class="drive-file-name folder" onclick="openDriveFolder(\\'' + esc(f.id) + '\\', \\'' + esc(f.name).replace(/'/g, "\\\\'") + '\\')" style="cursor:pointer;">' + esc(f.name) + '</div>';
+      h += '<input type="checkbox" class="drive-file-check"' + fChecked + ' onclick="event.stopPropagation(); toggleDriveFile(' + "'" + esc(f.id) + "'" + ', ' + "'" + esc(f.name).replace(/'/g, "\\\\'") + "'" + ')" />';
+      h += '<div class="drive-file-icon" onclick="openDriveFolder(' + "'" + esc(f.id) + "'" + ', ' + "'" + esc(f.name).replace(/'/g, "\\\\'") + "'" + ')" style="cursor:pointer;">\\ud83d\\udcc1</div>';
+      h += '<div class="drive-file-name folder" onclick="openDriveFolder(' + "'" + esc(f.id) + "'" + ', ' + "'" + esc(f.name).replace(/'/g, "\\\\'") + "'" + ')" style="cursor:pointer;">' + esc(f.name) + '</div>';
       h += '<div class="drive-file-meta">' + formatDriveDate(f.modifiedTime) + '</div>';
       h += '</div>';
     } else {
       var checked = driveSelected[f.id] ? ' checked' : '';
       var selCls = driveSelected[f.id] ? ' selected' : '';
-      h += '<div class="drive-file-row' + selCls + '" onclick="toggleDriveFile(\\'' + esc(f.id) + '\\', \\'' + esc(f.name).replace(/'/g, "\\\\'") + '\\')">';
-      h += '<input type="checkbox" class="drive-file-check"' + checked + ' onclick="event.stopPropagation(); toggleDriveFile(\\'' + esc(f.id) + '\\', \\'' + esc(f.name).replace(/'/g, "\\\\'") + '\\')" />';
+      h += '<div class="drive-file-row' + selCls + '" onclick="toggleDriveFile(' + "'" + esc(f.id) + "'" + ', ' + "'" + esc(f.name).replace(/'/g, "\\\\'") + "'" + ')">';
+      h += '<input type="checkbox" class="drive-file-check"' + checked + ' onclick="event.stopPropagation(); toggleDriveFile(' + "'" + esc(f.id) + "'" + ', ' + "'" + esc(f.name).replace(/'/g, "\\\\'") + "'" + ')" />';
       h += '<div class="drive-file-icon">' + driveFileIcon(f.mimeType, f.isGoogleNative) + '</div>';
       h += '<div class="drive-file-name">' + esc(f.name) + (f.isGoogleNative ? ' <span style="font-size:0.65rem;color:#4b5563;">(Google)</span>' : '') + '</div>';
       h += '<div class="drive-file-meta">' + (f.size ? formatFileSize(f.size) : '') + '</div>';
@@ -4719,13 +5278,15 @@ function driveIngestComplete() {
   btn.onclick = function() {
     hideUploadView();
     api('GET', '/api/search?q=*').then(function(data) {
-      entities = data.results || [];
-      renderEntityList();
+      allEntities = data.results || [];
+      entities = allEntities.slice();
+      renderSidebar();
     });
   };
   api('GET', '/api/search?q=*').then(function(data) {
-    entities = data.results || [];
-    renderEntityList();
+    allEntities = data.results || [];
+    entities = allEntities.slice();
+    renderSidebar();
   });
 }
 
@@ -4979,7 +5540,7 @@ function renderDetail(data) {
       if (items.length === 0) continue;
       h += '<div style="margin-bottom:12px;"><div style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">' + groupLabels[gk] + '</div>';
       for (var j = 0; j < items.length; j++) {
-        h += '<div class="entity-item" style="padding:6px 10px;cursor:pointer;" onclick="selectEntity(\\'' + esc(items[j].entity_id) + '\\')">';
+        h += '<div class="entity-item" style="padding:6px 10px;cursor:pointer;" onclick="selectEntity(' + "'" + esc(items[j].entity_id) + "'" + ')">';
         h += '<span class="entity-item-name">' + esc(items[j].label) + '</span>';
         h += '<span class="type-badge ' + esc(items[j].entity_type) + '">' + esc(items[j].entity_type) + '</span>';
         h += '</div>';
@@ -5023,7 +5584,7 @@ function renderConnectedDetail(data) {
   if (parentId) {
     h += '<div class="section" style="padding:8px 0;">';
     h += '<span style="font-size:0.82rem;color:var(--text-muted);">Parent: </span>';
-    h += '<a href="#" style="font-size:0.82rem;color:#6366f1;text-decoration:none;" onclick="event.preventDefault();selectEntity(\\'' + esc(parentId) + '\\')">' + esc(parentId) + '</a>';
+    h += '<a href="#" style="font-size:0.82rem;color:#6366f1;text-decoration:none;" onclick="event.preventDefault();selectEntity(' + "'" + esc(parentId) + "'" + ')">' + esc(parentId) + '</a>';
     h += '</div>';
   }
 
@@ -5168,7 +5729,7 @@ function showShareModal(existingShares) {
       activeHtml += '<div class="share-active-item">' +
         '<div><div class="share-active-info">Expires ' + esc(expDate) + '</div>' +
         '<div class="share-active-sections">' + esc(sh.sections.join(', ')) + '</div></div>' +
-        '<button class="btn-revoke" onclick="revokeShare(\\'' + sh.shareId + '\\')">Revoke</button>' +
+        '<button class="btn-revoke" onclick="revokeShare(' + "'" + sh.shareId + "'" + ')">Revoke</button>' +
         '</div>';
     }
     activeHtml += '</div>';
@@ -5214,7 +5775,7 @@ function generateShareLink() {
     if (resultDiv) {
       resultDiv.innerHTML = '<div class="share-result">' +
         '<div class="share-result-url">' + esc(data.shareUrl) + '</div>' +
-        '<button class="btn-copy-link" onclick="copyShareLink(\\'' + data.shareUrl.replace(/'/g, "\\\\'") + '\\')">Copy Link</button>' +
+        '<button class="btn-copy-link" onclick="copyShareLink(' + "'" + data.shareUrl.replace(/'/g, "\\\\'") + "'" + ')">Copy Link</button>' +
         '</div>';
     }
   }).catch(function(err) {
