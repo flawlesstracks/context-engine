@@ -98,4 +98,32 @@ function loadConnectedObjects(entityId, dir) {
   return { entity, connected };
 }
 
-module.exports = { readEntity, writeEntity, listEntities, listEntitiesByType, getNextCounter, resolveGraphDir, loadConnectedObjects, LOCAL_GRAPH_DIR };
+function deleteEntity(entityId, dir) {
+  const d = dir || LOCAL_GRAPH_DIR;
+  const filePath = path.join(d, `${entityId}.json`);
+  if (!fs.existsSync(filePath)) return { deleted: false, error: 'not_found' };
+
+  // Read entity to find connected objects to clean up
+  let connected = [];
+  try {
+    const data = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    connected = (data.connected_objects || []).map(c => c.entity_id).filter(Boolean);
+  } catch { /* proceed with delete even if parse fails */ }
+
+  // Delete the entity file
+  fs.unlinkSync(filePath);
+
+  // Delete connected objects (roles, credentials, skills)
+  const deletedConnected = [];
+  for (const connId of connected) {
+    const connPath = path.join(d, `${connId}.json`);
+    if (fs.existsSync(connPath)) {
+      fs.unlinkSync(connPath);
+      deletedConnected.push(connId);
+    }
+  }
+
+  return { deleted: true, entity_id: entityId, connected_deleted: deletedConnected };
+}
+
+module.exports = { readEntity, writeEntity, listEntities, listEntitiesByType, getNextCounter, resolveGraphDir, loadConnectedObjects, deleteEntity, LOCAL_GRAPH_DIR };

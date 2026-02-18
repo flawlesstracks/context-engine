@@ -8,7 +8,7 @@ const Anthropic = require('@anthropic-ai/sdk').default;
 const { merge } = require('./merge-engine');
 const multer = require('multer');
 const cookieParser = require('cookie-parser');
-const { readEntity, writeEntity, listEntities, listEntitiesByType, getNextCounter, loadConnectedObjects } = require('./src/graph-ops');
+const { readEntity, writeEntity, listEntities, listEntitiesByType, getNextCounter, loadConnectedObjects, deleteEntity } = require('./src/graph-ops');
 const { ingestPipeline } = require('./src/ingest-pipeline');
 const { normalizeFileToText } = require('./src/parsers/normalize');
 const { buildLinkedInPrompt, linkedInResponseToEntity } = require('./src/parsers/linkedin');
@@ -308,16 +308,21 @@ function buildGenericTextPrompt(text, filename, chunkNum, totalChunks) {
 
 This is a raw text document${chunkLabel}. It may be personal notes, relationship descriptions, memories, meeting notes, journal entries, correspondence, profiles, or any other text. Your job is to find EVERY named person and EVERY named organization mentioned, no matter how briefly.
 
+CRITICAL — ANTI-HALLUCINATION RULES:
+- ONLY extract entities whose names EXPLICITLY appear in the source text below
+- Do NOT infer, generate, or fabricate any names that are not written in the text
+- Every entity MUST include at least one observation with a DIRECT QUOTE from the source text as evidence
+- If you are unsure whether a name appears in the text, do NOT include it
+- Do NOT combine or merge separate people into one entity
+- If the text says "his daughter" but does not name her, do NOT invent a name for her
+
 EXTRACTION RULES:
-- Extract EVERY proper noun that refers to a person or organization
 - entity_type MUST be "person" or "business" (use "business" for all companies, organizations, schools, agencies, churches, groups, etc.)
 - For persons: include name, role, relationship to the author, location, personality traits, key facts — whatever the text says
 - For organizations: include name, industry, location, what the author says about them
-- Include observations: each distinct fact or mention about the entity, with the raw text snippet
-- If someone is mentioned by first name only (e.g. "Marcus"), still extract them
+- Each observation MUST contain a direct quote or close paraphrase from the source text
+- If someone is mentioned by first name only (e.g. "Marcus"), still extract them — but use exactly the name from the text
 - If an organization is mentioned even once (e.g. "he works at Google"), extract it
-- Do NOT skip anyone. A 130KB relationship file likely contains 20-50+ named people. Extract ALL of them.
-- Do NOT invent information beyond what is explicitly stated
 
 OUTPUT FORMAT — valid JSON only, no markdown fences, no commentary:
 {
@@ -663,10 +668,11 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { files: 20, fi
 const ALLOWED_EXTENSIONS = new Set(['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv', '.txt', '.md', '.json']);
 
 app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, res) => {
+  const previewMode = req.query.preview === 'true';
   const files = req.files;
   if (files) {
     for (const f of files) {
-      console.log('INGEST_DEBUG: file received:', f.originalname, f.mimetype, f.size);
+      console.log('INGEST_DEBUG: file received:', f.originalname, f.mimetype, f.size, previewMode ? '(PREVIEW)' : '');
     }
   }
   if (!files || files.length === 0) {
@@ -695,6 +701,7 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
   let totalCreated = 0;
   let totalUpdated = 0;
   let totalObservations = 0;
+  const allPreviewEntities = [];
   const client = new Anthropic();
 
   for (let fi = 0; fi < files.length; fi++) {
@@ -742,14 +749,15 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
       const { text, metadata } = await normalizeFileToText(file.buffer, filename);
 
       let result;
+      let pendingEntities = [];
+      let pendingSource = filename;
+      let pendingTruth = 'INFERRED';
 
       if (metadata.isContactList && metadata.rows) {
         // Direct mapping — no LLM call
-        const entities = mapContactRows(metadata.rows, filename, req.agentId);
-        result = await ingestPipeline(entities, req.graphDir, req.agentId, {
-          source: filename,
-          truthLevel: 'STRONG',
-        });
+        pendingEntities = mapContactRows(metadata.rows, filename, req.agentId);
+        pendingSource = filename;
+        pendingTruth = 'STRONG';
 
       } else if (metadata.isLinkedIn) {
         // LinkedIn extraction via Claude
@@ -762,11 +770,7 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
         const rawResponse = message.content[0].text;
         const cleaned = rawResponse.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
         const parsed = JSON.parse(cleaned);
-        const entity = linkedInResponseToEntity(parsed, filename, req.agentId);
-        result = await ingestPipeline([entity], req.graphDir, req.agentId, {
-          source: filename,
-          truthLevel: 'INFERRED',
-        });
+        pendingEntities = [linkedInResponseToEntity(parsed, filename, req.agentId)];
 
       } else {
         // Generic text extraction via Claude (with chunking for large files)
@@ -868,30 +872,57 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
 
         console.log('INGEST_DEBUG: v2Entities after type filter:', v2Entities.length);
 
-        result = await ingestPipeline(v2Entities, req.graphDir, req.agentId, {
-          source: filename,
-          truthLevel: 'INFERRED',
+        pendingEntities = v2Entities;
+      }
+
+      // Preview mode: return entities for user review instead of saving
+      if (previewMode) {
+        const previewList = pendingEntities.map(e => {
+          const ent = e.entity || {};
+          const type = ent.entity_type || '';
+          return {
+            entity_type: type,
+            name: type === 'person' ? (ent.name?.full || '') : (ent.name?.common || ent.name?.legal || ''),
+            summary: ent.summary?.value || '',
+            attribute_count: (e.attributes || []).length,
+            relationship_count: (e.relationships || []).length,
+            observation_count: (e.observations || []).length,
+          };
         });
-      }
+        allPreviewEntities.push(...pendingEntities);
+        sendEvent({
+          type: 'file_preview',
+          file: filename,
+          file_index: fi + 1,
+          total_files: files.length,
+          entities: previewList,
+          full_entities: pendingEntities,
+        });
+      } else {
+        result = await ingestPipeline(pendingEntities, req.graphDir, req.agentId, {
+          source: pendingSource,
+          truthLevel: pendingTruth,
+        });
 
-      totalCreated += result.created;
-      totalUpdated += result.updated;
-      totalObservations += result.observationsAdded;
+        totalCreated += result.created;
+        totalUpdated += result.updated;
+        totalObservations += result.observationsAdded;
 
-      const progressEvent = {
-        type: 'file_progress',
-        file: filename,
-        file_index: fi + 1,
-        total_files: files.length,
-        entities_created: result.created,
-        entities_updated: result.updated,
-        observations_added: result.observationsAdded,
-      };
-      if (result.created === 0 && result.updated === 0) {
-        progressEvent.warning = 'No named entities found in this file. The file may not contain recognizable person or business names.';
-        console.log('INGEST_DEBUG: 0 entities extracted from', filename);
+        const progressEvent = {
+          type: 'file_progress',
+          file: filename,
+          file_index: fi + 1,
+          total_files: files.length,
+          entities_created: result.created,
+          entities_updated: result.updated,
+          observations_added: result.observationsAdded,
+        };
+        if (result.created === 0 && result.updated === 0) {
+          progressEvent.warning = 'No named entities found in this file. The file may not contain recognizable person or business names.';
+          console.log('INGEST_DEBUG: 0 entities extracted from', filename);
+        }
+        sendEvent(progressEvent);
       }
-      sendEvent(progressEvent);
 
     } catch (err) {
       console.error('INGEST_DEBUG: extraction error for', filename, err.message);
@@ -904,16 +935,43 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
     }
   }
 
-  sendEvent({
-    type: 'complete',
-    summary: {
-      files_processed: files.length,
-      entities_created: totalCreated,
-      entities_updated: totalUpdated,
-      observations_added: totalObservations,
-    },
-  });
+  if (previewMode) {
+    sendEvent({
+      type: 'preview_complete',
+      total_entities: allPreviewEntities.length,
+    });
+  } else {
+    sendEvent({
+      type: 'complete',
+      summary: {
+        files_processed: files.length,
+        entities_created: totalCreated,
+        entities_updated: totalUpdated,
+        observations_added: totalObservations,
+      },
+    });
+  }
   res.end();
+});
+
+// POST /api/ingest/confirm — Save user-approved entities from preview
+app.post('/api/ingest/confirm', apiAuth, express.json({ limit: '10mb' }), async (req, res) => {
+  const { entities, source } = req.body;
+  if (!Array.isArray(entities) || entities.length === 0) {
+    return res.status(400).json({ error: 'No entities provided' });
+  }
+
+  try {
+    const result = await ingestPipeline(entities, req.graphDir, req.agentId, {
+      source: source || 'confirmed_upload',
+      truthLevel: 'INFERRED',
+    });
+    console.log(`[ingest] Confirmed ${entities.length} entities: ${result.created} created, ${result.updated} updated`);
+    res.json(result);
+  } catch (err) {
+    console.error('[ingest] Confirm error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // --- Google Drive integration ---
@@ -1200,6 +1258,14 @@ app.get('/api/entity/:id', apiAuth, (req, res) => {
   const entity = readEntity(req.params.id, req.graphDir);
   if (!entity) return res.status(404).json({ error: 'Entity not found' });
   res.json(entity);
+});
+
+// DELETE /api/entity/:id — Delete an entity and its connected objects
+app.delete('/api/entity/:id', apiAuth, (req, res) => {
+  const result = deleteEntity(req.params.id, req.graphDir);
+  if (!result.deleted) return res.status(404).json({ error: 'Entity not found' });
+  console.log(`[delete] Deleted ${req.params.id} + ${result.connected_deleted.length} connected objects`);
+  res.json(result);
 });
 
 // GET /api/entity/:id/connected — Entity + all connected objects
@@ -3491,6 +3557,16 @@ const WIKI_HTML = `<!DOCTYPE html>
     margin-left: 10px; vertical-align: middle;
   }
 
+  .btn-delete-entity {
+    margin-left: 12px; vertical-align: middle;
+    padding: 3px 12px; border-radius: var(--radius-sm);
+    background: rgba(239,68,68,0.1); color: #ef4444;
+    border: 1px solid rgba(239,68,68,0.3);
+    font-size: 0.72rem; font-weight: 600; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-delete-entity:hover { background: #ef4444; color: #fff; }
+
   /* --- Sections --- */
   .section {
     background: var(--bg-card);
@@ -5075,6 +5151,23 @@ function renderSidebar() {
 function renderEntityList() { renderSidebar(); }
 
 /* --- Entity Detail --- */
+function confirmDeleteEntity(id, name) {
+  if (!confirm('Delete "' + name + '" (' + id + ') and all connected objects? This cannot be undone.')) return;
+  api('DELETE', '/api/entity/' + id).then(function(result) {
+    toast('Deleted ' + id + (result.connected_deleted && result.connected_deleted.length > 0 ? ' + ' + result.connected_deleted.length + ' connected objects' : ''));
+    selectedId = null;
+    selectedData = null;
+    document.getElementById('main').innerHTML = '<div class="empty-state">Entity deleted. Select another entity.</div>';
+    api('GET', '/api/search?q=*').then(function(data) {
+      allEntities = data.results || [];
+      entities = allEntities.slice();
+      renderSidebar();
+    });
+  }).catch(function(err) {
+    toast('Delete failed: ' + err.message);
+  });
+}
+
 function selectEntity(id) {
   selectedId = id;
   selectedView = null;
@@ -5215,9 +5308,13 @@ function renderUploadFileList() {
   if (btn) btn.style.display = uploadFiles.length > 0 ? 'block' : 'none';
 }
 
+var previewEntities = [];
+var previewSource = '';
+
 function startUpload() {
   if (uploadFiles.length === 0 || uploadInProgress) return;
   uploadInProgress = true;
+  previewEntities = [];
   document.getElementById('btnStartUpload').disabled = true;
 
   // Disable remove buttons
@@ -5226,17 +5323,18 @@ function startUpload() {
 
   var log = document.getElementById('uploadProgressLog');
   log.style.display = 'block';
-  log.innerHTML = '<div class="log-info">Starting upload...</div>';
+  log.innerHTML = '<div class="log-info">Extracting entities (preview mode)...</div>';
 
   var formData = new FormData();
   for (var i = 0; i < uploadFiles.length; i++) {
     formData.append('files', uploadFiles[i]);
   }
+  previewSource = uploadFiles.length === 1 ? uploadFiles[0].name : uploadFiles.length + ' files';
 
   var headers = getAuthHeaders();
   headers['X-Agent-Id'] = 'wiki-upload';
 
-  fetch('/api/ingest/files', {
+  fetch('/api/ingest/files?preview=true', {
     method: 'POST',
     headers: headers,
     body: formData,
@@ -5282,7 +5380,21 @@ function startUpload() {
 function handleUploadEvent(evt) {
   var log = document.getElementById('uploadProgressLog');
   if (evt.type === 'started') {
-    log.innerHTML += '<div class="log-info">Processing ' + evt.total_files + ' file' + (evt.total_files > 1 ? 's' : '') + '...</div>';
+    log.innerHTML += '<div class="log-info">Extracting from ' + evt.total_files + ' file' + (evt.total_files > 1 ? 's' : '') + '...</div>';
+  } else if (evt.type === 'file_preview') {
+    var idx = evt.file_index - 1;
+    var statusEl = document.getElementById('uploadStatus' + idx);
+    if (statusEl) {
+      statusEl.className = 'upload-file-status done';
+      statusEl.textContent = evt.entities.length + ' found';
+    }
+    if (evt.full_entities) {
+      for (var k = 0; k < evt.full_entities.length; k++) previewEntities.push(evt.full_entities[k]);
+    }
+    log.innerHTML += '<div class="log-info">' + esc(evt.file) + ' — found ' + evt.entities.length + ' entities (pending review)</div>';
+  } else if (evt.type === 'preview_complete') {
+    // Show preview UI
+    log.innerHTML += '<div class="log-info" style="font-weight:600;margin-top:8px;">Review extracted entities below. Uncheck any you want to reject.</div>';
   } else if (evt.type === 'file_progress') {
     var idx = evt.file_index - 1;
     var statusEl = document.getElementById('uploadStatus' + idx);
@@ -5320,8 +5432,103 @@ function handleUploadEvent(evt) {
   log.scrollTop = log.scrollHeight;
 }
 
+function renderPreviewChecklist() {
+  var html = '<div class="preview-checklist" style="margin-top:12px;">';
+  html += '<div style="display:flex;gap:8px;margin-bottom:10px;">';
+  html += '<button class="btn-sm" onclick="toggleAllPreview(true)">Select All</button>';
+  html += '<button class="btn-sm" onclick="toggleAllPreview(false)">Deselect All</button>';
+  html += '<span style="color:var(--text-secondary);font-size:0.8rem;line-height:28px;">' + previewEntities.length + ' entities found</span>';
+  html += '</div>';
+  for (var i = 0; i < previewEntities.length; i++) {
+    var ent = previewEntities[i].entity || {};
+    var type = ent.entity_type || '';
+    var name = type === 'person' ? (ent.name && ent.name.full || '') : (ent.name && (ent.name.common || ent.name.legal) || '');
+    var summary = ent.summary && ent.summary.value || '';
+    if (summary.length > 100) summary = summary.substring(0, 100) + '...';
+    html += '<label class="preview-entity-row" style="display:flex;gap:8px;padding:6px 8px;border-bottom:1px solid var(--border-subtle);cursor:pointer;align-items:flex-start;">';
+    html += '<input type="checkbox" checked data-preview-idx="' + i + '" onchange="updatePreviewCount()" style="margin-top:3px;">';
+    html += '<div style="flex:1;min-width:0;">';
+    html += '<span style="font-weight:600;color:var(--text-primary);">' + esc(name) + '</span>';
+    html += ' <span class="type-badge ' + type + '" style="font-size:0.65rem;padding:1px 6px;">' + type + '</span>';
+    if (summary) html += '<div style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(summary) + '</div>';
+    html += '</div></label>';
+  }
+  html += '</div>';
+  html += '<button class="btn-start-upload" onclick="confirmPreview()" style="margin-top:12px;background:#22c55e;">Save ' + previewEntities.length + ' Selected Entities</button>';
+  var sumEl = document.getElementById('uploadSummary');
+  sumEl.style.display = 'block';
+  sumEl.innerHTML = html;
+  updatePreviewCount();
+}
+
+function toggleAllPreview(checked) {
+  var boxes = document.querySelectorAll('[data-preview-idx]');
+  for (var i = 0; i < boxes.length; i++) boxes[i].checked = checked;
+  updatePreviewCount();
+}
+
+function updatePreviewCount() {
+  var boxes = document.querySelectorAll('[data-preview-idx]');
+  var count = 0;
+  for (var i = 0; i < boxes.length; i++) { if (boxes[i].checked) count++; }
+  var btn = document.querySelector('.btn-start-upload');
+  if (btn) btn.textContent = 'Save ' + count + ' Selected Entities';
+}
+
+function confirmPreview() {
+  var boxes = document.querySelectorAll('[data-preview-idx]');
+  var selected = [];
+  for (var i = 0; i < boxes.length; i++) {
+    if (boxes[i].checked) {
+      var idx = parseInt(boxes[i].getAttribute('data-preview-idx'));
+      selected.push(previewEntities[idx]);
+    }
+  }
+  if (selected.length === 0) {
+    toast('No entities selected');
+    return;
+  }
+
+  var btn = document.querySelector('.btn-start-upload');
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
+
+  api('POST', '/api/ingest/confirm', { entities: selected, source: previewSource }).then(function(result) {
+    toast('Saved: ' + result.created + ' created, ' + result.updated + ' merged');
+    var sumEl = document.getElementById('uploadSummary');
+    sumEl.innerHTML = '<div class="upload-summary">' +
+      '<div class="upload-summary-stat"><div class="upload-summary-num">' + result.created + '</div><div class="upload-summary-label">Created</div></div>' +
+      '<div class="upload-summary-stat"><div class="upload-summary-num">' + result.updated + '</div><div class="upload-summary-label">Merged</div></div>' +
+      '</div>';
+    btn.textContent = 'Done — View Entities';
+    btn.disabled = false;
+    btn.onclick = function() {
+      hideUploadView();
+      api('GET', '/api/search?q=*').then(function(data) {
+        allEntities = data.results || [];
+        entities = allEntities.slice();
+        renderSidebar();
+      });
+    };
+    api('GET', '/api/search?q=*').then(function(data) {
+      allEntities = data.results || [];
+      entities = allEntities.slice();
+      renderSidebar();
+    });
+  }).catch(function(err) {
+    toast('Save failed: ' + err.message);
+    btn.disabled = false;
+    btn.textContent = 'Retry Save';
+  });
+}
+
 function uploadComplete() {
   uploadInProgress = false;
+  if (previewEntities.length > 0) {
+    // Preview mode — show checklist
+    renderPreviewChecklist();
+    return;
+  }
   var btn = document.getElementById('btnStartUpload');
   btn.textContent = 'Done — View Entities';
   btn.disabled = false;
@@ -5820,6 +6027,7 @@ function renderDetail(data) {
   h += '<span class="type-badge ' + type + '">' + type + '</span>';
   h += '<span class="entity-id-badge">' + esc(e.entity_id || '') + '</span>';
   h += confidenceBadge(meta.extraction_confidence);
+  h += '<button class="btn-delete-entity" onclick="confirmDeleteEntity(' + "'" + esc(e.entity_id || '') + "'" + ', ' + "'" + esc(name).replace(/'/g, '') + "'" + ')" title="Delete entity">Delete</button>';
   h += '</div>';
 
   // Summary
