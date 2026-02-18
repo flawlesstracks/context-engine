@@ -288,6 +288,49 @@ function parseChatGPTExport(input) {
   }).filter(c => c.userMessages.length > 0);
 }
 
+function buildGenericTextPrompt(text, filename) {
+  const truncated = text.length > 50000 ? text.substring(0, 50000) + '\n[...truncated]' : text;
+
+  return `You are a structured data extraction engine. Analyze this document and extract every person and business mentioned by name.
+
+This is a raw text document (not a ChatGPT conversation). It may contain:
+- Personal notes, memories, or relationship descriptions
+- Professional profiles, resumes, or bios
+- Meeting notes, journal entries, or correspondence
+- Any other text mentioning real people or organizations
+
+RULES:
+- Extract ALL named persons and businesses — even if only briefly mentioned
+- entity_type: "person" or "business"
+- name: { "full": "..." } for persons, { "common": "..." } for businesses
+- summary: 2-3 sentences synthesizing what the document says about this entity
+- attributes: only include clearly stated facts (role, location, expertise, industry, email, phone)
+- relationships: connections between extracted entities or between an entity and the document author
+- observations: each distinct piece of information about the entity, with the raw text snippet
+- Do NOT invent information beyond what is explicitly stated
+- If no named entities found, return {"entities": []}
+
+Output ONLY valid JSON, no markdown fences, no commentary:
+{
+  "entities": [
+    {
+      "entity_type": "person",
+      "name": { "full": "Jane Smith" },
+      "summary": "...",
+      "attributes": { "role": "...", "location": "..." },
+      "relationships": [{ "name": "Other Entity", "relationship": "colleague", "context": "..." }],
+      "observations": [{ "text": "What the document says about this entity" }]
+    }
+  ]
+}
+
+Source file: ${filename}
+
+--- DOCUMENT TEXT ---
+${truncated}
+--- END ---`;
+}
+
 function buildIngestPrompt(batch) {
   let text = '';
   batch.forEach((conv, i) => {
@@ -604,6 +647,11 @@ const ALLOWED_EXTENSIONS = new Set(['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.
 
 app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, res) => {
   const files = req.files;
+  if (files) {
+    for (const f of files) {
+      console.log('INGEST_DEBUG: file received:', f.originalname, f.mimetype, f.size);
+    }
+  }
   if (!files || files.length === 0) {
     return res.status(400).json({ error: 'No files uploaded. Send files via multipart field "files".' });
   }
@@ -705,16 +753,18 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
 
       } else {
         // Generic text extraction via Claude
-        const truncated = text.length > 50000 ? text.substring(0, 50000) + '\n[...truncated]' : text;
-        const prompt = buildIngestPrompt([{ title: filename, createTime: new Date().toISOString(), userMessages: [truncated] }]);
+        console.log('INGEST_DEBUG: generic text path for', filename, '— text length:', text.length);
+        const prompt = buildGenericTextPrompt(text, filename);
         const message = await client.messages.create({
           model: 'claude-sonnet-4-5-20250929',
           max_tokens: 16384,
           messages: [{ role: 'user', content: prompt }],
         });
         const rawResponse = message.content[0].text;
+        console.log('INGEST_DEBUG: Claude response length:', rawResponse.length, 'first 200 chars:', rawResponse.substring(0, 200));
         const cleaned = rawResponse.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
         const parsed = JSON.parse(cleaned);
+        console.log('INGEST_DEBUG: extracted entities count:', (parsed.entities || []).length);
 
         const now = new Date().toISOString();
         const v2Entities = (parsed.entities || []).map(extracted => {
@@ -796,7 +846,7 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
       totalUpdated += result.updated;
       totalObservations += result.observationsAdded;
 
-      sendEvent({
+      const progressEvent = {
         type: 'file_progress',
         file: filename,
         file_index: fi + 1,
@@ -804,9 +854,15 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
         entities_created: result.created,
         entities_updated: result.updated,
         observations_added: result.observationsAdded,
-      });
+      };
+      if (result.created === 0 && result.updated === 0) {
+        progressEvent.warning = 'No named entities found in this file. The file may not contain recognizable person or business names.';
+        console.log('INGEST_DEBUG: 0 entities extracted from', filename);
+      }
+      sendEvent(progressEvent);
 
     } catch (err) {
+      console.error('INGEST_DEBUG: extraction error for', filename, err.message);
       sendEvent({
         type: 'file_error',
         file: filename,
@@ -885,6 +941,7 @@ app.get('/api/drive/files', apiAuth, async (req, res) => {
 
 // POST /api/drive/ingest — Download files from Drive and ingest
 app.post('/api/drive/ingest', apiAuth, async (req, res) => {
+  console.log('INGEST_DEBUG: drive ingest request, fileIds:', req.body?.fileIds);
   const { fileIds } = req.body;
   if (!Array.isArray(fileIds) || fileIds.length === 0) {
     return res.status(400).json({ error: 'Missing fileIds array' });
@@ -960,16 +1017,18 @@ app.post('/api/drive/ingest', apiAuth, async (req, res) => {
           truthLevel: 'INFERRED',
         });
       } else {
-        const truncated = text.length > 50000 ? text.substring(0, 50000) + '\n[...truncated]' : text;
-        const prompt = buildIngestPrompt([{ title: filename, createTime: new Date().toISOString(), userMessages: [truncated] }]);
+        console.log('INGEST_DEBUG: drive generic text path for', filename, '— text length:', text.length);
+        const prompt = buildGenericTextPrompt(text, filename);
         const message = await client.messages.create({
           model: 'claude-sonnet-4-5-20250929',
           max_tokens: 16384,
           messages: [{ role: 'user', content: prompt }],
         });
         const rawResponse = message.content[0].text;
+        console.log('INGEST_DEBUG: drive Claude response length:', rawResponse.length);
         const cleaned = rawResponse.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
         const parsed = JSON.parse(cleaned);
+        console.log('INGEST_DEBUG: drive extracted entities count:', (parsed.entities || []).length);
 
         const now = new Date().toISOString();
         const v2Entities = (parsed.entities || []).map(extracted => {
@@ -1051,7 +1110,7 @@ app.post('/api/drive/ingest', apiAuth, async (req, res) => {
       totalUpdated += result.updated;
       totalObservations += result.observationsAdded;
 
-      sendEvent({
+      const progressEvent = {
         type: 'file_progress',
         file: filename,
         file_index: fi + 1,
@@ -1059,9 +1118,15 @@ app.post('/api/drive/ingest', apiAuth, async (req, res) => {
         entities_created: result.created,
         entities_updated: result.updated,
         observations_added: result.observationsAdded,
-      });
+      };
+      if (result.created === 0 && result.updated === 0) {
+        progressEvent.warning = 'No named entities found in this file. The file may not contain recognizable person or business names.';
+        console.log('INGEST_DEBUG: 0 entities extracted from', filename);
+      }
+      sendEvent(progressEvent);
 
     } catch (err) {
+      console.error('INGEST_DEBUG: drive extraction error for', filename, err.message);
       sendEvent({
         type: 'file_error',
         file: filename,
@@ -5174,11 +5239,19 @@ function handleUploadEvent(evt) {
   } else if (evt.type === 'file_progress') {
     var idx = evt.file_index - 1;
     var statusEl = document.getElementById('uploadStatus' + idx);
-    if (statusEl) {
-      statusEl.className = 'upload-file-status done';
-      statusEl.textContent = evt.entities_created + ' created, ' + evt.entities_updated + ' merged';
+    if (evt.warning) {
+      if (statusEl) {
+        statusEl.className = 'upload-file-status error';
+        statusEl.textContent = 'no entities';
+      }
+      log.innerHTML += '<div class="log-error">' + esc(evt.file) + ' — ' + esc(evt.warning) + '</div>';
+    } else {
+      if (statusEl) {
+        statusEl.className = 'upload-file-status done';
+        statusEl.textContent = evt.entities_created + ' created, ' + evt.entities_updated + ' merged';
+      }
+      log.innerHTML += '<div class="log-success">' + esc(evt.file) + ' — ' + evt.entities_created + ' created, ' + evt.entities_updated + ' updated</div>';
     }
-    log.innerHTML += '<div class="log-success">' + esc(evt.file) + ' — ' + evt.entities_created + ' created, ' + evt.entities_updated + ' updated</div>';
   } else if (evt.type === 'file_error') {
     var idx = evt.file_index - 1;
     var statusEl = document.getElementById('uploadStatus' + idx);
@@ -5507,7 +5580,11 @@ function handleDriveEvent(evt) {
   } else if (evt.type === 'file_downloading') {
     log.innerHTML += '<div class="log-info">Downloading file ' + evt.file_index + '...</div>';
   } else if (evt.type === 'file_progress') {
-    log.innerHTML += '<div class="log-success">' + esc(evt.file) + ' — ' + evt.entities_created + ' created, ' + evt.entities_updated + ' updated</div>';
+    if (evt.warning) {
+      log.innerHTML += '<div class="log-error">' + esc(evt.file) + ' — ' + esc(evt.warning) + '</div>';
+    } else {
+      log.innerHTML += '<div class="log-success">' + esc(evt.file) + ' — ' + evt.entities_created + ' created, ' + evt.entities_updated + ' updated</div>';
+    }
   } else if (evt.type === 'file_error') {
     log.innerHTML += '<div class="log-error">' + esc(evt.file) + ' — ' + esc(evt.error) + '</div>';
   } else if (evt.type === 'complete') {
