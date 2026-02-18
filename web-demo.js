@@ -288,46 +288,63 @@ function parseChatGPTExport(input) {
   }).filter(c => c.userMessages.length > 0);
 }
 
-function buildGenericTextPrompt(text, filename) {
-  const truncated = text.length > 50000 ? text.substring(0, 50000) + '\n[...truncated]' : text;
+function chunkText(text, chunkSize, overlap) {
+  chunkSize = chunkSize || 25000;
+  overlap = overlap || 1000;
+  if (text.length <= chunkSize) return [text];
+  const chunks = [];
+  let offset = 0;
+  while (offset < text.length) {
+    chunks.push(text.substring(offset, offset + chunkSize));
+    offset += chunkSize - overlap;
+  }
+  return chunks;
+}
 
-  return `You are a structured data extraction engine. Analyze this document and extract every person and business mentioned by name.
+function buildGenericTextPrompt(text, filename, chunkNum, totalChunks) {
+  const chunkLabel = totalChunks > 1 ? ` (chunk ${chunkNum} of ${totalChunks})` : '';
 
-This is a raw text document (not a ChatGPT conversation). It may contain:
-- Personal notes, memories, or relationship descriptions
-- Professional profiles, resumes, or bios
-- Meeting notes, journal entries, or correspondence
-- Any other text mentioning real people or organizations
+  return `You are a structured data extraction engine. Extract ALL named people and organizations from this document.
 
-RULES:
-- Extract ALL named persons and businesses — even if only briefly mentioned
-- entity_type: "person" or "business"
-- name: { "full": "..." } for persons, { "common": "..." } for businesses
-- summary: 2-3 sentences synthesizing what the document says about this entity
-- attributes: only include clearly stated facts (role, location, expertise, industry, email, phone)
-- relationships: connections between extracted entities or between an entity and the document author
-- observations: each distinct piece of information about the entity, with the raw text snippet
+This is a raw text document${chunkLabel}. It may be personal notes, relationship descriptions, memories, meeting notes, journal entries, correspondence, profiles, or any other text. Your job is to find EVERY named person and EVERY named organization mentioned, no matter how briefly.
+
+EXTRACTION RULES:
+- Extract EVERY proper noun that refers to a person or organization
+- entity_type MUST be "person" or "business" (use "business" for all companies, organizations, schools, agencies, churches, groups, etc.)
+- For persons: include name, role, relationship to the author, location, personality traits, key facts — whatever the text says
+- For organizations: include name, industry, location, what the author says about them
+- Include observations: each distinct fact or mention about the entity, with the raw text snippet
+- If someone is mentioned by first name only (e.g. "Marcus"), still extract them
+- If an organization is mentioned even once (e.g. "he works at Google"), extract it
+- Do NOT skip anyone. A 130KB relationship file likely contains 20-50+ named people. Extract ALL of them.
 - Do NOT invent information beyond what is explicitly stated
-- If no named entities found, return {"entities": []}
 
-Output ONLY valid JSON, no markdown fences, no commentary:
+OUTPUT FORMAT — valid JSON only, no markdown fences, no commentary:
 {
   "entities": [
     {
       "entity_type": "person",
       "name": { "full": "Jane Smith" },
+      "summary": "2-3 sentence summary of what the document says about this person",
+      "attributes": { "role": "Product Manager", "location": "Atlanta", "personality": "outgoing and reliable" },
+      "relationships": [{ "name": "Other Entity", "relationship": "colleague", "context": "worked together at Acme Corp" }],
+      "observations": [{ "text": "Exact quote or paraphrase from the document about this entity" }]
+    },
+    {
+      "entity_type": "business",
+      "name": { "common": "Google" },
       "summary": "...",
-      "attributes": { "role": "...", "location": "..." },
-      "relationships": [{ "name": "Other Entity", "relationship": "colleague", "context": "..." }],
-      "observations": [{ "text": "What the document says about this entity" }]
+      "attributes": { "industry": "Technology" },
+      "relationships": [],
+      "observations": [{ "text": "..." }]
     }
   ]
 }
 
-Source file: ${filename}
+Source file: ${filename}${chunkLabel}
 
 --- DOCUMENT TEXT ---
-${truncated}
+${text}
 --- END ---`;
 }
 
@@ -752,24 +769,37 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
         });
 
       } else {
-        // Generic text extraction via Claude
-        console.log('INGEST_DEBUG: generic text path for', filename, '— text length:', text.length);
-        const prompt = buildGenericTextPrompt(text, filename);
-        const message = await client.messages.create({
-          model: 'claude-sonnet-4-5-20250929',
-          max_tokens: 16384,
-          messages: [{ role: 'user', content: prompt }],
-        });
-        const rawResponse = message.content[0].text;
-        console.log('INGEST_DEBUG: Claude response length:', rawResponse.length, 'first 200 chars:', rawResponse.substring(0, 200));
-        const cleaned = rawResponse.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
-        const parsed = JSON.parse(cleaned);
-        console.log('INGEST_DEBUG: extracted entities count:', (parsed.entities || []).length);
+        // Generic text extraction via Claude (with chunking for large files)
+        const chunks = chunkText(text);
+        console.log('INGEST_DEBUG: generic text path for', filename, '— text length:', text.length, '— chunks:', chunks.length);
+
+        const allExtracted = [];
+        for (let ci = 0; ci < chunks.length; ci++) {
+          const prompt = buildGenericTextPrompt(chunks[ci], filename, ci + 1, chunks.length);
+          console.log('INGEST_DEBUG: sending chunk', ci + 1, 'of', chunks.length, '— chunk length:', chunks[ci].length);
+          const message = await client.messages.create({
+            model: 'claude-sonnet-4-5-20250929',
+            max_tokens: 16384,
+            messages: [{ role: 'user', content: prompt }],
+          });
+          const rawResponse = message.content[0].text;
+          console.log('INGEST_DEBUG: chunk', ci + 1, 'response length:', rawResponse.length);
+          const cleaned = rawResponse.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+          const parsed = JSON.parse(cleaned);
+          const chunkEntities = parsed.entities || [];
+          console.log('INGEST_DEBUG: chunk', ci + 1, 'extracted', chunkEntities.length, 'entities');
+          allExtracted.push(...chunkEntities);
+        }
+        console.log('INGEST_DEBUG: total extracted across all chunks:', allExtracted.length);
 
         const now = new Date().toISOString();
-        const v2Entities = (parsed.entities || []).map(extracted => {
-          const entityType = extracted.entity_type;
-          if (!entityType || !['person', 'business'].includes(entityType)) return null;
+        const v2Entities = allExtracted.map(extracted => {
+          let entityType = extracted.entity_type;
+          if (entityType === 'organization') entityType = 'business';
+          if (!entityType || !['person', 'business'].includes(entityType)) {
+            console.log('INGEST_DEBUG: skipping entity with unknown type:', entityType, extracted.name);
+            return null;
+          }
 
           const observations = (extracted.observations || []).map(obs => ({
             observation: (obs.text || '').trim(),
@@ -835,6 +865,8 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
             },
           };
         }).filter(Boolean);
+
+        console.log('INGEST_DEBUG: v2Entities after type filter:', v2Entities.length);
 
         result = await ingestPipeline(v2Entities, req.graphDir, req.agentId, {
           source: filename,
@@ -1017,23 +1049,36 @@ app.post('/api/drive/ingest', apiAuth, async (req, res) => {
           truthLevel: 'INFERRED',
         });
       } else {
-        console.log('INGEST_DEBUG: drive generic text path for', filename, '— text length:', text.length);
-        const prompt = buildGenericTextPrompt(text, filename);
-        const message = await client.messages.create({
-          model: 'claude-sonnet-4-5-20250929',
-          max_tokens: 16384,
-          messages: [{ role: 'user', content: prompt }],
-        });
-        const rawResponse = message.content[0].text;
-        console.log('INGEST_DEBUG: drive Claude response length:', rawResponse.length);
-        const cleaned = rawResponse.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
-        const parsed = JSON.parse(cleaned);
-        console.log('INGEST_DEBUG: drive extracted entities count:', (parsed.entities || []).length);
+        const chunks = chunkText(text);
+        console.log('INGEST_DEBUG: drive generic text path for', filename, '— text length:', text.length, '— chunks:', chunks.length);
+
+        const allExtracted = [];
+        for (let ci = 0; ci < chunks.length; ci++) {
+          const prompt = buildGenericTextPrompt(chunks[ci], filename, ci + 1, chunks.length);
+          console.log('INGEST_DEBUG: drive sending chunk', ci + 1, 'of', chunks.length);
+          const message = await client.messages.create({
+            model: 'claude-sonnet-4-5-20250929',
+            max_tokens: 16384,
+            messages: [{ role: 'user', content: prompt }],
+          });
+          const rawResponse = message.content[0].text;
+          console.log('INGEST_DEBUG: drive chunk', ci + 1, 'response length:', rawResponse.length);
+          const cleaned = rawResponse.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+          const parsed = JSON.parse(cleaned);
+          const chunkEntities = parsed.entities || [];
+          console.log('INGEST_DEBUG: drive chunk', ci + 1, 'extracted', chunkEntities.length, 'entities');
+          allExtracted.push(...chunkEntities);
+        }
+        console.log('INGEST_DEBUG: drive total extracted across all chunks:', allExtracted.length);
 
         const now = new Date().toISOString();
-        const v2Entities = (parsed.entities || []).map(extracted => {
-          const entityType = extracted.entity_type;
-          if (!entityType || !['person', 'business'].includes(entityType)) return null;
+        const v2Entities = allExtracted.map(extracted => {
+          let entityType = extracted.entity_type;
+          if (entityType === 'organization') entityType = 'business';
+          if (!entityType || !['person', 'business'].includes(entityType)) {
+            console.log('INGEST_DEBUG: drive skipping entity with unknown type:', entityType, extracted.name);
+            return null;
+          }
 
           const observations = (extracted.observations || []).map(obs => ({
             observation: (obs.text || '').trim(),
@@ -1099,6 +1144,8 @@ app.post('/api/drive/ingest', apiAuth, async (req, res) => {
             },
           };
         }).filter(Boolean);
+
+        console.log('INGEST_DEBUG: drive v2Entities after type filter:', v2Entities.length);
 
         result = await ingestPipeline(v2Entities, req.graphDir, req.agentId, {
           source: `drive:${filename}`,

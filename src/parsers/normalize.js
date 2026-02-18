@@ -14,11 +14,16 @@ const CONTACT_COLUMNS = [
 
 function detectLinkedIn(text) {
   const lower = text.toLowerCase();
-  let hits = 0;
+  // Require the linkedin.com/in/ URL — common words like "experience",
+  // "education", "skills" appear in many document types and are not
+  // sufficient on their own to identify a LinkedIn profile export.
+  if (!lower.includes('linkedin.com/in/')) return false;
+  let hits = 1; // already counted the URL
   for (const marker of LINKEDIN_MARKERS) {
+    if (marker === 'linkedin.com/in/') continue;
     if (lower.includes(marker)) hits++;
   }
-  return hits >= 2;
+  return hits >= 3;
 }
 
 function detectContactColumns(headers) {
