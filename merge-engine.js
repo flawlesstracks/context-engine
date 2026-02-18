@@ -204,6 +204,11 @@ function entitiesMatch(base, incoming) {
     return true;
   }
 
+  // Email match (exact)
+  const baseEmail = getEntityProperties(base).email;
+  const incomingEmail = getEntityProperties(incoming).email;
+  if (baseEmail && incomingEmail && baseEmail === incomingEmail) return true;
+
   // Must be same entity type
   const type = base.entity?.entity_type;
   const incomingType = incoming.entity?.entity_type;

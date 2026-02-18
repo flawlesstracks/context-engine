@@ -40,6 +40,8 @@ async function ingestPipeline(entities, graphDir, agentId, options = {}) {
     let matchedData = null;
     let matchedId = null;
 
+    console.log(`[ingest] Matching "${displayName}" (${entityType}) against ${existingEntities.length} existing entities`);
+
     for (const { file, data } of existingEntities) {
       const e = data.entity || {};
       if (e.entity_type !== entityType) continue;
@@ -52,6 +54,7 @@ async function ingestPipeline(entities, graphDir, agentId, options = {}) {
 
     if (matchedData) {
       // --- UPDATE existing entity via merge ---
+      console.log(`[ingest] MERGE: "${displayName}" matched existing ${matchedId}`);
       const now = new Date().toISOString();
       const incoming = {
         schema_version: '2.0',
@@ -83,9 +86,20 @@ async function ingestPipeline(entities, graphDir, agentId, options = {}) {
         },
       };
 
+      // Forward career_lite so decomposePersonEntity gets new data
+      if (entityData.career_lite) {
+        incoming.career_lite = entityData.career_lite;
+      }
+
       // Merge structured data
       const { merged } = merge(matchedData, incoming);
       const result = merged || matchedData;
+
+      // Merge career_lite: incoming wins if it has experience data
+      if (entityData.career_lite && entityData.career_lite.experience && entityData.career_lite.experience.length > 0) {
+        result.career_lite = entityData.career_lite;
+        result.career_lite.interface = 'career-lite';
+      }
 
       // Append observations (dedup by lowercase text)
       if (!result.observations) result.observations = [];
@@ -116,6 +130,8 @@ async function ingestPipeline(entities, graphDir, agentId, options = {}) {
 
       writeEntity(matchedId, result, graphDir);
 
+      console.log(`[ingest] MERGE stats: ${observationsAdded} new observations, career_lite=${!!result.career_lite}`);
+
       // Decompose person entity into connected objects
       if (entityType === 'person') {
         decomposePersonEntity(result, matchedId, graphDir);
@@ -124,6 +140,7 @@ async function ingestPipeline(entities, graphDir, agentId, options = {}) {
       updated++;
     } else {
       // --- CREATE new entity ---
+      console.log(`[ingest] CREATE: "${displayName}" as new entity`);
       let initials;
       if (entityType === 'person') {
         initials = displayName.split(/\s+/).map(w => w[0]).join('').toUpperCase();
