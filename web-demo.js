@@ -346,8 +346,47 @@ function safeParseExtraction(raw, label) {
   }
 }
 
-function buildGenericTextPrompt(text, filename, chunkNum, totalChunks) {
+// Resolve the primary user's full name from the graph directory
+function getPrimaryUserName(graphDir) {
+  try {
+    const ents = listEntities(graphDir);
+    let best = null;
+    let maxConn = 0;
+    for (const { data } of ents) {
+      if ((data.entity || {}).entity_type === 'person') {
+        const count = (data.connected_objects || []).length;
+        if (count > maxConn) { maxConn = count; best = data; }
+      }
+    }
+    if (best && best.entity && best.entity.name) {
+      const n = best.entity.name;
+      return n.full || n.preferred || '';
+    }
+  } catch (e) { /* ignore */ }
+  return '';
+}
+
+function buildGenericTextPrompt(text, filename, chunkNum, totalChunks, primaryUserName) {
   const chunkLabel = totalChunks > 1 ? ` (chunk ${chunkNum} of ${totalChunks})` : '';
+  const primaryBlock = primaryUserName ? `
+PRIMARY USER CONTEXT:
+The primary user of this system is ${primaryUserName}. Every relationship you extract for a person entity MUST be defined RELATIVE TO THIS PRIMARY USER.
+- For each person, answer: What is this person's relationship TO ${primaryUserName}?
+- If the text says "Lola is CJ's wife" → relationship_to_primary: "spouse"
+- If the text says "Seona is Lola's sister" and Lola is the primary user's wife → relationship_to_primary: "sister-in-law (connected through Lola Mafe)"
+- If the text says "Dorian is Ro's wife" and Ro is a friend → relationship_to_primary: "friend_spouse (connected through Rodrique Fru)"
+- If the text says "Roger was CJ's childhood best friend" → relationship_to_primary: "childhood best friend"
+
+Every person entity MUST include these fields in attributes:
+- "relationship_to_primary": direct relationship to ${primaryUserName} (e.g. "spouse", "son", "best friend", "sister-in-law", "colleague", "friend_spouse")
+- "relationship_distance": "1" = direct relationship, "2" = connected through someone, "3" = tertiary/extended
+- "categorization_hint": one of "family", "inner_circle", "professional", "community", "other"
+
+IMPORTANT — "like family" is NOT family:
+- "like a brother", "surrogate sister", "big brother figure", "father figure" → categorization_hint: "inner_circle" (NOT family)
+- Actual blood/marriage/legal family only → categorization_hint: "family"
+- Friend's spouses, friend's children → categorization_hint: "other" or "community" (NOT family)
+` : '';
 
   return `You are a structured data extraction engine. Extract ALL named people and organizations from this document.
 
@@ -365,7 +404,7 @@ CELEBRITY / PUBLIC FIGURE FILTER:
 - Do NOT create entities for celebrities, public figures, or famous people unless they have a direct personal relationship with the author (e.g., they are a friend, colleague, family member, or direct acquaintance)
 - If someone is mentioned as a comparison, reference, or example (e.g., "he's like the LeBron of his field"), do NOT create an entity for them
 - If a famous person is mentioned only in passing or as a cultural reference, skip them
-
+${primaryBlock}
 EXTRACTION RULES:
 - Return a MAXIMUM of 10 entities per chunk. Focus on the most significant named people and organizations. Skip minor mentions.
 - entity_type MUST be "person", "business", or "institution"
@@ -384,7 +423,7 @@ OUTPUT FORMAT — valid JSON only, no markdown fences, no commentary:
       "entity_type": "person",
       "name": { "full": "Jane Smith" },
       "summary": "2-3 sentence summary of what the document says about this person",
-      "attributes": { "role": "Product Manager", "location": "Atlanta", "personality": "outgoing and reliable" },
+      "attributes": { "role": "Product Manager", "location": "Atlanta", "personality": "outgoing and reliable", "relationship_to_primary": "colleague", "relationship_distance": "1", "categorization_hint": "professional" },
       "relationships": [{ "name": "Other Entity", "relationship": "colleague", "context": "worked together at Acme Corp" }],
       "observations": [{ "text": "Exact quote or paraphrase from the document about this entity" }]
     },
@@ -414,7 +453,7 @@ ${text}
 --- END ---`;
 }
 
-function buildIngestPrompt(batch) {
+function buildIngestPrompt(batch, primaryUserName) {
   let text = '';
   batch.forEach((conv, i) => {
     text += '\nCONVERSATION ' + i + ' (title: "' + conv.title.replace(/"/g, '\\"') + '"):\n';
@@ -423,7 +462,19 @@ function buildIngestPrompt(batch) {
     text += convText + '\n';
   });
 
-  return 'You are a structured data extraction engine. Analyze these user messages from ChatGPT conversations and extract every person, business, and institution the user mentions by name.\n\nRULES:\n- Only extract named entities (skip "my boss", "the company" without a specific name)\n- entity_type: "person", "business", or "institution"\n- Use "business" for companies and commercial entities; use "institution" for schools, universities, governments, hospitals, public services, churches, non-profits\n- name: { "full": "..." } for persons, { "common": "..." } for businesses and institutions\n- summary: 2-3 sentences synthesizing what the user said about this entity\n- attributes: only include clearly stated facts (role, location, expertise, industry)\n- relationships: connections between extracted entities\n- observations: each specific mention tagged with conversation_index (0-based integer matching conversation numbers below)\n- Do NOT invent information beyond what the user explicitly stated\n- Do NOT create entities for celebrities or public figures unless they have a direct personal relationship with the user\n- If no named entities found, return {"entities": []}\n\nOutput ONLY valid JSON, no markdown fences, no commentary:\n{\n  "entities": [\n    {\n      "entity_type": "person",\n      "name": { "full": "Jane Smith" },\n      "summary": "...",\n      "attributes": { "role": "...", "location": "..." },\n      "relationships": [{ "name": "Other Entity", "relationship": "colleague", "context": "..." }],\n      "observations": [{ "text": "What the user said about this entity", "conversation_index": 0 }]\n    }\n  ]\n}\n\n--- USER MESSAGES FROM CONVERSATIONS ---' + text + '\n--- END ---';
+  let primaryBlock = '';
+  if (primaryUserName) {
+    primaryBlock = '\nPRIMARY USER CONTEXT:\n'
+      + 'The primary user of this system is ' + primaryUserName + '. Every relationship you extract for a person entity MUST be defined RELATIVE TO THIS PRIMARY USER.\n'
+      + '- For each person, answer: What is this person\'s relationship TO ' + primaryUserName + '?\n'
+      + '- Every person entity MUST include these attributes: "relationship_to_primary" (e.g. "spouse", "best friend", "colleague", "friend_spouse"), "relationship_distance" ("1"=direct, "2"=through someone, "3"=tertiary), "categorization_hint" (one of "family", "inner_circle", "professional", "community", "other")\n'
+      + '- IMPORTANT: "like a brother", "surrogate sister", "father figure" = inner_circle, NOT family. Only blood/marriage/legal = family.\n'
+      + '- Friend\'s spouses, friend\'s children = "other" or "community", NOT family.\n\n';
+  }
+
+  return 'You are a structured data extraction engine. Analyze these user messages from ChatGPT conversations and extract every person, business, and institution the user mentions by name.\n\nRULES:\n- Only extract named entities (skip "my boss", "the company" without a specific name)\n- entity_type: "person", "business", or "institution"\n- Use "business" for companies and commercial entities; use "institution" for schools, universities, governments, hospitals, public services, churches, non-profits\n- name: { "full": "..." } for persons, { "common": "..." } for businesses and institutions\n- summary: 2-3 sentences synthesizing what the user said about this entity\n- attributes: only include clearly stated facts (role, location, expertise, industry). For persons also include relationship_to_primary, relationship_distance, categorization_hint\n- relationships: connections between extracted entities\n- observations: each specific mention tagged with conversation_index (0-based integer matching conversation numbers below)\n- Do NOT invent information beyond what the user explicitly stated\n- Do NOT create entities for celebrities or public figures unless they have a direct personal relationship with the user\n- If no named entities found, return {"entities": []}\n'
+    + primaryBlock
+    + 'Output ONLY valid JSON, no markdown fences, no commentary:\n{\n  "entities": [\n    {\n      "entity_type": "person",\n      "name": { "full": "Jane Smith" },\n      "summary": "...",\n      "attributes": { "role": "...", "location": "...", "relationship_to_primary": "colleague", "relationship_distance": "1", "categorization_hint": "professional" },\n      "relationships": [{ "name": "Other Entity", "relationship": "colleague", "context": "..." }],\n      "observations": [{ "text": "What the user said about this entity", "conversation_index": 0 }]\n    }\n  ]\n}\n\n--- USER MESSAGES FROM CONVERSATIONS ---' + text + '\n--- END ---';
 }
 
 // --- Auth middleware (multi-tenant) ---
@@ -571,12 +622,13 @@ app.post('/api/ingest/chatgpt', apiAuth, async (req, res) => {
   });
 
   const client = new Anthropic();
+  const primaryUserName = getPrimaryUserName(req.graphDir);
 
   for (let bi = 0; bi < batches.length; bi++) {
     const batch = batches[bi];
 
     try {
-      const prompt = buildIngestPrompt(batch);
+      const prompt = buildIngestPrompt(batch, primaryUserName);
       const message = await client.messages.create({
         model: 'claude-sonnet-4-5-20250929',
         max_tokens: 16384,
@@ -740,6 +792,9 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
     return res.status(400).json({ error: 'No files uploaded. Send files via multipart field "files".' });
   }
 
+  // Resolve primary user name for extraction prompts
+  const primaryUserName = getPrimaryUserName(req.graphDir);
+
   // Validate extensions
   for (const file of files) {
     const ext = path.extname(file.originalname).toLowerCase();
@@ -840,7 +895,7 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
 
         const allExtracted = [];
         for (let ci = 0; ci < chunks.length; ci++) {
-          const prompt = buildGenericTextPrompt(chunks[ci], filename, ci + 1, chunks.length);
+          const prompt = buildGenericTextPrompt(chunks[ci], filename, ci + 1, chunks.length, primaryUserName);
           console.log('INGEST_DEBUG: sending chunk', ci + 1, 'of', chunks.length, '— chunk length:', chunks[ci].length);
           const message = await client.messages.create({
             model: 'claude-sonnet-4-5-20250929',
@@ -1103,6 +1158,7 @@ app.post('/api/drive/ingest', apiAuth, async (req, res) => {
   }
 
   let currentToken = tokens.accessToken;
+  const primaryUserName = getPrimaryUserName(req.graphDir);
 
   // Stream NDJSON
   res.setHeader('Content-Type', 'application/x-ndjson');
@@ -1172,7 +1228,7 @@ app.post('/api/drive/ingest', apiAuth, async (req, res) => {
 
         const allExtracted = [];
         for (let ci = 0; ci < chunks.length; ci++) {
-          const prompt = buildGenericTextPrompt(chunks[ci], filename, ci + 1, chunks.length);
+          const prompt = buildGenericTextPrompt(chunks[ci], filename, ci + 1, chunks.length, primaryUserName);
           console.log('INGEST_DEBUG: drive sending chunk', ci + 1, 'of', chunks.length);
           const message = await client.messages.create({
             model: 'claude-sonnet-4-5-20250929',
@@ -1498,6 +1554,269 @@ app.post('/api/entities/bulk-delete', apiAuth, (req, res) => {
   res.json({ deleted, failed, total: ids.length, results });
 });
 
+// POST /api/recategorize — Re-process all person entities with relationship directionality
+app.post('/api/recategorize', apiAuth, (req, res) => {
+  const allEnts = listEntities(req.graphDir);
+
+  // Find primary person entity (most connected objects)
+  let primaryData = null;
+  let maxConn = 0;
+  for (const { data } of allEnts) {
+    if ((data.entity || {}).entity_type === 'person') {
+      const count = (data.connected_objects || []).length;
+      if (count > maxConn) { maxConn = count; primaryData = data; }
+    }
+  }
+
+  if (!primaryData) {
+    return res.status(400).json({ error: 'No primary person entity found' });
+  }
+
+  const primaryId = primaryData.entity.entity_id;
+  const primaryName = (primaryData.entity.name?.full || '').toLowerCase();
+
+  // Build relationship map from primary entity's relationships
+  const primaryRelMap = {};
+  for (const rel of (primaryData.relationships || [])) {
+    const rname = (rel.name || '').toLowerCase().trim();
+    primaryRelMap[rname] = {
+      type: (rel.relationship_type || '').toLowerCase(),
+      context: (rel.context || '').toLowerCase(),
+      strength: rel.strength || '',
+      trust_level: rel.trust_level || '',
+    };
+    // Also strip parentheticals
+    const stripped = rname.replace(/\s*\([^)]*\)/g, '').trim();
+    if (stripped && stripped !== rname) primaryRelMap[stripped] = primaryRelMap[rname];
+  }
+
+  // Categorization function for a person entity
+  // Build primary user's alias list for matching
+  const primaryAliases = [primaryName];
+  if (primaryData.entity.name?.preferred) primaryAliases.push(primaryData.entity.name.preferred.toLowerCase());
+  for (const a of (primaryData.entity.name?.aliases || [])) { primaryAliases.push(a.toLowerCase()); }
+
+  function categorizeEntity(data) {
+    const e = data.entity || {};
+    const eid = e.entity_id;
+    if (eid === primaryId) return null; // skip primary
+
+    const name = (e.name?.full || '').toLowerCase().trim();
+    const summary = (e.summary?.value || '').toLowerCase();
+
+    // --- Build TARGETED text layers (not a single noisy blob) ---
+
+    // Layer 1: relEntry from CJ's own relationships (MOST reliable — describes CJ→person)
+    let relEntry = primaryRelMap[name] || null;
+    if (!relEntry) {
+      const stripped = name.replace(/\s*\([^)]*\)/g, '').trim();
+      if (stripped !== name) relEntry = primaryRelMap[stripped] || null;
+    }
+    if (!relEntry) {
+      const np = name.split(/\s+/);
+      if (np.length >= 2) {
+        const nf = np[0], nl = np[np.length - 1];
+        for (const rk of Object.keys(primaryRelMap)) {
+          if (rk.indexOf(nf) !== -1 && rk.indexOf(nl) !== -1) { relEntry = primaryRelMap[rk]; break; }
+        }
+        if (!relEntry) {
+          for (const rk of Object.keys(primaryRelMap)) {
+            const rkp = rk.split(/\s+/);
+            if (rkp.length >= 2 && name.indexOf(rkp[0]) !== -1 && name.indexOf(rkp[rkp.length - 1]) !== -1) {
+              relEntry = primaryRelMap[rk]; break;
+            }
+          }
+        }
+      }
+    }
+
+    // Layer 2: Entity's own relationships that specifically mention the primary user
+    let reverseRelText = '';
+    for (const rel of (data.relationships || [])) {
+      const rn = (rel.name || '').toLowerCase();
+      let mentionsPrimary = false;
+      for (const pa of primaryAliases) {
+        if (pa && (rn.indexOf(pa) !== -1 || pa.indexOf(rn) !== -1)) { mentionsPrimary = true; break; }
+      }
+      if (!mentionsPrimary) {
+        const rnp = rn.split(/\s+/);
+        if (rnp.length >= 2 && primaryName.indexOf(rnp[0]) !== -1 && primaryName.indexOf(rnp[rnp.length - 1]) !== -1) {
+          mentionsPrimary = true;
+        }
+      }
+      if (mentionsPrimary) {
+        reverseRelText += ' ' + (rel.relationship_type || '') + ' ' + (rel.context || '');
+        if (!relEntry) {
+          relEntry = { type: (rel.relationship_type || '').toLowerCase(), context: (rel.context || '').toLowerCase(), strength: '', trust_level: '' };
+        }
+      }
+    }
+
+    // Layer 3: Only attributes that explicitly describe relationship TO CJ
+    // Exclude 'role' and 'relationship' — they often describe the person's role TO SOMEONE ELSE
+    // (e.g., "spouse of Rodrique Fru", "mother of Diamond Loggins")
+    let attrText = '';
+    for (const attr of (data.attributes || [])) {
+      const k = (attr.key || '').toLowerCase();
+      if (k === 'relationship_to_cj') {
+        attrText += ' ' + (attr.value || '');
+      }
+    }
+
+    // --- TEXT TIERS ---
+    // DIRECT: relEntry + reverse lookup + relationship attributes (HIGH confidence for family)
+    const directText = [
+      (relEntry ? (relEntry.type + ' ' + relEntry.context) : ''),
+      reverseRelText,
+      attrText,
+    ].join(' ').toLowerCase();
+
+    // PRIMARY: direct + summary (MEDIUM confidence — summary may describe OTHER people's families)
+    const primaryText = (directText + ' ' + summary).toLowerCase();
+
+    // BROAD: all attribute values + observations (LOW confidence — only for celebrity detection)
+    const broadParts = [summary];
+    for (const attr of (data.attributes || [])) {
+      broadParts.push((attr.value || ''));
+    }
+    for (const obs of (data.observations || [])) {
+      if (obs.observation) broadParts.push(obs.observation);
+    }
+    const broadText = broadParts.join(' ').toLowerCase();
+
+    function hasAny(haystack, terms) {
+      for (const t of terms) { if (haystack.indexOf(t) !== -1) return t; }
+      return null;
+    }
+
+    // Check for surrogate/figurative terms — these override family keywords
+    const surrogateTerms = ['like a brother', 'like a sister', 'like family', 'surrogate',
+      'father figure', 'mother figure', 'big brother figure', 'big sister figure',
+      'brother figure', 'sister figure'];
+    const isSurrogate = hasAny(directText, surrogateTerms) || hasAny(summary, surrogateTerms);
+
+    // INNER CIRCLE — check FIRST (more specific multi-word terms beat substring false-positives)
+    // e.g., "childhood friend" must match before "child" matches for family
+    const innerTerms = ['best friend', 'close friend', 'closest friend', 'groomsman', 'bridesmaid',
+      'loyalty anchor', 'accountability partner', 'ride or die', 'day one',
+      'childhood friend', 'lifelong friend', 'like a brother', 'like a sister',
+      'like family', 'brotherhood', 'super close', 'surrogate', 'father figure',
+      'mother figure', 'big brother', 'big sister', 'ai assistant', 'collaborator',
+      'co-founder', 's-tier', 'a-tier', 'mentee', 'mba homie', 'homie',
+      'groomsman', 'trusted', 'accountability'];
+    const it = hasAny(primaryText, innerTerms);
+    if (it) return { hint: 'inner_circle', rel: it, dist: relEntry ? '1' : '2' };
+    if (relEntry) {
+      if (relEntry.strength === 'close') return { hint: 'inner_circle', rel: 'strength:close', dist: '1' };
+      const tl = String(relEntry.trust_level || '');
+      if (tl.indexOf('9') !== -1 || tl.indexOf('10') !== -1) return { hint: 'inner_circle', rel: 'trust:' + tl, dist: '1' };
+    }
+
+    // FAMILY — search DIRECT text only (not summary!), skip if surrogate
+    // Family keywords in the summary are unreliable ("Dorian is Ro's wife" → "wife" matches)
+    if (!isSurrogate) {
+      const familyTerms = ['spouse', 'wife', 'husband', 'ex-wife', 'ex-husband', 'ex-spouse', 'co-parent',
+        'mother', 'father', 'parent', 'mom', 'dad', 'son', 'daughter', 'child',
+        'brother', 'sister', 'sibling', 'half-brother', 'half-sister',
+        'stepmother', 'stepfather', 'nephew', 'niece', 'uncle', 'aunt', 'cousin',
+        'in-law', 'sister-in-law', 'brother-in-law', 'mother-in-law', 'father-in-law',
+        'grandparent', 'grandmother', 'grandfather'];
+      const ft = hasAny(directText, familyTerms);
+      if (ft) {
+        return { hint: 'family', rel: ft, dist: relEntry ? '1' : '2' };
+      }
+    }
+
+    // PROFESSIONAL — search PRIMARY text (direct + summary)
+    const proTerms = ['colleague', 'coworker', 'manager', 'direct report', 'supervisor',
+      'mentor', 'business partner', 'professional', 'security architect',
+      'from your school', 'employer', 'employee', 'amazon'];
+    const pt = hasAny(primaryText, proTerms);
+    if (pt) return { hint: 'professional', rel: pt, dist: relEntry ? '1' : '2' };
+
+    // CELEBRITY — search BROAD text, only if no relationship to primary
+    if (!relEntry) {
+      const celTerms = ['rapper', 'musician', 'artist', 'athlete', 'actor', 'actress',
+        'singer', 'public figure', 'celebrity', 'entertainer', 'comedian'];
+      const ct = hasAny(broadText, celTerms);
+      if (ct) return { hint: 'celebrity', rel: ct, dist: '3' };
+    }
+
+    // If we have a relEntry but didn't match any keywords, they're at least connected
+    if (relEntry) {
+      // Check if relEntry type itself gives a hint
+      const relType = relEntry.type || '';
+      if (relType && relType !== '3rd degree connection' && relType !== '2nd degree connection') {
+        return { hint: 'other', rel: 'connected:' + relType, dist: '1' };
+      }
+    }
+
+    return { hint: 'other', rel: 'default', dist: relEntry ? '1' : '3' };
+  }
+
+  // Process all person entities
+  const counts = { family: 0, inner_circle: 0, professional: 0, community: 0, celebrity: 0, other: 0, skipped: 0 };
+  const details = [];
+  const now = new Date().toISOString();
+
+  for (const { data, file } of allEnts) {
+    const e = data.entity || {};
+    if (e.entity_type !== 'person') continue;
+    if (e.entity_id === primaryId) { counts.skipped++; continue; }
+
+    // Strip old categorization attributes BEFORE categorizing (prevents circular contamination)
+    data.attributes = (data.attributes || []).filter(a =>
+      a.key !== 'categorization_hint' && a.key !== 'relationship_to_primary' && a.key !== 'relationship_distance'
+    );
+
+    const result = categorizeEntity(data);
+    if (!result) { counts.skipped++; continue; }
+
+    const eName = e.name?.full || e.entity_id;
+
+    // Build final attributes
+    const filtered = data.attributes;
+
+    // Add new ones
+    let nextSeq = filtered.length + 1;
+    filtered.push({
+      attribute_id: `ATTR-${String(nextSeq++).padStart(3, '0')}`,
+      key: 'categorization_hint', value: result.hint,
+      confidence: 0.8, confidence_label: 'HIGH',
+      time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+      source_attribution: { facts_layer: 1, layer_label: 'recategorize' },
+    });
+    filtered.push({
+      attribute_id: `ATTR-${String(nextSeq++).padStart(3, '0')}`,
+      key: 'relationship_to_primary', value: result.rel,
+      confidence: 0.8, confidence_label: 'HIGH',
+      time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+      source_attribution: { facts_layer: 1, layer_label: 'recategorize' },
+    });
+    filtered.push({
+      attribute_id: `ATTR-${String(nextSeq++).padStart(3, '0')}`,
+      key: 'relationship_distance', value: result.dist,
+      confidence: 0.8, confidence_label: 'HIGH',
+      time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+      source_attribution: { facts_layer: 1, layer_label: 'recategorize' },
+    });
+
+    data.attributes = filtered;
+
+    // Write back
+    writeEntity(e.entity_id, data, req.graphDir);
+
+    counts[result.hint] = (counts[result.hint] || 0) + 1;
+    details.push({ entity_id: e.entity_id, name: eName, hint: result.hint, trigger: result.rel, distance: result.dist });
+  }
+
+  const total = details.length;
+  const summary = `Recategorized ${total} people: Family (${counts.family}), Inner Circle (${counts.inner_circle}), Professional (${counts.professional}), Celebrity (${counts.celebrity}), Other (${counts.other})`;
+  console.log('[recategorize]', summary);
+
+  res.json({ summary, counts, total, details });
+});
+
 // GET /api/entity/:id/connected — Entity + all connected objects
 app.get('/api/entity/:id/connected', apiAuth, (req, res) => {
   const result = loadConnectedObjects(req.params.id, req.graphDir);
@@ -1610,12 +1929,42 @@ app.get('/api/search', apiAuth, (req, res) => {
     return e.name?.full || e.name?.common || '';
   }
 
+  // Enrich person results with categorization text and trimmed attributes/relationships
+  function enrichPersonResult(result, e, data) {
+    if (e.entity_type !== 'person') return result;
+    // _primaryText: targeted text about this person's relationship to the primary user
+    // Only: summary, relationship-specific attributes, and entity's own relationships (names stripped)
+    const priParts = [];
+    if (result.summary) priParts.push(result.summary);
+    for (const attr of (data.attributes || [])) {
+      const k = (attr.key || '').toLowerCase();
+      if (k === 'relationship_to_primary' || k === 'relationship_to_cj' || k === 'relationship' || k === 'role') {
+        priParts.push((attr.value || ''));
+      }
+    }
+    result._primaryText = priParts.join(' ').toLowerCase();
+
+    // _catText: broad text for celebrity/professional detection (summary + all attribute values)
+    const broadParts = [];
+    if (result.summary) broadParts.push(result.summary);
+    for (const attr of (data.attributes || [])) {
+      broadParts.push((attr.value || ''));
+    }
+    result._catText = broadParts.join(' ').toLowerCase();
+
+    result.attributes = (data.attributes || []).map(a => ({ key: a.key, value: a.value }));
+    result.relationships = (data.relationships || []).map(r => ({ name: r.name, relationship_type: r.relationship_type, context: r.context }));
+    return result;
+  }
+
   // Wildcard: return all entities
   if (q === '*') {
     const all = entities.map(({ data }) => {
       const e = data.entity || {};
       const name = getEntityName(e);
-      return { entity_id: e.entity_id, entity_type: e.entity_type, name, summary: e.summary?.value || '', match_score: 1.0, observation_count: (data.observations || []).length, relationship_count: (data.relationships || []).length };
+      const r = { entity_id: e.entity_id, entity_type: e.entity_type, name, summary: e.summary?.value || '', match_score: 1.0, observation_count: (data.observations || []).length, relationship_count: (data.relationships || []).length };
+      enrichPersonResult(r, e, data);
+      return r;
     });
     return res.json({ query: q, count: all.length, results: all });
   }
@@ -1650,7 +1999,7 @@ app.get('/api/search', apiAuth, (req, res) => {
     }
 
     if (score > 0.3) {
-      results.push({
+      const r = {
         entity_id: e.entity_id,
         entity_type: type,
         name,
@@ -1658,7 +2007,9 @@ app.get('/api/search', apiAuth, (req, res) => {
         match_score: Math.round(score * 100) / 100,
         observation_count: (data.observations || []).length,
         relationship_count: (data.relationships || []).length,
-      });
+      };
+      enrichPersonResult(r, e, data);
+      results.push(r);
     }
   }
 
@@ -4667,28 +5018,87 @@ function findPrimaryUser(ents, user) {
   return null;
 }
 
-function categorizeRelationship(relType, rel) {
-  if (!relType) return 'other';
-  var r = relType.toLowerCase();
-  var familyTerms = ['spouse', 'wife', 'husband', 'parent', 'mother', 'father', 'son', 'daughter', 'child', 'brother', 'sister', 'sibling', 'nephew', 'niece', 'uncle', 'aunt', 'cousin', 'in-law', 'grandparent', 'grandmother', 'grandfather', 'ex-spouse'];
-  for (var i = 0; i < familyTerms.length; i++) {
-    if (r.indexOf(familyTerms[i]) !== -1) return 'family';
+function categorizePerson(entity, relMapEntry) {
+  // Priority 1: Check for categorization_hint attribute (set by /api/recategorize or extraction)
+  var attrs = entity.attributes || [];
+  for (var hi = 0; hi < attrs.length; hi++) {
+    if (attrs[hi].key === 'categorization_hint' && attrs[hi].value) {
+      var hint = attrs[hi].value.toLowerCase().trim();
+      if (hint === 'family' || hint === 'inner_circle' || hint === 'professional' || hint === 'community' || hint === 'celebrity') {
+        return { category: hint === 'community' ? 'other' : hint, trigger: 'hint:' + attrs[hi].value };
+      }
+    }
   }
-  var innerTerms = ['close friend', 'best friend', 'groomsman', 'loyalty anchor', 'accountability partner', 'ai assistant', 'collaborator', 'co-founder'];
-  for (var i = 0; i < innerTerms.length; i++) {
-    if (r.indexOf(innerTerms[i]) !== -1) return 'inner_circle';
+
+  // Priority 2: Keyword matching using TARGETED text (not noisy blob)
+
+  // primaryText: relMap entry + entity's summary + relationship-specific attributes
+  // This describes the person's relationship TO CJ — safe for family/friend keyword search
+  var priParts = [];
+  if (relMapEntry) {
+    if (relMapEntry.type) priParts.push(relMapEntry.type.toLowerCase());
+    if (relMapEntry.context) priParts.push(relMapEntry.context.toLowerCase());
   }
-  // Check strength/trust_level fields on the relationship object
-  if (rel) {
-    if (rel.strength === 'close') return 'inner_circle';
-    var tl = String(rel.trust_level || '');
-    if (tl.indexOf('9') !== -1 || tl.indexOf('10') !== -1) return 'inner_circle';
+  if (entity._primaryText) priParts.push(entity._primaryText);
+  var primaryText = priParts.join(' ');
+
+  // broadText: summary + all attributes (for celebrity/professional detection)
+  var broadText = entity._catText || '';
+
+  function hasAny(haystack, terms) {
+    for (var i = 0; i < terms.length; i++) {
+      if (haystack.indexOf(terms[i]) !== -1) return terms[i];
+    }
+    return null;
   }
-  var proTerms = ['colleague', 'mentor', 'manager', 'coworker', 'professional', 'security architect', 'from your school'];
-  for (var i = 0; i < proTerms.length; i++) {
-    if (r.indexOf(proTerms[i]) !== -1) return 'professional';
+
+  // Check surrogate terms first — these override family keywords
+  var surrogateTerms = ['like a brother', 'like a sister', 'like family', 'surrogate',
+    'father figure', 'mother figure', 'big brother figure', 'sister figure', 'brother figure'];
+  var isSurrogate = hasAny(primaryText, surrogateTerms);
+
+  // INNER CIRCLE — check FIRST (multi-word terms like "childhood friend" beat substring "child")
+  var innerTerms = ['best friend', 'close friend', 'closest friend', 'groomsman', 'bridesmaid',
+    'loyalty anchor', 'accountability partner', 'ride or die', 'day one',
+    'childhood friend', 'lifelong friend', 'like a brother', 'like a sister',
+    'like family', 'brotherhood', 'super close', 'ai assistant', 'collaborator',
+    'co-founder', 's-tier', 'a-tier', 'surrogate', 'father figure', 'mother figure',
+    'big brother', 'big sister', 'mba homie', 'homie', 'mentee', 'trusted'];
+  var it = hasAny(primaryText, innerTerms);
+  if (it) return { category: 'inner_circle', trigger: it };
+  if (relMapEntry) {
+    if (relMapEntry.strength === 'close') return { category: 'inner_circle', trigger: 'strength:close' };
+    var tl = String(relMapEntry.trust_level || '');
+    if (tl.indexOf('9') !== -1 || tl.indexOf('10') !== -1) return { category: 'inner_circle', trigger: 'trust:' + tl };
   }
-  return 'other';
+
+  // FAMILY — search primaryText only, skip if surrogate
+  if (!isSurrogate) {
+    var familyTerms = ['spouse', 'wife', 'husband', 'ex-wife', 'ex-husband', 'ex-spouse', 'co-parent',
+      'mother', 'father', 'parent', 'mom', 'dad', 'son', 'daughter', 'child',
+      'brother', 'sister', 'sibling', 'half-brother', 'half-sister',
+      'stepmother', 'stepfather', 'nephew', 'niece', 'uncle', 'aunt', 'cousin',
+      'in-law', 'grandparent', 'grandmother', 'grandfather'];
+    var ft = hasAny(primaryText, familyTerms);
+    if (ft) return { category: 'family', trigger: ft };
+  }
+
+  // PROFESSIONAL — search primaryText
+  var proTerms = ['colleague', 'coworker', 'manager', 'direct report', 'supervisor',
+    'mentor', 'business partner', 'professional', 'security architect',
+    'from your school', 'employer', 'employee'];
+  var pt = hasAny(primaryText, proTerms);
+  if (pt) return { category: 'professional', trigger: pt };
+
+  // CELEBRITY — search broadText, only if NO relationship to primary user
+  if (!relMapEntry) {
+    var celTerms = ['rapper', 'musician', 'artist', 'athlete', 'actor', 'actress',
+      'singer', 'public figure', 'celebrity', 'entertainer', 'comedian'];
+    var ct = hasAny(broadText, celTerms);
+    if (ct) return { category: 'celebrity', trigger: ct };
+  }
+
+  return { category: 'other', trigger: 'default' };
 }
 
 function sortPeopleGroup(group, category) {
@@ -4716,16 +5126,29 @@ function buildSidebarData() {
   q = (q || '').trim().toLowerCase();
   var isSearching = q.length > 0;
 
-  // Build relationship map from primary entity
+  // Build relationship map from primary entity (store raw data, not pre-categorized)
   var relMap = {};
+  var primaryUserName = '';
+  if (primaryEntityData && primaryEntityData.entity) {
+    var pn = primaryEntityData.entity.name || {};
+    primaryUserName = (pn.full || pn.preferred || '').toLowerCase().trim();
+  }
   if (primaryEntityData && primaryEntityData.relationships) {
     var rels = primaryEntityData.relationships;
     for (var i = 0; i < rels.length; i++) {
       var rname = (rels[i].name || '').toLowerCase().trim();
-      relMap[rname] = {
-        category: categorizeRelationship(rels[i].relationship_type, rels[i]),
-        type: rels[i].relationship_type || ''
+      var entry = {
+        type: rels[i].relationship_type || '',
+        context: rels[i].context || '',
+        strength: rels[i].strength || '',
+        trust_level: rels[i].trust_level || ''
       };
+      relMap[rname] = entry;
+      // Also key by name without parentheticals: "Allen Jones (Big Al)" -> "allen jones"
+      var stripped = rname.replace(/\\s*\\([^)]*\\)/g, '').trim();
+      if (stripped && stripped !== rname) {
+        relMap[stripped] = entry;
+      }
     }
   }
 
@@ -4804,14 +5227,85 @@ function buildSidebarData() {
     }
     if (t === 'person') {
       var elower = ename.toLowerCase().trim();
-      var rel = relMap[elower];
-      if (rel) {
-        e._relType = rel.type;
-        people[rel.category].push(e);
-      } else {
-        e._relType = '';
-        people.other.push(e);
+
+      // Step 1: Exact match in relMap
+      var relEntry = relMap[elower] || null;
+
+      // Step 2: Fuzzy match — strip parentheticals from entity name and try again
+      if (!relEntry) {
+        var eStripped = elower.replace(/\\s*\\([^)]*\\)/g, '').trim();
+        if (eStripped !== elower) relEntry = relMap[eStripped] || null;
       }
+
+      // Step 3: Fuzzy match — first+last name overlap
+      if (!relEntry) {
+        var eParts = elower.split(/\\s+/);
+        if (eParts.length >= 2) {
+          var eFirst = eParts[0];
+          var eLast = eParts[eParts.length - 1];
+          for (var rk in relMap) {
+            if (rk.indexOf(eFirst) !== -1 && rk.indexOf(eLast) !== -1) {
+              relEntry = relMap[rk];
+              break;
+            }
+          }
+          // Also try: relMap key first+last in entity name
+          if (!relEntry) {
+            for (var rk in relMap) {
+              var rkParts = rk.split(/\\s+/);
+              if (rkParts.length >= 2) {
+                var rkFirst = rkParts[0];
+                var rkLast = rkParts[rkParts.length - 1];
+                if (elower.indexOf(rkFirst) !== -1 && elower.indexOf(rkLast) !== -1) {
+                  relEntry = relMap[rk];
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Step 4: Reverse lookup — check if entity's own relationships mention the primary user
+      if (!relEntry && e.relationships && primaryUserName) {
+        var eRels = e.relationships;
+        for (var ri = 0; ri < eRels.length; ri++) {
+          var erName = (eRels[ri].name || '').toLowerCase();
+          if (erName && primaryUserName.indexOf(erName) !== -1) {
+            relEntry = { type: eRels[ri].relationship_type || '', context: eRels[ri].context || '', strength: '', trust_level: '' };
+            break;
+          }
+          // Also fuzzy: first+last of rel name in primary user name
+          var erParts = erName.split(/\\s+/);
+          if (erParts.length >= 2) {
+            if (primaryUserName.indexOf(erParts[0]) !== -1 && primaryUserName.indexOf(erParts[erParts.length - 1]) !== -1) {
+              relEntry = { type: eRels[ri].relationship_type || '', context: eRels[ri].context || '', strength: '', trust_level: '' };
+              break;
+            }
+          }
+        }
+      }
+
+      // Categorize using enriched data
+      var catResult = categorizePerson(e, relEntry);
+      console.log('CAT_DEBUG:', ename, '->', catResult.category, '(' + catResult.trigger + ')');
+
+      // Skip celebrities
+      if (catResult.category === 'celebrity') continue;
+
+      // Use relMap type as _relType, or entity role attribute as fallback
+      e._relType = (relEntry && relEntry.type) ? relEntry.type : '';
+      if (!e._relType) {
+        var eAttrs = e.attributes || [];
+        for (var ai = 0; ai < eAttrs.length; ai++) {
+          if (eAttrs[ai].key === 'role' && eAttrs[ai].value) {
+            e._relType = eAttrs[ai].value;
+            break;
+          }
+        }
+      }
+
+      people[catResult.category].push(e);
     } else if (t === 'organization' || t === 'business' || t === 'institution') {
       var oname = ename.toLowerCase().trim();
 
