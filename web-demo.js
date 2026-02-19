@@ -380,10 +380,10 @@ The primary user of this system is ${primaryUserName}. Every relationship you ex
 Every person entity MUST include these fields in attributes:
 - "relationship_to_primary": direct relationship to ${primaryUserName} (e.g. "spouse", "son", "best friend", "sister-in-law", "colleague", "friend_spouse")
 - "relationship_distance": "1" = direct relationship, "2" = connected through someone, "3" = tertiary/extended
-- "categorization_hint": one of "family", "inner_circle", "professional", "community", "other"
+- "categorization_hint": one of "family", "friends", "professional", "community", "other"
 
 IMPORTANT — "like family" is NOT family:
-- "like a brother", "surrogate sister", "big brother figure", "father figure" → categorization_hint: "inner_circle" (NOT family)
+- "like a brother", "surrogate sister", "big brother figure", "father figure" → categorization_hint: "friends" (NOT family)
 - Actual blood/marriage/legal family only → categorization_hint: "family"
 - Friend's spouses, friend's children → categorization_hint: "other" or "community" (NOT family)
 ` : '';
@@ -467,8 +467,8 @@ function buildIngestPrompt(batch, primaryUserName) {
     primaryBlock = '\nPRIMARY USER CONTEXT:\n'
       + 'The primary user of this system is ' + primaryUserName + '. Every relationship you extract for a person entity MUST be defined RELATIVE TO THIS PRIMARY USER.\n'
       + '- For each person, answer: What is this person\'s relationship TO ' + primaryUserName + '?\n'
-      + '- Every person entity MUST include these attributes: "relationship_to_primary" (e.g. "spouse", "best friend", "colleague", "friend_spouse"), "relationship_distance" ("1"=direct, "2"=through someone, "3"=tertiary), "categorization_hint" (one of "family", "inner_circle", "professional", "community", "other")\n'
-      + '- IMPORTANT: "like a brother", "surrogate sister", "father figure" = inner_circle, NOT family. Only blood/marriage/legal = family.\n'
+      + '- Every person entity MUST include these attributes: "relationship_to_primary" (e.g. "spouse", "best friend", "colleague", "friend_spouse"), "relationship_distance" ("1"=direct, "2"=through someone, "3"=tertiary), "categorization_hint" (one of "family", "friends", "professional", "community", "other")\n'
+      + '- IMPORTANT: "like a brother", "surrogate sister", "father figure" = friends, NOT family. Only blood/marriage/legal = family.\n'
       + '- Friend\'s spouses, friend\'s children = "other" or "community", NOT family.\n\n';
   }
 
@@ -1595,6 +1595,24 @@ app.post('/api/recategorize', apiAuth, (req, res) => {
   const primaryAliases = [primaryName];
   if (primaryData.entity.name?.preferred) primaryAliases.push(primaryData.entity.name.preferred.toLowerCase());
   for (const a of (primaryData.entity.name?.aliases || [])) { primaryAliases.push(a.toLowerCase()); }
+  // Also add first name and first+last as aliases
+  const pnParts = primaryName.split(/\s+/);
+  if (pnParts.length >= 1) primaryAliases.push(pnParts[0]);
+  if (pnParts.length >= 2) primaryAliases.push(pnParts[0] + ' ' + pnParts[pnParts.length - 1]);
+
+  // Build spouse name list from primary entity's relationships (for in-law detection)
+  const spouseNames = [];
+  for (const rel of (primaryData.relationships || [])) {
+    const rt = (rel.relationship_type || '').toLowerCase();
+    if (rt === 'spouse' || rt === 'wife' || rt === 'husband' || rt === 'current spouse' || rt === 'ex-wife' || rt === 'ex-husband' || rt === 'co-parent') {
+      const sn = (rel.name || '').toLowerCase().trim();
+      if (sn) {
+        spouseNames.push(sn);
+        const snParts = sn.split(/\s+/);
+        if (snParts.length >= 1) spouseNames.push(snParts[0]);
+      }
+    }
+  }
 
   function categorizeEntity(data) {
     const e = data.entity || {};
@@ -1688,6 +1706,13 @@ app.post('/api/recategorize', apiAuth, (req, res) => {
       for (const t of terms) { if (haystack.indexOf(t) !== -1) return t; }
       return null;
     }
+    function hasAnyWord(haystack, terms) {
+      for (const t of terms) {
+        const re = new RegExp('(?:^|\\b)' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?:\\b|$)', 'i');
+        if (re.test(haystack)) return t;
+      }
+      return null;
+    }
 
     // Check for surrogate/figurative terms — these override family keywords
     const surrogateTerms = ['like a brother', 'like a sister', 'like family', 'surrogate',
@@ -1705,15 +1730,16 @@ app.post('/api/recategorize', apiAuth, (req, res) => {
       'co-founder', 's-tier', 'a-tier', 'mentee', 'mba homie', 'homie',
       'groomsman', 'trusted', 'accountability'];
     const it = hasAny(primaryText, innerTerms);
-    if (it) return { hint: 'inner_circle', rel: it, dist: relEntry ? '1' : '2' };
+    if (it) return { hint: 'friends', rel: it, dist: relEntry ? '1' : '2' };
     if (relEntry) {
-      if (relEntry.strength === 'close') return { hint: 'inner_circle', rel: 'strength:close', dist: '1' };
+      if (relEntry.strength === 'close') return { hint: 'friends', rel: 'strength:close', dist: '1' };
       const tl = String(relEntry.trust_level || '');
-      if (tl.indexOf('9') !== -1 || tl.indexOf('10') !== -1) return { hint: 'inner_circle', rel: 'trust:' + tl, dist: '1' };
+      if (tl.indexOf('9') !== -1 || tl.indexOf('10') !== -1) return { hint: 'friends', rel: 'trust:' + tl, dist: '1' };
     }
 
-    // FAMILY — search DIRECT text only (not summary!), skip if surrogate
-    // Family keywords in the summary are unreliable ("Dorian is Ro's wife" → "wife" matches)
+    // FAMILY — skip if surrogate
+    // CRITICAL: Must verify the family keyword is IN RELATION TO CJ, not someone else
+    // Strategy: relEntry.type is CJ's DIRECT relationship label (trusted). Context text needs directionality check.
     if (!isSurrogate) {
       const familyTerms = ['spouse', 'wife', 'husband', 'ex-wife', 'ex-husband', 'ex-spouse', 'co-parent',
         'mother', 'father', 'parent', 'mom', 'dad', 'son', 'daughter', 'child',
@@ -1721,9 +1747,46 @@ app.post('/api/recategorize', apiAuth, (req, res) => {
         'stepmother', 'stepfather', 'nephew', 'niece', 'uncle', 'aunt', 'cousin',
         'in-law', 'sister-in-law', 'brother-in-law', 'mother-in-law', 'father-in-law',
         'grandparent', 'grandmother', 'grandfather'];
-      const ft = hasAny(directText, familyTerms);
-      if (ft) {
-        return { hint: 'family', rel: ft, dist: relEntry ? '1' : '2' };
+
+      // Check relEntry.type first — this is CJ's direct relationship label, always trusted
+      const relTypeText = relEntry ? (relEntry.type || '').toLowerCase() : '';
+      const ftRelType = hasAnyWord(relTypeText, familyTerms);
+      if (ftRelType) {
+        return { hint: 'family', rel: ftRelType, dist: relEntry ? '1' : '2' };
+      }
+
+      // If relEntry.type exists and is NOT a family term, do NOT promote to family from context
+      // e.g., "childhood neighbor" with context "same age as CJ's sister" — "sister" describes someone else
+      if (!relEntry || !relTypeText) {
+        // No relEntry — check directText with directionality guard
+        const ft = hasAnyWord(directText, familyTerms);
+        if (ft) {
+          const ofPattern = new RegExp('(?:spouse|wife|husband|mother|father|sister|brother|daughter|son|parent|child|sibling|nephew|niece|uncle|aunt|cousin|grandmother|grandfather)\\s+of\\s+(\\w[\\w\\s]*)', 'gi');
+          let isFamilyOfOther = false;
+          let match;
+          while ((match = ofPattern.exec(directText)) !== null) {
+            const ofWhom = match[1].trim().toLowerCase();
+            const isCJ = primaryAliases.some(a => a && ofWhom.indexOf(a) !== -1);
+            const isSpouse = spouseNames.some(s => s && ofWhom.indexOf(s) !== -1);
+            if (!isCJ && !isSpouse) { isFamilyOfOther = true; break; }
+          }
+          if (!isFamilyOfOther) {
+            const possPattern = /(\w[\w\s]*?)(?:'s|'s)\s+(?:spouse|wife|husband|mother|father|sister|brother|daughter|son|parent|child|sibling|nephew|niece|uncle|aunt|cousin|grandmother|grandfather)/gi;
+            while ((match = possPattern.exec(directText)) !== null) {
+              const owner = match[1].trim().toLowerCase();
+              const isCJ = primaryAliases.some(a => a && owner.indexOf(a) !== -1);
+              const isSpouse = spouseNames.some(s => s && owner.indexOf(s) !== -1);
+              if (!isCJ && !isSpouse && owner.length > 1) { isFamilyOfOther = true; break; }
+            }
+          }
+          if (!isFamilyOfOther) {
+            const friendFamilyPattern = /(?:spouse|wife|husband|mother|father|sister|brother|daughter|son)\s+of\s+(?:a\s+|deceased\s+)?(?:friend|colleague|coworker|associate|peer|buddy)/gi;
+            if (friendFamilyPattern.test(directText)) isFamilyOfOther = true;
+          }
+          if (!isFamilyOfOther) {
+            return { hint: 'family', rel: ft, dist: relEntry ? '1' : '2' };
+          }
+        }
       }
     }
 
@@ -1755,7 +1818,7 @@ app.post('/api/recategorize', apiAuth, (req, res) => {
   }
 
   // Process all person entities
-  const counts = { family: 0, inner_circle: 0, professional: 0, community: 0, celebrity: 0, other: 0, skipped: 0 };
+  const counts = { family: 0, friends: 0, professional: 0, community: 0, celebrity: 0, other: 0, skipped: 0 };
   const details = [];
   const now = new Date().toISOString();
 
@@ -1811,7 +1874,7 @@ app.post('/api/recategorize', apiAuth, (req, res) => {
   }
 
   const total = details.length;
-  const summary = `Recategorized ${total} people: Family (${counts.family}), Inner Circle (${counts.inner_circle}), Professional (${counts.professional}), Celebrity (${counts.celebrity}), Other (${counts.other})`;
+  const summary = `Recategorized ${total} people: Family (${counts.family}), Friends (${counts.friends}), Professional (${counts.professional}), Community (${counts.community}), Celebrity (${counts.celebrity}), Other (${counts.other})`;
   console.log('[recategorize]', summary);
 
   res.json({ summary, counts, total, details });
@@ -4830,6 +4893,65 @@ const WIKI_HTML = `<!DOCTYPE html>
     padding: 8px 20px 8px 36px; font-size: 12px; color: var(--text-muted);
     font-style: italic;
   }
+  .sidebar-cat-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 20px 7px 36px; cursor: pointer;
+    font-size: 13px; color: var(--text-tertiary);
+    transition: all var(--transition-fast);
+  }
+  .sidebar-cat-row:hover { background: var(--bg-hover); color: var(--text-primary); }
+  .sidebar-cat-row.active {
+    background: #f5f0ff; color: #6366f1;
+    border-left: 3px solid #6366f1; padding-left: 33px;
+  }
+  .sidebar-cat-row .cat-emoji { font-size: 0.85rem; flex-shrink: 0; width: 18px; text-align: center; }
+  .sidebar-cat-row .cat-label { flex: 1; }
+  .sidebar-cat-row .cat-count {
+    font-size: 0.65rem; font-weight: 500; color: var(--text-muted);
+    background: var(--bg-tertiary); padding: 1px 7px; border-radius: 10px;
+  }
+  #breadcrumbs {
+    padding: 0;
+  }
+  #breadcrumbs:empty {
+    display: none;
+  }
+  .breadcrumb-bar {
+    display: flex; align-items: center; gap: 0;
+    padding: 10px 28px 0; font-size: 0.78rem;
+  }
+  .breadcrumb-bar a {
+    color: var(--text-muted); text-decoration: none; cursor: pointer;
+    transition: color 0.15s;
+  }
+  .breadcrumb-bar a:hover { color: #6366f1; }
+  .breadcrumb-sep {
+    margin: 0 6px; color: var(--text-muted); font-size: 0.7rem;
+  }
+  .breadcrumb-current {
+    color: var(--text-primary); font-weight: 500;
+  }
+  .cat-page-header {
+    font-size: 1.3rem; font-weight: 700; color: var(--text-primary);
+    padding: 20px 0 16px; border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: 16px;
+  }
+  .cat-page-count {
+    font-size: 0.85rem; font-weight: 400; color: var(--text-muted); margin-left: 8px;
+  }
+  .cat-card-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+  }
+  .cat-card {
+    background: var(--bg-card); border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md); padding: 14px 16px; cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+  .cat-card:hover { border-color: #6366f1; box-shadow: 0 2px 8px rgba(99,102,241,0.1); }
+  .cat-card-name { font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+  .cat-card-subtitle { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 6px; }
+  .cat-card-summary { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; }
   .sidebar-footer-user {
     display: flex; align-items: center; gap: 8px;
     margin-bottom: 6px; justify-content: center;
@@ -4932,6 +5054,7 @@ const WIKI_HTML = `<!DOCTYPE html>
       </div>
     </div>
   </div>
+  <div id="breadcrumbs"></div>
   <div id="main">
     <div class="empty-state" id="emptyState">
       <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.2">
@@ -4958,9 +5081,29 @@ var primaryEntityId = null;
 var primaryEntityData = null;
 var allEntities = [];
 var selectedView = null;
+var selectedCategory = null;
+var breadcrumbs = [];
 var collapsedSections = {};
 
 function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+function renderBreadcrumbs() {
+  var el = document.getElementById('breadcrumbs');
+  if (!el) return;
+  if (!breadcrumbs || breadcrumbs.length === 0) { el.innerHTML = ''; return; }
+  var html = '<div class="breadcrumb-bar">';
+  for (var i = 0; i < breadcrumbs.length; i++) {
+    var b = breadcrumbs[i];
+    if (i > 0) html += '<span class="breadcrumb-sep">\u203A</span>';
+    if (i < breadcrumbs.length - 1 && b.action) {
+      html += '<a onclick="' + b.action + '">' + esc(b.label) + '</a>';
+    } else {
+      html += '<span class="breadcrumb-current">' + esc(b.label) + '</span>';
+    }
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
 
 function findPrimaryUser(ents, user) {
   if (!user || !user.name) return null;
@@ -5024,8 +5167,9 @@ function categorizePerson(entity, relMapEntry) {
   for (var hi = 0; hi < attrs.length; hi++) {
     if (attrs[hi].key === 'categorization_hint' && attrs[hi].value) {
       var hint = attrs[hi].value.toLowerCase().trim();
-      if (hint === 'family' || hint === 'inner_circle' || hint === 'professional' || hint === 'community' || hint === 'celebrity') {
-        return { category: hint === 'community' ? 'other' : hint, trigger: 'hint:' + attrs[hi].value };
+      if (hint === 'family' || hint === 'friends' || hint === 'inner_circle' || hint === 'professional' || hint === 'community' || hint === 'celebrity' || hint === 'other') {
+        var mapped = hint === 'inner_circle' ? 'friends' : hint;
+        return { category: mapped, trigger: 'hint:' + attrs[hi].value };
       }
     }
   }
@@ -5051,6 +5195,18 @@ function categorizePerson(entity, relMapEntry) {
     }
     return null;
   }
+  function hasAnyWord(haystack, terms) {
+    for (var i = 0; i < terms.length; i++) {
+      var idx = haystack.indexOf(terms[i]);
+      if (idx === -1) continue;
+      var before = idx > 0 ? haystack.charAt(idx - 1) : ' ';
+      var after = idx + terms[i].length < haystack.length ? haystack.charAt(idx + terms[i].length) : ' ';
+      var bOk = before === ' ' || before === '-' || before === ',' || before === '.' || before === '(' || before === '/' || before === ':' || before === ';' || idx === 0;
+      var aOk = after === ' ' || after === '-' || after === ',' || after === '.' || after === ')' || after === '/' || after === ':' || after === ';' || (idx + terms[i].length) === haystack.length;
+      if (bOk && aOk) return terms[i];
+    }
+    return null;
+  }
 
   // Check surrogate terms first — these override family keywords
   var surrogateTerms = ['like a brother', 'like a sister', 'like family', 'surrogate',
@@ -5065,22 +5221,90 @@ function categorizePerson(entity, relMapEntry) {
     'co-founder', 's-tier', 'a-tier', 'surrogate', 'father figure', 'mother figure',
     'big brother', 'big sister', 'mba homie', 'homie', 'mentee', 'trusted'];
   var it = hasAny(primaryText, innerTerms);
-  if (it) return { category: 'inner_circle', trigger: it };
+  if (it) return { category: 'friends', trigger: it };
   if (relMapEntry) {
-    if (relMapEntry.strength === 'close') return { category: 'inner_circle', trigger: 'strength:close' };
+    if (relMapEntry.strength === 'close') return { category: 'friends', trigger: 'strength:close' };
     var tl = String(relMapEntry.trust_level || '');
-    if (tl.indexOf('9') !== -1 || tl.indexOf('10') !== -1) return { category: 'inner_circle', trigger: 'trust:' + tl };
+    if (tl.indexOf('9') !== -1 || tl.indexOf('10') !== -1) return { category: 'friends', trigger: 'trust:' + tl };
   }
 
-  // FAMILY — search primaryText only, skip if surrogate
+  // FAMILY — skip if surrogate
+  // CRITICAL: Must verify the family keyword is IN RELATION TO CJ, not someone else
+  // Strategy: relMapEntry.type is CJ's DIRECT relationship label (trusted). Context text needs directionality check.
   if (!isSurrogate) {
     var familyTerms = ['spouse', 'wife', 'husband', 'ex-wife', 'ex-husband', 'ex-spouse', 'co-parent',
       'mother', 'father', 'parent', 'mom', 'dad', 'son', 'daughter', 'child',
       'brother', 'sister', 'sibling', 'half-brother', 'half-sister',
       'stepmother', 'stepfather', 'nephew', 'niece', 'uncle', 'aunt', 'cousin',
       'in-law', 'grandparent', 'grandmother', 'grandfather'];
-    var ft = hasAny(primaryText, familyTerms);
-    if (ft) return { category: 'family', trigger: ft };
+
+    // Check relMapEntry.type first — CJ's direct relationship label, always trusted
+    var relTypeText2 = relMapEntry ? (relMapEntry.type || '').toLowerCase() : '';
+    var ftRelType2 = hasAnyWord(relTypeText2, familyTerms);
+    if (ftRelType2) return { category: 'family', trigger: ftRelType2 };
+
+    // If relMapEntry.type exists and is NOT a family term, do NOT promote to family from context
+    // e.g., "childhood neighbor" with context "same age as CJ's sister" — "sister" describes someone else
+    if (!relMapEntry || !relTypeText2) {
+      var ft = hasAnyWord(primaryText, familyTerms);
+      if (ft) {
+        var pAliases = [];
+        var sNames = [];
+        if (primaryEntityData && primaryEntityData.entity) {
+          var pen = primaryEntityData.entity.name || {};
+          var pfull = (pen.full || '').toLowerCase();
+          if (pfull) {
+            pAliases.push(pfull);
+            var pp = pfull.split(/\s+/);
+            if (pp.length >= 1) pAliases.push(pp[0]);
+            if (pp.length >= 2) pAliases.push(pp[0] + ' ' + pp[pp.length - 1]);
+          }
+          if (pen.preferred) pAliases.push(pen.preferred.toLowerCase());
+          if (pen.aliases) { for (var ai2 = 0; ai2 < pen.aliases.length; ai2++) pAliases.push(pen.aliases[ai2].toLowerCase()); }
+        }
+        if (primaryEntityData && primaryEntityData.relationships) {
+          var prels = primaryEntityData.relationships;
+          for (var si = 0; si < prels.length; si++) {
+            var srt = (prels[si].relationship_type || '').toLowerCase();
+            if (srt === 'spouse' || srt === 'wife' || srt === 'husband' || srt === 'current spouse' || srt === 'ex-wife' || srt === 'ex-husband' || srt === 'co-parent') {
+              var sn2 = (prels[si].name || '').toLowerCase().trim();
+              if (sn2) {
+                sNames.push(sn2);
+                var snp = sn2.split(/\s+/);
+                if (snp.length >= 1) sNames.push(snp[0]);
+              }
+            }
+          }
+        }
+        var isFamOther = false;
+        var ofRe = /(?:spouse|wife|husband|mother|father|sister|brother|daughter|son|parent|child|sibling|nephew|niece|uncle|aunt|cousin|grandmother|grandfather)\s+of\s+(\w[\w\s]*)/gi;
+        var fm;
+        while ((fm = ofRe.exec(primaryText)) !== null) {
+          var ofW = fm[1].trim().toLowerCase();
+          var isCJ2 = false;
+          var isSp2 = false;
+          for (var k2 = 0; k2 < pAliases.length; k2++) { if (pAliases[k2] && ofW.indexOf(pAliases[k2]) !== -1) { isCJ2 = true; break; } }
+          for (var k3 = 0; k3 < sNames.length; k3++) { if (sNames[k3] && ofW.indexOf(sNames[k3]) !== -1) { isSp2 = true; break; } }
+          if (!isCJ2 && !isSp2) { isFamOther = true; break; }
+        }
+        if (!isFamOther) {
+          var posRe = /(\w[\w\s]*?)(?:'s|'s)\s+(?:spouse|wife|husband|mother|father|sister|brother|daughter|son|parent|child|sibling|nephew|niece|uncle|aunt|cousin|grandmother|grandfather)/gi;
+          while ((fm = posRe.exec(primaryText)) !== null) {
+            var own = fm[1].trim().toLowerCase();
+            var isCJ3 = false;
+            var isSp3 = false;
+            for (var k4 = 0; k4 < pAliases.length; k4++) { if (pAliases[k4] && own.indexOf(pAliases[k4]) !== -1) { isCJ3 = true; break; } }
+            for (var k5 = 0; k5 < sNames.length; k5++) { if (sNames[k5] && own.indexOf(sNames[k5]) !== -1) { isSp3 = true; break; } }
+            if (!isCJ3 && !isSp3 && own.length > 1) { isFamOther = true; break; }
+          }
+        }
+        if (!isFamOther) {
+          var ffRe = /(?:spouse|wife|husband|mother|father|sister|brother|daughter|son)\s+of\s+(?:a\s+|deceased\s+)?(?:friend|colleague|coworker|associate|peer|buddy)/gi;
+          if (ffRe.test(primaryText)) isFamOther = true;
+        }
+        if (!isFamOther) return { category: 'family', trigger: ft };
+      }
+    }
   }
 
   // PROFESSIONAL — search primaryText
@@ -5205,7 +5429,7 @@ function buildSidebarData() {
   }
 
   var you = null;
-  var people = { family: [], inner_circle: [], professional: [], other: [] };
+  var people = { family: [], friends: [], professional: [], community: [], other: [] };
   var organizations = { career: [], education: [], other: [] };
   var projects = { active: [], rnd: [], archive: [] };
   var seenOrgNames = {}; // lowercase name -> entity_id (dedup: prefer connected objects)
@@ -5353,8 +5577,9 @@ function buildSidebarData() {
 
   // Sort people groups
   sortPeopleGroup(people.family, 'family');
-  sortPeopleGroup(people.inner_circle, 'inner_circle');
+  sortPeopleGroup(people.friends, 'friends');
   sortPeopleGroup(people.professional, 'professional');
+  sortPeopleGroup(people.community, 'community');
   sortPeopleGroup(people.other, 'other');
 
   // If not searching and primary not in allEntities, still show You if we have data
@@ -5370,6 +5595,13 @@ function selectView(viewId) {
   if (!primaryEntityId) return;
   selectedId = primaryEntityId;
   selectedView = viewId;
+  selectedCategory = null;
+  var viewLabels = { 'overview': 'Overview', 'career-lite': 'Career Lite', 'executive-brief': 'Executive Brief', 'creator-profile': 'Creator Profile', 'values-identity': 'Values & Identity' };
+  breadcrumbs = [
+    { label: 'My Profiles', action: '' },
+    { label: viewLabels[viewId] || viewId }
+  ];
+  renderBreadcrumbs();
   var empty = document.getElementById('emptyState');
   if (empty) empty.style.display = 'none';
 
@@ -5406,9 +5638,61 @@ function selectView(viewId) {
   renderSidebar();
 }
 
+function selectCategoryPage(category) {
+  selectedCategory = category;
+  selectedId = null;
+  selectedView = null;
+  var empty = document.getElementById('emptyState');
+  if (empty) empty.style.display = 'none';
+  var catLabels = { family: 'Family', friends: 'Friends', professional: 'Professional', community: 'Communities', other: 'Other' };
+  breadcrumbs = [
+    { label: 'People', action: '' },
+    { label: catLabels[category] || category }
+  ];
+  renderBreadcrumbs();
+  var data = buildSidebarData();
+  var people = data.people[category] || [];
+  renderCategoryPage(category, people);
+  renderSidebar();
+}
+
+function renderCategoryPage(category, people) {
+  var catMeta = {
+    family: { emoji: '\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC66', label: 'Family' },
+    friends: { emoji: '\uD83E\uDD1D', label: 'Friends' },
+    professional: { emoji: '\uD83D\uDCBC', label: 'Professional' },
+    community: { emoji: '\uD83C\uDFD8\uFE0F', label: 'Communities' },
+    other: { emoji: '\uD83D\uDC65', label: 'Other' }
+  };
+  var meta = catMeta[category] || { emoji: '', label: category };
+  var html = '<div style="padding: 24px 28px;">';
+  html += '<div class="cat-page-header">' + meta.emoji + ' ' + esc(meta.label);
+  html += '<span class="cat-page-count">&middot; ' + people.length + ' ' + (people.length === 1 ? 'person' : 'people') + '</span>';
+  html += '</div>';
+  html += '<div class="cat-card-grid">';
+  for (var i = 0; i < people.length; i++) {
+    var p = people[i];
+    var pName = p.name || '';
+    var pSub = p._relType || '';
+    var pSummary = (p.summary || '').substring(0, 120);
+    if ((p.summary || '').length > 120) pSummary += '...';
+    html += '<div class="cat-card" onclick="selectEntity(' + "'" + esc(p.entity_id) + "'" + ',' + "'" + category + "'" + ')">';
+    html += '<div class="cat-card-name">' + esc(pName) + '</div>';
+    if (pSub) html += '<div class="cat-card-subtitle">' + esc(pSub) + '</div>';
+    if (pSummary) html += '<div class="cat-card-summary">' + esc(pSummary) + '</div>';
+    html += '</div>';
+  }
+  html += '</div>';
+  if (people.length === 0) {
+    html += '<div style="padding:24px;color:var(--text-muted);text-align:center;">No people in this category</div>';
+  }
+  html += '</div>';
+  document.getElementById('main').innerHTML = html;
+}
+
 function renderProfileOverview(data) {
   var e = data.entity || {};
-  var name = (e.name && e.name.full) ? e.name.full : (e.name && e.name.common) || '';
+  var name = (e.name && (e.name.full || e.name.preferred || e.name.common)) || '';
   var summary = (e.summary && e.summary.value) || '';
   var attrs = data.attributes || [];
   var connected = data.connected_objects || [];
@@ -5784,17 +6068,62 @@ function onSearch() {
   searchTimeout = setTimeout(function() {
     var q = document.getElementById('searchInput').value.trim();
     if (!q) {
-      // Empty search — restore all entities
+      // Empty search — restore all entities and clear search state
       entities = allEntities.slice();
       renderSidebar();
+      // Restore previous main panel state
+      if (selectedCategory) {
+        selectCategoryPage(selectedCategory);
+      } else if (selectedId) {
+        selectEntity(selectedId);
+      } else {
+        breadcrumbs = [];
+        renderBreadcrumbs();
+        var empty = document.getElementById('emptyState');
+        if (empty) empty.style.display = '';
+      }
       return;
     }
     var url = '/api/search?q=' + encodeURIComponent(q);
     api('GET', url).then(function(data) {
-      entities = data.results || [];
+      var results = data.results || [];
+      entities = results;
+      selectedCategory = null;
+      selectedId = null;
+      selectedView = null;
+      breadcrumbs = [{ label: 'Search: ' + q }];
+      renderBreadcrumbs();
+      renderSearchResults(results, q);
       renderSidebar();
     });
   }, 250);
+}
+
+function renderSearchResults(results, query) {
+  var html = '<div style="padding: 24px 28px;">';
+  html += '<div class="cat-page-header">';
+  html += 'Search results for ' + "'" + esc(query) + "'";
+  html += '<span class="cat-page-count">&middot; ' + results.length + ' ' + (results.length === 1 ? 'result' : 'results') + '</span>';
+  html += '</div>';
+  if (results.length === 0) {
+    html += '<div style="padding:24px;color:var(--text-muted);text-align:center;">No results found</div>';
+  } else {
+    html += '<div class="cat-card-grid">';
+    for (var i = 0; i < results.length; i++) {
+      var r = results[i];
+      var rName = r.name || r.entity_id || '';
+      var rType = r.entity_type || '';
+      var rSummary = (r.summary || '').substring(0, 120);
+      if ((r.summary || '').length > 120) rSummary += '...';
+      html += '<div class="cat-card" onclick="selectEntity(' + "'" + esc(r.entity_id) + "'" + ')">';
+      html += '<div class="cat-card-name">' + esc(rName) + ' <span class="type-badge ' + rType + '">' + esc(rType) + '</span></div>';
+      if (rSummary) html += '<div class="cat-card-summary">' + esc(rSummary) + '</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  document.getElementById('main').innerHTML = html;
 }
 
 function renderSidebarSection(id, emoji, title, count, contentFn, defaultCollapsed) {
@@ -5827,7 +6156,7 @@ function renderSidebar() {
   console.log('SIDEBAR_DEBUG: allEntities:', allEntities.length, 'entities:', entities.length);
   console.log('SIDEBAR_DEBUG: primaryEntityId:', primaryEntityId);
   console.log('SIDEBAR_DEBUG: primaryEntityData:', primaryEntityData ? 'loaded' : 'null');
-  console.log('SIDEBAR_DEBUG: people fam/inner/pro/other:', data.people.family.length, data.people.inner_circle.length, data.people.professional.length, data.people.other.length);
+  console.log('SIDEBAR_DEBUG: people fam/friends/pro/community/other:', data.people.family.length, data.people.friends.length, data.people.professional.length, data.people.community.length, data.people.other.length);
   console.log('SIDEBAR_DEBUG: orgs career/edu/other:', data.organizations.career.length, data.organizations.education.length, data.organizations.other.length);
   var html = '';
   var totalCount = 0;
@@ -5885,24 +6214,27 @@ function renderSidebar() {
   }
 
   // Section 2: People
-  var peopleCount = data.people.family.length + data.people.inner_circle.length +
-                    data.people.professional.length + data.people.other.length;
+  var peopleCount = data.people.family.length + data.people.friends.length +
+                    data.people.professional.length + data.people.community.length + data.people.other.length;
   if (peopleCount > 0 || !data.you) {
     html += renderSidebarSection('people', '\uD83D\uDC65', 'People', peopleCount, function() {
       var h = '';
-      var groups = [
+      var cats = [
         { key: 'family', emoji: '\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC66', label: 'Family' },
-        { key: 'inner_circle', emoji: '\uD83E\uDD1D', label: 'Inner Circle' },
+        { key: 'friends', emoji: '\uD83E\uDD1D', label: 'Friends' },
         { key: 'professional', emoji: '\uD83D\uDCBC', label: 'Professional' },
+        { key: 'community', emoji: '\uD83C\uDFD8\uFE0F', label: 'Communities' },
         { key: 'other', emoji: '\uD83D\uDC65', label: 'Other' }
       ];
-      for (var g = 0; g < groups.length; g++) {
-        var items = data.people[groups[g].key];
+      for (var g = 0; g < cats.length; g++) {
+        var items = data.people[cats[g].key] || [];
         if (items.length === 0) continue;
-        h += '<div class="sidebar-group-label">' + groups[g].emoji + ' ' + groups[g].label + '</div>';
-        for (var i = 0; i < items.length; i++) {
-          h += renderSidebarEntityRow(items[i], items[i]._relType || '');
-        }
+        var isActive = selectedCategory === cats[g].key;
+        h += '<div class="sidebar-cat-row' + (isActive ? ' active' : '') + '" onclick="selectCategoryPage(' + "'" + cats[g].key + "'" + ')">';
+        h += '<span class="cat-emoji">' + cats[g].emoji + '</span>';
+        h += '<span class="cat-label">' + esc(cats[g].label) + '</span>';
+        h += '<span class="cat-count">' + items.length + '</span>';
+        h += '</div>';
       }
       if (peopleCount === 0) {
         h += '<div class="sidebar-empty-hint">No people found</div>';
@@ -5995,6 +6327,8 @@ function confirmDeleteEntity(id, name) {
     toast('Deleted ' + id + (result.connected_deleted && result.connected_deleted.length > 0 ? ' + ' + result.connected_deleted.length + ' connected objects' : ''));
     selectedId = null;
     selectedData = null;
+    breadcrumbs = [];
+    renderBreadcrumbs();
     document.getElementById('main').innerHTML = '<div class="empty-state">Entity deleted. Select another entity.</div>';
     api('GET', '/api/search?q=*').then(function(data) {
       allEntities = data.results || [];
@@ -6006,14 +6340,41 @@ function confirmDeleteEntity(id, name) {
   });
 }
 
-function selectEntity(id) {
+function selectEntity(id, fromCategory) {
+  var prevCategory = fromCategory || selectedCategory;
   selectedId = id;
   selectedView = null;
+  selectedCategory = null;
   var empty = document.getElementById('emptyState');
   if (empty) empty.style.display = 'none';
   api('GET', '/api/entity/' + id).then(function(data) {
     selectedData = data;
     var type = (data.entity || {}).entity_type || '';
+    var eName = type === 'person' ? ((data.entity.name || {}).full || '') : ((data.entity.name || {}).common || (data.entity.name || {}).legal || '');
+    // Build breadcrumbs based on entity type and navigation context
+    var catLabels = { family: 'Family', friends: 'Friends', professional: 'Professional', community: 'Communities', other: 'Other' };
+    if (type === 'person' && prevCategory && catLabels[prevCategory]) {
+      breadcrumbs = [
+        { label: 'People', action: '' },
+        { label: catLabels[prevCategory], action: 'selectCategoryPage(' + "'" + prevCategory + "'" + ')' },
+        { label: eName || id }
+      ];
+    } else if (type === 'organization' || type === 'business' || type === 'institution') {
+      breadcrumbs = [
+        { label: 'Organizations', action: '' },
+        { label: eName || id }
+      ];
+    } else if (type === 'person') {
+      breadcrumbs = [
+        { label: 'People', action: '' },
+        { label: eName || id }
+      ];
+    } else {
+      breadcrumbs = [
+        { label: eName || id }
+      ];
+    }
+    renderBreadcrumbs();
     if (type === 'organization' || type === 'business' || type === 'institution') {
       return api('GET', '/api/entity/' + id + '/dossier').then(function(dossier) {
         renderOrgDossier(dossier);
