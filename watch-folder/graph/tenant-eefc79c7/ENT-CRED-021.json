@@ -2,19 +2,18 @@
   "schema_version": "2.0",
   "schema_type": "context_architecture_entity",
   "extraction_metadata": {
-    "extracted_at": "2026-02-17T16:28:43.028Z",
+    "extracted_at": "2026-02-18T23:24:54.781Z",
     "source_description": "decomposed from ENT-CM-001",
     "extraction_model": "object-decomposer",
     "extraction_confidence": 0.6,
     "schema_version": "2.0"
   },
   "entity": {
-    "entity_type": "organization",
-    "entity_id": "ENT-ORG-011",
+    "entity_type": "credential",
+    "entity_id": "ENT-CRED-021",
     "parent_entity_id": "ENT-CM-001",
     "name": {
-      "full": "Howard University",
-      "common": "Howard University",
+      "full": "BBA, Howard University",
       "aliases": []
     },
     "summary": {
@@ -23,19 +22,24 @@
       "facts_layer": 2
     }
   },
-  "organization_data": {
-    "name": "Howard University"
+  "credential_data": {
+    "institution": "Howard University",
+    "degree": "BBA",
+    "field": "",
+    "start_year": "",
+    "end_year": "",
+    "organization_id": "ENT-BIZ-HU-037"
   },
   "attributes": [],
   "relationships": [],
   "observations": [],
   "provenance_chain": {
-    "created_at": "2026-02-17T16:28:43.028Z",
+    "created_at": "2026-02-18T23:24:54.781Z",
     "created_by": "object-decomposer",
     "source_documents": [
       {
         "source": "decomposed from ENT-CM-001",
-        "ingested_at": "2026-02-17T16:28:43.028Z"
+        "ingested_at": "2026-02-18T23:24:54.781Z"
       }
     ],
     "merge_history": []

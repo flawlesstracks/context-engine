@@ -4470,25 +4470,53 @@ function buildSidebarData() {
   }
 
   // Build role/credential maps from connected objects for org grouping
-  var roleByOrg = {};  // orgName -> roleTitle
-  var credByOrg = {}; // orgName -> credLabel
+  var roleByOrg = {};   // orgName -> roleTitle (name-based)
+  var credByOrg = {};   // orgName -> credLabel (name-based)
+  var roleByOrgId = {}; // entity_id -> roleTitle (id-based, more reliable)
+  var credByOrgId = {}; // entity_id -> credLabel (id-based, more reliable)
+  var connectedIds = {}; // entity_id -> true (set of all connected object IDs)
   var connected = (primaryEntityData && primaryEntityData.connected_objects) || [];
+
+  // First pass: index all connected objects by ID
+  for (var i = 0; i < connected.length; i++) {
+    connectedIds[connected[i].entity_id] = true;
+  }
+
+  // Second pass: build role and credential maps
+  // For roles, find which org entity they reference by matching the org name
   for (var i = 0; i < connected.length; i++) {
     var c = connected[i];
     if (c.entity_type === 'role' && c.label) {
-      // Role labels follow "Title at OrgName" pattern
       var atIdx = c.label.indexOf(' at ');
       if (atIdx !== -1) {
         var orgName = c.label.substring(atIdx + 4).trim();
-        roleByOrg[orgName.toLowerCase()] = c.label.substring(0, atIdx).trim();
+        var roleTitle = c.label.substring(0, atIdx).trim();
+        roleByOrg[orgName.toLowerCase()] = roleTitle;
+        // Find the connected org entity with this name and map by ID
+        for (var j = 0; j < connected.length; j++) {
+          var co = connected[j];
+          if ((co.entity_type === 'organization' || co.entity_type === 'institution' || co.entity_type === 'business') && co.label) {
+            if (co.label.toLowerCase().trim() === orgName.toLowerCase()) {
+              roleByOrgId[co.entity_id] = roleTitle;
+            }
+          }
+        }
       }
     }
     if (c.entity_type === 'credential' && c.label) {
-      // Credential labels follow "Degree, Institution" pattern
       var commaIdx = c.label.indexOf(', ');
       if (commaIdx !== -1) {
         var instName = c.label.substring(commaIdx + 2).trim();
         credByOrg[instName.toLowerCase()] = c.label;
+        // Find the connected org/institution entity with this name and map by ID
+        for (var j = 0; j < connected.length; j++) {
+          var co = connected[j];
+          if ((co.entity_type === 'organization' || co.entity_type === 'institution' || co.entity_type === 'business') && co.label) {
+            if (co.label.toLowerCase().trim() === instName.toLowerCase()) {
+              credByOrgId[co.entity_id] = c.label;
+            }
+          }
+        }
       }
     }
   }
@@ -4497,6 +4525,7 @@ function buildSidebarData() {
   var people = { family: [], inner_circle: [], professional: [], other: [] };
   var organizations = { career: [], education: [], other: [] };
   var projects = { active: [], rnd: [], archive: [] };
+  var seenOrgNames = {}; // lowercase name -> entity_id (dedup: prefer connected objects)
 
   var src = isSearching ? entities : allEntities;
   for (var i = 0; i < src.length; i++) {
@@ -4525,12 +4554,43 @@ function buildSidebarData() {
       }
     } else if (t === 'organization' || t === 'business' || t === 'institution') {
       var oname = ename.toLowerCase().trim();
-      if (roleByOrg[oname]) {
+
+      // Dedup: skip if we already added an entity with this name
+      // Prefer connected objects (which are processed first in allEntities)
+      if (seenOrgNames[oname] && seenOrgNames[oname] !== e.entity_id) continue;
+      seenOrgNames[oname] = e.entity_id;
+
+      // Categorize: try entity_id match first, then exact name, then fuzzy name
+      if (roleByOrgId[e.entity_id]) {
+        organizations.career.push({ org: e, roleTitle: roleByOrgId[e.entity_id] });
+      } else if (credByOrgId[e.entity_id]) {
+        organizations.education.push({ org: e, credLabel: credByOrgId[e.entity_id] });
+      } else if (roleByOrg[oname]) {
         organizations.career.push({ org: e, roleTitle: roleByOrg[oname] });
       } else if (credByOrg[oname]) {
         organizations.education.push({ org: e, credLabel: credByOrg[oname] });
       } else {
-        organizations.other.push(e);
+        // Fuzzy match: check if entity name is contained in any role/credential org name or vice versa
+        var matched = false;
+        for (var rk in roleByOrg) {
+          if (oname.indexOf(rk) !== -1 || rk.indexOf(oname) !== -1) {
+            organizations.career.push({ org: e, roleTitle: roleByOrg[rk] });
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) {
+          for (var ck in credByOrg) {
+            if (oname.indexOf(ck) !== -1 || ck.indexOf(oname) !== -1) {
+              organizations.education.push({ org: e, credLabel: credByOrg[ck] });
+              matched = true;
+              break;
+            }
+          }
+        }
+        if (!matched) {
+          organizations.other.push(e);
+        }
       }
     } else if (t === 'project') {
       projects.active.push(e);

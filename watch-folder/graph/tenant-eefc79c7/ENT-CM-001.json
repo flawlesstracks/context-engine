@@ -19,7 +19,8 @@
         "Clarence Mitchell",
         "CJ",
         "Clarence (CJ) Mitchell",
-        "Clarence J Mitchell"
+        "Clarence J Mitchell",
+        "CLARENCE J. MITCHELL"
       ],
       "confidence": 0.6,
       "facts_layer": 2
@@ -148,12 +149,12 @@
     {
       "attribute_id": "ATTR-001",
       "key": "headline",
-      "value": "Principal Product Manager at Amazon",
+      "value": "Principal Product Manager (L6-7) with 13+ years driving AI/ML product strategy at scale",
       "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
-        "captured_date": "2026-02-16"
+        "captured_date": "2026-02-17"
       },
       "source_attribution": {
         "facts_layer": 2,
@@ -176,14 +177,14 @@
       }
     },
     {
-      "attribute_id": "ATTR-003",
+      "attribute_id": "ATTR-004",
       "key": "role",
       "value": "Principal Product Manager",
       "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
-        "stability": "semi_stable",
-        "captured_date": "2026-02-16"
+        "stability": "stable",
+        "captured_date": "2026-02-18"
       },
       "source_attribution": {
         "facts_layer": 2,
@@ -206,14 +207,59 @@
       }
     },
     {
-      "attribute_id": "ATTR-004",
+      "attribute_id": "ATTR-005",
       "key": "skills",
-      "value": "AI/ML, Product Management, Forecasting",
+      "value": "AI/ML Product Leadership, ML Model Productionization, AI Strategy, Technical Roadmapping, Cross-functional Leadership, Stakeholder Management, Canonical Entity Data Models, Ontology Design, Knowledge Graphs, Neo4j, JSON Schema, Vector Databases, Semantic Search, Transformers, BERT, CNNs, RNNs, NLP, RLHF, TensorFlow, PyTorch, AWS SageMaker, LightGBM, Distributional Forecasting, Time-Series, Feature Engineering, Context Architecture, GraphRAG, Model Context Protocol, LLM Integration, Personal AI Systems, Agentic Workflows, SQL, Hadoop, Spark, Apache Airflow, Hugging Face, spaCy, NLTK, AWS, GCP, Azure, Tableau, PowerBI, Salesforce",
       "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
-        "captured_date": "2026-02-16"
+        "captured_date": "2026-02-18"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "email",
+      "value": "clarencejmitchell@gmail.com",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-18"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-007",
+      "key": "phone",
+      "value": "708-288-2394",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-18"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-008",
+      "key": "experience",
+      "value": "13+ years",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-18"
       },
       "source_attribution": {
         "facts_layer": 2,
@@ -362,6 +408,15 @@
       "name": "Gemma (Buttercup)",
       "relationship_type": "AI Assistant/Collaborator",
       "context": "Co-author of Corrected Build Plan v2.1, conducted audit of Context Interface Protocol v2 resulting in three accepted corrections including Google Drive scope reduction, LinkedIn PDF limitations, and merge-on-ingest promotion",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-017",
+      "name": "Raiya",
+      "relationship_type": "close friend and collaborator",
+      "context": "Created detailed creator profile based on years of friendship and collaboration",
       "sentiment": "neutral",
       "confidence": 0.6,
       "confidence_label": "MODERATE"
@@ -515,6 +570,55 @@
       "confidence": 0.6,
       "confidence_label": "MODERATE",
       "source": "test-cj-reingest.txt"
+    },
+    {
+      "fact_id": "FACT-022",
+      "fact": "Principal Product Manager – AI Forecasting at Amazon at 2024-01",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_Mitchell_Resume_2026.docx (1).pdf"
+    },
+    {
+      "fact_id": "FACT-023",
+      "fact": "Senior Product Manager – AI/ML & Entity Data Systems at Fandom at 2022 - 2024",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_Mitchell_Resume_2026.docx (1).pdf"
+    },
+    {
+      "fact_id": "FACT-024",
+      "fact": "Associate Director of Product Management – E-Commerce & AI at Wayfair at 2020-01 - 2022-09",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_Mitchell_Resume_2026.docx (1).pdf"
+    },
+    {
+      "fact_id": "FACT-025",
+      "fact": "Senior Product Manager – Big Data Analytics at EMC Corporation at 2012-07 - 2019-10",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_Mitchell_Resume_2026.docx (1).pdf"
+    },
+    {
+      "fact_id": "FACT-026",
+      "fact": "Senior Consultant – Data Science & AI at Deloitte Consulting LLP at 2010-05 - 2011-08",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_Mitchell_Resume_2026.docx (1).pdf"
+    },
+    {
+      "fact_id": "FACT-027",
+      "fact": "Master of Business Administration, Finance & Product Management, Clark Atlanta University",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_Mitchell_Resume_2026.docx (1).pdf"
+    },
+    {
+      "fact_id": "FACT-028",
+      "fact": "Bachelor of Business Administration, International Business, Howard University",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_Mitchell_Resume_2026.docx (1).pdf"
     }
   ],
   "constraints": [],
@@ -566,6 +670,90 @@
       "layer_number": 2,
       "observed_by": "Clarence Mitchell",
       "observation_id": "OBS-ENT-CM-001-20260216212154-004"
+    },
+    {
+      "observation": "Listed as primary source for Raiya's profile with source relationship described as close friend and collaborator",
+      "observed_at": "2026-02-17T23:29:10.693Z",
+      "source": "file_import:AUTHOR_PROFILE_RAIYA.json",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260217232910-005"
+    },
+    {
+      "observation": "All personality assessments and behavioral observations about Raiya are inferred by CJ based on years of friendship and collaboration",
+      "observed_at": "2026-02-17T23:29:10.693Z",
+      "source": "file_import:AUTHOR_PROFILE_RAIYA.json",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260217232910-006"
+    },
+    {
+      "observation": "LinkedIn profile imported from CJ_Mitchell_Resume_2026.docx (1).pdf",
+      "observed_at": "2026-02-17T23:56:36.843Z",
+      "source": "linkedin_import",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "truth_level": "INFERRED",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "observation_id": "OBS-ENT-CM-001-20260217235636-007"
+    },
+    {
+      "observation": "Principal Product Manager (L6-7) with 13+ years driving AI/ML product strategy at scale",
+      "observed_at": "2026-02-18T23:23:11.164Z",
+      "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260218232311-008"
+    },
+    {
+      "observation": "Expert in Canonical Entity Data Modeling, Knowledge Graph Architecture, and AI Forecasting systems",
+      "observed_at": "2026-02-18T23:23:11.164Z",
+      "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260218232311-009"
+    },
+    {
+      "observation": "Known for bridging complex AI capabilities with business outcomes",
+      "observed_at": "2026-02-18T23:23:11.164Z",
+      "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260218232311-010"
+    },
+    {
+      "observation": "Email: clarencejmitchell@gmail.com | 708-288-2394 | Atlanta, GA",
+      "observed_at": "2026-02-18T23:23:11.164Z",
+      "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260218232311-011"
     }
   ],
   "provenance_chain": {
@@ -689,6 +877,120 @@
         "changes": [
           "test-cj-reingest.txt: merged data and 1 observations"
         ]
+      },
+      {
+        "merged_at": "2026-02-17T23:29:10.704Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "AUTHOR_PROFILE_RAIYA.json",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-003",
+            "key": "role",
+            "old_value": "Principal Product Manager",
+            "new_value": "profile creator",
+            "confidence": 0.6,
+            "timestamp": "2026-02-17T23:29:10.705Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-17T23:29:10.704Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "AUTHOR_PROFILE_RAIYA.json: merged data and 2 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-17T23:56:36.849Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "CJ_Mitchell_Resume_2026.docx (1).pdf",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "headline",
+            "old_value": "Principal Product Manager at Amazon",
+            "new_value": "Principal Product Manager (L6-7) with 13+ years driving AI/ML product strategy at scale",
+            "confidence": 0.6,
+            "timestamp": "2026-02-17T23:56:36.849Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "profile creator",
+            "new_value": "Principal Product Manager – AI Forecasting",
+            "confidence": 0.6,
+            "timestamp": "2026-02-17T23:56:36.849Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-004",
+            "key": "skills",
+            "old_value": "AI/ML, Product Management, Forecasting",
+            "new_value": "AI/ML Product Leadership, ML Model Productionization, AI Strategy, Technical Roadmapping, Cross-functional Leadership, Stakeholder Management, Canonical Entity Data Models, Ontology Design, Knowledge Graphs, Neo4j, JSON Schema, Vector Databases, Semantic Search, Transformers, BERT, CNNs, RNNs, NLP, RLHF, TensorFlow, PyTorch, AWS SageMaker, Cost Forecasting Models, Context Architecture, GraphRAG, Model Context Protocol, LLM Integration, Personal AI Systems, Agentic Workflows, LightGBM, Distributional Forecasting, Time-Series, Feature Engineering, SQL, Hadoop, Spark, Apache Airflow, Hugging Face, spaCy, NLTK, AWS, GCP, Azure, Tableau, PowerBI, Salesforce",
+            "confidence": 0.6,
+            "timestamp": "2026-02-17T23:56:36.849Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-17T23:56:36.849Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "CJ_Mitchell_Resume_2026.docx (1).pdf: merged data and 1 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-18T00:09:19.052Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "CJ_Mitchell_Resume_2026.docx (1).pdf",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-005",
+            "key": "skills",
+            "old_value": "AI/ML Product Leadership, ML Model Productionization, AI Strategy, Technical Roadmapping, Cross-functional Leadership, Stakeholder Management, Canonical Entity Data Models, Ontology Design, Knowledge Graphs, Neo4j, JSON Schema, Vector Databases, Semantic Search, Transformers, BERT, CNNs, RNNs, NLP, RLHF, TensorFlow, PyTorch, AWS SageMaker, Cost Forecasting Models, Context Architecture, GraphRAG, Model Context Protocol, LLM Integration, Personal AI Systems, Agentic Workflows, LightGBM, Distributional Forecasting, Time-Series, Feature Engineering, SQL, Hadoop, Spark, Apache Airflow, Hugging Face, spaCy, NLTK, AWS, GCP, Azure, Tableau, PowerBI, Salesforce",
+            "new_value": "AI/ML Product Leadership, ML Model Productionization, AI Strategy, Technical Roadmapping, Cross-functional Leadership, Stakeholder Management, Canonical Entity Data Models, Ontology Design, Knowledge Graphs, Neo4j, JSON Schema, Vector Databases, Semantic Search, Transformers, BERT, CNNs, RNNs, NLP, RLHF, TensorFlow, PyTorch, AWS SageMaker, LightGBM, Distributional Forecasting, Time-Series, Feature Engineering, Context Architecture, GraphRAG, Model Context Protocol, LLM Integration, Personal AI Systems, Agentic Workflows, SQL, Hadoop, Spark, Apache Airflow, Hugging Face, spaCy, NLTK, AWS, GCP, Azure, Tableau, PowerBI, Salesforce",
+            "confidence": 0.6,
+            "timestamp": "2026-02-18T00:09:19.052Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-18T00:09:19.052Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "CJ_Mitchell_Resume_2026.docx (1).pdf: merged data and 1 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-18T23:24:54.780Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-003",
+            "key": "role",
+            "old_value": "Principal Product Manager – AI Forecasting",
+            "new_value": "Principal Product Manager",
+            "confidence": 0.6,
+            "timestamp": "2026-02-18T23:24:54.780Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-18T23:24:54.780Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf: merged data and 4 observations"
+        ]
       }
     ]
   },
@@ -741,67 +1043,67 @@
       "label": "Harvard University"
     },
     {
-      "entity_id": "ENT-ORG-010",
-      "entity_type": "organization",
+      "entity_id": "ENT-BIZ-CAU-036",
+      "entity_type": "institution",
       "label": "Clark Atlanta University"
     },
     {
-      "entity_id": "ENT-ORG-011",
-      "entity_type": "organization",
+      "entity_id": "ENT-BIZ-HU-037",
+      "entity_type": "institution",
       "label": "Howard University"
     },
     {
-      "entity_id": "ENT-ROLE-017",
+      "entity_id": "ENT-ROLE-049",
       "entity_type": "role",
       "label": "Principal Product Manager at Amazon (Relay)"
     },
     {
-      "entity_id": "ENT-ROLE-018",
+      "entity_id": "ENT-ROLE-050",
       "entity_type": "role",
       "label": "AI/DS Lead at Fandom"
     },
     {
-      "entity_id": "ENT-ROLE-019",
+      "entity_id": "ENT-ROLE-051",
       "entity_type": "role",
       "label": "AI/DS Lead at Wayfair"
     },
     {
-      "entity_id": "ENT-ROLE-020",
+      "entity_id": "ENT-ROLE-052",
       "entity_type": "role",
       "label": "AI/DS Lead at Walmart"
     },
     {
-      "entity_id": "ENT-ROLE-021",
+      "entity_id": "ENT-ROLE-053",
       "entity_type": "role",
       "label": "Position at Dell EMC"
     },
     {
-      "entity_id": "ENT-ROLE-022",
+      "entity_id": "ENT-ROLE-054",
       "entity_type": "role",
       "label": "Position at Deloitte"
     },
     {
-      "entity_id": "ENT-ROLE-023",
+      "entity_id": "ENT-ROLE-055",
       "entity_type": "role",
       "label": "YouTube Creator at Putchuon Channel"
     },
     {
-      "entity_id": "ENT-ROLE-024",
+      "entity_id": "ENT-ROLE-056",
       "entity_type": "role",
       "label": "Context Architecture Consultant at Self-employed"
     },
     {
-      "entity_id": "ENT-CRED-007",
+      "entity_id": "ENT-CRED-019",
       "entity_type": "credential",
       "label": "Master of Business Administration - MBA Entrepreneurship/Entrepreneurial Studies, Harvard University"
     },
     {
-      "entity_id": "ENT-CRED-008",
+      "entity_id": "ENT-CRED-020",
       "entity_type": "credential",
       "label": "MBA, Clark Atlanta University"
     },
     {
-      "entity_id": "ENT-CRED-009",
+      "entity_id": "ENT-CRED-021",
       "entity_type": "credential",
       "label": "BBA, Howard University"
     },

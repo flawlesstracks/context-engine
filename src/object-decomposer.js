@@ -23,6 +23,18 @@ function findExistingByTypeAndName(graphDir, entityType, name) {
 }
 
 /**
+ * Find an existing entity by name across multiple types.
+ * Checks types in priority order and returns the first match.
+ */
+function findExistingAcrossTypes(graphDir, name, types) {
+  for (const type of types) {
+    const found = findExistingByTypeAndName(graphDir, type, name);
+    if (found) return found;
+  }
+  return null;
+}
+
+/**
  * Decompose a PERSON entity into ROLE, ORGANIZATION, CREDENTIAL, and SKILL objects.
  * Runs after extraction, before the ingest pipeline returns.
  *
@@ -32,7 +44,7 @@ function findExistingByTypeAndName(graphDir, entityType, name) {
  * @returns {{ roles: number, organizations: number, credentials: number, skills: number }}
  */
 function decomposePersonEntity(entityData, entityId, graphDir) {
-  const counts = { roles: 0, organizations: 0, institutions: 0, credentials: 0, skills: 0 };
+  const counts = { roles: 0, organizations: 0, credentials: 0, skills: 0 };
 
   // Guard: skip if not a person or no career_lite
   const entityType = entityData.entity?.entity_type;
@@ -58,20 +70,24 @@ function decomposePersonEntity(entityData, entityId, graphDir) {
   // Track org name → entity ID for linking roles/credentials to orgs
   const orgMap = new Map();
 
-  // --- Extract organizations from experience (companies) ---
-  const companyNames = new Set();
+  // --- Extract organizations from experience + education ---
+  // Check across organization, institution, and business types to prevent duplicates
+  const orgNames = new Set();
   for (const exp of (careerLite.experience || [])) {
-    if (exp.company) companyNames.add(exp.company.trim());
+    if (exp.company) orgNames.add(exp.company.trim());
+  }
+  for (const edu of (careerLite.education || [])) {
+    if (edu.institution) orgNames.add(edu.institution.trim());
   }
 
-  for (const orgName of companyNames) {
-    const existing = findExistingByTypeAndName(graphDir, 'organization', orgName);
+  for (const orgName of orgNames) {
+    const existing = findExistingAcrossTypes(graphDir, orgName, ['organization', 'institution', 'business']);
     if (existing) {
       orgMap.set(orgName.toLowerCase(), existing.entityId);
       if (!connectedObjects.find(c => c.entity_id === existing.entityId)) {
         connectedObjects.push({
           entity_id: existing.entityId,
-          entity_type: 'organization',
+          entity_type: existing.data.entity?.entity_type || 'organization',
           label: orgName,
         });
       }
@@ -116,70 +132,6 @@ function decomposePersonEntity(entityData, entityId, graphDir) {
         label: orgName,
       });
       counts.organizations++;
-    }
-  }
-
-  // --- Extract institutions from education ---
-  const institutionNames = new Set();
-  for (const edu of (careerLite.education || [])) {
-    if (edu.institution) institutionNames.add(edu.institution.trim());
-  }
-
-  for (const instName of institutionNames) {
-    // Check for existing institution OR organization (backward compat)
-    const existingInst = findExistingByTypeAndName(graphDir, 'institution', instName);
-    const existingOrg = !existingInst ? findExistingByTypeAndName(graphDir, 'organization', instName) : null;
-    const existing = existingInst || existingOrg;
-    if (existing) {
-      orgMap.set(instName.toLowerCase(), existing.entityId);
-      if (!connectedObjects.find(c => c.entity_id === existing.entityId)) {
-        connectedObjects.push({
-          entity_id: existing.entityId,
-          entity_type: existing.data.entity?.entity_type || 'institution',
-          label: instName,
-        });
-      }
-    } else {
-      const seq = getNextCounter(graphDir, 'institution');
-      const instId = `ENT-INST-${String(seq).padStart(3, '0')}`;
-      orgMap.set(instName.toLowerCase(), instId);
-
-      const instEntity = {
-        schema_version: '2.0',
-        schema_type: 'context_architecture_entity',
-        extraction_metadata: {
-          extracted_at: now,
-          source_description: `decomposed from ${entityId}`,
-          extraction_model: 'object-decomposer',
-          extraction_confidence: 0.6,
-          schema_version: '2.0',
-        },
-        entity: {
-          entity_type: 'institution',
-          entity_id: instId,
-          parent_entity_id: entityId,
-          name: { full: instName, common: instName, aliases: [] },
-          summary: { value: '', confidence: 0.6, facts_layer: 2 },
-        },
-        institution_data: { name: instName },
-        attributes: [],
-        relationships: [],
-        observations: [],
-        provenance_chain: {
-          created_at: now,
-          created_by: 'object-decomposer',
-          source_documents: [{ source: `decomposed from ${entityId}`, ingested_at: now }],
-          merge_history: [],
-        },
-      };
-
-      writeEntity(instId, instEntity, graphDir);
-      connectedObjects.push({
-        entity_id: instId,
-        entity_type: 'institution',
-        label: instName,
-      });
-      counts.institutions++;
     }
   }
 
@@ -363,4 +315,4 @@ function decomposePersonEntity(entityData, entityId, graphDir) {
   return counts;
 }
 
-module.exports = { decomposePersonEntity, findExistingByTypeAndName };
+module.exports = { decomposePersonEntity, findExistingByTypeAndName, findExistingAcrossTypes };

@@ -209,10 +209,13 @@ function entitiesMatch(base, incoming) {
   const incomingEmail = getEntityProperties(incoming).email;
   if (baseEmail && incomingEmail && baseEmail === incomingEmail) return true;
 
-  // Must be same entity type
+  // Must be same entity type (institution and organization are compatible)
   const type = base.entity?.entity_type;
   const incomingType = incoming.entity?.entity_type;
-  if (type && incomingType && type !== incomingType) return false;
+  if (type && incomingType && type !== incomingType) {
+    const orgTypes = new Set(['organization', 'institution']);
+    if (!orgTypes.has(type) || !orgTypes.has(incomingType)) return false;
+  }
 
   // Get primary names
   let baseName = '';
