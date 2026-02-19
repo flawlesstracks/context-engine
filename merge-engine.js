@@ -598,6 +598,10 @@ function merge(base, incoming) {
     }
   }
 
+  if (entityType === 'institution') {
+    result.key_people = mergeKeyPeople(result.key_people || [], incoming.key_people || []);
+  }
+
   // Constraints
   result.constraints = mergeConstraints(result.constraints || [], incoming.constraints || []);
 

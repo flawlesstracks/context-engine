@@ -22,7 +22,7 @@ async function ingestPipeline(entities, graphDir, agentId, options = {}) {
 
   for (const entityData of entities) {
     const entityType = entityData.entity?.entity_type;
-    if (!entityType || !['person', 'business'].includes(entityType)) continue;
+    if (!entityType || !['person', 'business', 'institution'].includes(entityType)) continue;
 
     const displayName = entityType === 'person'
       ? (entityData.entity?.name?.full || '')
@@ -144,6 +144,8 @@ async function ingestPipeline(entities, graphDir, agentId, options = {}) {
       let initials;
       if (entityType === 'person') {
         initials = displayName.split(/\s+/).map(w => w[0]).join('').toUpperCase();
+      } else if (entityType === 'institution') {
+        initials = 'INST-' + displayName.split(/\s+/).map(w => w[0]).join('').toUpperCase();
       } else {
         initials = 'BIZ-' + displayName.split(/\s+/).map(w => w[0]).join('').toUpperCase();
       }

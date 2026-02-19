@@ -96,8 +96,19 @@ const BUSINESS_SCHEMA = `{
   "metadata": { "source": "", "generated": "", "version": "1.0" }
 }`;
 
+const INSTITUTION_SCHEMA = `{
+  "entity_type": "institution",
+  "name": { "legal": "", "common": "", "aliases": [] },
+  "summary": "2-3 sentence synthesis",
+  "institution_type": "university|school|government|hospital|public_service",
+  "key_people": [{ "name": "", "role": "", "context": "" }],
+  "values": [],
+  "key_facts": [],
+  "metadata": { "source": "", "generated": "", "version": "1.0" }
+}`;
+
 function buildPrompt(type, text) {
-  const schema = type === 'person' ? PERSON_SCHEMA : BUSINESS_SCHEMA;
+  const schema = type === 'person' ? PERSON_SCHEMA : (type === 'institution' ? INSTITUTION_SCHEMA : BUSINESS_SCHEMA);
   return `You are a structured data extraction engine. Given unstructured text about a ${type}, extract all relevant information into the following JSON structure. Fill in every field you can from the text. Leave fields as empty strings, empty arrays, or reasonable defaults if the information is not present. Do not invent information that is not in the text.
 
 Output ONLY valid JSON, no markdown fences, no commentary.
@@ -135,8 +146,8 @@ app.post('/extract', async (req, res) => {
   if (!text || !type) {
     return res.status(400).json({ error: 'Missing text or type' });
   }
-  if (!['person', 'business'].includes(type)) {
-    return res.status(400).json({ error: 'Type must be person or business' });
+  if (!['person', 'business', 'institution'].includes(type)) {
+    return res.status(400).json({ error: 'Type must be person, business, or institution' });
   }
 
   try {
@@ -317,7 +328,9 @@ CRITICAL — ANTI-HALLUCINATION RULES:
 - If the text says "his daughter" but does not name her, do NOT invent a name for her
 
 EXTRACTION RULES:
-- entity_type MUST be "person" or "business" (use "business" for all companies, organizations, schools, agencies, churches, groups, etc.)
+- entity_type MUST be "person", "business", or "institution"
+- Use "business" for companies, for-profit organizations, and commercial entities
+- Use "institution" for schools, universities, governments, hospitals, public services, churches, non-profits, and civic organizations
 - For persons: include name, role, relationship to the author, location, personality traits, key facts — whatever the text says
 - For organizations: include name, industry, location, what the author says about them
 - Each observation MUST contain a direct quote or close paraphrase from the source text
@@ -342,6 +355,14 @@ OUTPUT FORMAT — valid JSON only, no markdown fences, no commentary:
       "attributes": { "industry": "Technology" },
       "relationships": [],
       "observations": [{ "text": "..." }]
+    },
+    {
+      "entity_type": "institution",
+      "name": { "common": "Howard University" },
+      "summary": "...",
+      "attributes": { "institution_type": "university" },
+      "relationships": [],
+      "observations": [{ "text": "..." }]
     }
   ]
 }
@@ -362,7 +383,7 @@ function buildIngestPrompt(batch) {
     text += convText + '\n';
   });
 
-  return 'You are a structured data extraction engine. Analyze these user messages from ChatGPT conversations and extract every person and business the user mentions by name.\n\nRULES:\n- Only extract named entities (skip "my boss", "the company" without a specific name)\n- entity_type: "person" or "business"\n- name: { "full": "..." } for persons, { "common": "..." } for businesses\n- summary: 2-3 sentences synthesizing what the user said about this entity\n- attributes: only include clearly stated facts (role, location, expertise, industry)\n- relationships: connections between extracted entities\n- observations: each specific mention tagged with conversation_index (0-based integer matching conversation numbers below)\n- Do NOT invent information beyond what the user explicitly stated\n- If no named entities found, return {"entities": []}\n\nOutput ONLY valid JSON, no markdown fences, no commentary:\n{\n  "entities": [\n    {\n      "entity_type": "person",\n      "name": { "full": "Jane Smith" },\n      "summary": "...",\n      "attributes": { "role": "...", "location": "..." },\n      "relationships": [{ "name": "Other Entity", "relationship": "colleague", "context": "..." }],\n      "observations": [{ "text": "What the user said about this entity", "conversation_index": 0 }]\n    }\n  ]\n}\n\n--- USER MESSAGES FROM CONVERSATIONS ---' + text + '\n--- END ---';
+  return 'You are a structured data extraction engine. Analyze these user messages from ChatGPT conversations and extract every person, business, and institution the user mentions by name.\n\nRULES:\n- Only extract named entities (skip "my boss", "the company" without a specific name)\n- entity_type: "person", "business", or "institution"\n- Use "business" for companies and commercial entities; use "institution" for schools, universities, governments, hospitals, public services, churches, non-profits\n- name: { "full": "..." } for persons, { "common": "..." } for businesses and institutions\n- summary: 2-3 sentences synthesizing what the user said about this entity\n- attributes: only include clearly stated facts (role, location, expertise, industry)\n- relationships: connections between extracted entities\n- observations: each specific mention tagged with conversation_index (0-based integer matching conversation numbers below)\n- Do NOT invent information beyond what the user explicitly stated\n- If no named entities found, return {"entities": []}\n\nOutput ONLY valid JSON, no markdown fences, no commentary:\n{\n  "entities": [\n    {\n      "entity_type": "person",\n      "name": { "full": "Jane Smith" },\n      "summary": "...",\n      "attributes": { "role": "...", "location": "..." },\n      "relationships": [{ "name": "Other Entity", "relationship": "colleague", "context": "..." }],\n      "observations": [{ "text": "What the user said about this entity", "conversation_index": 0 }]\n    }\n  ]\n}\n\n--- USER MESSAGES FROM CONVERSATIONS ---' + text + '\n--- END ---';
 }
 
 // --- Auth middleware (multi-tenant) ---
@@ -800,7 +821,7 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
         const v2Entities = allExtracted.map(extracted => {
           let entityType = extracted.entity_type;
           if (entityType === 'organization') entityType = 'business';
-          if (!entityType || !['person', 'business'].includes(entityType)) {
+          if (!entityType || !['person', 'business', 'institution'].includes(entityType)) {
             console.log('INGEST_DEBUG: skipping entity with unknown type:', entityType, extracted.name);
             return null;
           }
@@ -1133,7 +1154,7 @@ app.post('/api/drive/ingest', apiAuth, async (req, res) => {
         const v2Entities = allExtracted.map(extracted => {
           let entityType = extracted.entity_type;
           if (entityType === 'organization') entityType = 'business';
-          if (!entityType || !['person', 'business'].includes(entityType)) {
+          if (!entityType || !['person', 'business', 'institution'].includes(entityType)) {
             console.log('INGEST_DEBUG: drive skipping entity with unknown type:', entityType, extracted.name);
             return null;
           }
@@ -1617,8 +1638,8 @@ app.post('/api/entity', apiAuth, (req, res) => {
   const { entity_type, name, summary, attributes, relationships, values, source } = req.body;
 
   // Validate required fields
-  if (!entity_type || !['person', 'business'].includes(entity_type)) {
-    return res.status(400).json({ error: 'entity_type is required and must be "person" or "business"' });
+  if (!entity_type || !['person', 'business', 'institution'].includes(entity_type)) {
+    return res.status(400).json({ error: 'entity_type is required and must be "person", "business", or "institution"' });
   }
   if (!name || typeof name !== 'object') {
     return res.status(400).json({ error: 'name is required and must be an object (e.g. { "full": "John Smith" })' });
@@ -1651,6 +1672,8 @@ app.post('/api/entity', apiAuth, (req, res) => {
   let initials;
   if (entity_type === 'person') {
     initials = displayName.split(/\s+/).map(w => w[0]).join('').toUpperCase();
+  } else if (entity_type === 'institution') {
+    initials = 'INST-' + displayName.split(/\s+/).map(w => w[0]).join('').toUpperCase();
   } else {
     initials = 'BIZ-' + displayName.split(/\s+/).map(w => w[0]).join('').toUpperCase();
   }
@@ -1830,7 +1853,7 @@ app.get('/api/graph/stats', apiAuth, (req, res) => {
   const entities = listEntities(req.graphDir);
   let lastUpdated = null;
   let totalMerges = 0;
-  const typeCounts = { person: 0, business: 0 };
+  const typeCounts = { person: 0, business: 0, institution: 0 };
 
   for (const { data } of entities) {
     const type = data.entity?.entity_type;
@@ -3529,6 +3552,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   .type-badge.organization { background: rgba(34,197,94,0.1); color: #16a34a; }
   .type-badge.credential { background: rgba(245,158,11,0.1); color: #d97706; }
   .type-badge.skill { background: rgba(20,184,166,0.1); color: #0d9488; }
+  .type-badge.institution { background: rgba(168,85,247,0.1); color: #7c3aed; }
 
   /* --- Main Panel --- */
   #main {
@@ -4499,7 +4523,7 @@ function buildSidebarData() {
         e._relType = '';
         people.other.push(e);
       }
-    } else if (t === 'organization' || t === 'business') {
+    } else if (t === 'organization' || t === 'business' || t === 'institution') {
       var oname = ename.toLowerCase().trim();
       if (roleByOrg[oname]) {
         organizations.career.push({ org: e, roleTitle: roleByOrg[oname] });
@@ -4657,7 +4681,7 @@ function renderProfileOverview(data) {
   if (connKeys.length > 0) {
     h += '<div class="section"><div class="section-title section-title-only">Connected Objects</div>';
     h += '<div style="display:flex;flex-wrap:wrap;gap:10px;">';
-    var connLabels = { role: 'Roles', organization: 'Organizations', credential: 'Credentials', skill: 'Skills' };
+    var connLabels = { role: 'Roles', organization: 'Organizations', institution: 'Institutions', credential: 'Credentials', skill: 'Skills' };
     for (var i = 0; i < connKeys.length; i++) {
       var ck = connKeys[i];
       var cl = connLabels[ck] || (ck.charAt(0).toUpperCase() + ck.slice(1) + 's');
@@ -4765,13 +4789,13 @@ function renderOverview(data) {
   var connected = data.connected_objects || [];
   if (connected.length > 0) {
     h += '<div class="section"><div class="section-title section-title-only">Connected Objects (' + connected.length + ')</div>';
-    var groups = { role: [], organization: [], credential: [], skill: [] };
+    var groups = { role: [], organization: [], institution: [], credential: [], skill: [] };
     for (var i = 0; i < connected.length; i++) {
       var c = connected[i];
       if (groups[c.entity_type]) groups[c.entity_type].push(c);
     }
-    var groupLabels = { role: 'Roles', organization: 'Organizations', credential: 'Credentials', skill: 'Skills' };
-    var groupKeys = ['role', 'organization', 'credential', 'skill'];
+    var groupLabels = { role: 'Roles', organization: 'Organizations', institution: 'Institutions', credential: 'Credentials', skill: 'Skills' };
+    var groupKeys = ['role', 'organization', 'institution', 'credential', 'skill'];
     for (var g = 0; g < groupKeys.length; g++) {
       var gk = groupKeys[g];
       var items = groups[gk];
@@ -6112,13 +6136,13 @@ function renderDetail(data) {
   var connected = data.connected_objects || [];
   if (connected.length > 0) {
     h += '<div class="section"><div class="section-title section-title-only">Connected Objects (' + connected.length + ')</div>';
-    var groups = { role: [], organization: [], credential: [], skill: [] };
+    var groups = { role: [], organization: [], institution: [], credential: [], skill: [] };
     for (var i = 0; i < connected.length; i++) {
       var c = connected[i];
       if (groups[c.entity_type]) groups[c.entity_type].push(c);
     }
-    var groupLabels = { role: 'Roles', organization: 'Organizations', credential: 'Credentials', skill: 'Skills' };
-    var groupKeys = ['role', 'organization', 'credential', 'skill'];
+    var groupLabels = { role: 'Roles', organization: 'Organizations', institution: 'Institutions', credential: 'Credentials', skill: 'Skills' };
+    var groupKeys = ['role', 'organization', 'institution', 'credential', 'skill'];
     for (var g = 0; g < groupKeys.length; g++) {
       var gk = groupKeys[g];
       var items = groups[gk];

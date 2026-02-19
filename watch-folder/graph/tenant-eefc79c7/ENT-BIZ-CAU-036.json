@@ -1,0 +1,97 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-18T23:23:11.164Z",
+    "updated_at": "2026-02-18T23:23:11.164Z",
+    "source_description": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "institution",
+    "name": {
+      "common": "Clark Atlanta University",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "University where Clarence J. Mitchell obtained his MBA - Finance & Product Management.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-BIZ-CAU-036"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "industry",
+      "value": "Education",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-18"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "type",
+      "value": "University",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-18"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "Clarence J. Mitchell",
+      "relationship_type": "alma mater",
+      "context": "Master of Business Administration - Finance & Product Management",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "Master of Business Administration, Clark Atlanta University - Finance & Product Management",
+      "observed_at": "2026-02-18T23:23:11.164Z",
+      "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-CAU-036-20260218232311-001"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-18T23:23:11.164Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+        "ingested_at": "2026-02-18T23:23:11.164Z"
+      }
+    ],
+    "merge_history": []
+  }
+}

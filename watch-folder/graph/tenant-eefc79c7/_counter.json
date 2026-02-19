@@ -1,8 +1,9 @@
 {
-  "person": 4,
-  "business": 1,
+  "person": 26,
+  "business": 38,
   "organization": 12,
-  "role": 25,
-  "credential": 10,
-  "skill": 18
+  "role": 57,
+  "credential": 22,
+  "skill": 18,
+  "institution": 2
 }

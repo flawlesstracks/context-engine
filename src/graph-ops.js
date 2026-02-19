@@ -61,7 +61,7 @@ function listEntities(dir) {
 
 function getNextCounter(dir, entityType) {
   const counterPath = path.join(dir, '_counter.json');
-  let counters = { person: 1, business: 1, role: 1, organization: 1, credential: 1, skill: 1 };
+  let counters = { person: 1, business: 1, institution: 1, role: 1, organization: 1, credential: 1, skill: 1 };
   if (fs.existsSync(counterPath)) {
     counters = JSON.parse(fs.readFileSync(counterPath, 'utf-8'));
   }

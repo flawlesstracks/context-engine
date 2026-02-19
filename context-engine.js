@@ -23,8 +23,8 @@ const opts = program.opts();
 
 // --- Validation ---
 
-if (!['person', 'business'].includes(opts.type)) {
-  console.error(`Error: --type must be "person" or "business". Got "${opts.type}".`);
+if (!['person', 'business', 'institution'].includes(opts.type)) {
+  console.error(`Error: --type must be "person", "business", or "institution". Got "${opts.type}".`);
   process.exit(1);
 }
 
@@ -436,7 +436,7 @@ const V2_BUSINESS_SCHEMA = `{
 // --- Prompt Builders ---
 
 function buildV1Prompt(type, text, sourceFilename) {
-  const schema = type === 'person' ? V1_PERSON_SCHEMA : V1_BUSINESS_SCHEMA;
+  const schema = type === 'person' ? V1_PERSON_SCHEMA : (type === 'institution' ? V1_BUSINESS_SCHEMA : V1_BUSINESS_SCHEMA);
 
   return `You are a structured data extraction engine. Given unstructured text about a ${type}, extract all relevant information into the following JSON structure. Fill in every field you can from the text. Leave fields as empty strings, empty arrays, or reasonable defaults if the information is not present. Do not invent information that is not in the text.
 
@@ -457,8 +457,128 @@ ${text}
 ---`;
 }
 
+const V2_INSTITUTION_SCHEMA = `{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "ISO-8601 timestamp",
+    "source_text_hash": "SHA-256 of input text",
+    "source_description": "",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.85,
+    "word_count": 0,
+    "extraction_notes": []
+  },
+  "entity": {
+    "entity_type": "institution",
+    "entity_id": "ENT-INST-[ABBREV]-[3-DIGIT-NUMBER]",
+    "name": {
+      "legal": "",
+      "common": "",
+      "aliases": [],
+      "confidence": 0.95,
+      "facts_layer": 1
+    },
+    "summary": {
+      "value": "",
+      "confidence": 0.80,
+      "facts_layer": 2
+    }
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "institution_type",
+      "value": "university|school|government|hospital|public_service",
+      "confidence": 0.90,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "YYYY-MM-DD",
+        "refresh_interval_days": 365
+      },
+      "source_attribution": {
+        "origin": "",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    }
+  ],
+  "key_people": [
+    {
+      "person_id": "PERSON-001",
+      "name": "",
+      "entity_id_ref": null,
+      "role": "",
+      "context": "",
+      "confidence": 0.85,
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "YYYY-MM-DD",
+        "refresh_interval_days": 180
+      },
+      "source_attribution": {
+        "origin": "",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    }
+  ],
+  "values": [
+    {
+      "value_id": "VAL-001",
+      "value": "",
+      "interpretation": "",
+      "confidence": 0.75,
+      "source_attribution": {
+        "origin": "",
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "key_facts": [
+    {
+      "fact_id": "FACT-001",
+      "fact": "",
+      "confidence": 0.90,
+      "confidence_label": "VERIFIED",
+      "time_decay": {
+        "stability": "permanent",
+        "captured_date": "YYYY-MM-DD",
+        "refresh_interval_days": null
+      },
+      "source_attribution": {
+        "origin": "",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    }
+  ],
+  "constraints": [
+    {
+      "constraint_id": "CON-BIZ-001",
+      "name": "",
+      "type": "regulatory|operational|strategic|financial",
+      "description": "",
+      "confidence": 0.80,
+      "source_attribution": {
+        "origin": "",
+        "facts_layer": 1,
+        "layer_label": "objective"
+      }
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "ISO-8601",
+    "created_by": "context-engine-v2",
+    "source_documents": [],
+    "merge_history": []
+  }
+}`;
+
 function buildV2Prompt(type, text, sourceFilename, textHash, wordCount) {
-  const schema = type === 'person' ? V2_PERSON_SCHEMA : V2_BUSINESS_SCHEMA;
+  const schema = type === 'person' ? V2_PERSON_SCHEMA : (type === 'institution' ? V2_INSTITUTION_SCHEMA : V2_BUSINESS_SCHEMA);
   const today = new Date().toISOString().split('T')[0];
   const now = new Date().toISOString();
 
