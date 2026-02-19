@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const path = require('path');
 const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk').default;
-const { merge } = require('./merge-engine');
+const { merge, normalizeRelationshipType } = require('./merge-engine');
 const multer = require('multer');
 const cookieParser = require('cookie-parser');
 const { readEntity, writeEntity, listEntities, listEntitiesByType, getNextCounter, loadConnectedObjects, deleteEntity } = require('./src/graph-ops');
@@ -312,6 +312,40 @@ function chunkText(text, chunkSize, overlap) {
   return chunks;
 }
 
+function repairTruncatedJSON(raw) {
+  // Try to recover a truncated {"entities": [...]} response
+  // by finding the last complete object in the array
+  const idx = raw.lastIndexOf('},');
+  if (idx === -1) {
+    // Try last complete object at end of array (no trailing comma)
+    const idx2 = raw.lastIndexOf('}]');
+    if (idx2 !== -1) return JSON.parse(raw.substring(0, idx2 + 2) + '}');
+    return null;
+  }
+  const repaired = raw.substring(0, idx + 1) + ']}';
+  return JSON.parse(repaired);
+}
+
+function safeParseExtraction(raw, label) {
+  const cleaned = raw.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.warn(`[${label}] JSON parse failed: ${e.message} — attempting repair`);
+    try {
+      const repaired = repairTruncatedJSON(cleaned);
+      if (repaired && repaired.entities) {
+        console.warn(`[${label}] Response truncated — recovered ${repaired.entities.length} entities from this chunk`);
+        return repaired;
+      }
+    } catch (e2) {
+      console.warn(`[${label}] JSON repair also failed: ${e2.message}`);
+    }
+    console.warn(`[${label}] Skipping chunk — no entities recovered`);
+    return { entities: [] };
+  }
+}
+
 function buildGenericTextPrompt(text, filename, chunkNum, totalChunks) {
   const chunkLabel = totalChunks > 1 ? ` (chunk ${chunkNum} of ${totalChunks})` : '';
 
@@ -327,7 +361,13 @@ CRITICAL — ANTI-HALLUCINATION RULES:
 - Do NOT combine or merge separate people into one entity
 - If the text says "his daughter" but does not name her, do NOT invent a name for her
 
+CELEBRITY / PUBLIC FIGURE FILTER:
+- Do NOT create entities for celebrities, public figures, or famous people unless they have a direct personal relationship with the author (e.g., they are a friend, colleague, family member, or direct acquaintance)
+- If someone is mentioned as a comparison, reference, or example (e.g., "he's like the LeBron of his field"), do NOT create an entity for them
+- If a famous person is mentioned only in passing or as a cultural reference, skip them
+
 EXTRACTION RULES:
+- Return a MAXIMUM of 10 entities per chunk. Focus on the most significant named people and organizations. Skip minor mentions.
 - entity_type MUST be "person", "business", or "institution"
 - Use "business" for companies, for-profit organizations, and commercial entities
 - Use "institution" for schools, universities, governments, hospitals, public services, churches, non-profits, and civic organizations
@@ -383,7 +423,7 @@ function buildIngestPrompt(batch) {
     text += convText + '\n';
   });
 
-  return 'You are a structured data extraction engine. Analyze these user messages from ChatGPT conversations and extract every person, business, and institution the user mentions by name.\n\nRULES:\n- Only extract named entities (skip "my boss", "the company" without a specific name)\n- entity_type: "person", "business", or "institution"\n- Use "business" for companies and commercial entities; use "institution" for schools, universities, governments, hospitals, public services, churches, non-profits\n- name: { "full": "..." } for persons, { "common": "..." } for businesses and institutions\n- summary: 2-3 sentences synthesizing what the user said about this entity\n- attributes: only include clearly stated facts (role, location, expertise, industry)\n- relationships: connections between extracted entities\n- observations: each specific mention tagged with conversation_index (0-based integer matching conversation numbers below)\n- Do NOT invent information beyond what the user explicitly stated\n- If no named entities found, return {"entities": []}\n\nOutput ONLY valid JSON, no markdown fences, no commentary:\n{\n  "entities": [\n    {\n      "entity_type": "person",\n      "name": { "full": "Jane Smith" },\n      "summary": "...",\n      "attributes": { "role": "...", "location": "..." },\n      "relationships": [{ "name": "Other Entity", "relationship": "colleague", "context": "..." }],\n      "observations": [{ "text": "What the user said about this entity", "conversation_index": 0 }]\n    }\n  ]\n}\n\n--- USER MESSAGES FROM CONVERSATIONS ---' + text + '\n--- END ---';
+  return 'You are a structured data extraction engine. Analyze these user messages from ChatGPT conversations and extract every person, business, and institution the user mentions by name.\n\nRULES:\n- Only extract named entities (skip "my boss", "the company" without a specific name)\n- entity_type: "person", "business", or "institution"\n- Use "business" for companies and commercial entities; use "institution" for schools, universities, governments, hospitals, public services, churches, non-profits\n- name: { "full": "..." } for persons, { "common": "..." } for businesses and institutions\n- summary: 2-3 sentences synthesizing what the user said about this entity\n- attributes: only include clearly stated facts (role, location, expertise, industry)\n- relationships: connections between extracted entities\n- observations: each specific mention tagged with conversation_index (0-based integer matching conversation numbers below)\n- Do NOT invent information beyond what the user explicitly stated\n- Do NOT create entities for celebrities or public figures unless they have a direct personal relationship with the user\n- If no named entities found, return {"entities": []}\n\nOutput ONLY valid JSON, no markdown fences, no commentary:\n{\n  "entities": [\n    {\n      "entity_type": "person",\n      "name": { "full": "Jane Smith" },\n      "summary": "...",\n      "attributes": { "role": "...", "location": "..." },\n      "relationships": [{ "name": "Other Entity", "relationship": "colleague", "context": "..." }],\n      "observations": [{ "text": "What the user said about this entity", "conversation_index": 0 }]\n    }\n  ]\n}\n\n--- USER MESSAGES FROM CONVERSATIONS ---' + text + '\n--- END ---';
 }
 
 // --- Auth middleware (multi-tenant) ---
@@ -809,8 +849,7 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
           });
           const rawResponse = message.content[0].text;
           console.log('INGEST_DEBUG: chunk', ci + 1, 'response length:', rawResponse.length);
-          const cleaned = rawResponse.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
-          const parsed = JSON.parse(cleaned);
+          const parsed = safeParseExtraction(rawResponse, 'chunk ' + (ci + 1));
           const chunkEntities = parsed.entities || [];
           console.log('INGEST_DEBUG: chunk', ci + 1, 'extracted', chunkEntities.length, 'entities');
           allExtracted.push(...chunkEntities);
@@ -1142,8 +1181,7 @@ app.post('/api/drive/ingest', apiAuth, async (req, res) => {
           });
           const rawResponse = message.content[0].text;
           console.log('INGEST_DEBUG: drive chunk', ci + 1, 'response length:', rawResponse.length);
-          const cleaned = rawResponse.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
-          const parsed = JSON.parse(cleaned);
+          const parsed = safeParseExtraction(rawResponse, 'drive chunk ' + (ci + 1));
           const chunkEntities = parsed.entities || [];
           console.log('INGEST_DEBUG: drive chunk', ci + 1, 'extracted', chunkEntities.length, 'entities');
           allExtracted.push(...chunkEntities);
@@ -1281,12 +1319,183 @@ app.get('/api/entity/:id', apiAuth, (req, res) => {
   res.json(entity);
 });
 
+// GET /api/entity/:id/dossier — Org dossier with connected roles, credentials, skills
+app.get('/api/entity/:id/dossier', apiAuth, (req, res) => {
+  const entity = readEntity(req.params.id, req.graphDir);
+  if (!entity) return res.status(404).json({ error: 'Entity not found' });
+
+  const e = entity.entity || {};
+  const type = e.entity_type || '';
+  if (type !== 'organization' && type !== 'business' && type !== 'institution') {
+    return res.status(400).json({ error: 'Dossier only available for organization/business/institution entities' });
+  }
+
+  const orgName = (e.name?.common || e.name?.legal || '').toLowerCase();
+  const targetId = req.params.id;
+
+  // Find the primary person entity for this tenant (the one with most connected_objects)
+  const allEntities = listEntities(req.graphDir);
+  let personData = null;
+  let maxConnected = 0;
+  for (const { data } of allEntities) {
+    if ((data.entity || {}).entity_type === 'person') {
+      const count = (data.connected_objects || []).length;
+      if (count > maxConnected) { maxConnected = count; personData = data; }
+    }
+  }
+  const connectedObjects = personData ? (personData.connected_objects || []) : [];
+
+  // Collect role, credential, and skill entity IDs from person's connected_objects
+  const roleRefs = connectedObjects.filter(c => c.entity_type === 'role');
+  const credRefs = connectedObjects.filter(c => c.entity_type === 'credential');
+  const skillRefs = connectedObjects.filter(c => c.entity_type === 'skill');
+
+  // Read and filter roles that belong to this org
+  const roles = [];
+  for (const ref of roleRefs) {
+    const roleEntity = readEntity(ref.entity_id, req.graphDir);
+    if (!roleEntity) continue;
+    const rd = roleEntity.role_data || {};
+    if (rd.organization_id === targetId) {
+      roles.push(roleEntity);
+    } else if (orgName && (ref.label || '').toLowerCase().includes(orgName)) {
+      roles.push(roleEntity);
+    } else if (orgName && (rd.company || '').toLowerCase().includes(orgName)) {
+      roles.push(roleEntity);
+    }
+  }
+
+  // Read and filter credentials that belong to this org
+  const credentials = [];
+  for (const ref of credRefs) {
+    const credEntity = readEntity(ref.entity_id, req.graphDir);
+    if (!credEntity) continue;
+    const cd = credEntity.credential_data || {};
+    if (cd.organization_id === targetId) {
+      credentials.push(credEntity);
+    } else if (orgName && (ref.label || '').toLowerCase().includes(orgName)) {
+      credentials.push(credEntity);
+    } else if (orgName && (cd.institution || '').toLowerCase().includes(orgName)) {
+      credentials.push(credEntity);
+    }
+  }
+
+  // Build text corpus from role descriptions + org summary for skill filtering
+  const roleText = roles.map(r => (r.role_data?.description || '').toLowerCase()).join(' ');
+  const orgText = (entity.entity?.summary?.value || '').toLowerCase();
+  const corpus = roleText + ' ' + orgText;
+
+  // Filter skills to those mentioned in role descriptions or org summary
+  const skills = [];
+  for (const ref of skillRefs) {
+    const skillEntity = readEntity(ref.entity_id, req.graphDir);
+    if (!skillEntity) continue;
+    const sn = (skillEntity.skill_data?.name || '').toLowerCase();
+    if (sn && corpus.includes(sn)) {
+      skills.push(skillEntity);
+    }
+  }
+
+  // Sort roles by start_date descending
+  roles.sort((a, b) => {
+    const aDate = (a.role_data || {}).start_date || '';
+    const bDate = (b.role_data || {}).start_date || '';
+    return bDate.localeCompare(aDate);
+  });
+
+  const industry = (entity.attributes || []).find(a => a.key === 'industry');
+
+  res.json({
+    entity: entity.entity || {},
+    attributes: entity.attributes || [],
+    observations: entity.observations || [],
+    roles,
+    credentials,
+    skills,
+    industry: industry ? industry.value : '',
+    relationships: entity.relationships || [],
+  });
+});
+
 // DELETE /api/entity/:id — Delete an entity and its connected objects
 app.delete('/api/entity/:id', apiAuth, (req, res) => {
   const result = deleteEntity(req.params.id, req.graphDir);
   if (!result.deleted) return res.status(404).json({ error: 'Entity not found' });
   console.log(`[delete] Deleted ${req.params.id} + ${result.connected_deleted.length} connected objects`);
   res.json(result);
+});
+
+// POST /api/dedup-relationships — Retroactively deduplicate relationships across all entities
+app.post('/api/dedup-relationships', apiAuth, (req, res) => {
+  const { similarity } = require('./merge-engine');
+  const allEntities = listEntities(req.graphDir);
+  let totalDeduped = 0;
+  const changes = [];
+
+  for (const { filename, data } of allEntities) {
+    const rels = data.relationships || [];
+    if (rels.length < 2) continue;
+
+    const deduped = [];
+    for (const rel of rels) {
+      const existing = deduped.find(r =>
+        similarity(r.name || '', rel.name || '') > 0.85 &&
+        normalizeRelationshipType(r.relationship_type) === normalizeRelationshipType(rel.relationship_type)
+      );
+      if (existing) {
+        // Keep the version with more detail
+        const existingDetail = (existing.context || '').length + (existing.relationship_type || '').length;
+        const relDetail = (rel.context || '').length + (rel.relationship_type || '').length;
+        if (relDetail > existingDetail || (rel.confidence || 0) > (existing.confidence || 0)) {
+          const oldId = existing.relationship_id;
+          Object.assign(existing, rel);
+          existing.relationship_id = oldId;
+        }
+      } else {
+        deduped.push({ ...rel });
+      }
+    }
+
+    const removed = rels.length - deduped.length;
+    if (removed > 0) {
+      data.relationships = deduped;
+      writeEntity(data.entity.entity_id, data, req.graphDir);
+      totalDeduped += removed;
+      const eName = data.entity.entity_type === 'person'
+        ? (data.entity.name?.full || '')
+        : (data.entity.name?.common || data.entity.name?.legal || '');
+      changes.push({ entity_id: data.entity.entity_id, name: eName, removed });
+    }
+  }
+
+  console.log(`[dedup] Removed ${totalDeduped} duplicate relationships across ${changes.length} entities`);
+  res.json({ total_removed: totalDeduped, entities_affected: changes.length, changes });
+});
+
+// POST /api/entities/bulk-delete — Delete multiple entities at once
+app.post('/api/entities/bulk-delete', apiAuth, (req, res) => {
+  const ids = req.body.entity_ids;
+  if (!Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: 'entity_ids array is required' });
+  }
+
+  const results = [];
+  let deleted = 0;
+  let failed = 0;
+
+  for (const id of ids) {
+    const result = deleteEntity(id, req.graphDir);
+    if (result.deleted) {
+      deleted++;
+      results.push({ entity_id: id, deleted: true, connected_deleted: result.connected_deleted.length });
+    } else {
+      failed++;
+      results.push({ entity_id: id, deleted: false });
+    }
+  }
+
+  console.log(`[bulk-delete] Deleted ${deleted}/${ids.length} entities (${failed} not found)`);
+  res.json({ deleted, failed, total: ids.length, results });
 });
 
 // GET /api/entity/:id/connected — Entity + all connected objects
@@ -1406,7 +1615,7 @@ app.get('/api/search', apiAuth, (req, res) => {
     const all = entities.map(({ data }) => {
       const e = data.entity || {};
       const name = getEntityName(e);
-      return { entity_id: e.entity_id, entity_type: e.entity_type, name, summary: e.summary?.value || '', match_score: 1.0 };
+      return { entity_id: e.entity_id, entity_type: e.entity_type, name, summary: e.summary?.value || '', match_score: 1.0, observation_count: (data.observations || []).length, relationship_count: (data.relationships || []).length };
     });
     return res.json({ query: q, count: all.length, results: all });
   }
@@ -1447,6 +1656,8 @@ app.get('/api/search', apiAuth, (req, res) => {
         name,
         summary: e.summary?.value || '',
         match_score: Math.round(score * 100) / 100,
+        observation_count: (data.observations || []).length,
+        relationship_count: (data.relationships || []).length,
       });
     }
   }
@@ -3591,6 +3802,53 @@ const WIKI_HTML = `<!DOCTYPE html>
   }
   .btn-delete-entity:hover { background: #ef4444; color: #fff; }
 
+  /* --- Cleanup View --- */
+  .cleanup-toolbar {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 12px 16px; margin-bottom: 16px;
+    background: var(--bg-card); border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+  }
+  .cleanup-toolbar select, .cleanup-toolbar input {
+    padding: 6px 10px; border-radius: var(--radius-sm);
+    border: 1px solid var(--border-primary); background: var(--bg-primary);
+    color: var(--text-primary); font-size: 0.8rem; font-family: var(--font-sans);
+  }
+  .cleanup-toolbar label { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; }
+  .cleanup-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 16px; border-bottom: 1px solid var(--border-subtle);
+    transition: background var(--transition-fast);
+  }
+  .cleanup-row:hover { background: var(--bg-hover); }
+  .cleanup-check { accent-color: var(--accent-primary); width: 16px; height: 16px; cursor: pointer; }
+  .cleanup-name { flex: 1; font-size: 0.85rem; font-weight: 500; color: var(--text-primary); }
+  .cleanup-type-badge {
+    font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 2px 8px; border-radius: 9999px; font-weight: 600;
+    background: rgba(99,102,241,0.1); color: var(--accent-primary);
+  }
+  .cleanup-count { font-size: 0.72rem; color: var(--text-muted); min-width: 50px; text-align: right; }
+  .cleanup-actions {
+    position: sticky; bottom: 0; display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; margin-top: 12px;
+    background: var(--bg-card); border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg); box-shadow: var(--shadow-sm);
+  }
+  .cleanup-actions .btn-danger {
+    padding: 8px 20px; border-radius: var(--radius-sm);
+    background: #ef4444; color: #fff; border: none;
+    font-size: 0.82rem; font-weight: 600; cursor: pointer;
+    transition: background 0.15s;
+  }
+  .cleanup-actions .btn-danger:hover { background: #dc2626; }
+  .cleanup-actions .btn-danger:disabled { opacity: 0.4; cursor: not-allowed; }
+  .cleanup-actions .cleanup-selection-count { font-size: 0.78rem; color: var(--text-secondary); }
+  .cleanup-entity-list {
+    background: var(--bg-card); border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg); overflow: hidden;
+  }
+
   /* --- Sections --- */
   .section {
     background: var(--bg-card);
@@ -4314,6 +4572,8 @@ const WIKI_HTML = `<!DOCTYPE html>
       </div>
       <div class="sidebar-footer-actions">
         <a href="#" onclick="showUploadView();return false;">Upload</a>
+        <span class="sidebar-footer-separator">&middot;</span>
+        <a href="#" onclick="showCleanupView();return false;">Cleanup</a>
         <span class="sidebar-footer-separator">&middot;</span>
         <a href="#" onclick="showDriveView();return false;" id="btnDrive" style="display:none;">Drive</a>
         <span class="sidebar-footer-separator" id="driveSep" style="display:none;">&middot;</span>
@@ -5259,6 +5519,13 @@ function selectEntity(id) {
   if (empty) empty.style.display = 'none';
   api('GET', '/api/entity/' + id).then(function(data) {
     selectedData = data;
+    var type = (data.entity || {}).entity_type || '';
+    if (type === 'organization' || type === 'business' || type === 'institution') {
+      return api('GET', '/api/entity/' + id + '/dossier').then(function(dossier) {
+        renderOrgDossier(dossier);
+        renderSidebar();
+      });
+    }
     renderDetail(data);
     renderSidebar();
   }).catch(function(err) {
@@ -5343,6 +5610,138 @@ function showUploadView() {
 function hideUploadView() {
   if (uploadInProgress) return;
   document.getElementById('main').innerHTML = '<div class="empty-state" id="emptyState">Select an entity from the sidebar<br/>to view its knowledge graph profile</div>';
+}
+
+/* --- Cleanup View --- */
+var cleanupEntities = [];
+var cleanupSelected = {};
+var cleanupTypeFilter = '';
+var cleanupMaxObs = '';
+
+function showCleanupView() {
+  selectedId = null;
+  selectedView = null;
+  cleanupEntities = [];
+  cleanupSelected = {};
+  cleanupTypeFilter = '';
+  cleanupMaxObs = '';
+  document.getElementById('main').innerHTML = '<div style="padding:40px;color:var(--text-muted);text-align:center;">Loading entities...</div>';
+  api('GET', '/api/search?q=*').then(function(data) {
+    cleanupEntities = (data.results || []).sort(function(a, b) {
+      return (a.name || '').localeCompare(b.name || '');
+    });
+    renderCleanupView();
+  }).catch(function(err) {
+    document.getElementById('main').innerHTML = '<div style="padding:40px;color:#ef4444;">Error loading entities: ' + esc(err.message) + '</div>';
+  });
+}
+
+function getCleanupVisible() {
+  return cleanupEntities.filter(function(e) {
+    if (cleanupTypeFilter && e.entity_type !== cleanupTypeFilter) return false;
+    if (cleanupMaxObs !== '' && !isNaN(parseInt(cleanupMaxObs))) {
+      if ((e.observation_count || 0) >= parseInt(cleanupMaxObs)) return false;
+    }
+    return true;
+  });
+}
+
+function renderCleanupView() {
+  var visible = getCleanupVisible();
+  var selCount = 0;
+  for (var k in cleanupSelected) { if (cleanupSelected[k]) selCount++; }
+
+  var h = '<div style="padding:24px;max-width:900px;margin:0 auto;">';
+  h += '<h2 style="font-size:1.2rem;font-weight:700;color:var(--text-primary);margin-bottom:16px;">Cleanup Entities</h2>';
+
+  // Toolbar
+  h += '<div class="cleanup-toolbar">';
+  h += '<label>Type: <select onchange="cleanupTypeFilter=this.value;renderCleanupView()">';
+  h += '<option value="">All</option>';
+  h += '<option value="person"' + (cleanupTypeFilter === 'person' ? ' selected' : '') + '>Person</option>';
+  h += '<option value="business"' + (cleanupTypeFilter === 'business' ? ' selected' : '') + '>Business</option>';
+  h += '<option value="institution"' + (cleanupTypeFilter === 'institution' ? ' selected' : '') + '>Institution</option>';
+  h += '<option value="organization"' + (cleanupTypeFilter === 'organization' ? ' selected' : '') + '>Organization</option>';
+  h += '</select></label>';
+  h += '<label>Max obs: <input type="number" min="0" style="width:60px" value="' + esc(cleanupMaxObs) + '" onchange="cleanupMaxObs=this.value;renderCleanupView()" placeholder="e.g. 2"></label>';
+  h += '<label><input type="checkbox" class="cleanup-check" onchange="toggleAllCleanup(this.checked)"> Select all visible (' + visible.length + ')</label>';
+  h += '<button style="margin-left:auto;padding:6px 14px;border-radius:var(--radius-sm);border:1px solid var(--border-primary);background:var(--bg-primary);color:var(--text-secondary);font-size:0.78rem;cursor:pointer;" onclick="runDedupRelationships()">Dedup Relationships</button>';
+  h += '</div>';
+
+  // Entity list
+  h += '<div class="cleanup-entity-list">';
+  if (visible.length === 0) {
+    h += '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:0.85rem;">No entities match filters</div>';
+  }
+  for (var i = 0; i < visible.length; i++) {
+    var e = visible[i];
+    var checked = cleanupSelected[e.entity_id] ? ' checked' : '';
+    h += '<div class="cleanup-row">';
+    h += '<input type="checkbox" class="cleanup-check"' + checked + ' onchange="toggleCleanupEntity(' + "'" + esc(e.entity_id) + "'" + ')">';
+    h += '<span class="cleanup-name">' + esc(e.name || e.entity_id) + '</span>';
+    h += '<span class="cleanup-type-badge">' + esc(e.entity_type || '') + '</span>';
+    h += '<span class="cleanup-count" title="Observations">' + (e.observation_count || 0) + ' obs</span>';
+    h += '<span class="cleanup-count" title="Relationships">' + (e.relationship_count || 0) + ' rels</span>';
+    h += '</div>';
+  }
+  h += '</div>';
+
+  // Action bar
+  h += '<div class="cleanup-actions">';
+  h += '<button class="btn-danger"' + (selCount === 0 ? ' disabled' : '') + ' onclick="bulkDeleteSelected()">Delete Selected</button>';
+  h += '<span class="cleanup-selection-count">' + selCount + ' selected</span>';
+  h += '<button style="margin-left:auto;padding:8px 16px;border-radius:var(--radius-sm);border:1px solid var(--border-primary);background:var(--bg-primary);color:var(--text-secondary);font-size:0.82rem;cursor:pointer;" onclick="hideUploadView()">Back</button>';
+  h += '</div>';
+
+  h += '</div>';
+  document.getElementById('main').innerHTML = h;
+}
+
+function toggleCleanupEntity(id) {
+  cleanupSelected[id] = !cleanupSelected[id];
+  renderCleanupView();
+}
+
+function toggleAllCleanup(checked) {
+  var visible = getCleanupVisible();
+  for (var i = 0; i < visible.length; i++) {
+    cleanupSelected[visible[i].entity_id] = checked;
+  }
+  renderCleanupView();
+}
+
+function bulkDeleteSelected() {
+  var ids = [];
+  for (var k in cleanupSelected) { if (cleanupSelected[k]) ids.push(k); }
+  if (ids.length === 0) return;
+  if (!confirm('Delete ' + ids.length + ' entities and all their connected objects? This cannot be undone.')) return;
+
+  api('POST', '/api/entities/bulk-delete', { entity_ids: ids }).then(function(result) {
+    toast('Deleted ' + result.deleted + ' entities' + (result.failed > 0 ? ' (' + result.failed + ' not found)' : ''));
+    cleanupSelected = {};
+    // Refresh sidebar + cleanup view
+    api('GET', '/api/search?q=*').then(function(data) {
+      allEntities = data.results || [];
+      entities = allEntities.slice();
+      renderSidebar();
+      cleanupEntities = allEntities.slice().sort(function(a, b) {
+        return (a.name || '').localeCompare(b.name || '');
+      });
+      renderCleanupView();
+    });
+  }).catch(function(err) {
+    toast('Bulk delete failed: ' + err.message);
+  });
+}
+
+function runDedupRelationships() {
+  if (!confirm('Scan all entities and remove duplicate relationships?')) return;
+  api('POST', '/api/dedup-relationships').then(function(result) {
+    var msg = 'Removed ' + result.total_removed + ' duplicate relationships across ' + result.entities_affected + ' entities';
+    toast(msg);
+  }).catch(function(err) {
+    toast('Dedup failed: ' + err.message);
+  });
 }
 
 var ALLOWED_UPLOAD_EXT = ['.pdf', '.docx', '.xlsx', '.xls', '.csv', '.txt', '.md', '.json'];
@@ -6097,7 +6496,7 @@ function renderDetail(data) {
   var type = e.entity_type || '';
 
   // Route connected object types to their own renderer
-  if (['role', 'organization', 'credential', 'skill'].indexOf(type) !== -1) {
+  if (['role', 'credential', 'skill'].indexOf(type) !== -1) {
     return renderConnectedDetail(data);
   }
   var name = type === 'person' ? (e.name?.full || '') : (e.name?.common || e.name?.legal || '');
@@ -6231,6 +6630,149 @@ function renderDetail(data) {
   h += '<option value="L2_GROUP" selected>L2 Group</option><option value="L3_PERSONAL">L3 Personal</option></select>';
   h += '<button class="btn-add" id="btnAddObs" onclick="addObs()">Add Observation</button>';
   h += '</div></div></div>';
+
+  document.getElementById('main').innerHTML = h;
+}
+
+function renderOrgDossier(data) {
+  var e = data.entity || {};
+  var type = e.entity_type || '';
+  var name = e.name?.common || e.name?.legal || e.name?.full || '';
+  var roles = data.roles || [];
+  var credentials = data.credentials || [];
+  var skills = data.skills || [];
+  var observations = (data.observations || []).slice().sort(function(a, b) {
+    return new Date(b.observed_at || 0) - new Date(a.observed_at || 0);
+  });
+  var attributes = data.attributes || [];
+  var relationships = data.relationships || [];
+  var summary = e.summary?.value || '';
+  var industry = data.industry || '';
+  var h = '';
+
+  // Compute date range from roles and credentials
+  var dateRange = '';
+  var earliest = '';
+  var latest = '';
+  var hasPresent = false;
+  for (var i = 0; i < roles.length; i++) {
+    var rd = roles[i].role_data || {};
+    if (rd.start_date && (!earliest || rd.start_date < earliest)) earliest = rd.start_date;
+    if (rd.end_date === 'Present' || rd.end_date === 'present') hasPresent = true;
+    else if (rd.end_date && (!latest || rd.end_date > latest)) latest = rd.end_date;
+  }
+  // Also check credential dates for earliest/latest
+  for (var i = 0; i < credentials.length; i++) {
+    var cd = credentials[i].credential_data || {};
+    var cStart = cd.start_year ? String(cd.start_year) : '';
+    var cEnd = cd.end_year ? String(cd.end_year) : '';
+    if (cStart && (!earliest || cStart < earliest)) earliest = cStart;
+    if (cEnd && (!latest || cEnd > latest)) latest = cEnd;
+  }
+  if (earliest || latest || hasPresent) {
+    dateRange = (earliest || '?') + ' — ' + (hasPresent ? 'Present' : (latest || '?'));
+  }
+
+  // Header
+  h += '<div class="detail-header">';
+  h += '<h2>' + esc(name) + '</h2>';
+  h += '<span class="type-badge ' + type + '">' + esc(type) + '</span>';
+  if (industry) h += '<span class="type-badge" style="background:rgba(16,185,129,0.1);color:#10b981;">' + esc(industry) + '</span>';
+  if (dateRange) h += '<span style="font-size:0.78rem;color:var(--text-muted);margin-left:8px;">' + esc(dateRange) + '</span>';
+  h += '<span class="entity-id-badge">' + esc(e.entity_id || '') + '</span>';
+  h += '<button class="btn-delete-entity" onclick="confirmDeleteEntity(' + "'" + esc(e.entity_id || '') + "'" + ', ' + "'" + esc(name).replace(/'/g, '') + "'" + ')" title="Delete entity">Delete</button>';
+  h += '</div>';
+
+  // Section: Your Roles Here
+  if (roles.length > 0) {
+    h += '<div class="section">';
+    h += '<div class="section-title section-title-only">Your Roles Here (' + roles.length + ')</div>';
+    for (var i = 0; i < roles.length; i++) {
+      var rd = roles[i].role_data || {};
+      h += '<div class="cl-exp-card">';
+      if (rd.title) h += '<div class="cl-exp-title">' + esc(rd.title) + '</div>';
+      var dates = [rd.start_date, rd.end_date].filter(Boolean).join(' — ');
+      if (dates) h += '<div class="cl-exp-dates">' + esc(dates) + '</div>';
+      if (rd.employment_type) h += '<div class="cl-exp-dates" style="font-style:italic;">' + esc(rd.employment_type) + '</div>';
+      if (rd.description) h += '<div class="cl-exp-desc">' + esc(rd.description) + '</div>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  // Section: Credentials
+  if (credentials.length > 0) {
+    h += '<div class="section">';
+    h += '<div class="section-title section-title-only">Credentials (' + credentials.length + ')</div>';
+    for (var i = 0; i < credentials.length; i++) {
+      var cd = credentials[i].credential_data || {};
+      h += '<div class="cl-edu-card">';
+      if (cd.institution) h += '<div class="cl-edu-institution">' + esc(cd.institution) + '</div>';
+      var degree = [cd.degree, cd.field].filter(Boolean).join(' in ');
+      if (degree) h += '<div class="cl-edu-degree">' + esc(degree) + '</div>';
+      var years = [cd.start_year, cd.end_year].filter(Boolean).join(' — ');
+      if (years) h += '<div class="cl-edu-years">' + esc(years) + '</div>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  // Section: Skills
+  if (skills.length > 0) {
+    h += '<div class="section">';
+    h += '<div class="section-title section-title-only">Skills (' + skills.length + ')</div>';
+    h += '<div class="cl-skills-wrap">';
+    for (var i = 0; i < skills.length; i++) {
+      var sn = (skills[i].skill_data || {}).name || (skills[i].entity || {}).name?.common || '';
+      if (sn) h += '<span class="cl-skill-tag">' + esc(sn) + '</span>';
+    }
+    h += '</div></div>';
+  }
+
+  // Section: Key Observations
+  if (observations.length > 0) {
+    h += '<div class="section">';
+    h += '<div class="section-title section-title-only">Key Observations (' + observations.length + ')</div>';
+    for (var i = 0; i < observations.length; i++) {
+      var o = observations[i];
+      var decay = calcDecay(o.observed_at);
+      var opacity = Math.max(0.5, decay);
+      h += '<div class="obs-card" style="opacity:' + opacity.toFixed(2) + '">';
+      h += '<div class="obs-text">' + esc(o.observation) + '</div>';
+      h += '<div class="obs-meta">';
+      h += confidenceBadge(o.confidence, o.confidence_label);
+      if (o.source) h += '<span class="obs-source">' + esc(o.source) + '</span>';
+      h += '<span class="obs-date">' + esc((o.observed_at || '').slice(0, 10)) + '</span>';
+      if (decay < 1) h += '<span style="font-size:0.7rem;color:var(--text-muted);">decay ' + decay.toFixed(2) + '</span>';
+      h += '</div></div>';
+    }
+    h += '</div>';
+  }
+
+  // Section: About (Summary + Attributes)
+  if (summary || attributes.length > 0) {
+    h += '<div class="section">';
+    h += '<div class="section-title section-title-only">About</div>';
+    if (summary) h += '<div class="summary-text">' + esc(summary) + '</div>';
+    for (var i = 0; i < attributes.length; i++) {
+      var a = attributes[i];
+      h += '<div class="attr-row"><span class="attr-key">' + esc(a.key || '') + '</span><span class="attr-value">' + esc(a.value || '') + '</span></div>';
+    }
+    h += '</div>';
+  }
+
+  // Section: Relationships
+  if (relationships.length > 0) {
+    h += '<div class="section"><div class="section-title section-title-only">Relationships (' + relationships.length + ')</div>';
+    for (var i = 0; i < relationships.length; i++) {
+      var r = relationships[i];
+      h += '<div class="rel-row"><span class="rel-name">' + esc(r.name || '') + '</span>';
+      h += '<span class="rel-type">' + esc(r.relationship_type || '') + '</span>';
+      if (r.context) h += '<span class="rel-context">' + esc(r.context) + '</span>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
 
   document.getElementById('main').innerHTML = h;
 }
