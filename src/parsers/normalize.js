@@ -150,7 +150,9 @@ async function normalizeFileToText(buffer, filename) {
     }
 
     case '.json': {
-      const text = buffer.toString('utf-8');
+      const raw = buffer.toString('utf-8');
+      let text = raw;
+      try { text = JSON.stringify(JSON.parse(raw), null, 2); } catch {}
       return { text, metadata: { isContactList: false, isLinkedIn: false, isProfile: detectProfile(text) } };
     }
 
