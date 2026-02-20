@@ -8889,6 +8889,7 @@ function driveFileIcon(mimeType, isGoogleNative) {
   if (mimeType.includes('spreadsheet') || mimeType.includes('excel') || mimeType === 'text/csv') return '\\ud83d\\udcca';
   if (mimeType.includes('document') || mimeType.includes('wordprocessing')) return '\\ud83d\\udcdd';
   if (mimeType === 'text/plain' || mimeType === 'text/markdown') return '\\ud83d\\udcc3';
+  if (mimeType === 'application/json') return '{ }';
   return '\\ud83d\\udcc4';
 }
 

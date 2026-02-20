@@ -11,6 +11,7 @@ const SUPPORTED_MIME_TYPES = new Set([
   'text/csv',
   'text/plain',
   'text/markdown',
+  'application/json',
 ]);
 
 // Google-native types we can export
