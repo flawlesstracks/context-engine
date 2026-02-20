@@ -587,6 +587,74 @@ function buildIngestPrompt(batch, primaryUserName) {
     + 'Output ONLY valid JSON, no markdown fences, no commentary:\n{\n  "entities": [\n    {\n      "entity_type": "person",\n      "name": { "full": "Jane Smith" },\n      "summary": "...",\n      "attributes": { "role": "...", "location": "..." },\n      "relationships": [{ "name": "Other Entity", "relationship": "colleague", "context": "..." }],\n      "observations": [{ "text": "What the user said about this entity", "conversation_index": 0 }],\n      "relationship_dimensions": { "connection_type": "professional", "access": 0.55, "connected_through": null, "status": "active", "strength": 0.50, "sub_role": "colleague", "descriptor": "colleague at Acme Corp", "descriptor_origin": "work" },\n      "descriptor": "colleague at Acme Corp"\n    }\n  ]\n}\n\n--- USER MESSAGES FROM CONVERSATIONS ---' + text + '\n--- END ---';
 }
 
+function buildProfilePrompt(text, filename, primaryUserName) {
+  const primaryBlock = primaryUserName ? 'PRIMARY USER CONTEXT:\n'
+    + 'The primary user of this system is ' + primaryUserName + '. Score this entity in relationship TO ' + primaryUserName + '.\n\n'
+    + 'RELATIONSHIP SCORING — PERSON ENTITIES:\n'
+    + 'Include a "relationship_dimensions" object AND a top-level "descriptor" field.\n'
+    + '1. connection_type (required): "blood" | "marriage" | "chosen" | "professional" | "community"\n'
+    + '2. access (required, float 0.00-1.00): vulnerability/trust level\n'
+    + '3. connected_through (required, string or null)\n'
+    + '4. status (required): "active" | "stable" | "passive" | "diminishing" | "inactive" | "estranged" | "deceased" | "complicated"\n'
+    + '5. strength (required, float 0.00-1.00): life-impact score\n'
+    + '6. sub_role (required, string): most specific role\n'
+    + '7. descriptor (required, 4-8 words): completes "That\'s my ___"\n'
+    + '8. descriptor_origin (required, string): origin context\n\n' : '';
+
+  return 'You are processing a DEEP STRUCTURED PROFILE. Your job is to PRESERVE the full depth and structure of this assessment.\n\n'
+    + 'CRITICAL RULES:\n'
+    + '1. PRESERVE ALL STRUCTURE — nested objects, arrays, scores, and hierarchies must survive extraction. Do NOT flatten.\n'
+    + '2. PRESERVE EXACT NUMBERS — OCEAN scores, Enneagram numbers, percentages, dates. Never round or approximate.\n'
+    + '3. PRESERVE LISTS — energized_by, drained_by, blind_spots are ARRAYS. Keep them as arrays.\n'
+    + '4. PRESERVE DISPUTES — if a score is marked as disputed, contested, or has a _note, include both the score AND the dispute.\n'
+    + '5. PRESERVE MANAGEMENT PROTOCOLS — what_works, what_doesnt_work, communication guidelines are HIGH-VALUE data.\n'
+    + '6. PRESERVE MJ/AI ANALYSIS — any analysis attributed to an AI, MJ, or external assessor is an OBSERVATION with attribution.\n'
+    + '7. ONE ENTITY PER PROFILE — this document describes ONE person. Extract exactly one primary entity.\n'
+    + '8. RELATIONSHIP DEDUP — if the same person appears in multiple sections (e.g., spouse in family AND spouse_dynamic), create ONE relationship entry with the richest context.\n'
+    + '9. NO SELF-REFERENCES — do NOT create a relationship from the subject to themselves.\n'
+    + '10. DIMENSION SCORING — score the relationship_dimensions from ' + (primaryUserName || 'the primary user') + '\'s perspective.\n\n'
+    + primaryBlock
+    + 'STRUCTURED ATTRIBUTE CATEGORIES:\n'
+    + 'Extract into "structured_attributes" with these category keys:\n\n'
+    + '- identity: { preferred_name, full_name, age, date_of_birth, location, origin, nationality, languages }\n'
+    + '- professional: { current_role, company, industry, career_history (array), skills (array), education (array) }\n'
+    + '- personality_assessments: {\n'
+    + '    mbti: { type, description, confidence },\n'
+    + '    enneagram: { core_type, wing, tritype, instinctual_variant, description },\n'
+    + '    ocean: { openness: { score, percentile, _note? }, conscientiousness: { score, percentile, _note? }, extraversion: { score, percentile, _note? }, agreeableness: { score, percentile, _note? }, neuroticism: { score, percentile, _note? } }\n'
+    + '  }\n'
+    + '- behavioral_patterns: { communication_style, decision_making, conflict_style, energized_by (array), drained_by (array), blind_spots (array) }\n'
+    + '- enneagram_dynamics: { core_motivation, fear, desire, growth_direction, stress_direction, integration_path, disintegration_path }\n'
+    + '- family: { spouse: { name, relationship_type }, children (array of { name, age?, notes? }), family_notes }\n'
+    + '- spouse_dynamic: { core_dynamic, friction_points (array), strengths (array), confirmed (array), disputed (array), modified (array) }\n'
+    + '- relationship_to_primary_user: { what_works (array), what_doesnt_work (array), management_protocol, mj_analysis, communication_guidelines }\n'
+    + '- ai_interaction_guidelines: { expectations (array), cautions (array), preferred_approach }\n'
+    + '- profile_metadata: { assessment_date, last_updated, created_date, confidence_level, data_sources (array), verification_status, schema_version, gaps (array) }\n\n'
+    + 'OBSERVATIONS RULES:\n'
+    + '- Observations must be INSIGHT-LEVEL: blind spots, relationship dynamics, external analyses, behavioral patterns\n'
+    + '- Do NOT dump flat attribute data as observations\n'
+    + '- Each observation should be something a human would find genuinely insightful\n'
+    + '- Include MJ/AI analyses as observations with source attribution\n\n'
+    + 'OUTPUT FORMAT — valid JSON only, no markdown fences, no commentary:\n'
+    + '{\n'
+    + '  "entities": [{\n'
+    + '    "entity_type": "person",\n'
+    + '    "name": { "full": "Full Name", "preferred": "Nickname" },\n'
+    + '    "summary": "2-3 sentence summary of this person based on the profile",\n'
+    + '    "attributes": { "key": "value pairs for flat searchable data" },\n'
+    + '    "relationships": [{ "name": "Person Name", "relationship": "type", "context": "rich context" }],\n'
+    + '    "observations": [{ "text": "Insight-level observation with evidence" }],\n'
+    + '    "structured_attributes": { "identity": {}, "professional": {}, "personality_assessments": {}, "behavioral_patterns": {}, "enneagram_dynamics": {}, "family": {}, "spouse_dynamic": {}, "relationship_to_primary_user": {}, "ai_interaction_guidelines": {}, "profile_metadata": {} },\n'
+    + '    "relationship_dimensions": { "connection_type": "...", "access": 0.0, "connected_through": null, "status": "...", "strength": 0.0, "sub_role": "...", "descriptor": "...", "descriptor_origin": "..." },\n'
+    + '    "descriptor": "4-8 word descriptor"\n'
+    + '  }]\n'
+    + '}\n\n'
+    + 'Source file: ' + filename + '\n\n'
+    + '--- PROFILE TEXT ---\n'
+    + text + '\n'
+    + '--- END ---';
+}
+
 // --- Auth middleware (multi-tenant) ---
 
 function apiAuth(req, res, next) {
@@ -1055,6 +1123,139 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
         const cleaned = rawResponse.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
         const parsed = JSON.parse(cleaned);
         pendingEntities = [linkedInResponseToEntity(parsed, filename, req.agentId)];
+
+      } else if (metadata.isProfile) {
+        // Profile mode — deep structured extraction
+        console.log('INGEST_DEBUG: profile mode for', filename, '— text length:', text.length);
+        const prompt = buildProfilePrompt(text, filename, primaryUserName);
+        const message = await client.messages.create({
+          model: 'claude-sonnet-4-5-20250929',
+          max_tokens: 16384,
+          messages: [{ role: 'user', content: prompt }],
+        });
+        const rawResponse = message.content[0].text;
+        console.log('INGEST_DEBUG: profile response length:', rawResponse.length);
+        const parsed = safeParseExtraction(rawResponse, 'profile');
+        const profileEntities = parsed.entities || [];
+        console.log('INGEST_DEBUG: profile extracted', profileEntities.length, 'entities');
+
+        const now = new Date().toISOString();
+        pendingEntities = profileEntities.map(function(extracted) {
+          let entityType = extracted.entity_type;
+          if (entityType === 'organization') entityType = 'business';
+          if (!entityType || !['person', 'business', 'institution'].includes(entityType)) return null;
+
+          // Validate relationships: remove self-refs and dedup
+          const entityFullName = extracted.name?.full || extracted.name?.common || '';
+          const entityPreferred = extracted.name?.preferred || '';
+          const entityAliases = extracted.name?.aliases || [];
+          const validatedRels = validateRelationships(
+            extracted.relationships || [], entityFullName, entityPreferred, entityAliases
+          );
+
+          const observations = (extracted.observations || []).map(function(obs) {
+            return {
+              observation: (obs.text || '').trim(),
+              observed_at: now,
+              source: 'file_import:' + filename,
+              confidence: 0.8,
+              confidence_label: 'HIGH',
+              facts_layer: 'L2_GROUP',
+              layer_number: 2,
+              observed_by: req.agentId,
+            };
+          }).filter(function(o) { return o.observation; });
+
+          var attributes = [];
+          if (extracted.attributes && typeof extracted.attributes === 'object') {
+            var attrSeq = 1;
+            for (var _key in extracted.attributes) {
+              if (!extracted.attributes.hasOwnProperty(_key)) continue;
+              var val = extracted.attributes[_key];
+              val = Array.isArray(val) ? val.join(', ') : String(val);
+              if (!val) continue;
+              attributes.push({
+                attribute_id: 'ATTR-' + String(attrSeq++).padStart(3, '0'),
+                key: _key, value: val, confidence: 0.8, confidence_label: 'HIGH',
+                time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+                source_attribution: { facts_layer: 2, layer_label: 'group' },
+              });
+            }
+          }
+
+          var relationships = [];
+          var relSeq = 1;
+          for (var ri = 0; ri < validatedRels.length; ri++) {
+            var rel = validatedRels[ri];
+            relationships.push({
+              relationship_id: 'REL-' + String(relSeq++).padStart(3, '0'),
+              name: rel.name || '', relationship_type: rel.relationship_type || rel.relationship || '',
+              context: rel.context || '',
+              sentiment: 'neutral', confidence: 0.8, confidence_label: 'HIGH',
+            });
+          }
+
+          // Build structured_attributes with interface marker
+          var structuredAttrs = extracted.structured_attributes || {};
+          structuredAttrs.interface = 'profile';
+
+          // Extract source date from profile metadata
+          var sourceDate = null;
+          if (structuredAttrs.profile_metadata) {
+            sourceDate = structuredAttrs.profile_metadata.last_updated
+              || structuredAttrs.profile_metadata.created_date
+              || null;
+          }
+
+          var v2Entity = {
+            schema_version: '2.0',
+            schema_type: 'context_architecture_entity',
+            extraction_metadata: {
+              extracted_at: now, updated_at: now,
+              source_description: 'file_import:' + filename,
+              extraction_model: 'claude-sonnet-4-5-20250929',
+              extraction_confidence: 0.8, schema_version: '2.0',
+              extraction_mode: 'profile',
+            },
+            entity: {
+              entity_type: entityType,
+              name: Object.assign({}, extracted.name, { confidence: 0.8, facts_layer: 2 }),
+              summary: extracted.summary
+                ? { value: extracted.summary, confidence: 0.8, facts_layer: 2 }
+                : { value: '', confidence: 0, facts_layer: 2 },
+            },
+            attributes: attributes, relationships: relationships,
+            values: [], key_facts: [], constraints: [],
+            observations: observations,
+            structured_attributes: structuredAttrs,
+            provenance_chain: {
+              created_at: now, created_by: req.agentId,
+              source_documents: [{ source: 'file_import:' + filename, ingested_at: now }],
+              merge_history: [],
+            },
+          };
+
+          if (sourceDate) {
+            v2Entity.extraction_metadata.source_date = sourceDate;
+          }
+
+          if (extracted.relationship_dimensions) {
+            if (typeof extracted.relationship_dimensions.strength === 'number') {
+              extracted.relationship_dimensions.visual_tier = computeVisualTier(extracted.relationship_dimensions.strength);
+            }
+            v2Entity.relationship_dimensions = extracted.relationship_dimensions;
+            var wp = computeWikiPage(extracted.relationship_dimensions);
+            v2Entity.wiki_page = wp;
+            v2Entity.wiki_section = computeWikiSection(extracted.relationship_dimensions, wp);
+          }
+          if (extracted.descriptor) v2Entity.descriptor = extracted.descriptor;
+
+          return v2Entity;
+        }).filter(Boolean);
+
+        pendingSource = filename;
+        pendingTruth = 'STRONG';
+        console.log('INGEST_DEBUG: profile v2Entities:', pendingEntities.length);
 
       } else {
         // Generic text extraction via Claude (with chunking for large files)
@@ -2358,6 +2559,56 @@ function computeVisualTier(strength) {
   return 'muted';
 }
 
+/**
+ * Post-extraction validation for relationships.
+ * Removes self-references and deduplicates by target name.
+ */
+function validateRelationships(relationships, entityName, preferredName, aliases) {
+  if (!Array.isArray(relationships) || relationships.length === 0) return relationships;
+
+  // Build set of self-names to filter
+  const selfNames = new Set();
+  if (entityName) selfNames.add(entityName.toLowerCase().trim());
+  if (preferredName) selfNames.add(preferredName.toLowerCase().trim());
+  if (Array.isArray(aliases)) {
+    for (const a of aliases) {
+      if (a) selfNames.add(a.toLowerCase().trim());
+    }
+  }
+
+  // Remove self-references
+  let filtered = relationships.filter(r => {
+    const name = (r.name || '').toLowerCase().trim();
+    return name && !selfNames.has(name);
+  });
+
+  // Deduplicate by target name — merge descriptions, keep more specific type
+  const seen = new Map();
+  const deduped = [];
+  for (const rel of filtered) {
+    const key = (rel.name || '').toLowerCase().trim();
+    if (seen.has(key)) {
+      const existing = seen.get(key);
+      // Merge context
+      if (rel.context && (!existing.context || rel.context.length > existing.context.length)) {
+        existing.context = rel.context;
+      }
+      // Keep more specific relationship type
+      if (rel.relationship && (!existing.relationship_type || rel.relationship.length > (existing.relationship_type || '').length)) {
+        existing.relationship_type = rel.relationship || rel.relationship_type;
+      }
+    } else {
+      if (rel.relationship && !rel.relationship_type) {
+        rel.relationship_type = rel.relationship;
+      }
+      seen.set(key, rel);
+      deduped.push(rel);
+    }
+  }
+
+  return deduped;
+}
+
 // Server-side page/section assignment — mirrors frontend getPage/getFamilySection/getFriendsSection/getProfessionalSection
 function computeWikiPage(dims) {
   if (!dims || !dims.connection_type) return 'other';
@@ -3087,6 +3338,7 @@ app.get('/api/search', apiAuth, (req, res) => {
     result.relationships = (data.relationships || []).map(r => ({ name: r.name, relationship_type: r.relationship_type, context: r.context }));
     if (data.relationship_dimensions) result.relationship_dimensions = data.relationship_dimensions;
     if (data.descriptor) result.descriptor = data.descriptor;
+    if (data.structured_attributes) result.structured_attributes = data.structured_attributes;
     return result;
   }
 
@@ -5940,6 +6192,93 @@ const WIKI_HTML = `<!DOCTYPE html>
     background: rgba(139,92,246,0.12); color: var(--accent-tertiary);
     margin-top: 10px;
   }
+  /* --- Profile Mode Styles --- */
+  .profile-badge {
+    display: inline-block; font-size: 0.6rem; font-weight: 600;
+    padding: 3px 10px; border-radius: var(--radius-sm);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    background: rgba(236,72,153,0.12); color: #ec4899;
+    margin-left: 8px; vertical-align: middle;
+  }
+  .profile-section {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    margin-bottom: 10px; overflow: hidden;
+  }
+  .profile-section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; cursor: pointer; user-select: none;
+    font-size: 0.85rem; font-weight: 600; color: var(--text-primary);
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-subtle);
+    transition: background var(--transition-fast);
+  }
+  .profile-section-header:hover { background: var(--bg-hover); }
+  .profile-section-header .chevron { font-size: 0.7rem; color: var(--text-tertiary); transition: transform 0.2s; }
+  .profile-section-header.collapsed .chevron { transform: rotate(-90deg); }
+  .profile-section-body { padding: 12px 16px; }
+  .profile-section-body.hidden { display: none; }
+  .profile-bar-wrap { margin-bottom: 8px; }
+  .profile-bar-label {
+    display: inline-block; min-width: 120px; font-size: 0.78rem;
+    font-weight: 500; color: var(--text-secondary);
+  }
+  .profile-bar-track {
+    display: inline-block; width: calc(100% - 180px); height: 14px;
+    background: var(--bg-tertiary); border-radius: 7px; vertical-align: middle;
+    overflow: hidden; position: relative;
+  }
+  .profile-bar-fill {
+    height: 100%; border-radius: 7px;
+    background: linear-gradient(90deg, var(--accent-primary), var(--accent-tertiary));
+    transition: width 0.4s ease;
+  }
+  .profile-bar-value {
+    display: inline-block; min-width: 40px; font-size: 0.72rem;
+    font-weight: 600; color: var(--text-primary); text-align: right;
+    margin-left: 6px; vertical-align: middle;
+  }
+  .profile-dispute {
+    display: inline-block; font-size: 0.65rem; font-weight: 600;
+    padding: 1px 6px; border-radius: var(--radius-sm);
+    background: rgba(245,158,11,0.15); color: #f59e0b;
+    margin-left: 6px; vertical-align: middle;
+  }
+  .profile-tag {
+    display: inline-block; padding: 4px 10px; border-radius: 16px;
+    font-size: 0.72rem; font-weight: 500; margin: 2px 4px 2px 0;
+    background: rgba(99,102,241,0.08); color: var(--accent-light);
+    border: 1px solid rgba(99,102,241,0.15);
+  }
+  .profile-insight-card {
+    background: var(--bg-secondary); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md); padding: 10px 14px; margin-bottom: 8px;
+    border-left: 3px solid var(--accent-tertiary);
+  }
+  .profile-insight-card .insight-text { font-size: 0.82rem; color: var(--text-primary); line-height: 1.5; }
+  .profile-insight-card .insight-source { font-size: 0.7rem; color: var(--text-tertiary); margin-top: 4px; }
+  .profile-green {
+    border-left: 3px solid #10b981; background: rgba(16,185,129,0.04);
+    border-radius: var(--radius-md); padding: 8px 12px; margin-bottom: 6px;
+    font-size: 0.82rem; color: var(--text-primary);
+  }
+  .profile-red {
+    border-left: 3px solid #ef4444; background: rgba(239,68,68,0.04);
+    border-radius: var(--radius-md); padding: 8px 12px; margin-bottom: 6px;
+    font-size: 0.82rem; color: var(--text-primary);
+  }
+  .profile-amber {
+    border-left: 3px solid #f59e0b; background: rgba(245,158,11,0.04);
+    border-radius: var(--radius-md); padding: 8px 12px; margin-bottom: 6px;
+    font-size: 0.82rem; color: var(--text-primary);
+  }
+  .profile-kv-row { display: flex; padding: 3px 0; font-size: 0.82rem; }
+  .profile-kv-key { min-width: 140px; color: var(--text-tertiary); font-weight: 500; }
+  .profile-kv-val { color: var(--text-primary); flex: 1; }
+  .profile-source-date { font-size: 0.7rem; color: var(--text-tertiary); }
+  .profile-source-date.stale { color: #f59e0b; }
+
   .cl-exp-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border-subtle);
@@ -7398,6 +7737,19 @@ function toggleSection(sectionId) {
   renderSidebar();
 }
 
+function toggleProfileSection(id) {
+  var body = document.getElementById('profile-sec-' + id);
+  if (!body) return;
+  var header = body.previousElementSibling;
+  if (body.classList.contains('hidden')) {
+    body.classList.remove('hidden');
+    if (header) header.classList.remove('collapsed');
+  } else {
+    body.classList.add('hidden');
+    if (header) header.classList.add('collapsed');
+  }
+}
+
 // Capture OAuth session token from URL and store in sessionStorage
 (function() {
   var params = new URLSearchParams(window.location.search);
@@ -8813,7 +9165,389 @@ function renderCareerLite(data) {
   document.getElementById('main').innerHTML = h;
 }
 
+// --- Profile Mode Rendering Helpers ---
+
+function formatProfileKey(key) {
+  return (key || '').replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+}
+
+function renderProfileSection(id, label, contentHtml, startCollapsed) {
+  var collapsed = startCollapsed ? ' collapsed' : '';
+  var hidden = startCollapsed ? ' hidden' : '';
+  return '<div class="profile-section">'
+    + '<div class="profile-section-header' + collapsed + '" onclick="toggleProfileSection(' + "'" + id + "'" + ')" onkeydown="if(event.key===' + "'" + 'Enter' + "'" + ')toggleProfileSection(' + "'" + id + "'" + ')" tabindex="0">'
+    + '<span>' + esc(label) + '</span><span class="chevron">&#9660;</span></div>'
+    + '<div id="profile-sec-' + id + '" class="profile-section-body' + hidden + '">'
+    + contentHtml + '</div></div>';
+}
+
+function renderOceanBars(ocean) {
+  if (!ocean || typeof ocean !== 'object') return '';
+  var traits = ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism'];
+  var h = '';
+  for (var i = 0; i < traits.length; i++) {
+    var trait = traits[i];
+    var data = ocean[trait];
+    if (!data) continue;
+    var score = 0;
+    var noteKey = trait + '_note';
+    var disputeNote = ocean[noteKey] || (data && data._note) || '';
+    if (typeof data === 'object') {
+      score = data.score || data.percentile || 0;
+    } else if (typeof data === 'number') {
+      score = data;
+    }
+    var pct = Math.min(100, Math.max(0, typeof score === 'number' ? (score > 1 ? score : score * 100) : 0));
+    h += '<div class="profile-bar-wrap">';
+    h += '<span class="profile-bar-label">' + formatProfileKey(trait) + '</span>';
+    h += '<span class="profile-bar-track"><span class="profile-bar-fill" style="width:' + pct + '%"></span></span>';
+    h += '<span class="profile-bar-value">' + (typeof score === 'number' ? (score > 1 ? score.toFixed(0) : (score * 100).toFixed(0)) + '%' : esc(String(score))) + '</span>';
+    if (disputeNote) h += '<span class="profile-dispute" title="' + esc(String(disputeNote)) + '">&#9888; disputed</span>';
+    h += '</div>';
+  }
+  return h;
+}
+
+function renderProfileValue(val, contextKey) {
+  if (val === null || val === undefined) return '';
+  if (Array.isArray(val)) {
+    if (val.length === 0) return '';
+    // Check if items are objects with 'name' key (e.g., children)
+    if (typeof val[0] === 'object' && val[0] !== null) {
+      var h = '';
+      for (var i = 0; i < val.length; i++) {
+        h += '<div class="profile-insight-card"><div class="insight-text">';
+        var keys = Object.keys(val[i]);
+        for (var k = 0; k < keys.length; k++) {
+          h += '<div class="profile-kv-row"><span class="profile-kv-key">' + formatProfileKey(keys[k]) + '</span><span class="profile-kv-val">' + esc(String(val[i][keys[k]])) + '</span></div>';
+        }
+        h += '</div></div>';
+      }
+      return h;
+    }
+    // Check if contextKey suggests tags
+    if (contextKey === 'energized_by' || contextKey === 'drained_by' || contextKey === 'blind_spots'
+        || contextKey === 'expectations' || contextKey === 'cautions' || contextKey === 'gaps'
+        || contextKey === 'data_sources' || contextKey === 'skills' || contextKey === 'languages') {
+      var h = '<div>';
+      for (var i = 0; i < val.length; i++) {
+        h += '<span class="profile-tag">' + esc(String(val[i])) + '</span>';
+      }
+      h += '</div>';
+      return h;
+    }
+    // Default: bullet list
+    var h = '<ul style="margin:4px 0;padding-left:20px">';
+    for (var i = 0; i < val.length; i++) {
+      h += '<li style="font-size:0.82rem;color:var(--text-primary)">' + esc(String(val[i])) + '</li>';
+    }
+    h += '</ul>';
+    return h;
+  }
+  if (typeof val === 'object') {
+    var h = '';
+    var keys = Object.keys(val);
+    for (var k = 0; k < keys.length; k++) {
+      if (keys[k] === 'interface') continue;
+      var subVal = val[keys[k]];
+      if (subVal === null || subVal === undefined) continue;
+      if (typeof subVal === 'object' && !Array.isArray(subVal)) {
+        h += '<div style="margin-top:6px"><strong style="font-size:0.82rem;color:var(--text-secondary)">' + formatProfileKey(keys[k]) + '</strong>';
+        h += '<div style="padding-left:12px">' + renderProfileValue(subVal, keys[k]) + '</div></div>';
+      } else {
+        h += '<div class="profile-kv-row"><span class="profile-kv-key">' + formatProfileKey(keys[k]) + '</span><span class="profile-kv-val">' + renderProfileValue(subVal, keys[k]) + '</span></div>';
+      }
+    }
+    return h;
+  }
+  return esc(String(val));
+}
+
+function renderProfileWhatWorks(items) {
+  if (!Array.isArray(items) || items.length === 0) return '';
+  var h = '';
+  for (var i = 0; i < items.length; i++) {
+    h += '<div class="profile-green">' + esc(String(items[i])) + '</div>';
+  }
+  return h;
+}
+
+function renderProfileWhatDoesntWork(items) {
+  if (!Array.isArray(items) || items.length === 0) return '';
+  var h = '';
+  for (var i = 0; i < items.length; i++) {
+    h += '<div class="profile-red">' + esc(String(items[i])) + '</div>';
+  }
+  return h;
+}
+
+function renderProfileInsightCard(obs) {
+  var h = '<div class="profile-insight-card">';
+  h += '<div class="insight-text">' + esc(obs.observation || obs.text || '') + '</div>';
+  if (obs.source) h += '<div class="insight-source">' + esc(obs.source) + '</div>';
+  h += '</div>';
+  return h;
+}
+
+function renderProfileDetail(data) {
+  var e = data.entity || {};
+  var sa = data.structured_attributes || {};
+  var name = e.name?.full || '';
+  var preferred = (sa.identity && sa.identity.preferred_name) || e.name?.preferred || '';
+  var entityId = e.entity_id || '';
+  var summary = e.summary?.value || '';
+  var meta = data.extraction_metadata || {};
+  var h = '';
+
+  // 1. Header
+  h += '<div class="detail-header">';
+  h += '<h2>' + esc(name);
+  if (preferred && preferred !== name) h += ' <span style="color:var(--text-tertiary);font-weight:400">(' + esc(preferred) + ')</span>';
+  h += '</h2>';
+  h += '<span class="profile-badge">Profile Mode</span>';
+  h += '<span class="entity-id-badge">' + esc(entityId) + '</span>';
+  h += confidenceBadge(meta.extraction_confidence);
+
+  // Source date
+  var sourceDate = meta.source_date || '';
+  if (sourceDate) {
+    var isStale = false;
+    try {
+      var sd = new Date(sourceDate);
+      var sixMonthsAgo = new Date();
+      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+      if (sd < sixMonthsAgo) isStale = true;
+    } catch(ex) {}
+    h += '<span class="profile-source-date' + (isStale ? ' stale' : '') + '">Source: ' + esc(sourceDate) + (isStale ? ' (stale)' : '') + '</span>';
+  }
+
+  h += '<div style="margin-top:8px">';
+  h += '<button class="btn-share" onclick="openShareModal()">Share</button>';
+  h += '<button class="btn-delete-entity" style="margin-left:8px" onclick="confirmDeleteEntity(' + "'" + esc(entityId) + "'" + ', ' + "'" + esc(name).replace(/'/g, '') + "'" + ')" title="Delete entity">Delete</button>';
+  h += '</div></div>';
+
+  // 2. Summary
+  if (summary) {
+    h += '<div class="section">';
+    h += '<div class="section-title section-title-only">Summary</div>';
+    h += '<div class="summary-text">' + esc(summary) + '</div></div>';
+  }
+
+  // 3. Identity
+  if (sa.identity) {
+    var iBody = renderProfileValue(sa.identity, 'identity');
+    if (iBody) h += renderProfileSection('identity', 'Identity', iBody, false);
+  }
+
+  // 4. Personality Profile
+  if (sa.personality_assessments) {
+    var pBody = '';
+    var pa = sa.personality_assessments;
+    if (pa.mbti) {
+      pBody += '<div class="profile-insight-card"><div class="insight-text"><strong>MBTI: ' + esc(pa.mbti.type || '') + '</strong>';
+      if (pa.mbti.description) pBody += '<div style="margin-top:4px;font-size:0.8rem;color:var(--text-secondary)">' + esc(pa.mbti.description) + '</div>';
+      if (pa.mbti.confidence) pBody += '<div style="font-size:0.72rem;color:var(--text-tertiary)">Confidence: ' + esc(String(pa.mbti.confidence)) + '</div>';
+      pBody += '</div></div>';
+    }
+    if (pa.enneagram) {
+      pBody += '<div class="profile-insight-card"><div class="insight-text"><strong>Enneagram: Type ' + esc(String(pa.enneagram.core_type || '')) + (pa.enneagram.wing ? 'w' + esc(String(pa.enneagram.wing)) : '') + '</strong>';
+      if (pa.enneagram.tritype) pBody += ' <span style="color:var(--text-tertiary)">(Tritype: ' + esc(String(pa.enneagram.tritype)) + ')</span>';
+      if (pa.enneagram.instinctual_variant) pBody += ' <span style="color:var(--text-tertiary)">' + esc(pa.enneagram.instinctual_variant) + '</span>';
+      if (pa.enneagram.description) pBody += '<div style="margin-top:4px;font-size:0.8rem;color:var(--text-secondary)">' + esc(pa.enneagram.description) + '</div>';
+      pBody += '</div></div>';
+    }
+    if (pa.ocean) {
+      pBody += '<div style="margin-top:8px"><strong style="font-size:0.82rem">OCEAN / Big Five</strong></div>';
+      pBody += renderOceanBars(pa.ocean);
+    }
+    if (pBody) h += renderProfileSection('personality', 'Personality Profile', pBody, false);
+  }
+
+  // 5. Behavioral Patterns
+  if (sa.behavioral_patterns) {
+    var bBody = '';
+    var bp = sa.behavioral_patterns;
+    if (bp.communication_style) bBody += '<div class="profile-kv-row"><span class="profile-kv-key">Communication Style</span><span class="profile-kv-val">' + esc(String(bp.communication_style)) + '</span></div>';
+    if (bp.decision_making) bBody += '<div class="profile-kv-row"><span class="profile-kv-key">Decision Making</span><span class="profile-kv-val">' + esc(String(bp.decision_making)) + '</span></div>';
+    if (bp.conflict_style) bBody += '<div class="profile-kv-row"><span class="profile-kv-key">Conflict Style</span><span class="profile-kv-val">' + esc(String(bp.conflict_style)) + '</span></div>';
+    if (bp.energized_by && bp.energized_by.length > 0) {
+      bBody += '<div style="margin-top:8px"><strong style="font-size:0.82rem;color:var(--text-secondary)">Energized By</strong></div>';
+      bBody += renderProfileValue(bp.energized_by, 'energized_by');
+    }
+    if (bp.drained_by && bp.drained_by.length > 0) {
+      bBody += '<div style="margin-top:8px"><strong style="font-size:0.82rem;color:var(--text-secondary)">Drained By</strong></div>';
+      bBody += renderProfileValue(bp.drained_by, 'drained_by');
+    }
+    if (bp.blind_spots && bp.blind_spots.length > 0) {
+      bBody += '<div style="margin-top:8px"><strong style="font-size:0.82rem;color:var(--text-secondary)">Blind Spots</strong></div>';
+      for (var i = 0; i < bp.blind_spots.length; i++) {
+        bBody += '<div class="profile-insight-card"><div class="insight-text">' + esc(String(bp.blind_spots[i])) + '</div></div>';
+      }
+    }
+    if (bBody) h += renderProfileSection('behavioral', 'Behavioral Patterns', bBody, false);
+  }
+
+  // 6. Enneagram Dynamics
+  if (sa.enneagram_dynamics) {
+    var eBody = renderProfileValue(sa.enneagram_dynamics, 'enneagram_dynamics');
+    if (eBody) h += renderProfileSection('enneagram', 'Enneagram Dynamics', eBody, false);
+  }
+
+  // 7. Family
+  if (sa.family) {
+    var fBody = renderProfileValue(sa.family, 'family');
+    if (fBody) h += renderProfileSection('family', 'Family', fBody, false);
+  }
+
+  // 8. Spouse Dynamic
+  if (sa.spouse_dynamic) {
+    var sdBody = '';
+    var sd = sa.spouse_dynamic;
+    if (sd.core_dynamic) sdBody += '<div class="profile-kv-row"><span class="profile-kv-key">Core Dynamic</span><span class="profile-kv-val">' + esc(String(sd.core_dynamic)) + '</span></div>';
+    if (sd.friction_points && sd.friction_points.length > 0) {
+      sdBody += '<div style="margin-top:6px"><strong style="font-size:0.82rem">Friction Points</strong></div>';
+      for (var i = 0; i < sd.friction_points.length; i++) {
+        sdBody += '<div class="profile-red">' + esc(String(sd.friction_points[i])) + '</div>';
+      }
+    }
+    if (sd.strengths && sd.strengths.length > 0) {
+      sdBody += '<div style="margin-top:6px"><strong style="font-size:0.82rem">Strengths</strong></div>';
+      for (var i = 0; i < sd.strengths.length; i++) {
+        sdBody += '<div class="profile-green">' + esc(String(sd.strengths[i])) + '</div>';
+      }
+    }
+    if (sd.confirmed && sd.confirmed.length > 0) {
+      sdBody += '<div style="margin-top:6px"><strong style="font-size:0.82rem;color:#10b981">Confirmed</strong></div>';
+      for (var i = 0; i < sd.confirmed.length; i++) {
+        sdBody += '<div class="profile-green">' + esc(String(sd.confirmed[i])) + '</div>';
+      }
+    }
+    if (sd.disputed && sd.disputed.length > 0) {
+      sdBody += '<div style="margin-top:6px"><strong style="font-size:0.82rem;color:#f59e0b">Disputed</strong></div>';
+      for (var i = 0; i < sd.disputed.length; i++) {
+        sdBody += '<div class="profile-amber">' + esc(String(sd.disputed[i])) + '</div>';
+      }
+    }
+    if (sd.modified && sd.modified.length > 0) {
+      sdBody += '<div style="margin-top:6px"><strong style="font-size:0.82rem;color:#f59e0b">Modified</strong></div>';
+      for (var i = 0; i < sd.modified.length; i++) {
+        sdBody += '<div class="profile-amber">' + esc(String(sd.modified[i])) + '</div>';
+      }
+    }
+    if (sdBody) h += renderProfileSection('spouse-dynamic', 'Spouse Dynamic', sdBody, false);
+  }
+
+  // 9. Relationship with primary user — MOST PROMINENT
+  if (sa.relationship_to_primary_user) {
+    var rpBody = '';
+    var rp = sa.relationship_to_primary_user;
+    if (rp.what_works && rp.what_works.length > 0) {
+      rpBody += '<div style="margin-bottom:8px"><strong style="font-size:0.82rem;color:#10b981">What Works</strong></div>';
+      rpBody += renderProfileWhatWorks(rp.what_works);
+    }
+    if (rp.what_doesnt_work && rp.what_doesnt_work.length > 0) {
+      rpBody += '<div style="margin-top:8px;margin-bottom:8px"><strong style="font-size:0.82rem;color:#ef4444">What Doesn' + "'" + 't Work</strong></div>';
+      rpBody += renderProfileWhatDoesntWork(rp.what_doesnt_work);
+    }
+    if (rp.management_protocol) {
+      rpBody += '<div style="margin-top:8px"><strong style="font-size:0.82rem">Management Protocol</strong></div>';
+      rpBody += '<div style="font-size:0.82rem;color:var(--text-primary);margin-top:4px;padding:8px 12px;background:var(--bg-secondary);border-radius:var(--radius-md)">' + esc(String(rp.management_protocol)) + '</div>';
+    }
+    if (rp.mj_analysis) {
+      rpBody += '<div style="margin-top:8px"><strong style="font-size:0.82rem">MJ Analysis</strong></div>';
+      rpBody += '<div class="profile-insight-card"><div class="insight-text">' + esc(String(rp.mj_analysis)) + '</div><div class="insight-source">Source: MJ/AI Assessment</div></div>';
+    }
+    if (rp.communication_guidelines) {
+      rpBody += '<div style="margin-top:8px"><strong style="font-size:0.82rem">Communication Guidelines</strong></div>';
+      if (typeof rp.communication_guidelines === 'string') {
+        rpBody += '<div style="font-size:0.82rem;color:var(--text-primary);margin-top:4px">' + esc(rp.communication_guidelines) + '</div>';
+      } else {
+        rpBody += renderProfileValue(rp.communication_guidelines, 'communication_guidelines');
+      }
+    }
+    if (rpBody) {
+      h += '<div class="section" style="border:2px solid var(--accent-primary);border-radius:var(--radius-md);padding:2px">';
+      h += renderProfileSection('rel-primary', 'Relationship with Primary User', rpBody, false);
+      h += '</div>';
+    }
+  }
+
+  // 10. AI Interaction Guidelines
+  if (sa.ai_interaction_guidelines) {
+    var aiBody = '';
+    var ai = sa.ai_interaction_guidelines;
+    if (ai.expectations && ai.expectations.length > 0) {
+      aiBody += '<div style="margin-bottom:6px"><strong style="font-size:0.82rem">Expectations</strong></div>';
+      aiBody += renderProfileValue(ai.expectations, 'expectations');
+    }
+    if (ai.cautions && ai.cautions.length > 0) {
+      aiBody += '<div style="margin-top:6px"><strong style="font-size:0.82rem">Cautions</strong></div>';
+      aiBody += renderProfileValue(ai.cautions, 'cautions');
+    }
+    if (ai.preferred_approach) {
+      aiBody += '<div class="profile-kv-row"><span class="profile-kv-key">Preferred Approach</span><span class="profile-kv-val">' + esc(String(ai.preferred_approach)) + '</span></div>';
+    }
+    if (aiBody) h += renderProfileSection('ai-guidelines', 'AI Interaction Guidelines', aiBody, false);
+  }
+
+  // 11. Flat Attributes
+  var attrs = data.attributes || [];
+  if (attrs.length > 0) {
+    var aBody = '';
+    for (var i = 0; i < attrs.length; i++) {
+      aBody += '<div class="profile-kv-row"><span class="profile-kv-key">' + formatProfileKey(attrs[i].key) + '</span><span class="profile-kv-val">' + esc(attrs[i].value || '') + '</span></div>';
+    }
+    h += renderProfileSection('flat-attrs', 'Attributes (' + attrs.length + ')', aBody, true);
+  }
+
+  // 12. Relationships
+  var rels = data.relationships || [];
+  if (rels.length > 0) {
+    var rBody = '';
+    for (var i = 0; i < rels.length; i++) {
+      var r = rels[i];
+      rBody += '<div class="rel-row"><span class="rel-name">' + esc(r.name) + '</span>';
+      rBody += '<span class="rel-type">' + esc(r.relationship_type || '') + '</span>';
+      if (r.context) rBody += '<span class="rel-context">' + esc(r.context) + '</span>';
+      rBody += '</div>';
+    }
+    h += renderProfileSection('relationships', 'Relationships (' + rels.length + ')', rBody, false);
+  }
+
+  // 13. Observations
+  var obs = (data.observations || []).slice().sort(function(a, b) {
+    return new Date(b.observed_at || 0) - new Date(a.observed_at || 0);
+  });
+  if (obs.length > 0) {
+    var oBody = '';
+    for (var i = 0; i < obs.length; i++) {
+      var o = obs[i];
+      oBody += '<div class="obs-card">';
+      oBody += '<div class="obs-text">' + esc(o.observation) + '</div>';
+      oBody += '<div class="obs-meta">';
+      oBody += confidenceBadge(o.confidence, o.confidence_label);
+      if (o.source) oBody += '<span class="obs-source">' + esc(o.source) + '</span>';
+      oBody += '<span class="obs-date">' + esc((o.observed_at || '').slice(0, 10)) + '</span>';
+      oBody += '<button class="btn-delete" data-id="' + esc(o.observation_id || '') + '" onclick="deleteObs(this.dataset.id)">delete</button>';
+      oBody += '</div></div>';
+    }
+    h += renderProfileSection('observations', 'Observations (' + obs.length + ')', oBody, false);
+  }
+
+  // 14. Profile Metadata
+  if (sa.profile_metadata) {
+    var mBody = renderProfileValue(sa.profile_metadata, 'profile_metadata');
+    if (mBody) h += renderProfileSection('profile-meta', 'Profile Metadata', mBody, true);
+  }
+
+  document.getElementById('main').innerHTML = h;
+}
+
 function renderDetail(data) {
+  // Check for Profile Mode
+  if (data.structured_attributes && data.structured_attributes.interface === 'profile') {
+    return renderProfileDetail(data);
+  }
   // Check for Career Lite profile
   if (data.career_lite && data.career_lite.interface === 'career-lite') {
     return renderCareerLite(data);

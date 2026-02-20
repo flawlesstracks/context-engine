@@ -4,6 +4,18 @@ const path = require('path');
 
 const LINKEDIN_MARKERS = ['linkedin.com/in/', 'experience', 'education', 'skills'];
 
+const PROFILE_SIGNALS = [
+  'psychological_profile', 'personality', 'mbti', 'enneagram', 'ocean', 'big_five',
+  'behavioral_observations', 'blind_spots', 'communication_style', 'decision_making',
+  'relationship_dynamic', 'what_works', 'what_doesnt_work', 'management_protocol',
+  'spouse_dynamic', 'family_dynamic', 'children',
+  'assessment_date', 'confidence_level', 'data_sources', 'verification_status',
+  'schema_version', 'entity_id', 'changelog', 'version_history',
+  'behavioral_patterns', 'enneagram_dynamics', 'core_motivation',
+  'tritype', 'instinctual_variant', 'openness', 'conscientiousness',
+  'agreeableness', 'neuroticism', 'extraversion'
+];
+
 const CONTACT_COLUMNS = [
   'name', 'first name', 'last name', 'full name',
   'email', 'e-mail',
@@ -22,6 +34,15 @@ function detectLinkedIn(text) {
   for (const marker of LINKEDIN_MARKERS) {
     if (marker === 'linkedin.com/in/') continue;
     if (lower.includes(marker)) hits++;
+  }
+  return hits >= 3;
+}
+
+function detectProfile(text) {
+  const lower = text.toLowerCase();
+  let hits = 0;
+  for (const signal of PROFILE_SIGNALS) {
+    if (lower.includes(signal)) hits++;
   }
   return hits >= 3;
 }
@@ -46,7 +67,7 @@ async function normalizeFileToText(buffer, filename) {
       const text = result.text || '';
       return {
         text,
-        metadata: { isLinkedIn: detectLinkedIn(text), isContactList: false },
+        metadata: { isLinkedIn: detectLinkedIn(text), isContactList: false, isProfile: detectProfile(text) },
       };
     }
 
@@ -56,7 +77,7 @@ async function normalizeFileToText(buffer, filename) {
       const text = result.value || '';
       return {
         text,
-        metadata: { isLinkedIn: detectLinkedIn(text), isContactList: false },
+        metadata: { isLinkedIn: detectLinkedIn(text), isContactList: false, isProfile: detectProfile(text) },
       };
     }
 
@@ -89,7 +110,7 @@ async function normalizeFileToText(buffer, filename) {
         const csv = XLSX.utils.sheet_to_csv(sheet);
         text += `--- Sheet: ${sheetName} ---\n${csv}\n\n`;
       }
-      return { text, metadata: { isContactList: false, isLinkedIn: false } };
+      return { text, metadata: { isContactList: false, isLinkedIn: false, isProfile: detectProfile(text) } };
     }
 
     case '.csv': {
@@ -109,7 +130,7 @@ async function normalizeFileToText(buffer, filename) {
 
       // Not a contact list — join as text
       const text = rows.map(row => Object.values(row).join(', ')).join('\n');
-      return { text, metadata: { isContactList: false, isLinkedIn: false } };
+      return { text, metadata: { isContactList: false, isLinkedIn: false, isProfile: detectProfile(text) } };
     }
 
     case '.doc': {
@@ -120,23 +141,23 @@ async function normalizeFileToText(buffer, filename) {
         const text = result.value || '';
         return {
           text,
-          metadata: { isLinkedIn: detectLinkedIn(text), isContactList: false },
+          metadata: { isLinkedIn: detectLinkedIn(text), isContactList: false, isProfile: detectProfile(text) },
         };
       } catch {
         const text = buffer.toString('utf-8').replace(/[^\x20-\x7E\n\r\t]/g, ' ');
-        return { text, metadata: { isContactList: false, isLinkedIn: false } };
+        return { text, metadata: { isContactList: false, isLinkedIn: false, isProfile: detectProfile(text) } };
       }
     }
 
     case '.json': {
       const text = buffer.toString('utf-8');
-      return { text, metadata: { isContactList: false, isLinkedIn: false } };
+      return { text, metadata: { isContactList: false, isLinkedIn: false, isProfile: detectProfile(text) } };
     }
 
     case '.txt':
     case '.md': {
       const text = buffer.toString('utf-8');
-      return { text, metadata: { isContactList: false, isLinkedIn: detectLinkedIn(text) } };
+      return { text, metadata: { isContactList: false, isLinkedIn: detectLinkedIn(text), isProfile: detectProfile(text) } };
     }
 
     default:
@@ -144,4 +165,4 @@ async function normalizeFileToText(buffer, filename) {
   }
 }
 
-module.exports = { normalizeFileToText, detectContactColumns, detectLinkedIn };
+module.exports = { normalizeFileToText, detectContactColumns, detectLinkedIn, detectProfile };

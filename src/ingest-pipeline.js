@@ -90,6 +90,10 @@ async function ingestPipeline(entities, graphDir, agentId, options = {}) {
       if (entityData.career_lite) {
         incoming.career_lite = entityData.career_lite;
       }
+      // Forward structured_attributes (profile mode)
+      if (entityData.structured_attributes) {
+        incoming.structured_attributes = entityData.structured_attributes;
+      }
 
       // Merge structured data
       const { merged } = merge(matchedData, incoming);
@@ -99,6 +103,11 @@ async function ingestPipeline(entities, graphDir, agentId, options = {}) {
       if (entityData.career_lite && entityData.career_lite.experience && entityData.career_lite.experience.length > 0) {
         result.career_lite = entityData.career_lite;
         result.career_lite.interface = 'career-lite';
+      }
+
+      // Profile mode: structured_attributes always win from profile source
+      if (entityData.structured_attributes && entityData.structured_attributes.interface === 'profile') {
+        result.structured_attributes = entityData.structured_attributes;
       }
 
       // Append observations (dedup by lowercase text)

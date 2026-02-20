@@ -671,6 +671,9 @@ function merge(base, incoming) {
   if (incoming.org_dimensions && !result.org_dimensions) {
     result.org_dimensions = incoming.org_dimensions;
   }
+  if (incoming.structured_attributes && !result.structured_attributes) {
+    result.structured_attributes = incoming.structured_attributes;
+  }
   if (incoming.wiki_page && !result.wiki_page) {
     result.wiki_page = incoming.wiki_page;
   }

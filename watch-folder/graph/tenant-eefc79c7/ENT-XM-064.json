@@ -130,11 +130,13 @@
     "access": 0.35,
     "connected_through": "Jeffrey Richard Mitchell",
     "status": "stable",
-    "strength": 0.30,
+    "strength": 0.3,
     "sub_role": "in_law",
     "descriptor": "Jeff's wife, sister-in-law in Indianapolis",
     "descriptor_origin": "",
     "visual_tier": "neutral"
   },
-  "descriptor": "Jeff's wife, sister-in-law in Indianapolis"
+  "descriptor": "Jeff's wife, sister-in-law in Indianapolis",
+  "wiki_page": "family",
+  "wiki_section": "Extended Family"
 }

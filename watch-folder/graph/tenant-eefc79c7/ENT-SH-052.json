@@ -3,11 +3,13 @@
   "schema_type": "context_architecture_entity",
   "extraction_metadata": {
     "extracted_at": "2026-02-19T03:20:25.830Z",
-    "updated_at": "2026-02-19T03:20:25.830Z",
+    "updated_at": "2026-02-20T22:04:25.811Z",
     "source_description": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
     "extraction_model": "claude-sonnet-4-5-20250929",
-    "extraction_confidence": 0.6,
-    "schema_version": "2.0"
+    "extraction_confidence": 0.8,
+    "schema_version": "2.0",
+    "extraction_mode": "profile",
+    "source_date": "2026-01-15"
   },
   "entity": {
     "entity_type": "person",
@@ -26,14 +28,14 @@
   },
   "attributes": [
     {
-      "attribute_id": "ATTR-001",
+      "attribute_id": "ATTR-004",
       "key": "role",
-      "value": "Senior Talent Acquisition Manager at Lyft",
+      "value": "Spouse",
       "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
-        "captured_date": "2026-02-19"
+        "captured_date": "2026-02-20"
       },
       "source_attribution": {
         "facts_layer": 2,
@@ -58,12 +60,12 @@
     {
       "attribute_id": "ATTR-003",
       "key": "personality",
-      "value": "Warm, Loyal, Thoughtful, ESTJ personality type",
+      "value": "relationship-focused, resilient, people-first leader",
       "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
-        "captured_date": "2026-02-19"
+        "captured_date": "2026-02-20"
       },
       "source_attribution": {
         "facts_layer": 2,
@@ -101,14 +103,14 @@
       }
     },
     {
-      "attribute_id": "ATTR-006",
+      "attribute_id": "ATTR-004",
       "key": "birth_date",
-      "value": "May 24th, 1985",
+      "value": "2019-04-20",
       "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
-        "captured_date": "2026-02-19"
+        "captured_date": "2026-02-20"
       },
       "source_attribution": {
         "facts_layer": 2,
@@ -129,6 +131,126 @@
         "facts_layer": 2,
         "layer_label": "group"
       }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "age",
+      "value": "6",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-20"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-009",
+      "key": "family",
+      "value": "Married to Tahitina Hughes, father to Beza and Micah",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-20"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-010",
+      "key": "ethnicity",
+      "value": "Ethiopian",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-20"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-011",
+      "key": "languages",
+      "value": "English, Amharic",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-20"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-012",
+      "key": "work_mode",
+      "value": "Primarily remote with strategic travel",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-20"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-013",
+      "key": "profession",
+      "value": "Nurse",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-20"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-014",
+      "key": "origin",
+      "value": "Ethiopia",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-20"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-015",
+      "key": "personality_type",
+      "value": "INFJ",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-20"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
     }
   ],
   "relationships": [
@@ -136,73 +258,64 @@
       "relationship_id": "REL-001",
       "name": "CJ Mitchell",
       "relationship_type": "best friend",
-      "context": "friends since Howard University",
-      "sentiment": "neutral",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE"
+      "context": "Day one from Howard University, Carver Hall 2003. 20+ years of deep friendship. CJ godfather to Micah. BDAT co-founder. Supported CJ through custody trial.",
+      "sentiment": "positive",
+      "confidence": 0.8,
+      "confidence_label": "HIGH"
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "Tihitina Hughes",
+      "relationship_type": "spouse",
+      "context": "Wife. Ethiopian-born registered nurse. INFJ personality. Core partner in family unit.",
+      "sentiment": "positive",
+      "confidence": 0.8,
+      "confidence_label": "HIGH"
     },
     {
       "relationship_id": "REL-003",
-      "name": "Tihita",
-      "relationship_type": "spouse",
-      "context": "married to",
-      "sentiment": "neutral",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE"
+      "name": "Beza Hughes",
+      "relationship_type": "daughter",
+      "context": "Daughter, age 6, born 2019-04-20. Close friend to London Mitchell.",
+      "sentiment": "positive",
+      "confidence": 0.8,
+      "confidence_label": "HIGH"
     },
     {
       "relationship_id": "REL-004",
-      "name": "Beza",
-      "relationship_type": "parent",
-      "context": "child",
-      "sentiment": "neutral",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE"
+      "name": "Micah Hughes",
+      "relationship_type": "son",
+      "context": "Son, age 3. Godparents are CJ Mitchell and Lola Mafe.",
+      "sentiment": "positive",
+      "confidence": 0.8,
+      "confidence_label": "HIGH"
     },
     {
       "relationship_id": "REL-005",
-      "name": "Micah",
-      "relationship_type": "parent",
-      "context": "child",
-      "sentiment": "neutral",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE"
+      "name": "London Mitchell",
+      "relationship_type": "friend's child",
+      "context": "CJ's son. Beza's close friend. Children growing up as cousins-in-spirit.",
+      "sentiment": "positive",
+      "confidence": 0.8,
+      "confidence_label": "HIGH"
     },
     {
       "relationship_id": "REL-006",
-      "name": "London",
-      "relationship_type": "friend's son",
-      "context": "CJ's son whose custody trial Steven attended",
-      "sentiment": "neutral",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE"
+      "name": "LaQuan McCoy",
+      "relationship_type": "college friend",
+      "context": "Howard University roommate circle.",
+      "sentiment": "positive",
+      "confidence": 0.8,
+      "confidence_label": "HIGH"
     },
     {
       "relationship_id": "REL-007",
-      "name": "CJ Mitchell",
-      "relationship_type": "friend and godparent connection",
-      "context": "Known from Howard University",
-      "sentiment": "neutral",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE"
-    },
-    {
-      "relationship_id": "REL-008",
-      "name": "CJ",
-      "relationship_type": "best friend",
-      "context": "Met at Howard, supported during custody trial",
-      "sentiment": "neutral",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE"
-    },
-    {
-      "relationship_id": "REL-009",
-      "name": "London",
-      "relationship_type": "connected through CJ",
-      "context": "children growing up as cousins-in-spirit",
-      "sentiment": "neutral",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE"
+      "name": "Lola Mafe",
+      "relationship_type": "friend",
+      "context": "Co-godparent to Micah. Part of the Howard/BDAT extended family circle.",
+      "sentiment": "positive",
+      "confidence": 0.8,
+      "confidence_label": "HIGH"
     }
   ],
   "values": [],
@@ -210,136 +323,100 @@
   "constraints": [],
   "observations": [
     {
-      "observation": "Howard alum / Godparent circle",
-      "observed_at": "2026-02-19T03:20:25.830Z",
-      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE",
-      "facts_layer": "L2_GROUP",
-      "layer_number": 2,
-      "observed_by": "Clarence Mitchell",
-      "truth_level": "INFERRED",
-      "observation_id": "OBS-ENT-SH-052-20260219032025-001"
+      "observation_id": "OBS-ENT-SH-052-20260115-001",
+      "source": "profile_enrichment:Steve_master_profile",
+      "confidence": 0.8,
+      "confidence_label": "HIGH",
+      "truth_level": "STRONG",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-01-15"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "self"
+      },
+      "value": "Agreeableness inflation blind spot: Self-perception as highly agreeable (71st percentile) contradicts observed behavior — debate intensity, 'loud-wrong' Dunning-Kruger moments, and inability to release arguments suggest actual agreeableness closer to 55-65 range."
     },
     {
-      "observation": "Children: Beza (6, close with London) and Micah (2, CJ + Lola are godparents)",
-      "observed_at": "2026-02-19T03:20:25.830Z",
-      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE",
-      "facts_layer": "L2_GROUP",
-      "layer_number": 2,
-      "observed_by": "Clarence Mitchell",
-      "truth_level": "INFERRED",
-      "observation_id": "OBS-ENT-SH-052-20260219032025-002"
+      "observation_id": "OBS-ENT-SH-052-20260115-002",
+      "source": "profile_enrichment:Steve_master_profile",
+      "confidence": 0.8,
+      "confidence_label": "HIGH",
+      "truth_level": "STRONG",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-01-15"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "self"
+      },
+      "value": "Execution gap (Verbal J, Behavioral P): Presents as highly structured and planned (Judging verbal style) but actual behavior shows flexibility, adaptation, and occasional thread-dropping (Perceiving behavioral pattern). MBTI adjusted from ENFJ-T to ENxP-T."
     },
     {
-      "observation": "Known from Howard University",
-      "observed_at": "2026-02-19T03:20:25.830Z",
-      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE",
-      "facts_layer": "L2_GROUP",
-      "layer_number": 2,
-      "observed_by": "Clarence Mitchell",
-      "truth_level": "INFERRED",
-      "observation_id": "OBS-ENT-SH-052-20260219032025-003"
+      "observation_id": "OBS-ENT-SH-052-20260115-003",
+      "source": "profile_enrichment:Steve_master_profile",
+      "confidence": 0.8,
+      "confidence_label": "HIGH",
+      "truth_level": "STRONG",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-01-15"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "self"
+      },
+      "value": "The Righteous Debater: Type 1 Enneagram conviction combined with 83rd percentile Extraversion creates someone who can't release a point even when the room has moved on. This is his most consistently observed interpersonal friction pattern."
     },
     {
-      "observation": "When CJ faced one of the most grueling chapters of his life — an intense custody battle over his son, London — Steven was there in a way few were. He wasn't just a supportive voice; he was present: attending the actual custody trial",
-      "observed_at": "2026-02-19T03:20:25.830Z",
-      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE",
-      "facts_layer": "L2_GROUP",
-      "layer_number": 2,
-      "observed_by": "Clarence Mitchell",
-      "truth_level": "INFERRED",
-      "observation_id": "OBS-ENT-SH-052-20260219032025-004"
+      "observation_id": "OBS-ENT-SH-052-20260115-004",
+      "source": "profile_enrichment:Steve_master_profile",
+      "confidence": 0.8,
+      "confidence_label": "HIGH",
+      "truth_level": "STRONG",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-01-15"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "self"
+      },
+      "value": "CJ management protocol: Lead with respect for his values and loyalty. Challenge ideas, not character. When in loud-wrong mode, name it directly ('Steve, you're past your data right now'). Don't try to out-argue; redirect to shared values."
     },
     {
-      "observation": "In 2021, on CJ's encouragement and vision for community, Steven made the life-altering decision to move from Seattle to Atlanta",
-      "observed_at": "2026-02-19T03:20:25.830Z",
-      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE",
-      "facts_layer": "L2_GROUP",
-      "layer_number": 2,
-      "observed_by": "Clarence Mitchell",
-      "truth_level": "INFERRED",
-      "observation_id": "OBS-ENT-SH-052-20260219032025-005"
+      "observation_id": "OBS-ENT-SH-052-20260115-005",
+      "source": "profile_enrichment:Steve_master_profile",
+      "confidence": 0.8,
+      "confidence_label": "HIGH",
+      "truth_level": "STRONG",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-01-15"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "self"
+      },
+      "value": "MJ analysis: Steve is CJ's anti-Cassandra — he always believes things will work out, which is both his gift and blind spot. His optimism is genuine, not performative, but it can mask real risks. When CJ needs a reality check, Steve isn't the call. When CJ needs someone to believe in the vision unreservedly, Steve is the first call."
     },
     {
-      "observation": "Together, they helped form a 'Fatherhood Village' — a nucleus of Black fathers raising their children with love, accountability, and collective strength",
-      "observed_at": "2026-02-19T03:20:25.830Z",
-      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE",
-      "facts_layer": "L2_GROUP",
-      "layer_number": 2,
-      "observed_by": "Clarence Mitchell",
-      "truth_level": "INFERRED",
-      "observation_id": "OBS-ENT-SH-052-20260219032025-006"
-    },
-    {
-      "observation": "CJ quote: 'If loyalty, family, and action were all currencies — Steven W. Hughes would be a billionaire.'",
-      "observed_at": "2026-02-19T03:20:25.830Z",
-      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE",
-      "facts_layer": "L2_GROUP",
-      "layer_number": 2,
-      "observed_by": "Clarence Mitchell",
-      "truth_level": "INFERRED",
-      "observation_id": "OBS-ENT-SH-052-20260219032025-007"
-    },
-    {
-      "observation": "Pet peeves: Steve loves to argue until he's blue in the face and can sometimes be frustrating and off-putting. He suffers from 'loud-wrong' Dunning Kruger behavior from time to time",
-      "observed_at": "2026-02-19T03:20:25.830Z",
-      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE",
-      "facts_layer": "L2_GROUP",
-      "layer_number": 2,
-      "observed_by": "Clarence Mitchell",
-      "truth_level": "INFERRED",
-      "observation_id": "OBS-ENT-SH-052-20260219032025-008"
-    },
-    {
-      "observation": "Children: Beza (age 6, relationship: close with London), Micah (age 2, note: CJ + Lola are godparents)",
-      "observed_at": "2026-02-19T03:19:17.564Z",
-      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE",
-      "facts_layer": "L2_GROUP",
-      "layer_number": 2,
-      "observed_by": "Clarence Mitchell",
-      "truth_level": "INFERRED",
-      "observation_id": "OBS-ENT-SH-052-20260219031917-009"
-    },
-    {
-      "observation": "Steven loves to argue until he's blue in the face and can sometimes be frustrating and off-putting. He suffers from 'loud-wrong' Dunning Kruger behavior from time to time",
-      "observed_at": "2026-02-19T03:19:17.564Z",
-      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE",
-      "facts_layer": "L2_GROUP",
-      "layer_number": 2,
-      "observed_by": "Clarence Mitchell",
-      "truth_level": "INFERRED",
-      "observation_id": "OBS-ENT-SH-052-20260219031917-010"
-    },
-    {
-      "observation": "close friends from different life eras including Allen 'Big Al' Jones from Markham, Steven Hughes from Howard University",
-      "observed_at": "2026-02-19T17:27:17.384Z",
-      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE",
-      "facts_layer": "L2_GROUP",
-      "layer_number": 2,
-      "observed_by": "Clarence Mitchell",
-      "truth_level": "INFERRED",
-      "observation_id": "OBS-ENT-SH-052-20260219172717-011"
+      "observation_id": "OBS-ENT-SH-052-20260115-006",
+      "source": "profile_enrichment:Steve_master_profile",
+      "confidence": 0.8,
+      "confidence_label": "HIGH",
+      "truth_level": "STRONG",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-01-15"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "self"
+      },
+      "value": "Spouse compatibility friction: Extravert (83) married to Introvert creates energy management challenges. Tihitina has expressed they may not be 'compatible based on personalities.' Steve's verbal processing style and social energy needs directly conflict with her need for silence and solitude."
     }
   ],
   "provenance_chain": {
@@ -473,6 +550,171 @@
         "changes": [
           "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt: merged data and 1 observations"
         ]
+      },
+      {
+        "merged_at": "2026-02-20T18:18:14.367Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:Steven Hughes_Master Profile.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-003",
+            "key": "personality",
+            "old_value": "Warm, Loyal, Thoughtful, ESTJ personality type",
+            "new_value": "Loyal, warm, argumentative, persistent in debates, community builder",
+            "confidence": 0.6,
+            "timestamp": "2026-02-20T18:18:14.367Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-20T18:18:14.367Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:Steven Hughes_Master Profile.txt: merged data and 7 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-20T18:18:14.376Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:Steven Hughes_Master Profile.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "Senior Talent Acquisition Manager at Lyft",
+            "new_value": "Registered Nurse",
+            "confidence": 0.6,
+            "timestamp": "2026-02-20T18:18:14.376Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-003",
+            "key": "personality",
+            "old_value": "Loyal, warm, argumentative, persistent in debates, community builder",
+            "new_value": "Deeply empathetic, values-driven, quiet strength, supportive",
+            "confidence": 0.6,
+            "timestamp": "2026-02-20T18:18:14.376Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-20T18:18:14.376Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:Steven Hughes_Master Profile.txt: merged data and 4 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-20T18:18:14.382Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:Steven Hughes_Master Profile.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "Registered Nurse",
+            "new_value": "Daughter of Steven Hughes",
+            "confidence": 0.6,
+            "timestamp": "2026-02-20T18:18:14.383Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-008",
+            "key": "age",
+            "old_value": "39",
+            "new_value": "6",
+            "confidence": 0.6,
+            "timestamp": "2026-02-20T18:18:14.383Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-003",
+            "key": "personality",
+            "old_value": "Deeply empathetic, values-driven, quiet strength, supportive",
+            "new_value": "Confident, social, creative, expressive",
+            "confidence": 0.6,
+            "timestamp": "2026-02-20T18:18:14.383Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-006",
+            "key": "birth_date",
+            "old_value": "May 24th, 1985",
+            "new_value": "2019-04-20",
+            "confidence": 0.6,
+            "timestamp": "2026-02-20T18:18:14.383Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-20T18:18:14.382Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:Steven Hughes_Master Profile.txt: merged data and 3 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-20T18:19:48.262Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:Steve Hughes_Work.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "Daughter of Steven Hughes",
+            "new_value": "Senior Talent Acquisition Manager",
+            "confidence": 0.6,
+            "timestamp": "2026-02-20T18:19:48.262Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-003",
+            "key": "personality",
+            "old_value": "Confident, social, creative, expressive",
+            "new_value": "relationship-focused, resilient, people-first leader",
+            "confidence": 0.6,
+            "timestamp": "2026-02-20T18:19:48.262Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-20T18:19:48.262Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:Steve Hughes_Work.txt: merged data and 4 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-20T18:35:47.103Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Steve master.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "Senior Talent Acquisition Manager",
+            "new_value": "Spouse",
+            "confidence": 0.6,
+            "timestamp": "2026-02-20T18:35:47.103Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-20T18:35:47.103Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "Steve master.txt: merged data and 4 observations"
+        ]
       }
     ]
   },
@@ -480,14 +722,203 @@
   "translations": [],
   "relationship_dimensions": {
     "connection_type": "chosen",
-    "access": 0.9,
+    "access": 0.93,
     "connected_through": null,
     "status": "active",
     "strength": 0.93,
     "sub_role": "friend",
-    "descriptor": "day-one from Howard, like a brother",
+    "descriptor": "day-one from Howard, BDAT brother",
     "descriptor_origin": "",
     "visual_tier": "gold"
   },
-  "descriptor": "day-one from Howard, like a brother"
+  "descriptor": "day-one from Howard, BDAT brother",
+  "structured_attributes": {
+    "interface": "profile",
+    "identity": {
+      "preferred_name": "Steve",
+      "full_name": "Steven W. Hughes",
+      "age": 40,
+      "date_of_birth": "1985-05-24",
+      "location": "Atlanta, GA",
+      "origin": "United States",
+      "zodiac": "Gemini"
+    },
+    "professional": {
+      "current_role": "Senior Talent Acquisition Manager",
+      "company": "Lyft",
+      "department": "Human Resources / People Operations",
+      "work_mode": "Primarily remote with strategic travel",
+      "industry": "Technology / Ride-sharing",
+      "source_date": "January 2026"
+    },
+    "personality_assessments": {
+      "mbti": {
+        "type": "ENxP-T",
+        "description": "Adjusted from initial ENFJ-T assessment. Verbal Judging masks Behavioral Perceiving - plans meticulously but adapts fluidly in execution.",
+        "confidence": "moderate - adjusted from original assessment"
+      },
+      "enneagram": {
+        "core_type": 1,
+        "wing": 2,
+        "tritype": "126",
+        "instinctual_variant": "so/sx",
+        "description": "The Reformer with Helper wing. Principled, purposeful, self-controlled with desire to help others."
+      },
+      "ocean": {
+        "openness": {
+          "score": 78,
+          "percentile": 78
+        },
+        "conscientiousness": {
+          "score": 72,
+          "percentile": 72,
+          "_note": "DISPUTED: Verbal commitment to structure exceeds behavioral follow-through. Likely inflated by 5-10 points."
+        },
+        "extraversion": {
+          "score": 83,
+          "percentile": 83
+        },
+        "agreeableness": {
+          "score": 71,
+          "percentile": 71,
+          "_note": "DISPUTED: Self-report likely inflated. Debate intensity and 'loud-wrong' moments suggest 55-65 range."
+        },
+        "neuroticism": {
+          "score": 58,
+          "percentile": 58
+        }
+      }
+    },
+    "behavioral_patterns": {
+      "communication_style": "Direct, passionate, verbal processor. Thinks out loud. Can dominate conversations when energized by topic.",
+      "decision_making": "Values-first with analytical backup. Leads with principle, then seeks data to support. Can be slow to change position once committed.",
+      "conflict_style": "Engages directly, can escalate unintentionally. The Righteous Debater - Type 1 conviction makes it hard to release a point.",
+      "energized_by": [
+        "Intellectual debate",
+        "Community building",
+        "Mentoring younger professionals",
+        "Family time",
+        "Howard connections",
+        "BDAT activities"
+      ],
+      "drained_by": [
+        "Bureaucratic inefficiency",
+        "Perceived injustice",
+        "Being misunderstood",
+        "Corporate politics",
+        "Feeling unsupported by leadership"
+      ],
+      "blind_spots": [
+        "Agreeableness inflation: Self-perception as highly agreeable doesn't match observed debate intensity and 'loud-wrong' Dunning-Kruger moments",
+        "Execution gap: Verbal Judging (plans, structures, commitments) masks Behavioral Perceiving (adapts, pivots, sometimes drops threads)",
+        "The Righteous Debater: Type 1 conviction combined with high Extraversion means he can't release a point even when the room has moved on"
+      ]
+    },
+    "enneagram_dynamics": {
+      "core_motivation": "To be good, to have integrity, to be right, to improve themselves and the world",
+      "fear": "Being corrupt, defective, or wrong",
+      "desire": "Integrity, balance, to be virtuous",
+      "growth_direction": "Moves toward Type 7 (Enthusiast) - becomes more spontaneous, joyful, open to experience",
+      "stress_direction": "Moves toward Type 4 (Individualist) - becomes moody, irrational, withdrawn",
+      "wing_influence": "2-wing adds warmth, desire to help others, people-orientation that softens the 1's critical edge"
+    },
+    "family": {
+      "spouse": {
+        "name": "Tihitina Hughes",
+        "relationship_type": "wife",
+        "origin": "Ethiopia",
+        "profession": "Registered Nurse",
+        "personality_type": "INFJ"
+      },
+      "children": [
+        {
+          "name": "Beza Hughes",
+          "age": 6,
+          "birth_date": "2019-04-20",
+          "notes": "Daughter. Close friend to London Mitchell. Confident, social, creative."
+        },
+        {
+          "name": "Micah Hughes",
+          "age": 3,
+          "notes": "Son. Godparents are CJ Mitchell and Lola Mafe."
+        }
+      ],
+      "family_notes": "Ethiopian-American household blending cultures. Complementary parenting - Steve's warmth with Tihitina's wisdom."
+    },
+    "spouse_dynamic": {
+      "core_dynamic": "Extravert (83) married to Introvert creates energy management friction. Steve's social engagement fills his tank while depleting hers.",
+      "friction_points": [
+        "Verbal processing vs. need for silence",
+        "Social energy asymmetry",
+        "Partner has expressed they may not be 'compatible based on personalities'"
+      ],
+      "strengths": [
+        "Complementary parenting styles",
+        "Shared values around family and community",
+        "Cultural bridge-building"
+      ],
+      "confirmed": [
+        "Strong co-parenting partnership",
+        "Shared commitment to children's wellbeing",
+        "Mutual respect for each other's strengths"
+      ],
+      "disputed": [
+        "Overall compatibility - Tihitina has openly questioned personality compatibility"
+      ],
+      "modified": [
+        "Steve's agreeableness in marriage context may differ from social context"
+      ]
+    },
+    "relationship_to_primary_user": {
+      "what_works": [
+        "Direct honesty - Steve can handle and prefers unfiltered feedback from CJ",
+        "Shared history creates shorthand - Howard, Carver Hall, 20+ years of context",
+        "Mutual accountability on fatherhood - BDAT brotherhood keeps both elevated",
+        "Steve shows up in crisis - custody trial attendance proved depth of loyalty",
+        "Intellectual sparring when balanced - both enjoy vigorous debate"
+      ],
+      "what_doesnt_work": [
+        "Loud-wrong Dunning-Kruger moments - Steve argues past his knowledge base",
+        "Can't release a point - Type 1 conviction means debates extend past usefulness",
+        "Verbal processing overload - Steve thinking out loud can dominate shared time",
+        "Occasional self-righteousness when 1-wing is activated"
+      ],
+      "management_protocol": "Lead with respect for his values and loyalty. Challenge ideas, not character. When he's in loud-wrong mode, name it directly ('Steve, you're past your data right now') - he can receive that from CJ. Don't try to out-argue; redirect to shared values.",
+      "mj_analysis": "Steve is CJ's anti-Cassandra: he always believes things will work out, which is both his gift and blind spot. His optimism is genuine, not performative, but it can mask real risks. When CJ needs a reality check, Steve isn't the call - but when CJ needs someone to believe in the vision unreservedly, Steve is the first call.",
+      "communication_guidelines": "Direct is always fine. Steve respects intellectual honesty. Don't sugarcoat - he'll detect it and lose respect. But always lead with the relationship, not the correction."
+    },
+    "ai_interaction_guidelines": {
+      "expectations": [
+        "Be direct and substantive",
+        "Don't patronize - he'll detect it",
+        "Engage with his ideas seriously even when challenging them"
+      ],
+      "cautions": [
+        "May present opinions as facts with high confidence",
+        "Self-reported personality scores may not match observed behavior",
+        "Can be stubborn on initial positions"
+      ],
+      "preferred_approach": "Respectful intellectual engagement. Challenge with evidence, not authority."
+    },
+    "profile_metadata": {
+      "assessment_date": "January 2026",
+      "last_updated": "2026-01-15",
+      "created_date": "2026-01-15",
+      "confidence_level": "high for behavioral observations, moderate for personality scores (some disputed)",
+      "data_sources": [
+        "CJ personal knowledge (20+ years)",
+        "Direct observation",
+        "Psychological assessment framework",
+        "Spouse feedback",
+        "BDAT community context"
+      ],
+      "verification_status": "CJ-validated with MJ analytical overlay",
+      "schema_version": "1.0",
+      "gaps": [
+        "No formal psychometric testing",
+        "OCEAN scores are estimated, not measured",
+        "Limited data on professional performance metrics"
+      ]
+    }
+  }
 }

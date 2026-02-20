@@ -247,10 +247,12 @@
     "connected_through": null,
     "status": "deceased",
     "strength": 0.82,
-    "sub_role": "surrogate_sibling",
+    "sub_role": "friend",
     "descriptor": "late best friend, next-door neighbor",
     "descriptor_origin": "",
     "visual_tier": "green"
   },
-  "descriptor": "late best friend, next-door neighbor"
+  "descriptor": "late best friend, next-door neighbor",
+  "wiki_page": "friends",
+  "wiki_section": "Close Friends"
 }
