@@ -1,0 +1,181 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-19T17:25:37.497Z",
+    "updated_at": "2026-02-19T17:25:37.497Z",
+    "source_description": "drive_import:CJ_Relationships_Markham_Era.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Delorean Anderson",
+      "aliases": [
+        "Punkin"
+      ],
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "A block peer from Markham who is a frequent Facebook connection with CJ. They share laughs and updates online and can always reconnect easily when Punkin visits Atlanta. He has approximately 12 children.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-DA-084"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "block peer, A-Tier friend",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "location",
+      "value": "Markham, IL",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "birth_date",
+      "value": "1983-12-06",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "zodiac_sign",
+      "value": "Sagittarius",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "children_count",
+      "value": "approximately 12",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "Kratia Anderson",
+      "relationship_type": "sister",
+      "context": "Part of Anderson household HH_ANDERSON_001",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "Frequent Facebook connection. They share laughs and updates. Can always reconnect easily when Punkin visits Atlanta.",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-DA-084-20260219172537-001"
+    },
+    {
+      "observation": "primary_channel: Facebook",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-DA-084-20260219172537-002"
+    },
+    {
+      "observation": "Always easy to reconnect when in town",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-DA-084-20260219172537-003"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-19T17:25:37.497Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+        "ingested_at": "2026-02-19T17:25:37.497Z"
+      }
+    ],
+    "merge_history": []
+  },
+  "relationship_dimensions": {
+    "connection_type": "chosen",
+    "access": 0.62,
+    "connected_through": null,
+    "status": "stable",
+    "strength": 0.58,
+    "sub_role": "friend",
+    "descriptor": "block peer, A-Tier reconnects easily",
+    "descriptor_origin": "",
+    "visual_tier": "neutral"
+  },
+  "descriptor": "block peer, A-Tier reconnects easily"
+}

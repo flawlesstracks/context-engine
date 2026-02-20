@@ -26,7 +26,53 @@
   "organization_data": {
     "name": "Deloitte"
   },
-  "attributes": [],
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "org_category",
+      "value": "career",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "cj_role",
+      "value": "Business Technology Analyst",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "cj_dates",
+      "value": "2011-2013",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    }
+  ],
   "relationships": [],
   "observations": [],
   "provenance_chain": {
@@ -39,5 +85,14 @@
       }
     ],
     "merge_history": []
-  }
+  },
+  "org_dimensions": {
+    "relationship_to_primary": "employer",
+    "org_category": "career",
+    "org_status": "former",
+    "primary_user_role": "Business Technology Analyst",
+    "org_dates": "2011-2013",
+    "org_descriptor": "former employer, business technology consulting"
+  },
+  "descriptor": "former employer, business technology consulting"
 }

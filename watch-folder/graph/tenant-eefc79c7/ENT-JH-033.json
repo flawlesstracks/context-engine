@@ -1,0 +1,354 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-19T03:20:25.830Z",
+    "updated_at": "2026-02-19T22:54:22.546Z",
+    "source_description": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Jonathan Hughes",
+      "preferred": "Man Man",
+      "confidence": 0.6,
+      "facts_layer": 2,
+      "aliases": [
+        "Man Man"
+      ]
+    },
+    "summary": {
+      "value": "Jonathan 'Man Man' Mitchell is CJ's younger brother, 19 years apart in age. They have a strained bond marked by unresolved guilt and distance. He is one of CJ's groomsmen.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-JH-033"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "Younger Brother",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "birth_date",
+      "value": "2000-09-01",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "zodiac_sign",
+      "value": "Virgo",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "personality_type",
+      "value": "INFP",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "location",
+      "value": "Lives with their father in IL",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "sibling_position",
+      "value": "6",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "age_difference",
+      "value": "19 years apart",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "nickname",
+      "value": "Man Man",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "relationship_to_cj",
+      "value": "Younger Brother",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "CJ",
+      "relationship_type": "brother",
+      "context": "Strained connection intensity; 19 years apart from CJ",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "Jeffrey Hughes (Bodean)",
+      "relationship_type": "father",
+      "context": "Lives with their father in IL",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-003",
+      "name": "Jeffrey Hughes",
+      "relationship_type": "son",
+      "context": "Lives with father",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "Youngest brother, relationship with CJ is strained",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-JH-033-20260219032025-001"
+    },
+    {
+      "observation": "current_location: Lives with their father in IL",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-JH-033-20260219032025-002"
+    },
+    {
+      "observation": "connection_intensity: Strained",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-JH-033-20260219032025-003"
+    },
+    {
+      "observation": "age_difference: 19 years apart from CJ",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-JH-033-20260219032025-004"
+    },
+    {
+      "observation": "Current location: Lives with their father in IL",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-JH-033-20260219031917-005"
+    },
+    {
+      "observation": "Age difference: 19 years apart from CJ",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-JH-033-20260219031917-006"
+    },
+    {
+      "observation": "Connection intensity: Strained",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-JH-033-20260219031917-007"
+    },
+    {
+      "observation": "Jonathan 'Man Man' Mitchell, Relationship: Younger Brother, age_difference: 19 years apart",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-JM-048-20260219032025-001"
+    },
+    {
+      "observation": "relationship_quality: Strained bond; unresolved guilt and distance between the two",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-JM-048-20260219032025-002"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-19T03:20:25.830Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+        "ingested_at": "2026-02-19T03:20:25.830Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-19T03:21:20.881Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-19T03:21:20.881Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 4 observations"
+        ]
+      },
+      {
+        "merged_from": "ENT-JM-048",
+        "merged_at": "2026-02-19T22:54:22.546Z",
+        "merged_by": "Clarence Mitchell"
+      }
+    ]
+  },
+  "active_projects": [],
+  "translations": [],
+  "relationship_dimensions": {
+    "connection_type": "blood",
+    "access": 0.35,
+    "connected_through": null,
+    "status": "complicated",
+    "strength": 0.42,
+    "sub_role": "sibling",
+    "descriptor": "younger brother Man Man, strained bond",
+    "descriptor_origin": "",
+    "visual_tier": "neutral"
+  },
+  "descriptor": "younger brother Man Man, strained bond"
+}

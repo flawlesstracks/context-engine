@@ -1,0 +1,191 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-19T17:25:37.497Z",
+    "updated_at": "2026-02-19T17:25:37.497Z",
+    "source_description": "drive_import:CJ_Relationships_Markham_Era.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Army Nell Loggins",
+      "preferred": "Nell",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "Matriarch of the Loggins household next door to CJ. A nurse who served as a surrogate family elder. Mother to biological children Tanya, Randy, and Tionna, and adoptive mother to Diamond, Roger, and Raven. Universally referred to simply as 'Nell' by neighborhood children.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-ANL-072"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "matriarch",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "occupation",
+      "value": "Nurse",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "location",
+      "value": "Markham, IL",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "CJ",
+      "relationship_type": "surrogate family elder",
+      "context": "Next-door matriarch",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "Tanya Loggins",
+      "relationship_type": "biological daughter",
+      "context": "with Clarence",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-003",
+      "name": "Randy Loggins",
+      "relationship_type": "biological son",
+      "context": "with Clarence",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-004",
+      "name": "Tionna Gray",
+      "relationship_type": "biological daughter",
+      "context": "father unknown",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-005",
+      "name": "Diamond Loggins",
+      "relationship_type": "adopted daughter",
+      "context": "adopted in infancy",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-006",
+      "name": "Roger Davenport",
+      "relationship_type": "adopted son",
+      "context": "adopted age 8-9",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-007",
+      "name": "Raven Davenport",
+      "relationship_type": "adopted daughter",
+      "context": "adopted",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "Next-door matriarch. Universally referred to simply as 'Nell' by neighborhood children.",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-ANL-072-20260219172537-001"
+    },
+    {
+      "observation": "Household functioned as extended family for CJ. Included biological Loggins children, and adopted Davenport siblings.",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-ANL-072-20260219172537-002"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-19T17:25:37.497Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+        "ingested_at": "2026-02-19T17:25:37.497Z"
+      }
+    ],
+    "merge_history": []
+  },
+  "relationship_dimensions": {
+    "connection_type": "chosen",
+    "access": 0.65,
+    "connected_through": null,
+    "status": "stable",
+    "strength": 0.65,
+    "sub_role": "surrogate_parent",
+    "descriptor": "Nell, surrogate mother from next door",
+    "descriptor_origin": "",
+    "visual_tier": "green"
+  },
+  "descriptor": "Nell, surrogate mother from next door"
+}

@@ -1,0 +1,390 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-19T03:20:25.830Z",
+    "updated_at": "2026-02-19T03:20:25.830Z",
+    "source_description": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Ernest Price",
+      "nickname": "Tone P",
+      "confidence": 0.6,
+      "facts_layer": 2,
+      "aliases": [
+        "Tone P"
+      ]
+    },
+    "summary": {
+      "value": "Ernest 'Tone P' Price is CJ's creative partner from 'The Music Years' (2006-2009). He co-founded Flawless Tracks with CJ during their DC music hustle. He is a music producer, especially for rapper Wale, and is still in the Atlanta music scene. He is part of CJ's weekly trivia circle and one of his groomsmen.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-EP-050"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "Music Producer",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "occupation",
+      "value": "Music Producer",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "location",
+      "value": "Atlanta",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "nickname",
+      "value": "Tone P",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "relationship_to_cj",
+      "value": "Creative Partner",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "origin_period",
+      "value": "The Music Years (2006-2009)",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-007",
+      "key": "notable_client",
+      "value": "rapper Wale",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-008",
+      "key": "business",
+      "value": "Co-founder of Flawless Tracks",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-009",
+      "key": "relationship",
+      "value": "Creative Partner",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "CJ",
+      "relationship_type": "creative partner/friend",
+      "context": "Co-founded Flawless Tracks during DC music hustle, now in ATL music scene",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "Wale",
+      "relationship_type": "producer for",
+      "context": "music producer especially for rapper Wale",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-003",
+      "name": "Flawless Tracks",
+      "relationship_type": "co-founder",
+      "context": "business partner",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-004",
+      "name": "CJ Mitchell",
+      "relationship_type": "creative partner",
+      "context": "Co-founder of Flawless Tracks; DC music hustle",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-005",
+      "name": "Wale",
+      "relationship_type": "produces music for",
+      "context": "Music Producer - especially for rapper Wale",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-007",
+      "name": "CJ Mitchell",
+      "relationship_type": "co-founder",
+      "context": "Co-founder of Flawless Tracks during DC music hustle",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "Ernest 'Tone P' Price, relationship: Creative Partner, origin: 'The Music Years' (2006-2009)",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-EP-050-20260219032025-001"
+    },
+    {
+      "observation": "background: Co-founder of Flawless Tracks; DC music hustle",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-EP-050-20260219032025-002"
+    },
+    {
+      "observation": "occupation: He is a Music Producer - especially for rapper Wale",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-EP-050-20260219032025-003"
+    },
+    {
+      "observation": "current_connection: Still in ATL music scene; weekly trivia circle",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-EP-050-20260219032025-004"
+    },
+    {
+      "observation": "Co-founder of Flawless Tracks; DC music hustle",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-EP-050-20260219032025-005"
+    },
+    {
+      "observation": "He is a Music Producer - especially for rapper Wale",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-EP-050-20260219032025-006"
+    },
+    {
+      "observation": "Still in ATL music scene; weekly trivia circle",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-EP-050-20260219032025-007"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-19T03:20:25.830Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+        "ingested_at": "2026-02-19T03:20:25.830Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-19T03:20:25.911Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "Creative Partner, Groomsman",
+            "new_value": "Music Producer",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:20:25.911Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:20:25.911Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 3 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:21:20.958Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-19T03:21:20.958Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 4 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:21:20.973Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-19T03:21:20.973Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 3 observations"
+        ]
+      }
+    ]
+  },
+  "active_projects": [],
+  "translations": [],
+  "relationship_dimensions": {
+    "connection_type": "chosen",
+    "access": 0.88,
+    "connected_through": null,
+    "status": "active",
+    "strength": 0.9,
+    "sub_role": "friend",
+    "descriptor": "groomsman, creative partner from music years",
+    "descriptor_origin": "",
+    "visual_tier": "gold"
+  },
+  "descriptor": "groomsman, creative partner from music years"
+}

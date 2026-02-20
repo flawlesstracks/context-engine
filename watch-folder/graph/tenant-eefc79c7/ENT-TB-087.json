@@ -1,0 +1,112 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-19T17:25:37.497Z",
+    "updated_at": "2026-02-19T17:25:37.497Z",
+    "source_description": "drive_import:CJ_Relationships_Markham_Era.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Thomas Butler",
+      "aliases": [
+        "Tommy"
+      ],
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "A surrogate big brother figure to CJ who is the same age as CJ's older brother. He is the reason why CJ went to Howard University, having a profound influence on CJ's life trajectory.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-TB-087"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "surrogate big brother, Howard influence",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "location",
+      "value": "Markham, IL",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "CJ's older brother",
+      "relationship_type": "peer/same age",
+      "context": "Functioned as surrogate big brother to CJ",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "The reason why CJ went to Howard University. Is CJ's older brother's age and functioned as a surrogate big brother.",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-TB-087-20260219172537-001"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-19T17:25:37.497Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+        "ingested_at": "2026-02-19T17:25:37.497Z"
+      }
+    ],
+    "merge_history": []
+  },
+  "relationship_dimensions": {
+    "connection_type": "chosen",
+    "access": 0.75,
+    "connected_through": null,
+    "status": "stable",
+    "strength": 0.75,
+    "sub_role": "surrogate_sibling",
+    "descriptor": "surrogate big brother, Howard influence",
+    "descriptor_origin": "",
+    "visual_tier": "green"
+  },
+  "descriptor": "surrogate big brother, Howard influence"
+}

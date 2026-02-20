@@ -1,0 +1,511 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-19T03:20:25.830Z",
+    "updated_at": "2026-02-19T03:20:25.830Z",
+    "source_description": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Carrie Maria McNeal Mitchell",
+      "preferred": "Carrie",
+      "confidence": 0.6,
+      "facts_layer": 2,
+      "aliases": []
+    },
+    "summary": {
+      "value": "Carrie is CJ's ex-wife and the mother of his son London. The relationship is described as high-conflict, marked by divorce involving infidelity, custody disputes, financial betrayal, and legal battles. She is characterized as charismatic but chronically unstable with job turnover and substance issues.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-CMMM-046"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "Property Manager, Leasing Agent",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "birth_date",
+      "value": "1983-10-20",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "age",
+      "value": "41",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "location",
+      "value": "Roswell, GA",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "personality",
+      "value": "ENTJ - The Commander - Stubborn, Domineering, Head strong",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "personality_type",
+      "value": "ENTP - The Debater",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-007",
+      "key": "place_of_birth",
+      "value": "Nashville, Tennessee",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-008",
+      "key": "current_residence",
+      "value": "Roswell, GA",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-009",
+      "key": "height",
+      "value": "5'5\"",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-010",
+      "key": "weight_range",
+      "value": "170–190 lbs",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-011",
+      "key": "relationship_status",
+      "value": "ex-spouse",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-012",
+      "key": "custody_status",
+      "value": "primary physical custody",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "CJ",
+      "relationship_type": "ex-spouse",
+      "context": "divorced December 23rd, 2020",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "London",
+      "relationship_type": "mother",
+      "context": "primary physical custody",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-003",
+      "name": "CJ Mitchell",
+      "relationship_type": "ex-spouse",
+      "context": "Divorced 2020-12-23, married 2014-09-27",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-004",
+      "name": "London Khal Mitchell",
+      "relationship_type": "mother",
+      "context": "Primary physical custody",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-005",
+      "name": "Vernon McNeal",
+      "relationship_type": "father",
+      "context": "deceased 2016",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-006",
+      "name": "Pat Cunningham",
+      "relationship_type": "mother",
+      "context": "mother",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-007",
+      "name": "Vernon Patrick McNeal",
+      "relationship_type": "brother",
+      "context": "sibling",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "CJ's ex-wife and mother of his son; a complex, layered relationship marked by love and litigation",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CMMM-046-20260219032025-001"
+    },
+    {
+      "observation": "Divorce involved infidelity, custody disputes, financial betrayal, and legal battles",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CMMM-046-20260219032025-002"
+    },
+    {
+      "observation": "Carrie is a charismatic, spontaneous thrill-seeker whose warmth and ambition are often undercut by chronic instability—job turnover, substance lapses, and repeated breaches of trust",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CMMM-046-20260219032025-003"
+    },
+    {
+      "observation": "married: September 27th, 2014 at the W Hotel in Vieques Puerto Rico, divorced: December 23rd, 2020",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CMMM-046-20260219032025-004"
+    },
+    {
+      "observation": "son London (shared custody with ex-wife Carrie)",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CMMM-046-20260219172717-005"
+    },
+    {
+      "observation": "Ex: Carrie Mitchell (m. 2014–2020)",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CMMM-046-20260219172717-006"
+    },
+    {
+      "observation": "Recent Court Outcome (2024): Custody modification denied; court enforced parenting plan",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CMMM-046-20260219172717-007"
+    },
+    {
+      "observation": "full_name: Carrie Maria McNeal Mitchell, preferred_name: Carrie, birth_date: 1983-10-20, age: 41",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CMMM-046-20260219172717-008"
+    },
+    {
+      "observation": "personality_type: ENTJ, zodiac_sign: Libra, personality_description: The Commander - Stubborn, Domineering, Head strong",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CMMM-046-20260219172717-009"
+    },
+    {
+      "observation": "job_title: Property Manager, Leasing Agent, career_industry: Real Estate, Apartments",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CMMM-046-20260219172717-010"
+    },
+    {
+      "observation": "family: father: Vernon McNeal (deceased 2016), mother: Pat Cunningham, brother: Vernon Patrick McNeal",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CMMM-046-20260219172717-011"
+    },
+    {
+      "observation": "marriage_date to CJ: 2014-09-27, divorce_date: 2020-12-23",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CMMM-046-20260219172717-012"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-19T03:20:25.830Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+        "ingested_at": "2026-02-19T03:20:25.830Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-19T03:21:20.942Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-19T03:21:20.942Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 3 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.532Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.532Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt: merged data and 3 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.683Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "Ex-Spouse, Co-Parent",
+            "new_value": "Property Manager, Leasing Agent",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:27:17.683Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-005",
+            "key": "personality",
+            "old_value": "ENTP - The Debater, charismatic, spontaneous thrill-seeker",
+            "new_value": "ENTJ - The Commander - Stubborn, Domineering, Head strong",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:27:17.683Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.683Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt: merged data and 5 observations"
+        ]
+      }
+    ]
+  },
+  "active_projects": [],
+  "translations": [],
+  "relationship_dimensions": {
+    "connection_type": "marriage",
+    "access": 0.45,
+    "connected_through": null,
+    "status": "estranged",
+    "strength": 0.78,
+    "sub_role": "spouse",
+    "descriptor": "ex-wife, London's mother, high-conflict history",
+    "descriptor_origin": "",
+    "visual_tier": "green"
+  },
+  "descriptor": "ex-wife, London's mother, high-conflict history"
+}

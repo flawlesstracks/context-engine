@@ -1,0 +1,227 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-19T03:20:25.830Z",
+    "updated_at": "2026-02-19T03:20:25.830Z",
+    "source_description": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Teyonda Mitchell Robertson",
+      "preferred": "Niecey",
+      "confidence": 0.6,
+      "facts_layer": 2,
+      "aliases": []
+    },
+    "summary": {
+      "value": "Oldest daughter of Aunt Nina, age 43, born March 10, 1982. Named 'Niecey' as she was the first niece in the family. Married to Michael Robertson for 25 years and lives in the northern Atlanta area. Has three children including Mikiah who is graduating high school in May 2025.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-TMR-039"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "Cousin",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "location",
+      "value": "Northern Atlanta area",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "birth_date",
+      "value": "1982-03-10",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "age",
+      "value": "43",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "zodiac_sign",
+      "value": "Pisces",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "Deneen Humphries",
+      "relationship_type": "daughter",
+      "context": "Oldest daughter of Aunt Nina",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "Michael Robertson",
+      "relationship_type": "spouse",
+      "context": "Married 25 years",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-003",
+      "name": "Mikiah Robertson",
+      "relationship_type": "mother",
+      "context": "Daughter graduating high school May 2025",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "Oldest daughter of Aunt Nina, named 'Niecey' as she was the first niece in the family",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-TMR-039-20260219032025-001"
+    },
+    {
+      "observation": "Married to Michael Robertson (Mike) for 25 years",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-TMR-039-20260219032025-002"
+    },
+    {
+      "observation": "Mikiah Robertson (Kiah) age 18, Graduating high school May 2025",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-TMR-039-20260219032025-003"
+    },
+    {
+      "observation": "Married 25 years to Michael Robertson (Mike)",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-TMR-039-20260219031917-004"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-19T03:20:25.830Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+        "ingested_at": "2026-02-19T03:20:25.830Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-19T03:21:20.912Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-19T03:21:20.912Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 2 observations"
+        ]
+      }
+    ]
+  },
+  "active_projects": [],
+  "translations": [],
+  "relationship_dimensions": {
+    "connection_type": "blood",
+    "access": 0.55,
+    "connected_through": null,
+    "status": "stable",
+    "strength": 0.48,
+    "sub_role": "cousin",
+    "descriptor": "Aunt Nina's oldest, first niece Niecey",
+    "descriptor_origin": "",
+    "visual_tier": "neutral"
+  },
+  "descriptor": "Aunt Nina's oldest, first niece Niecey"
+}

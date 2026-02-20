@@ -1,0 +1,175 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-19T17:25:37.497Z",
+    "updated_at": "2026-02-19T17:25:37.497Z",
+    "source_description": "drive_import:CJ_Relationships_Markham_Era.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Clinton Stokes",
+      "aliases": [
+        "Rusty"
+      ],
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "Bus driver and Markham block peer. CJ saved Rusty's life by urging him to go to the hospital during a heart attack. Has since lost approximately 200 pounds. Best friends with Dejuan Simmons and shared a birthday with Zebedee Jennings.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-CS-091"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "block peer",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "profession",
+      "value": "bus driver",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "birth_date",
+      "value": "1982-11-03",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "personality",
+      "value": "humorous, resilient",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "Dejuan Simmons",
+      "relationship_type": "best friend",
+      "context": "Best friends with Dejuan Simmons",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "Zebedee Jennings",
+      "relationship_type": "close friend with shared birthday",
+      "context": "Birthday shared with Honeyman (three years apart)",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "CJ urged Rusty to go to the hospital during what turned out to be a heart attack. CJ saved Rusty's life.",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CS-091-20260219172537-001"
+    },
+    {
+      "observation": "Rusty has since lost approximately 200 pounds",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CS-091-20260219172537-002"
+    },
+    {
+      "observation": "Frequent communicator, especially on Facebook. Known for his humor. CJ and Rusty often discuss Rusty's fitness journey.",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CS-091-20260219172537-003"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-19T17:25:37.497Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+        "ingested_at": "2026-02-19T17:25:37.497Z"
+      }
+    ],
+    "merge_history": []
+  },
+  "relationship_dimensions": {
+    "connection_type": "community",
+    "access": 0.52,
+    "connected_through": "Markham block",
+    "status": "stable",
+    "strength": 0.48,
+    "sub_role": "acquaintance",
+    "descriptor": "Rusty from the block, saved his life",
+    "descriptor_origin": "",
+    "visual_tier": "neutral"
+  },
+  "descriptor": "Rusty from the block, saved his life"
+}

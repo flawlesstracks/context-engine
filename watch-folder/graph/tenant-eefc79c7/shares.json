@@ -1,0 +1,29 @@
+[
+  {
+    "shareId": "mWVVuWISgm8p",
+    "tenantId": "eefc79c7",
+    "entityId": "ENT-CM-001",
+    "sections": [
+      "summary",
+      "experience",
+      "education",
+      "skills"
+    ],
+    "createdAt": "2026-02-17T02:55:31.989Z",
+    "expiresAt": "2026-03-19T02:55:31.989Z"
+  },
+  {
+    "shareId": "5gvkDRonrqZn",
+    "tenantId": "eefc79c7",
+    "entityId": "ENT-CM-001",
+    "sections": [
+      "summary",
+      "experience",
+      "education",
+      "skills",
+      "connections"
+    ],
+    "createdAt": "2026-02-17T23:33:10.844Z",
+    "expiresAt": "2026-05-18T23:33:10.844Z"
+  }
+]

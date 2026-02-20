@@ -1,0 +1,68 @@
+{
+  "schema_version": "2.0",
+  "entity": {
+    "entity_id": "ENT-HO-100",
+    "entity_type": "person",
+    "name": {
+      "full": "Harrison Osuorji",
+      "confidence": 0.8,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "CAU MBA classmate and close friend. Part of CJ's trivia crew and BDAT brotherhood. Almost made the groomsman list.",
+      "confidence": 0.7,
+      "facts_layer": 2
+    }
+  },
+  "attributes": [
+    {
+      "key": "role",
+      "value": "Friend / CAU MBA peer"
+    },
+    {
+      "key": "location",
+      "value": "Atlanta, GA"
+    }
+  ],
+  "relationships": [
+    {
+      "name": "Clarence Mitchell",
+      "relationship_type": "friend",
+      "context": "CAU MBA classmate, trivia crew, BDAT brotherhood"
+    }
+  ],
+  "observations": [
+    {
+      "content": "Harrison Osuorji is a CAU MBA brother who was almost in the groomsman list. Part of the trivia crew and BDAT.",
+      "source": "manual_entry",
+      "created_at": "2026-02-20T17:15:40.613Z"
+    }
+  ],
+  "relationship_dimensions": {
+    "connection_type": "chosen",
+    "access": 0.78,
+    "connected_through": null,
+    "status": "active",
+    "strength": 0.86,
+    "sub_role": "friend",
+    "descriptor": "CAU MBA brother, trivia crew, almost groomsman",
+    "descriptor_origin": "social circle",
+    "visual_tier": "gold"
+  },
+  "descriptor": "CAU MBA brother, trivia crew, almost groomsman",
+  "connected_objects": [],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "provenance_chain": {
+    "created_at": "2026-02-20T17:15:40.613Z",
+    "created_by": "manual_correction",
+    "source_documents": [
+      {
+        "source": "manual_entry",
+        "ingested_at": "2026-02-20T17:15:40.613Z"
+      }
+    ],
+    "merge_history": []
+  }
+}

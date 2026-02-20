@@ -1,0 +1,261 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-19T03:20:25.830Z",
+    "updated_at": "2026-02-19T03:20:25.830Z",
+    "source_description": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Deneen Humphries",
+      "preferred": "Nina",
+      "confidence": 0.6,
+      "facts_layer": 2,
+      "aliases": []
+    },
+    "summary": {
+      "value": "CJ's maternal aunt (mother's younger sister), born May 8, 1965, deeply spiritual and emotionally grounded. She is the mother of five children including Stevana Vaughn and lives in Dallas Fort Worth with her husband Ray. CJ is planning to hang with Nina and Ray for her 60th birthday in Cancun.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-DH-035"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "Aunt (Mother's Younger Sister)",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "location",
+      "value": "Dallas Fort Worth",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "birth_date",
+      "value": "1965-05-08",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "zodiac_sign",
+      "value": "Taurus",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "age",
+      "value": "60",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "personality",
+      "value": "deeply spiritual and emotionally grounded",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "Ray Humphries",
+      "relationship_type": "spouse",
+      "context": "Works for Railroad in Dallas Fort Worth Texas",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "Stevana Vaughn",
+      "relationship_type": "daughter",
+      "context": "age 33, founder of Bend and Snap postpartum brand",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-003",
+      "name": "Dewonda 'Girty' Hughes",
+      "relationship_type": "sister",
+      "context": "Younger sister of CJ's Mom",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-004",
+      "name": "CJ",
+      "relationship_type": "nephew",
+      "context": "maternal aunt",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "CJ's maternal aunt; deeply spiritual and emotionally grounded, raised Stevana Vaughn",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-DH-035-20260219032025-001"
+    },
+    {
+      "observation": "Younger sister of CJ's Mom, Dewonda 'Girty' Hughes",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-DH-035-20260219032025-002"
+    },
+    {
+      "observation": "CJ is going to hang with Nina and Ray for her 60th Birthday in Cancun",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-DH-035-20260219032025-003"
+    },
+    {
+      "observation": "Spouse: Ray Humphries, Works for Railroad in Dallas Fort Worth Texas",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-DH-035-20260219032025-004"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-19T03:20:25.830Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+        "ingested_at": "2026-02-19T03:20:25.830Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-19T03:21:20.893Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "Aunt",
+            "new_value": "Aunt (Mother's Younger Sister)",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:21:20.893Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:21:20.893Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 3 observations"
+        ]
+      }
+    ]
+  },
+  "active_projects": [],
+  "translations": [],
+  "relationship_dimensions": {
+    "connection_type": "blood",
+    "access": 0.68,
+    "connected_through": null,
+    "status": "active",
+    "strength": 0.62,
+    "sub_role": "aunt",
+    "descriptor": "Nina, Mom's spiritual younger sister",
+    "descriptor_origin": "",
+    "visual_tier": "neutral"
+  },
+  "descriptor": "Nina, Mom's spiritual younger sister"
+}

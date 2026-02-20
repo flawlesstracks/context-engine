@@ -370,22 +370,104 @@ function buildGenericTextPrompt(text, filename, chunkNum, totalChunks, primaryUs
   const chunkLabel = totalChunks > 1 ? ` (chunk ${chunkNum} of ${totalChunks})` : '';
   const primaryBlock = primaryUserName ? `
 PRIMARY USER CONTEXT:
-The primary user of this system is ${primaryUserName}. Every relationship you extract for a person entity MUST be defined RELATIVE TO THIS PRIMARY USER.
-- For each person, answer: What is this person's relationship TO ${primaryUserName}?
-- If the text says "Lola is CJ's wife" → relationship_to_primary: "spouse"
-- If the text says "Seona is Lola's sister" and Lola is the primary user's wife → relationship_to_primary: "sister-in-law (connected through Lola Mafe)"
-- If the text says "Dorian is Ro's wife" and Ro is a friend → relationship_to_primary: "friend_spouse (connected through Rodrique Fru)"
-- If the text says "Roger was CJ's childhood best friend" → relationship_to_primary: "childhood best friend"
+The primary user of this system is ${primaryUserName}. Every person and organization you extract must be scored in relationship TO ${primaryUserName}.
 
-Every person entity MUST include these fields in attributes:
-- "relationship_to_primary": direct relationship to ${primaryUserName} (e.g. "spouse", "son", "best friend", "sister-in-law", "colleague", "friend_spouse")
-- "relationship_distance": "1" = direct relationship, "2" = connected through someone, "3" = tertiary/extended
-- "categorization_hint": one of "family", "friends", "professional", "community", "other"
+RELATIONSHIP SCORING — PERSON ENTITIES:
 
-IMPORTANT — "like family" is NOT family:
-- "like a brother", "surrogate sister", "big brother figure", "father figure" → categorization_hint: "friends" (NOT family)
-- Actual blood/marriage/legal family only → categorization_hint: "family"
-- Friend's spouses, friend's children → categorization_hint: "other" or "community" (NOT family)
+For each PERSON entity, include a "relationship_dimensions" object AND a top-level "descriptor" field.
+
+1. connection_type (required, enum)
+   How is this person connected to ${primaryUserName}?
+   "blood" — biological or legally adopted family
+   "marriage" — connected through a marriage (current or former). Includes spouse, ex-spouse, in-law, step-relative.
+   "chosen" — voluntary personal relationship (friend, mentor, mentee, confidant, surrogate family)
+   "professional" — work or business relationship (colleague, manager, client, partner)
+   "community" — shared context or proximity (classmate, neighbor, fellow member)
+
+   TIEBREAKER RULE: When a relationship spans BOTH chosen AND professional (e.g., MBA classmate who became a business partner), pick whichever connection came FIRST chronologically. If they were friends before doing business together, connection_type = "chosen" and mention the business in the descriptor. DEFAULT TO "chosen" when ambiguous.
+
+   SPOUSE RULE: If someone is identified as another person's wife/husband/spouse/partner, and that other person is NOT ${primaryUserName}, connection_type MUST be "marriage" with connected_through = the spouse. Marriage connection ALWAYS takes priority over any professional services they may also provide. Example: "Marcus's wife Keisha does hair" → connection_type = "marriage", connected_through = "Marcus", NOT connection_type = "professional".
+
+   CRITICAL: "like a brother", "surrogate sister", "father figure" = "chosen", NOT "blood". Only actual blood/marriage/legal family = "blood" or "marriage".
+
+2. access (required, float 0.00-1.00)
+   How much vulnerability would ${primaryUserName} extend to this person?
+   0.90-1.00: Unrestricted trust. Kids, home, finances, unlocked phone — all offered without anxiety.
+   0.70-0.89: High trust. 3am emergency call. Vulnerable conversations. Significant favors expected to land.
+   0.50-0.69: Mutual trust. Direct contact exists. Reaching out is normal. Would help if asked.
+   0.30-0.49: Contextual trust. Warm in shared settings. Wouldn't reach out independently.
+   0.10-0.29: Recognition. Know who they are. No real trust, just awareness.
+   0.01-0.09: One-directional. Parasocial or purely observational.
+   Score based on EVIDENCE in the text. Look for trust indicators, emotional language, frequency of contact, shared vulnerability, practical reliance.
+
+3. connected_through (required, string or null)
+   Is this a direct relationship with ${primaryUserName} or through someone else?
+   null — direct relationship. ${primaryUserName} and this person have an independent connection.
+   "Person Name" — connected through this person.
+
+   CRITICAL RULES:
+   a) If the text says "[Person] is [Someone Else]'s [wife/husband/spouse/partner]" and [Someone Else] is NOT ${primaryUserName}, then connected_through = "[Someone Else]". This person is NOT ${primaryUserName}'s family.
+   b) If the text says "[Person] is [Someone]'s [sister/brother/child/parent]" and [Someone] is NOT ${primaryUserName}, then connected_through = "[Someone]".
+   c) EXCEPTION — Spouse's family: If connected_through is ${primaryUserName}'s CURRENT SPOUSE, and the person is the spouse's blood relative, they are an in-law. Set sub_role = "in_law".
+   d) EXCEPTION — Sibling's spouse: If the person is married to ${primaryUserName}'s sibling, they are an in-law. Set sub_role = "in_law" and connected_through = the sibling's name.
+   e) If someone originally met ${primaryUserName} through a bridge person but NOW has an independent relationship, set connected_through = null and put the origin story in the descriptor.
+
+4. status (required, enum)
+   "active" — regular engagement, generating contact
+   "stable" — solid, doesn't need regular contact. Would re-engage instantly.
+   "passive" — no regular contact, zero animosity. Dormant, not dead.
+   "diminishing" — actively fading. Less contact over time.
+   "inactive" — effectively ended. Not hostile, just done.
+   "estranged" — active conflict, avoidance, or tension.
+   "deceased" — person has passed away.
+   "complicated" — multiple simultaneous states. MUST explain in descriptor.
+
+5. strength (required, float 0.00-1.00)
+   How much would ${primaryUserName}'s life change without this person?
+   0.90-1.00: Life-altering. Daily existence changes. The 5-7 anchors.
+   0.75-0.89: Significant. Felt at milestones, holidays, hard decisions.
+   0.50-0.74: Meaningful. Would miss them. Daily life continues unchanged.
+   0.30-0.49: Mild. Latent goodwill. Would notice eventually if prompted.
+   0.10-0.29: Negligible. Memory, not active life.
+   0.01-0.09: None. Cultural awareness only.
+
+   INDEPENDENCE RULE: Strength is independent of access. A deceased best friend has access 0.00 but strength can be 0.90. A friendly acquaintance might have access 0.55 but strength 0.30. Do not conflate reachability with emotional impact.
+   EVIDENCE RULE: Do not inflate strength based on connection_type alone. Not all siblings are close. Not all colleagues are distant. Score what the text SHOWS, not what the relationship type implies.
+
+6. sub_role (required, string)
+   Most specific role this person plays:
+   Family: spouse | child | parent | grandparent | sibling | uncle | aunt | cousin | in_law | extended
+   Friends: friend | mentor | mentee | confidant | surrogate_sibling | surrogate_parent
+   Professional: colleague | manager | report | partner | client | vendor
+   Community: classmate | neighbor | member | acquaintance
+   Other: influence
+
+7. descriptor (required, string, 4-8 words)
+   Completes "That's my ___" in ${primaryUserName}'s voice.
+   Rules:
+   - Use NICKNAMES when present in the data
+   - High access (0.70+): qualifier + relationship + origin ("best friend from the block", "day-one from Howard, like a brother")
+   - Moderate access (0.40-0.69): context + relationship ("CAU MBA classmate, trivia crew")
+   - Low access (<0.40): connection path only ("old acquaintance from Markham")
+   - Deceased: use "late" naturally ("late best friend from the block")
+   - Former: include transition + ongoing connection ("ex-wife, London's mother")
+   - Complicated: name the layers ("ex-wife, co-parent, complicated history")
+   - Distance 2+ people: use bridge person's NICKNAME ("Ro's wife" not "Rodrique Fru's wife", "Jeff's wife" not "Jeffrey Richard Mitchell's wife")
+
+8. descriptor_origin (required, string)
+   Origin context for the relationship (e.g., "childhood", "Howard University", "work", "Lola's family", "the block")
+
+RELATIONSHIP SCORING — ORGANIZATION ENTITIES:
+
+ONLY extract organizations where ${primaryUserName} has a DIRECT relationship. If the org is mentioned in someone else's bio or as a general reference, DO NOT EXTRACT IT.
+
+Include an "org_dimensions" object AND a top-level "descriptor" field:
+- relationship_to_primary: "employer" | "alma_mater" | "membership" | "service_provider"
+- org_category: "career" | "education" | "affiliations" | "services"
+- org_status: "current" | "former"
+- primary_user_role: ${primaryUserName}'s role/title at this org
+- org_dates: approximate date range or ""
+- org_descriptor: 3-6 word natural description
 ` : '';
 
   return `You are a structured data extraction engine. Extract ALL named people and organizations from this document.
@@ -423,9 +505,11 @@ OUTPUT FORMAT — valid JSON only, no markdown fences, no commentary:
       "entity_type": "person",
       "name": { "full": "Jane Smith" },
       "summary": "2-3 sentence summary of what the document says about this person",
-      "attributes": { "role": "Product Manager", "location": "Atlanta", "personality": "outgoing and reliable", "relationship_to_primary": "colleague", "relationship_distance": "1", "categorization_hint": "professional" },
+      "attributes": { "role": "Product Manager", "location": "Atlanta", "personality": "outgoing and reliable" },
       "relationships": [{ "name": "Other Entity", "relationship": "colleague", "context": "worked together at Acme Corp" }],
-      "observations": [{ "text": "Exact quote or paraphrase from the document about this entity" }]
+      "observations": [{ "text": "Exact quote or paraphrase from the document about this entity" }],
+      "relationship_dimensions": { "connection_type": "professional", "access": 0.55, "connected_through": null, "status": "active", "strength": 0.50, "sub_role": "colleague", "descriptor": "colleague at Acme Corp", "descriptor_origin": "work" },
+      "descriptor": "colleague at Acme Corp"
     },
     {
       "entity_type": "business",
@@ -433,7 +517,9 @@ OUTPUT FORMAT — valid JSON only, no markdown fences, no commentary:
       "summary": "...",
       "attributes": { "industry": "Technology" },
       "relationships": [],
-      "observations": [{ "text": "..." }]
+      "observations": [{ "text": "..." }],
+      "org_dimensions": { "relationship_to_primary": "employer", "org_category": "career", "org_status": "current", "primary_user_role": "Engineer", "org_dates": "2020-present", "org_descriptor": "current employer, tech" },
+      "descriptor": "current employer, tech"
     },
     {
       "entity_type": "institution",
@@ -441,7 +527,9 @@ OUTPUT FORMAT — valid JSON only, no markdown fences, no commentary:
       "summary": "...",
       "attributes": { "institution_type": "university" },
       "relationships": [],
-      "observations": [{ "text": "..." }]
+      "observations": [{ "text": "..." }],
+      "org_dimensions": { "relationship_to_primary": "alma_mater", "org_category": "education", "org_status": "former", "primary_user_role": "Student", "org_dates": "", "org_descriptor": "alma mater" },
+      "descriptor": "alma mater"
     }
   ]
 }
@@ -465,16 +553,38 @@ function buildIngestPrompt(batch, primaryUserName) {
   let primaryBlock = '';
   if (primaryUserName) {
     primaryBlock = '\nPRIMARY USER CONTEXT:\n'
-      + 'The primary user of this system is ' + primaryUserName + '. Every relationship you extract for a person entity MUST be defined RELATIVE TO THIS PRIMARY USER.\n'
-      + '- For each person, answer: What is this person\'s relationship TO ' + primaryUserName + '?\n'
-      + '- Every person entity MUST include these attributes: "relationship_to_primary" (e.g. "spouse", "best friend", "colleague", "friend_spouse"), "relationship_distance" ("1"=direct, "2"=through someone, "3"=tertiary), "categorization_hint" (one of "family", "friends", "professional", "community", "other")\n'
-      + '- IMPORTANT: "like a brother", "surrogate sister", "father figure" = friends, NOT family. Only blood/marriage/legal = family.\n'
-      + '- Friend\'s spouses, friend\'s children = "other" or "community", NOT family.\n\n';
+      + 'The primary user of this system is ' + primaryUserName + '. Every person and organization you extract must be scored in relationship TO ' + primaryUserName + '.\n'
+      + '\nRELATIONSHIP SCORING — PERSON ENTITIES:\n'
+      + 'For each PERSON entity, include a "relationship_dimensions" object AND a top-level "descriptor" field.\n'
+      + '\n1. connection_type (required, enum): "blood" | "marriage" | "chosen" | "professional" | "community"\n'
+      + '   "blood" = biological or legally adopted family. "marriage" = connected through marriage (spouse, ex-spouse, in-law, step-relative). "chosen" = voluntary personal relationship (friend, mentor, confidant, surrogate family). "professional" = work/business. "community" = shared context (classmate, neighbor).\n'
+      + '   TIEBREAKER: When relationship spans BOTH chosen AND professional, pick whichever came FIRST chronologically. Default to "chosen" when ambiguous.\n'
+      + '   SPOUSE RULE: If someone is identified as another person\'s wife/husband/spouse/partner, and that person is NOT ' + primaryUserName + ', connection_type MUST be "marriage" with connected_through = the spouse. Marriage ALWAYS takes priority over professional services.\n'
+      + '   CRITICAL: "like a brother", "surrogate sister", "father figure" = "chosen", NOT "blood".\n'
+      + '\n2. access (required, float 0.00-1.00): How much vulnerability would ' + primaryUserName + ' extend?\n'
+      + '   0.90-1.00: Unrestricted trust (kids, home, finances). 0.70-0.89: High trust (3am call, vulnerable conversations). 0.50-0.69: Mutual trust (direct contact, would help). 0.30-0.49: Contextual (warm in shared settings). 0.10-0.29: Recognition only. 0.01-0.09: One-directional.\n'
+      + '   Score based on EVIDENCE in the text.\n'
+      + '\n3. connected_through (required, string or null): null = direct relationship. "Person Name" = connected through that person.\n'
+      + '   CRITICAL: If "[Person] is [Someone]\'s [wife/husband/spouse]" and [Someone] is NOT ' + primaryUserName + ', then connected_through = "[Someone]". NOT ' + primaryUserName + '\'s family.\n'
+      + '   EXCEPTION — Spouse\'s family: If connected_through is ' + primaryUserName + '\'s CURRENT SPOUSE and person is spouse\'s blood relative, set sub_role = "in_law".\n'
+      + '   EXCEPTION — Sibling\'s spouse: If married to ' + primaryUserName + '\'s sibling, set sub_role = "in_law", connected_through = sibling\'s name.\n'
+      + '   If someone originally met ' + primaryUserName + ' through a bridge person but NOW has an independent relationship, set connected_through = null.\n'
+      + '\n4. status (required, enum): "active" | "stable" | "passive" | "diminishing" | "inactive" | "estranged" | "deceased" | "complicated"\n'
+      + '\n5. strength (required, float 0.00-1.00): How much would ' + primaryUserName + '\'s life change without this person?\n'
+      + '   0.90-1.00: Life-altering (5-7 anchors). 0.75-0.89: Significant (milestones, holidays). 0.50-0.74: Meaningful. 0.30-0.49: Mild. 0.10-0.29: Negligible. 0.01-0.09: None.\n'
+      + '   INDEPENDENCE RULE: Strength is independent of access. Deceased best friend = access 0.00, strength 0.90. Do not inflate based on connection_type alone.\n'
+      + '\n6. sub_role (required, string): Family: spouse|child|parent|grandparent|sibling|uncle|aunt|cousin|in_law|extended. Friends: friend|mentor|mentee|confidant|surrogate_sibling|surrogate_parent. Professional: colleague|manager|report|partner|client|vendor. Community: classmate|neighbor|member|acquaintance. Other: influence\n'
+      + '\n7. descriptor (required, 4-8 words): Completes "That\'s my ___" in ' + primaryUserName + '\'s voice. Use NICKNAMES. Distance 2+ people use bridge person\'s nickname ("Ro\'s wife" not full name).\n'
+      + '\n8. descriptor_origin (required, string): Origin context ("childhood", "Howard", "work", etc.)\n'
+      + '\nRELATIONSHIP SCORING — ORGANIZATION ENTITIES:\n'
+      + 'ONLY extract orgs where ' + primaryUserName + ' has a DIRECT relationship. If mentioned in someone else\'s bio, DO NOT EXTRACT.\n'
+      + 'Include "org_dimensions" object: relationship_to_primary ("employer"|"alma_mater"|"membership"|"service_provider"), org_category ("career"|"education"|"affiliations"|"services"), org_status ("current"|"former"), primary_user_role, org_dates, org_descriptor (3-6 words).\n'
+      + 'Also include top-level "descriptor" = org_dimensions.org_descriptor.\n\n';
   }
 
-  return 'You are a structured data extraction engine. Analyze these user messages from ChatGPT conversations and extract every person, business, and institution the user mentions by name.\n\nRULES:\n- Only extract named entities (skip "my boss", "the company" without a specific name)\n- entity_type: "person", "business", or "institution"\n- Use "business" for companies and commercial entities; use "institution" for schools, universities, governments, hospitals, public services, churches, non-profits\n- name: { "full": "..." } for persons, { "common": "..." } for businesses and institutions\n- summary: 2-3 sentences synthesizing what the user said about this entity\n- attributes: only include clearly stated facts (role, location, expertise, industry). For persons also include relationship_to_primary, relationship_distance, categorization_hint\n- relationships: connections between extracted entities\n- observations: each specific mention tagged with conversation_index (0-based integer matching conversation numbers below)\n- Do NOT invent information beyond what the user explicitly stated\n- Do NOT create entities for celebrities or public figures unless they have a direct personal relationship with the user\n- If no named entities found, return {"entities": []}\n'
+  return 'You are a structured data extraction engine. Analyze these user messages from ChatGPT conversations and extract every person, business, and institution the user mentions by name.\n\nRULES:\n- Only extract named entities (skip "my boss", "the company" without a specific name)\n- entity_type: "person", "business", or "institution"\n- Use "business" for companies and commercial entities; use "institution" for schools, universities, governments, hospitals, public services, churches, non-profits\n- name: { "full": "..." } for persons, { "common": "..." } for businesses and institutions\n- summary: 2-3 sentences synthesizing what the user said about this entity\n- attributes: only include clearly stated facts (role, location, expertise, industry)\n- relationships: connections between extracted entities\n- observations: each specific mention tagged with conversation_index (0-based integer matching conversation numbers below)\n- For persons: include relationship_dimensions and descriptor as top-level fields (see PRIMARY USER CONTEXT)\n- For orgs: include org_dimensions and descriptor as top-level fields\n- Do NOT invent information beyond what the user explicitly stated\n- Do NOT create entities for celebrities or public figures unless they have a direct personal relationship with the user\n- If no named entities found, return {"entities": []}\n'
     + primaryBlock
-    + 'Output ONLY valid JSON, no markdown fences, no commentary:\n{\n  "entities": [\n    {\n      "entity_type": "person",\n      "name": { "full": "Jane Smith" },\n      "summary": "...",\n      "attributes": { "role": "...", "location": "...", "relationship_to_primary": "colleague", "relationship_distance": "1", "categorization_hint": "professional" },\n      "relationships": [{ "name": "Other Entity", "relationship": "colleague", "context": "..." }],\n      "observations": [{ "text": "What the user said about this entity", "conversation_index": 0 }]\n    }\n  ]\n}\n\n--- USER MESSAGES FROM CONVERSATIONS ---' + text + '\n--- END ---';
+    + 'Output ONLY valid JSON, no markdown fences, no commentary:\n{\n  "entities": [\n    {\n      "entity_type": "person",\n      "name": { "full": "Jane Smith" },\n      "summary": "...",\n      "attributes": { "role": "...", "location": "..." },\n      "relationships": [{ "name": "Other Entity", "relationship": "colleague", "context": "..." }],\n      "observations": [{ "text": "What the user said about this entity", "conversation_index": 0 }],\n      "relationship_dimensions": { "connection_type": "professional", "access": 0.55, "connected_through": null, "status": "active", "strength": 0.50, "sub_role": "colleague", "descriptor": "colleague at Acme Corp", "descriptor_origin": "work" },\n      "descriptor": "colleague at Acme Corp"\n    }\n  ]\n}\n\n--- USER MESSAGES FROM CONVERSATIONS ---' + text + '\n--- END ---';
 }
 
 // --- Auth middleware (multi-tenant) ---
@@ -696,7 +806,7 @@ app.post('/api/ingest/chatgpt', apiAuth, async (req, res) => {
           }
         }
 
-        v2Entities.push({
+        const v2Entity = {
           schema_version: '2.0',
           schema_type: 'context_architecture_entity',
           extraction_metadata: {
@@ -726,7 +836,34 @@ app.post('/api/ingest/chatgpt', apiAuth, async (req, res) => {
             source_documents: [{ source: 'chatgpt_import', ingested_at: now }],
             merge_history: [],
           },
-        });
+        };
+        if (extracted.relationship_dimensions) {
+          // Compute visual_tier from strength
+          if (typeof extracted.relationship_dimensions.strength === 'number') {
+            extracted.relationship_dimensions.visual_tier = computeVisualTier(extracted.relationship_dimensions.strength);
+          }
+          v2Entity.relationship_dimensions = extracted.relationship_dimensions;
+          // Compute wiki_page and wiki_section
+          var wp = computeWikiPage(extracted.relationship_dimensions);
+          v2Entity.wiki_page = wp;
+          v2Entity.wiki_section = computeWikiSection(extracted.relationship_dimensions, wp);
+        }
+        if (extracted.descriptor) v2Entity.descriptor = extracted.descriptor;
+        if (extracted.org_dimensions) {
+          v2Entity.org_dimensions = extracted.org_dimensions;
+          // Add org_category attribute for sidebar compatibility
+          if (extracted.org_dimensions.org_category) {
+            v2Entity.attributes = v2Entity.attributes || [];
+            v2Entity.attributes.push({
+              attribute_id: 'ATTR-ORG-CAT',
+              key: 'org_category', value: extracted.org_dimensions.org_category,
+              confidence: 0.8, confidence_label: 'HIGH',
+              time_decay: { stability: 'stable', captured_date: new Date().toISOString().slice(0, 10) },
+              source_attribution: { facts_layer: 2, layer_label: 'group' },
+            });
+          }
+        }
+        v2Entities.push(v2Entity);
       }
 
       // Ingest via unified pipeline
@@ -839,7 +976,7 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
             let created = 0, updated = 0, obsAdded = 0;
             for (let b = 0; b < conversations.length; b += BATCH_SIZE) {
               const batch = conversations.slice(b, b + BATCH_SIZE);
-              const prompt = buildIngestPrompt(batch);
+              const prompt = buildIngestPrompt(batch, primaryUserName);
               const message = await client.messages.create({
                 model: 'claude-sonnet-4-5-20250929',
                 max_tokens: 16384,
@@ -848,9 +985,40 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
               const rawResp = message.content[0].text;
               const cleaned = rawResp.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
               const batchParsed = JSON.parse(cleaned);
-              const entities = (batchParsed.entities || []).filter(e => e && ['person', 'business'].includes(e.entity_type));
-              if (entities.length > 0) {
-                const r = await ingestPipeline(entities, req.graphDir, req.agentId, { source: filename, truthLevel: 'INFERRED' });
+              const rawEntities = (batchParsed.entities || []).filter(e => e && ['person', 'business', 'institution'].includes(e.entity_type));
+              // Convert raw LLM output to v2 entity format
+              const now = new Date().toISOString();
+              const v2Batch = rawEntities.map(ext => {
+                const eType = ext.entity_type === 'organization' ? 'business' : ext.entity_type;
+                const v2 = {
+                  schema_version: '2.0', schema_type: 'context_architecture_entity',
+                  extraction_metadata: { extracted_at: now, updated_at: now, source_description: filename, extraction_model: 'claude-sonnet-4-5-20250929', extraction_confidence: 0.6, schema_version: '2.0' },
+                  entity: { entity_type: eType, name: { ...ext.name, confidence: 0.6, facts_layer: 2 }, summary: ext.summary ? { value: ext.summary, confidence: 0.6, facts_layer: 2 } : { value: '', confidence: 0, facts_layer: 2 } },
+                  attributes: [], relationships: [], values: [], key_facts: [], constraints: [],
+                  observations: (ext.observations || []).map(o => ({ observation: (o.text || '').trim(), observed_at: now, source: filename, confidence: 0.6, confidence_label: 'MODERATE', facts_layer: 'L2_GROUP', layer_number: 2, observed_by: req.agentId, truth_level: 'INFERRED' })).filter(o => o.observation),
+                  provenance_chain: { created_at: now, created_by: req.agentId, source_documents: [{ source: filename, ingested_at: now }], merge_history: [] },
+                };
+                if (ext.attributes && typeof ext.attributes === 'object') {
+                  let seq = 1;
+                  for (const [k, val] of Object.entries(ext.attributes)) {
+                    const sv = Array.isArray(val) ? val.join(', ') : String(val);
+                    if (sv) v2.attributes.push({ attribute_id: 'ATTR-' + String(seq++).padStart(3, '0'), key: k, value: sv, confidence: 0.6, confidence_label: 'MODERATE', time_decay: { stability: 'stable', captured_date: now.slice(0, 10) }, source_attribution: { facts_layer: 2, layer_label: 'group' } });
+                  }
+                }
+                if (Array.isArray(ext.relationships)) {
+                  let seq = 1;
+                  for (const r of ext.relationships) v2.relationships.push({ relationship_id: 'REL-' + String(seq++).padStart(3, '0'), name: r.name || '', relationship_type: r.relationship || '', context: r.context || '', sentiment: 'neutral', confidence: 0.6, confidence_label: 'MODERATE' });
+                }
+                if (ext.relationship_dimensions) {
+                  if (!ext.relationship_dimensions.visual_tier && typeof ext.relationship_dimensions.strength === 'number') ext.relationship_dimensions.visual_tier = computeVisualTier(ext.relationship_dimensions.strength);
+                  v2.relationship_dimensions = ext.relationship_dimensions;
+                }
+                if (ext.descriptor) v2.descriptor = ext.descriptor;
+                if (ext.org_dimensions) v2.org_dimensions = ext.org_dimensions;
+                return v2;
+              });
+              if (v2Batch.length > 0) {
+                const r = await ingestPipeline(v2Batch, req.graphDir, req.agentId, { source: filename, truthLevel: 'INFERRED' });
                 created += r.created; updated += r.updated; obsAdded += r.observationsAdded;
               }
             }
@@ -958,7 +1126,7 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
             }
           }
 
-          return {
+          const v2Entity = {
             schema_version: '2.0',
             schema_type: 'context_architecture_entity',
             extraction_metadata: {
@@ -983,6 +1151,32 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
               merge_history: [],
             },
           };
+          if (extracted.relationship_dimensions) {
+            if (typeof extracted.relationship_dimensions.strength === 'number') {
+              extracted.relationship_dimensions.visual_tier = computeVisualTier(extracted.relationship_dimensions.strength);
+            }
+            v2Entity.relationship_dimensions = extracted.relationship_dimensions;
+            // Compute wiki_page and wiki_section
+            var wp = computeWikiPage(extracted.relationship_dimensions);
+            v2Entity.wiki_page = wp;
+            v2Entity.wiki_section = computeWikiSection(extracted.relationship_dimensions, wp);
+          }
+          if (extracted.descriptor) v2Entity.descriptor = extracted.descriptor;
+          if (extracted.org_dimensions) {
+            v2Entity.org_dimensions = extracted.org_dimensions;
+            // Add org_category attribute for sidebar compatibility
+            if (extracted.org_dimensions.org_category) {
+              v2Entity.attributes = v2Entity.attributes || [];
+              v2Entity.attributes.push({
+                attribute_id: 'ATTR-ORG-CAT',
+                key: 'org_category', value: extracted.org_dimensions.org_category,
+                confidence: 0.8, confidence_label: 'HIGH',
+                time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+                source_attribution: { facts_layer: 2, layer_label: 'group' },
+              });
+            }
+          }
+          return v2Entity;
         }).filter(Boolean);
 
         console.log('INGEST_DEBUG: v2Entities after type filter:', v2Entities.length);
@@ -1880,6 +2074,900 @@ app.post('/api/recategorize', apiAuth, (req, res) => {
   res.json({ summary, counts, total, details });
 });
 
+// POST /api/cleanup-orgs — Delete unaffiliated orgs, merge duplicates, categorize remaining
+app.post('/api/cleanup-orgs', apiAuth, (req, res) => {
+  const allEnts = listEntities(req.graphDir);
+
+  // --- STEP 1: Delete unaffiliated orgs ---
+  const deleteNames = [
+    'atlanta community foundation', 'aspen institute', 'brightpath advisory', 'careerbuilder',
+    'carnegie mellon university', 'duke university', 'fintech innovations inc',
+    'four seasons resort o\'ahu at ko olina', 'four seasons resort oahu at ko olina',
+    'google', 'goldman sachs', 'georgia tech', 'georgia tech alumni association',
+    'hyatt regency', 'kualoa ranch', 'lyft', 'mckinsey', 'mit', 'meta',
+    'newell brands', 'national society of black engineers', 'openai', 'payverse',
+    'stripe', 'swiftgo africa', 'spiritual aurora', 'savannah high school',
+    'solace therapeutics', 'stanford university', 'studio verde',
+    'techbridge atlanta', 'urbannest properties', 'wharton',
+    'waikoloa beach marriott resort & spa', 'waikoloa beach marriott resort and spa',
+    'testcorp', 'bigtech inc', 'bigtech', 'new hope baptist church',
+  ];
+  // Also delete known test entities
+  const deleteSet = new Set(deleteNames);
+
+  let deleted = 0;
+  const deletedList = [];
+  for (const { data } of allEnts) {
+    const e = data.entity || {};
+    const t = e.entity_type || '';
+    if (t !== 'organization' && t !== 'business' && t !== 'institution') continue;
+    const name = (e.name?.common || e.name?.full || e.name?.legal || '').toLowerCase().trim();
+    if (deleteSet.has(name)) {
+      const result = deleteEntity(e.entity_id, req.graphDir);
+      if (result.deleted) {
+        deleted++;
+        deletedList.push({ entity_id: e.entity_id, name: e.name?.common || e.name?.full || '' });
+      }
+    }
+  }
+
+  // --- STEP 2: Merge duplicates ---
+  const refreshed = listEntities(req.graphDir);
+  const mergePairs = [
+    { keep: 'amazon', absorb: 'amazon web services' },
+    { keep: 'dell emc', absorb: 'emc corporation' },
+    { keep: 'clark atlanta university', absorb: 'clark atlanta' },
+  ];
+  let merged = 0;
+  const mergedList = [];
+  for (const pair of mergePairs) {
+    let keepEnt = null, absorbEnt = null;
+    for (const { data } of refreshed) {
+      const e = data.entity || {};
+      const t = e.entity_type || '';
+      if (t !== 'organization' && t !== 'business' && t !== 'institution') continue;
+      const name = (e.name?.common || e.name?.full || e.name?.legal || '').toLowerCase().trim();
+      if (name === pair.keep && !keepEnt) keepEnt = data;
+      if (name === pair.absorb && !absorbEnt) absorbEnt = data;
+    }
+    if (keepEnt && absorbEnt) {
+      // Merge relationships from absorb into keep
+      const keepRels = keepEnt.relationships || [];
+      const absorbRels = absorbEnt.relationships || [];
+      const keepRelNames = new Set(keepRels.map(r => (r.name || '').toLowerCase()));
+      for (const rel of absorbRels) {
+        if (!keepRelNames.has((rel.name || '').toLowerCase())) {
+          keepRels.push(rel);
+        }
+      }
+      keepEnt.relationships = keepRels;
+      // Merge observations
+      const keepObs = keepEnt.observations || [];
+      const absorbObs = absorbEnt.observations || [];
+      for (const obs of absorbObs) keepObs.push(obs);
+      keepEnt.observations = keepObs;
+      // Write updated keep entity
+      writeEntity(keepEnt.entity.entity_id, keepEnt, req.graphDir);
+      // Delete absorbed entity
+      deleteEntity(absorbEnt.entity.entity_id, req.graphDir);
+      merged++;
+      mergedList.push({ kept: keepEnt.entity.entity_id, absorbed: absorbEnt.entity.entity_id, name: pair.keep });
+    }
+  }
+
+  // --- STEP 3: Also deduplicate ORG- entities vs BIZ- entities (same org, different IDs) ---
+  // e.g., ENT-ORG-001 "Amazon (Relay)" and ENT-BIZ-A-030 "Amazon" — keep both but don't double-count
+  // ENT-ORG-005 "Dell EMC" and ENT-BIZ-DE-044 "Dell EMC" — merge
+  const refreshed2 = listEntities(req.graphDir);
+  const orgsByName = {};
+  for (const { data } of refreshed2) {
+    const e = data.entity || {};
+    const t = e.entity_type || '';
+    if (t !== 'organization' && t !== 'business' && t !== 'institution') continue;
+    const name = (e.name?.common || e.name?.full || e.name?.legal || '').toLowerCase().trim().replace(/\s*\([^)]*\)/g, '');
+    if (!orgsByName[name]) orgsByName[name] = [];
+    orgsByName[name].push(data);
+  }
+  for (const [name, dupes] of Object.entries(orgsByName)) {
+    if (dupes.length <= 1) continue;
+    // Keep the one with more content (more attributes + observations)
+    dupes.sort((a, b) => {
+      const sa = (a.attributes || []).length + (a.observations || []).length + (a.relationships || []).length;
+      const sb = (b.attributes || []).length + (b.observations || []).length + (b.relationships || []).length;
+      return sb - sa;
+    });
+    const keep = dupes[0];
+    for (let i = 1; i < dupes.length; i++) {
+      const abs = dupes[i];
+      // Merge rels/obs into keep
+      const kRels = keep.relationships || [];
+      const kRelNames = new Set(kRels.map(r => (r.name || '').toLowerCase()));
+      for (const rel of (abs.relationships || [])) {
+        if (!kRelNames.has((rel.name || '').toLowerCase())) kRels.push(rel);
+      }
+      keep.relationships = kRels;
+      for (const obs of (abs.observations || [])) (keep.observations || []).push(obs);
+      writeEntity(keep.entity.entity_id, keep, req.graphDir);
+      deleteEntity(abs.entity.entity_id, req.graphDir);
+      merged++;
+      mergedList.push({ kept: keep.entity.entity_id, absorbed: abs.entity.entity_id, name });
+    }
+  }
+
+  // --- STEP 4: Categorize remaining orgs ---
+  const refreshed3 = listEntities(req.graphDir);
+  // Find primary entity for connected object lookups
+  let primaryData = null;
+  let maxConn = 0;
+  for (const { data } of refreshed3) {
+    if ((data.entity || {}).entity_type === 'person') {
+      const count = (data.connected_objects || []).length;
+      if (count > maxConn) { maxConn = count; primaryData = data; }
+    }
+  }
+  const connected = (primaryData && primaryData.connected_objects) || [];
+  // Build role and credential maps by org name
+  const roleByName = {};
+  const credByName = {};
+  for (const c of connected) {
+    if (c.entity_type === 'role' && c.label) {
+      const atIdx = c.label.indexOf(' at ');
+      if (atIdx !== -1) {
+        const orgName = c.label.substring(atIdx + 4).trim().toLowerCase();
+        const roleTitle = c.label.substring(0, atIdx).trim();
+        roleByName[orgName] = roleTitle;
+      }
+    }
+    if (c.entity_type === 'credential' && c.label) {
+      const commaIdx = c.label.indexOf(', ');
+      if (commaIdx !== -1) {
+        const instName = c.label.substring(commaIdx + 2).trim().toLowerCase();
+        credByName[instName] = c.label.substring(0, commaIdx).trim();
+      }
+    }
+  }
+
+  // Career hints from known data
+  const careerHints = {
+    'amazon': { role: 'Principal Product Manager', dates: '2020-present' },
+    'amazon (relay)': { role: 'Principal Product Manager', dates: '2020-present' },
+    'fandom': { role: 'Senior Product Manager, AI/ML', dates: '2019-2021' },
+    'wayfair': { role: 'Associate Director of Product Management', dates: '2017-2019' },
+    'dell emc': { role: 'Consultant', dates: '2013-2015' },
+    'deloitte': { role: 'Business Technology Analyst', dates: '2011-2013' },
+    'deloitte consulting llp': { role: 'Senior Consultant - Data Science & AI', dates: '2011-2013' },
+    'instrumental.ly': { role: 'Co-Founder', dates: '2013-2016' },
+    'walmart': { role: 'AI/DS Lead', dates: '' },
+    'walmart technology': { role: 'AI/DS Lead', dates: '' },
+    'flawless tracks': { role: 'Founder', dates: '' },
+    'putchuon channel': { role: 'YouTube Creator', dates: '' },
+    'self-employed': { role: 'Context Architecture Consultant', dates: '' },
+  };
+  const educationHints = {
+    'howard university': { credential: 'BBA', year: '2005' },
+    'clark atlanta university': { credential: 'MBA', year: '2012' },
+    'harvard university': { credential: 'MBA', year: '' },
+    'harvard business school': { credential: 'MBA', year: '' },
+    'thornwood high school': { credential: 'Diploma', year: '' },
+  };
+  const serviceHints = new Set([
+    'carl e. sanders ymca', 'carl e. sanders ymca, buckhead',
+    'kaiser permanente', 'jpmorgan chase', 'fulton county court',
+  ]);
+
+  const categorized = { career: 0, education: 0, affiliations: 0, services: 0 };
+  const catDetails = [];
+  const now = new Date().toISOString();
+
+  for (const { data } of refreshed3) {
+    const e = data.entity || {};
+    const t = e.entity_type || '';
+    if (t !== 'organization' && t !== 'business' && t !== 'institution') continue;
+    const name = (e.name?.common || e.name?.full || e.name?.legal || '').toLowerCase().trim();
+    const nameClean = name.replace(/\s*\([^)]*\)/g, '').trim();
+
+    // Determine category
+    let orgCat = 'affiliations'; // default
+    let catMeta = {};
+
+    if (careerHints[name] || careerHints[nameClean]) {
+      orgCat = 'career';
+      catMeta = careerHints[name] || careerHints[nameClean];
+    } else if (roleByName[name] || roleByName[nameClean]) {
+      orgCat = 'career';
+      catMeta = { role: roleByName[name] || roleByName[nameClean] };
+    } else if (educationHints[name] || educationHints[nameClean]) {
+      orgCat = 'education';
+      catMeta = educationHints[name] || educationHints[nameClean];
+    } else if (credByName[name] || credByName[nameClean]) {
+      orgCat = 'education';
+      catMeta = { credential: credByName[name] || credByName[nameClean] };
+    } else if (serviceHints.has(name) || serviceHints.has(nameClean)) {
+      orgCat = 'services';
+    }
+
+    // Strip old org_category attributes and write new one
+    data.attributes = (data.attributes || []).filter(a =>
+      a.key !== 'org_category' && a.key !== 'cj_role' && a.key !== 'cj_dates' && a.key !== 'cj_credential' && a.key !== 'cj_grad_year'
+    );
+    let nextSeq = data.attributes.length + 1;
+    data.attributes.push({
+      attribute_id: `ATTR-${String(nextSeq++).padStart(3, '0')}`,
+      key: 'org_category', value: orgCat,
+      confidence: 0.9, confidence_label: 'HIGH',
+      time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+      source_attribution: { facts_layer: 1, layer_label: 'cleanup-orgs' },
+    });
+    if (catMeta.role) {
+      data.attributes.push({
+        attribute_id: `ATTR-${String(nextSeq++).padStart(3, '0')}`,
+        key: 'cj_role', value: catMeta.role,
+        confidence: 0.9, confidence_label: 'HIGH',
+        time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+        source_attribution: { facts_layer: 1, layer_label: 'cleanup-orgs' },
+      });
+    }
+    if (catMeta.dates) {
+      data.attributes.push({
+        attribute_id: `ATTR-${String(nextSeq++).padStart(3, '0')}`,
+        key: 'cj_dates', value: catMeta.dates,
+        confidence: 0.9, confidence_label: 'HIGH',
+        time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+        source_attribution: { facts_layer: 1, layer_label: 'cleanup-orgs' },
+      });
+    }
+    if (catMeta.credential) {
+      data.attributes.push({
+        attribute_id: `ATTR-${String(nextSeq++).padStart(3, '0')}`,
+        key: 'cj_credential', value: catMeta.credential,
+        confidence: 0.9, confidence_label: 'HIGH',
+        time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+        source_attribution: { facts_layer: 1, layer_label: 'cleanup-orgs' },
+      });
+    }
+    if (catMeta.year) {
+      data.attributes.push({
+        attribute_id: `ATTR-${String(nextSeq++).padStart(3, '0')}`,
+        key: 'cj_grad_year', value: catMeta.year,
+        confidence: 0.9, confidence_label: 'HIGH',
+        time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+        source_attribution: { facts_layer: 1, layer_label: 'cleanup-orgs' },
+      });
+    }
+    writeEntity(e.entity_id, data, req.graphDir);
+    categorized[orgCat]++;
+    catDetails.push({ entity_id: e.entity_id, name: e.name?.common || e.name?.full || '', category: orgCat, role: catMeta.role || '', credential: catMeta.credential || '' });
+  }
+
+  const total = catDetails.length;
+  const summary = `Deleted ${deleted} orgs, merged ${merged} pairs, categorized ${total} remaining: Career (${categorized.career}), Education (${categorized.education}), Affiliations (${categorized.affiliations}), Services (${categorized.services})`;
+  console.log('[cleanup-orgs]', summary);
+  console.log('[cleanup-orgs] Remaining orgs:');
+  for (const d of catDetails) console.log(`  [${d.category}] ${d.name} (${d.entity_id})${d.role ? ' — ' + d.role : ''}${d.credential ? ' — ' + d.credential : ''}`);
+
+  res.json({ summary, deleted: deletedList, merged: mergedList, categorized: catDetails, counts: categorized });
+});
+
+// Progress tracking for generate-dimensions
+let dimProgress = null;
+
+function computeVisualTier(strength) {
+  if (strength >= 0.85) return 'gold';
+  if (strength >= 0.65) return 'green';
+  if (strength >= 0.30) return 'neutral';
+  return 'muted';
+}
+
+// Server-side page/section assignment — mirrors frontend getPage/getFamilySection/getFriendsSection/getProfessionalSection
+function computeWikiPage(dims) {
+  if (!dims || !dims.connection_type) return 'other';
+  if (dims.connection_type === 'blood' || dims.connection_type === 'marriage') {
+    if (!dims.connected_through) return 'family';
+    if (dims.connection_type === 'blood') return 'family';
+    if (dims.connection_type === 'marriage' && dims.sub_role === 'in_law') return 'family';
+    if (dims.connection_type === 'marriage' && dims.connected_through) return 'other';
+    return 'family';
+  }
+  if (dims.connected_through && (dims.strength || 0) < 0.30) return 'other';
+  if (dims.connection_type === 'chosen') return 'friends';
+  if (dims.connection_type === 'professional') return 'professional';
+  if (dims.connection_type === 'community') return 'other';
+  return 'other';
+}
+
+function computeWikiSection(dims, page) {
+  if (!dims) return '';
+  if (page === 'family') {
+    if (dims.sub_role === 'spouse') return 'Spouse';
+    if (dims.sub_role === 'child') return 'Children';
+    if (dims.sub_role === 'parent' || dims.sub_role === 'sibling' || dims.sub_role === 'grandparent') return 'Parents & Siblings';
+    return 'Extended Family';
+  }
+  if (page === 'friends') {
+    var str = dims.strength || 0;
+    if (str >= 0.85) return 'Inner Circle';
+    if (str >= 0.65) return 'Close Friends';
+    if (str >= 0.40) return 'Friends';
+    return 'Acquaintances';
+  }
+  if (page === 'professional') {
+    if (dims.sub_role === 'partner') return 'Partners';
+    if (dims.status === 'active' || dims.status === 'stable') return 'Current';
+    return 'Former';
+  }
+  return '';
+}
+
+// GET /api/generate-dimensions/status — Progress tracking
+app.get('/api/generate-dimensions/status', apiAuth, (req, res) => {
+  if (!dimProgress) return res.json({ running: false });
+  res.json(dimProgress);
+});
+
+// POST /api/generate-dimensions — Bulk-generate relationship_dimensions and org_dimensions via LLM
+app.post('/api/generate-dimensions', apiAuth, async (req, res) => {
+  if (dimProgress && dimProgress.running) {
+    return res.status(409).json({ error: 'Migration already in progress', progress: dimProgress });
+  }
+
+  try {
+    const entities = listEntities(req.graphDir);
+
+    // 1. Find primary person entity (most connected objects)
+    let primaryEntity = null;
+    let maxConn = 0;
+    for (const { data } of entities) {
+      if ((data.entity || {}).entity_type === 'person') {
+        const count = (data.connected_objects || []).length;
+        if (count > maxConn) { maxConn = count; primaryEntity = data; }
+      }
+    }
+    if (!primaryEntity) return res.status(400).json({ error: 'No primary person entity found' });
+
+    const primaryName = primaryEntity.entity.name?.full || primaryEntity.entity.name?.preferred || '';
+    const primaryId = primaryEntity.entity.entity_id;
+    const primarySummary = primaryEntity.entity.summary?.value || '';
+
+    // Build primary context: relationship map + nicknames
+    const primaryRelMap = {};
+    for (const rel of (primaryEntity.relationships || [])) {
+      primaryRelMap[rel.name || ''] = { type: rel.relationship_type || '', context: rel.context || '' };
+    }
+
+    // 2. Separate persons vs orgs (exclude primary)
+    const persons = [];
+    const orgs = [];
+    for (const { data } of entities) {
+      const e = data.entity || {};
+      const eid = e.entity_id;
+      if (eid === primaryId) continue;
+      if (e.entity_type === 'person') {
+        persons.push(data);
+      } else if (e.entity_type === 'organization' || e.entity_type === 'business' || e.entity_type === 'institution') {
+        orgs.push(data);
+      }
+    }
+
+    const client = new Anthropic();
+    const errors = [];
+    const peopleSummary = { family: [], friends: [], professional: [], other: [] };
+    const orgsSummary = { career: [], education: [], affiliations: [], services: [], deleted: [] };
+    const tierCounts = { gold: 0, green: 0, neutral: 0, muted: 0 };
+    const startTime = Date.now();
+
+    dimProgress = {
+      running: true,
+      phase: 'people',
+      current: 0,
+      total: persons.length + orgs.length,
+      people_total: persons.length,
+      orgs_total: orgs.length,
+      people_processed: 0,
+      orgs_processed: 0,
+      orgs_deleted: 0,
+      started_at: new Date().toISOString(),
+      errors: [],
+    };
+
+    // === PERSON SYSTEM PROMPT ===
+    const personSystemPrompt = `You are analyzing a person entity from a knowledge graph. The PRIMARY USER of this graph is ${primaryName}. Every person must be scored in relationship TO ${primaryName}.
+${primarySummary ? `\nAbout ${primaryName}: ${primarySummary}\n` : ''}
+Given each person's entity data below, answer these questions and return a JSON array with one object per person.
+
+QUESTIONS:
+
+1. connection_type — How is this person connected to ${primaryName}?
+   Pick ONE:
+   - "blood": biological or legally adopted family (parent, child, sibling, cousin, grandparent, aunt, uncle, nephew, niece, half-sibling)
+   - "marriage": connected through a marriage, current or former (spouse, ex-spouse, in-law, step-relative)
+   - "chosen": voluntary personal relationship (friend, best friend, mentor, mentee, confidant, surrogate sibling)
+   - "professional": work or business relationship (colleague, manager, report, client, business partner)
+   - "community": shared context or proximity, not individual bond (classmate, neighbor, fellow member)
+
+2. access — How much vulnerability would ${primaryName} extend to this person? Score 0.00 to 1.00.
+   Calibration probes (scoring aids, not definitions):
+   0.90-1.00: Unrestricted trust. Would trust them alone with his child for a week? Give them home and car keys as first option? Hand them his unlocked phone without a second thought?
+   0.70-0.89: High trust. Would call them at 3am in an emergency? Share something vulnerable? Ask for a significant favor and expect them to show up?
+   0.50-0.69: Mutual trust. Has their direct contact? Reaching out would be normal and welcomed? Would help each other without hesitation if asked?
+   0.30-0.49: Contextual trust. Would engage warmly in a shared setting but not reach out independently? Relationship exists within a container (group, event, mutual friend)?
+   0.10-0.29: Recognition. Knows who they are. Maybe met once or twice. No real trust, just awareness.
+   0.01-0.09: One-directional. Knows OF them but no mutual awareness. Parasocial or purely observational.
+   Use the EVIDENCE in the entity data to score.
+
+3. connected_through — Is this a direct relationship with ${primaryName}, or through someone else?
+   Return null if direct (${primaryName} has an independent relationship with this person).
+   Return the bridge person/group/org name if indirect.
+   CRITICAL RULES:
+   - If described as "spouse of [someone who is NOT ${primaryName}]", connected through that person. NOT ${primaryName}'s family.
+   - If described as "[someone]'s [relative]" where [someone] is not ${primaryName}, connected through that person.
+   - EXCEPTION: If connected_through is ${primaryName}'s CURRENT SPOUSE and connection_type is blood, this person is an in-law. Still return the spouse name as connected_through.
+   - If they originally met ${primaryName} through someone but NOW have a fully independent relationship, return null. Origin story goes in descriptor, not connected_through.
+
+4. status — What is the current energy of this relationship?
+   Pick ONE:
+   - "active": regular engagement, relationship generating contact
+   - "stable": solid but doesn't need regular contact. It just IS. Would re-engage instantly.
+   - "passive": no regular contact, zero animosity. Dormant, not dead.
+   - "diminishing": actively fading. Less contact over time. Trending toward inactive.
+   - "inactive": effectively ended. No contact, no expectation of contact. Not hostile, just done.
+   - "estranged": active negative state. Conflict, avoidance, or unresolved tension.
+   - "deceased": person has passed away.
+   - "complicated": multiple simultaneous states. ALWAYS explain in descriptor when using this.
+
+5. strength — How much would ${primaryName}'s life change without this person? Score 0.00 to 1.00.
+   Calibration probes:
+   0.90-1.00: Life-altering. Daily existence changes fundamentally. The 5-7 people who anchor life.
+   0.75-0.89: Significant. Felt deeply at key moments — holidays, milestones, hard decisions.
+   0.50-0.74: Meaningful. Would miss them, think of them. Daily life continues unchanged.
+   0.30-0.49: Mild. Would notice eventually if prompted. Latent goodwill.
+   0.10-0.29: Negligible. Memory, not active life.
+   0.01-0.09: None. Cultural awareness only.
+   IMPORTANT: Strength is independent of access. A deceased person can have access 0.00 but strength 0.90 (deeply missed). Don't conflate reachability with impact. Don't inflate based on connection_type alone. Not all siblings are close. Not all colleagues are distant. Use the EVIDENCE.
+
+6. sub_role — What specific role does this person play? Pick the MOST SPECIFIC:
+   Family: spouse | child | parent | grandparent | sibling | uncle | aunt | cousin | in_law | extended
+   Friends: friend | mentor | mentee | confidant | surrogate_sibling | surrogate_parent
+   Professional: colleague | manager | report | partner | client | vendor
+   Community: classmate | neighbor | member | acquaintance
+   Other: influence (parasocial/cultural)
+
+7. descriptor — Write a 4-8 word phrase that completes "That's my ___" in how ${primaryName} would naturally introduce this person.
+   Rules:
+   - Use the person's NICKNAME if one exists in the data (Honeyman not Zebedee, Chiefe not Ryan, Big Al not Allen, Ro not Rodrique)
+   - High access (0.70+): [qualifier] + [relationship] + [origin]. "best friend from the block"
+   - Moderate access (0.40-0.69): [context-first]. "Justin's wife, always cordial"
+   - Low access (<0.40): [connection path only]. "old acquaintance from Markham"
+   - Deceased: use "late" naturally. "late best friend from the block"
+   - Former: include transition + ongoing connection. "ex-wife, London's mother"
+   - Complicated: name the layers. "ex-wife, London's mother, complicated history"
+   - For indirect relationships: use bridge person's NICKNAME. "Ro's wife" not "Rodrique Fru's wife"
+
+Return ONLY a valid JSON array, no markdown fences, no commentary:
+[{"entity_id":"...","connection_type":"...","access":0.82,"connected_through":null,"status":"active","strength":0.85,"sub_role":"friend","descriptor":"close friend, came through Tone originally"}]`;
+
+    // === ORG SYSTEM PROMPT ===
+    const orgSystemPrompt = `You are analyzing organization entities from a knowledge graph. The PRIMARY USER is ${primaryName}.
+${primarySummary ? `\nAbout ${primaryName}: ${primarySummary}\n` : ''}
+Determine ${primaryName}'s relationship to each organization below.
+
+If ${primaryName} has NO direct relationship to this org (it was mentioned in someone else's bio, or is a general reference), return: {"entity_id":"...","relationship_to_primary":"none"}
+
+Otherwise return:
+{
+  "entity_id": "...",
+  "relationship_to_primary": "employer|alma_mater|membership|service_provider",
+  "org_category": "career|education|affiliations|services",
+  "org_status": "current|former",
+  "primary_user_role": "Principal Product Manager",
+  "org_dates": "2020-present",
+  "org_descriptor": "current employer, AI forecasting"
+}
+
+Rules:
+- "employer" → org_category "career"
+- "alma_mater" → org_category "education"
+- "membership" (fraternity, church, community org, professional assoc) → org_category "affiliations"
+- "service_provider" (healthcare, banking, insurance, legal) → org_category "services"
+- "none" → this org should be flagged for deletion (not relevant to ${primaryName})
+
+Return ONLY a valid JSON array, no markdown fences, no commentary.`;
+
+    // 3. Process persons in batches of 5
+    const personBatches = [];
+    for (let i = 0; i < persons.length; i += 5) {
+      personBatches.push(persons.slice(i, i + 5));
+    }
+
+    for (let bi = 0; bi < personBatches.length; bi++) {
+      const batch = personBatches[bi];
+      try {
+        const personDescriptions = batch.map(data => {
+          const e = data.entity || {};
+          const name = e.name?.full || '';
+          const nickname = e.name?.preferred || e.name?.nickname || '';
+          const summary = e.summary?.value || '';
+          const attrs = (data.attributes || []).map(a => `${a.key}: ${a.value}`).join('; ');
+          const rels = (data.relationships || []).map(r => `${r.name} (${r.relationship_type}): ${r.context || ''}`).join('; ');
+          const obs = (data.observations || []).slice(0, 5).map(o => o.content || o.text || '').join('; ');
+          const relMapEntry = primaryRelMap[name] || null;
+          const relMapText = relMapEntry ? `Primary user's relationship entry: type="${relMapEntry.type}", context="${relMapEntry.context}"` : 'No direct relationship entry from primary user';
+          return `PERSON: entity_id="${e.entity_id}", name="${name}"${nickname ? `, nickname="${nickname}"` : ''}
+Summary: ${summary}
+Attributes: ${attrs}
+Relationships: ${rels}
+Observations (first 5): ${obs}
+${relMapText}`;
+        }).join('\n\n---\n\n');
+
+        const message = await client.messages.create({
+          model: 'claude-sonnet-4-5-20250929',
+          max_tokens: 16384,
+          messages: [
+            { role: 'user', content: `Analyze these persons:\n\n${personDescriptions}` },
+          ],
+          system: personSystemPrompt,
+        });
+
+        const responseText = message.content[0].text.trim();
+        let dimensions;
+        try {
+          dimensions = JSON.parse(responseText);
+        } catch {
+          const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+          dimensions = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+        }
+
+        // Write results to entity files
+        for (const dim of dimensions) {
+          const entityData = batch.find(d => (d.entity || {}).entity_id === dim.entity_id);
+          if (!entityData) continue;
+
+          // Compute visual_tier from strength
+          const strength = typeof dim.strength === 'number' ? dim.strength : 0.5;
+          const access = typeof dim.access === 'number' ? dim.access : 0.5;
+          const visualTier = computeVisualTier(strength);
+
+          const relDims = {
+            connection_type: dim.connection_type,
+            access: Math.round(access * 100) / 100,
+            connected_through: dim.connected_through || null,
+            status: dim.status,
+            strength: Math.round(strength * 100) / 100,
+            sub_role: dim.sub_role,
+            descriptor: dim.descriptor || '',
+            descriptor_origin: dim.descriptor_origin || '',
+            visual_tier: visualTier,
+          };
+
+          entityData.relationship_dimensions = relDims;
+          entityData.descriptor = dim.descriptor || '';
+
+          // Strip old categorization attributes
+          if (entityData.attributes) {
+            entityData.attributes = entityData.attributes.filter(a =>
+              a.key !== 'categorization_hint' && a.key !== 'relationship_to_primary' && a.key !== 'relationship_distance'
+            );
+          }
+
+          writeEntity(dim.entity_id, entityData, req.graphDir);
+          tierCounts[visualTier] = (tierCounts[visualTier] || 0) + 1;
+
+          // Categorize for summary using new getPage logic
+          const name = (entityData.entity || {}).name?.full || '';
+          const ct = relDims.connection_type;
+          const connThrough = relDims.connected_through;
+          if (ct === 'blood' || ct === 'marriage') {
+            if (!connThrough || ct === 'blood') {
+              peopleSummary.family.push(name);
+            } else {
+              peopleSummary.other.push(name);
+            }
+          } else if (ct === 'chosen' && access >= 0.30) {
+            peopleSummary.friends.push(name);
+          } else if (ct === 'professional' && access >= 0.30) {
+            peopleSummary.professional.push(name);
+          } else {
+            peopleSummary.other.push(name);
+          }
+        }
+
+        dimProgress.people_processed += dimensions.length;
+        dimProgress.current = dimProgress.people_processed;
+        console.log(`[generate-dimensions] Person batch ${bi + 1}/${personBatches.length}: processed ${dimensions.length} persons`);
+      } catch (err) {
+        console.error(`[generate-dimensions] Person batch ${bi + 1} error:`, err.message);
+        errors.push(`Person batch ${bi + 1}: ${err.message}`);
+        dimProgress.errors.push(`Person batch ${bi + 1}: ${err.message}`);
+      }
+    }
+
+    // 4. Process orgs in batches of 5
+    dimProgress.phase = 'orgs';
+    const orgBatches = [];
+    for (let i = 0; i < orgs.length; i += 5) {
+      orgBatches.push(orgs.slice(i, i + 5));
+    }
+
+    for (let bi = 0; bi < orgBatches.length; bi++) {
+      const batch = orgBatches[bi];
+      try {
+        const orgDescriptions = batch.map(data => {
+          const e = data.entity || {};
+          const name = e.name?.common || e.name?.full || e.name?.legal || '';
+          const summary = e.summary?.value || '';
+          const attrs = (data.attributes || []).map(a => `${a.key}: ${a.value}`).join('; ');
+          const rels = (data.relationships || []).map(r => `${r.name} (${r.relationship_type}): ${r.context || ''}`).join('; ');
+          return `ORG: entity_id="${e.entity_id}", name="${name}", type="${e.entity_type}"
+Summary: ${summary}
+Attributes: ${attrs}
+Relationships: ${rels}`;
+        }).join('\n\n---\n\n');
+
+        const message = await client.messages.create({
+          model: 'claude-sonnet-4-5-20250929',
+          max_tokens: 16384,
+          messages: [
+            { role: 'user', content: `Analyze these organizations:\n\n${orgDescriptions}` },
+          ],
+          system: orgSystemPrompt,
+        });
+
+        const responseText = message.content[0].text.trim();
+        let dimensions;
+        try {
+          dimensions = JSON.parse(responseText);
+        } catch {
+          const jsonMatch = responseText.match(/\[[\s\S]*\]/);
+          dimensions = jsonMatch ? JSON.parse(jsonMatch[0]) : [];
+        }
+
+        for (const dim of dimensions) {
+          const entityData = batch.find(d => (d.entity || {}).entity_id === dim.entity_id);
+          if (!entityData) continue;
+
+          const name = (entityData.entity || {}).name?.common || (entityData.entity || {}).name?.full || '';
+
+          // Flag for deletion if "none"
+          if (dim.relationship_to_primary === 'none') {
+            orgsSummary.deleted.push(name);
+            dimProgress.orgs_deleted++;
+            // Mark entity for deletion (add attribute, don't delete yet)
+            if (!entityData.attributes) entityData.attributes = [];
+            entityData.attributes.push({ key: 'flagged_for_deletion', value: 'true', source: 'generate-dimensions' });
+            writeEntity(dim.entity_id, entityData, req.graphDir);
+            continue;
+          }
+
+          const orgDims = {
+            relationship_to_primary: dim.relationship_to_primary,
+            org_category: dim.org_category,
+            org_status: dim.org_status,
+            primary_user_role: dim.primary_user_role || '',
+            org_dates: dim.org_dates || '',
+            org_descriptor: dim.org_descriptor || '',
+          };
+
+          entityData.org_dimensions = orgDims;
+          entityData.descriptor = dim.org_descriptor || '';
+
+          // Also set org_category attribute for sidebar compatibility
+          if (entityData.attributes) {
+            const catAttr = entityData.attributes.find(a => a.key === 'org_category');
+            if (catAttr) {
+              catAttr.value = dim.org_category;
+            } else {
+              entityData.attributes.push({ key: 'org_category', value: dim.org_category, source: 'generate-dimensions' });
+            }
+          }
+
+          writeEntity(dim.entity_id, entityData, req.graphDir);
+
+          const cat = dim.org_category || 'services';
+          if (orgsSummary[cat]) {
+            orgsSummary[cat].push(name);
+          } else {
+            orgsSummary.services.push(name);
+          }
+        }
+
+        dimProgress.orgs_processed += dimensions.length;
+        dimProgress.current = dimProgress.people_processed + dimProgress.orgs_processed;
+        console.log(`[generate-dimensions] Org batch ${bi + 1}/${orgBatches.length}: processed ${dimensions.length} orgs`);
+      } catch (err) {
+        console.error(`[generate-dimensions] Org batch ${bi + 1} error:`, err.message);
+        errors.push(`Org batch ${bi + 1}: ${err.message}`);
+        dimProgress.errors.push(`Org batch ${bi + 1}: ${err.message}`);
+      }
+    }
+
+    const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+    const summaryText = `Generated dimensions for ${persons.length} people, ${orgs.length} orgs in ${elapsed}s`;
+    console.log('[generate-dimensions]', summaryText);
+
+    dimProgress.running = false;
+    dimProgress.completed_at = new Date().toISOString();
+    dimProgress.phase = 'done';
+
+    res.json({
+      summary: summaryText,
+      people: peopleSummary,
+      orgs: orgsSummary,
+      tiers: tierCounts,
+      errors,
+    });
+  } catch (err) {
+    console.error('[generate-dimensions] Fatal error:', err);
+    dimProgress = { running: false, error: err.message };
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/merge-entities — Merge two entities into one
+app.post('/api/merge-entities', apiAuth, (req, res) => {
+  const { primary_id, secondary_id, name_override, nickname_additions, descriptor_override } = req.body;
+  if (!primary_id || !secondary_id) return res.status(400).json({ error: 'primary_id and secondary_id required' });
+  if (primary_id === secondary_id) return res.status(400).json({ error: 'Cannot merge entity with itself' });
+
+  const primary = readEntity(primary_id, req.graphDir);
+  const secondary = readEntity(secondary_id, req.graphDir);
+  if (!primary) return res.status(404).json({ error: 'Primary entity not found: ' + primary_id });
+  if (!secondary) return res.status(404).json({ error: 'Secondary entity not found: ' + secondary_id });
+
+  const now = new Date().toISOString();
+  const changes = [];
+
+  // Merge name: optionally override, add nicknames
+  if (name_override && primary.entity) {
+    if (primary.entity.entity_type === 'person') {
+      primary.entity.name.full = name_override;
+    } else {
+      primary.entity.name.common = name_override;
+    }
+    changes.push('name overridden to: ' + name_override);
+  }
+  if (nickname_additions && primary.entity && primary.entity.name) {
+    if (!primary.entity.name.aliases) primary.entity.name.aliases = [];
+    for (const nick of nickname_additions) {
+      if (!primary.entity.name.aliases.includes(nick)) {
+        primary.entity.name.aliases.push(nick);
+      }
+    }
+    changes.push('added aliases: ' + nickname_additions.join(', '));
+  }
+
+  // Merge summary: keep primary unless secondary is longer
+  if (secondary.entity && secondary.entity.summary && primary.entity) {
+    const pLen = (primary.entity.summary?.value || '').length;
+    const sLen = (secondary.entity.summary?.value || '').length;
+    if (sLen > pLen) {
+      primary.entity.summary = secondary.entity.summary;
+      changes.push('kept longer summary from secondary');
+    }
+  }
+
+  // Override descriptor if provided
+  if (descriptor_override) {
+    primary.descriptor = descriptor_override;
+    changes.push('descriptor overridden');
+  }
+
+  // Merge attributes (skip duplicates by key)
+  const existingKeys = new Set((primary.attributes || []).map(a => a.key));
+  for (const attr of (secondary.attributes || [])) {
+    if (!existingKeys.has(attr.key)) {
+      (primary.attributes = primary.attributes || []).push(attr);
+      existingKeys.add(attr.key);
+      changes.push('added attribute: ' + attr.key);
+    }
+  }
+
+  // Merge relationships (skip duplicates by name)
+  const existingRelNames = new Set((primary.relationships || []).map(r => (r.name || '').toLowerCase()));
+  for (const rel of (secondary.relationships || [])) {
+    if (!existingRelNames.has((rel.name || '').toLowerCase())) {
+      (primary.relationships = primary.relationships || []).push(rel);
+      existingRelNames.add((rel.name || '').toLowerCase());
+      changes.push('added relationship: ' + rel.name);
+    }
+  }
+
+  // Merge observations
+  const obsCount = (secondary.observations || []).length;
+  if (obsCount > 0) {
+    primary.observations = (primary.observations || []).concat(secondary.observations || []);
+    changes.push('merged ' + obsCount + ' observations');
+  }
+
+  // Merge connected_objects
+  const existingConnIds = new Set((primary.connected_objects || []).map(c => c.entity_id));
+  for (const conn of (secondary.connected_objects || [])) {
+    if (!existingConnIds.has(conn.entity_id) && conn.entity_id !== primary_id) {
+      (primary.connected_objects = primary.connected_objects || []).push(conn);
+      existingConnIds.add(conn.entity_id);
+    }
+  }
+
+  // Keep relationship_dimensions and org_dimensions from primary (or secondary if primary lacks them)
+  if (!primary.relationship_dimensions && secondary.relationship_dimensions) {
+    primary.relationship_dimensions = secondary.relationship_dimensions;
+    changes.push('inherited relationship_dimensions from secondary');
+  }
+  if (!primary.descriptor && secondary.descriptor) {
+    primary.descriptor = secondary.descriptor;
+  }
+  if (!primary.org_dimensions && secondary.org_dimensions) {
+    primary.org_dimensions = secondary.org_dimensions;
+  }
+
+  // Update provenance
+  if (!primary.provenance_chain) primary.provenance_chain = {};
+  if (!primary.provenance_chain.merge_history) primary.provenance_chain.merge_history = [];
+  primary.provenance_chain.merge_history.push({
+    merged_from: secondary_id,
+    merged_at: now,
+    merged_by: req.agentId,
+  });
+  if (primary.extraction_metadata) primary.extraction_metadata.updated_at = now;
+
+  // Write updated primary
+  writeEntity(primary_id, primary, req.graphDir);
+
+  // Update all references to secondary across the graph
+  const allEntities = listEntities(req.graphDir);
+  let refsUpdated = 0;
+  const secondaryName = secondary.entity?.name?.full || secondary.entity?.name?.common || '';
+  const primaryName = primary.entity?.name?.full || primary.entity?.name?.common || '';
+  for (const { data } of allEntities) {
+    const eid = (data.entity || {}).entity_id;
+    if (eid === primary_id || eid === secondary_id) continue;
+    let changed = false;
+
+    // Update connected_objects references
+    if (data.connected_objects) {
+      for (let i = 0; i < data.connected_objects.length; i++) {
+        if (data.connected_objects[i].entity_id === secondary_id) {
+          data.connected_objects[i].entity_id = primary_id;
+          changed = true;
+        }
+      }
+    }
+
+    // Update relationship references
+    if (data.relationships) {
+      for (let i = 0; i < data.relationships.length; i++) {
+        if (data.relationships[i].name === secondaryName) {
+          data.relationships[i].name = primaryName;
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) {
+      writeEntity(eid, data, req.graphDir);
+      refsUpdated++;
+    }
+  }
+
+  // Delete secondary entity
+  deleteEntity(secondary_id, req.graphDir);
+  changes.push('deleted secondary entity: ' + secondary_id);
+  changes.push('updated ' + refsUpdated + ' entity references');
+
+  console.log('[merge-entities] Merged', secondary_id, 'into', primary_id, ':', changes.length, 'changes');
+
+  res.json({
+    merged_into: primary_id,
+    deleted: secondary_id,
+    changes,
+    refs_updated: refsUpdated,
+    entity: {
+      entity_id: primary_id,
+      name: primary.entity?.name?.full || primary.entity?.name?.common || '',
+      descriptor: primary.descriptor || '',
+    },
+  });
+});
+
 // GET /api/entity/:id/connected — Entity + all connected objects
 app.get('/api/entity/:id/connected', apiAuth, (req, res) => {
   const result = loadConnectedObjects(req.params.id, req.graphDir);
@@ -1995,28 +3083,10 @@ app.get('/api/search', apiAuth, (req, res) => {
   // Enrich person results with categorization text and trimmed attributes/relationships
   function enrichPersonResult(result, e, data) {
     if (e.entity_type !== 'person') return result;
-    // _primaryText: targeted text about this person's relationship to the primary user
-    // Only: summary, relationship-specific attributes, and entity's own relationships (names stripped)
-    const priParts = [];
-    if (result.summary) priParts.push(result.summary);
-    for (const attr of (data.attributes || [])) {
-      const k = (attr.key || '').toLowerCase();
-      if (k === 'relationship_to_primary' || k === 'relationship_to_cj' || k === 'relationship' || k === 'role') {
-        priParts.push((attr.value || ''));
-      }
-    }
-    result._primaryText = priParts.join(' ').toLowerCase();
-
-    // _catText: broad text for celebrity/professional detection (summary + all attribute values)
-    const broadParts = [];
-    if (result.summary) broadParts.push(result.summary);
-    for (const attr of (data.attributes || [])) {
-      broadParts.push((attr.value || ''));
-    }
-    result._catText = broadParts.join(' ').toLowerCase();
-
     result.attributes = (data.attributes || []).map(a => ({ key: a.key, value: a.value }));
     result.relationships = (data.relationships || []).map(r => ({ name: r.name, relationship_type: r.relationship_type, context: r.context }));
+    if (data.relationship_dimensions) result.relationship_dimensions = data.relationship_dimensions;
+    if (data.descriptor) result.descriptor = data.descriptor;
     return result;
   }
 
@@ -2027,6 +3097,13 @@ app.get('/api/search', apiAuth, (req, res) => {
       const name = getEntityName(e);
       const r = { entity_id: e.entity_id, entity_type: e.entity_type, name, summary: e.summary?.value || '', match_score: 1.0, observation_count: (data.observations || []).length, relationship_count: (data.relationships || []).length };
       enrichPersonResult(r, e, data);
+      if (data.relationship_dimensions) r.relationship_dimensions = data.relationship_dimensions;
+      if (data.descriptor) r.descriptor = data.descriptor;
+      if (data.org_dimensions) r.org_dimensions = data.org_dimensions;
+      // Include attributes for org-type entities (needed for org_category in sidebar)
+      if (e.entity_type === 'organization' || e.entity_type === 'business' || e.entity_type === 'institution') {
+        r.attributes = (data.attributes || []).map(a => ({ key: a.key, value: a.value }));
+      }
       return r;
     });
     return res.json({ query: q, count: all.length, results: all });
@@ -2072,6 +3149,13 @@ app.get('/api/search', apiAuth, (req, res) => {
         relationship_count: (data.relationships || []).length,
       };
       enrichPersonResult(r, e, data);
+      if (data.relationship_dimensions) r.relationship_dimensions = data.relationship_dimensions;
+      if (data.descriptor) r.descriptor = data.descriptor;
+      if (data.org_dimensions) r.org_dimensions = data.org_dimensions;
+      // Include attributes for org-type entities (needed for org_category in sidebar)
+      if (type === 'organization' || type === 'business' || type === 'institution') {
+        r.attributes = (data.attributes || []).map(a => ({ key: a.key, value: a.value }));
+      }
       results.push(r);
     }
   }
@@ -2586,6 +3670,198 @@ app.delete('/api/share/:shareId', apiAuth, (req, res) => {
 });
 
 // --- Serve the UI ---
+
+// Admin migration page
+app.get('/admin/migrate', (req, res) => {
+  res.send(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dimension Migration</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; color: #333; padding: 40px; }
+  .container { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin-bottom: 24px; }
+  .card { background: white; border-radius: 8px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .card h2 { font-size: 1.1rem; margin-bottom: 12px; }
+  .stat { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #eee; }
+  .stat:last-child { border-bottom: none; }
+  .stat-label { color: #666; }
+  .stat-value { font-weight: 600; }
+  .btn { display: inline-block; padding: 10px 24px; border-radius: 6px; border: none; font-size: 0.95rem; font-weight: 600; cursor: pointer; }
+  .btn-primary { background: #6366f1; color: white; }
+  .btn-primary:hover { background: #5558e6; }
+  .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
+  .progress { margin-top: 16px; display: none; }
+  .progress-bar { height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #6366f1; transition: width 0.3s; width: 0%; }
+  .progress-text { font-size: 0.85rem; color: #666; margin-top: 8px; }
+  .results { margin-top: 16px; display: none; }
+  .results pre { background: #f8f8f8; padding: 12px; border-radius: 6px; font-size: 0.82rem; overflow-x: auto; white-space: pre-wrap; }
+  .tier-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 600; margin-right: 4px; }
+  .tier-gold { background: #FFFDF5; border: 1px solid #D4A017; color: #8B6914; }
+  .tier-green { background: #E8F5E9; border: 1px solid #4CAF50; color: #2E7D32; }
+  .tier-neutral { background: #F5F5F5; border: 1px solid #999; color: #666; }
+  .tier-muted { background: #FAFAFA; border: 1px solid #ddd; color: #999; }
+  .error { color: #d32f2f; font-size: 0.85rem; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Dimension Migration</h1>
+
+  <div class="card" id="countsCard">
+    <h2>Entity Counts</h2>
+    <div id="counts"><div style="color:#999">Loading...</div></div>
+  </div>
+
+  <div class="card">
+    <h2>Run Migration</h2>
+    <p style="color:#666;font-size:0.9rem;margin-bottom:12px;">Sends each entity to the LLM for dimension analysis. This will overwrite existing dimensions.</p>
+    <button class="btn btn-primary" id="runBtn" onclick="runMigration()">Run Migration</button>
+    <div class="progress" id="progress">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-text" id="progressText">Starting...</div>
+    </div>
+    <div class="error" id="errorText"></div>
+  </div>
+
+  <div class="card results" id="resultsCard">
+    <h2>Results</h2>
+    <div id="resultsContent"></div>
+  </div>
+</div>
+
+<script>
+var API_KEY = '';
+
+function getApiKey() {
+  if (API_KEY) return API_KEY;
+  API_KEY = prompt('Enter API key (x-context-api-key):');
+  return API_KEY;
+}
+
+function fetchCounts() {
+  var key = getApiKey();
+  if (!key) return;
+  fetch('/api/search?q=*', { headers: { 'x-context-api-key': key } })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var people = 0, orgs = 0, withDims = 0;
+      var results = data.results || [];
+      for (var i = 0; i < results.length; i++) {
+        if (results[i].entity_type === 'person') {
+          people++;
+          if (results[i].relationship_dimensions) withDims++;
+        }
+        if (results[i].entity_type === 'organization' || results[i].entity_type === 'business' || results[i].entity_type === 'institution') orgs++;
+      }
+      var html = '';
+      html += '<div class="stat"><span class="stat-label">People</span><span class="stat-value">' + people + '</span></div>';
+      html += '<div class="stat"><span class="stat-label">Organizations</span><span class="stat-value">' + orgs + '</span></div>';
+      html += '<div class="stat"><span class="stat-label">With dimensions</span><span class="stat-value">' + withDims + ' / ' + people + '</span></div>';
+      document.getElementById('counts').innerHTML = html;
+    });
+}
+
+function runMigration() {
+  var key = getApiKey();
+  if (!key) return;
+  var btn = document.getElementById('runBtn');
+  btn.disabled = true;
+  btn.textContent = 'Running...';
+  document.getElementById('progress').style.display = 'block';
+  document.getElementById('resultsCard').style.display = 'none';
+  document.getElementById('errorText').textContent = '';
+
+  // Poll progress
+  var pollId = setInterval(function() {
+    fetch('/api/generate-dimensions/status', { headers: { 'x-context-api-key': key } })
+      .then(function(r) { return r.json(); })
+      .then(function(status) {
+        if (status.running) {
+          var pct = status.total > 0 ? Math.round((status.current / status.total) * 100) : 0;
+          document.getElementById('progressFill').style.width = pct + '%';
+          document.getElementById('progressText').textContent = status.phase + ': ' + status.current + ' / ' + status.total + ' (' + pct + '%)';
+        }
+      });
+  }, 2000);
+
+  fetch('/api/generate-dimensions', {
+    method: 'POST',
+    headers: { 'x-context-api-key': key, 'Content-Type': 'application/json' },
+    body: '{}'
+  })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      clearInterval(pollId);
+      document.getElementById('progressFill').style.width = '100%';
+      document.getElementById('progressText').textContent = 'Complete!';
+      btn.disabled = false;
+      btn.textContent = 'Run Migration';
+      showResults(data);
+      fetchCounts();
+    })
+    .catch(function(err) {
+      clearInterval(pollId);
+      document.getElementById('errorText').textContent = 'Error: ' + err.message;
+      btn.disabled = false;
+      btn.textContent = 'Run Migration';
+    });
+}
+
+function showResults(data) {
+  var card = document.getElementById('resultsCard');
+  card.style.display = 'block';
+  var html = '<p style="font-weight:600;margin-bottom:12px;">' + (data.summary || '') + '</p>';
+
+  // People breakdown
+  if (data.people) {
+    html += '<h3 style="font-size:0.95rem;margin:12px 0 6px;">People</h3>';
+    var cats = ['family', 'friends', 'professional', 'other'];
+    for (var i = 0; i < cats.length; i++) {
+      var arr = data.people[cats[i]] || [];
+      if (arr.length > 0) html += '<div class="stat"><span class="stat-label">' + cats[i].charAt(0).toUpperCase() + cats[i].slice(1) + '</span><span class="stat-value">' + arr.length + '</span></div>';
+    }
+  }
+
+  // Orgs breakdown
+  if (data.orgs) {
+    html += '<h3 style="font-size:0.95rem;margin:12px 0 6px;">Organizations</h3>';
+    var orgCats = ['career', 'education', 'affiliations', 'services', 'deleted'];
+    for (var i = 0; i < orgCats.length; i++) {
+      var arr = data.orgs[orgCats[i]] || [];
+      if (arr.length > 0) html += '<div class="stat"><span class="stat-label">' + orgCats[i].charAt(0).toUpperCase() + orgCats[i].slice(1) + (orgCats[i] === 'deleted' ? ' (flagged)' : '') + '</span><span class="stat-value">' + arr.length + '</span></div>';
+    }
+  }
+
+  // Tiers
+  if (data.tiers) {
+    html += '<h3 style="font-size:0.95rem;margin:12px 0 6px;">Visual Tiers</h3>';
+    html += '<div style="margin:4px 0;">';
+    html += '<span class="tier-badge tier-gold">Gold: ' + (data.tiers.gold || 0) + '</span>';
+    html += '<span class="tier-badge tier-green">Green: ' + (data.tiers.green || 0) + '</span>';
+    html += '<span class="tier-badge tier-neutral">Neutral: ' + (data.tiers.neutral || 0) + '</span>';
+    html += '<span class="tier-badge tier-muted">Muted: ' + (data.tiers.muted || 0) + '</span>';
+    html += '</div>';
+  }
+
+  // Errors
+  if (data.errors && data.errors.length > 0) {
+    html += '<h3 style="font-size:0.95rem;margin:12px 0 6px;color:#d32f2f;">Errors (' + data.errors.length + ')</h3>';
+    html += '<pre>' + data.errors.join('\\n') + '</pre>';
+  }
+
+  document.getElementById('resultsContent').innerHTML = html;
+}
+
+fetchCounts();
+</script>
+</body>
+</html>`);
+});
 
 app.get('/', (req, res) => {
   res.send(HTML);
@@ -4946,12 +6222,47 @@ const WIKI_HTML = `<!DOCTYPE html>
   .cat-card {
     background: var(--bg-card); border: 1px solid var(--border-primary);
     border-radius: var(--radius-md); padding: 14px 16px; cursor: pointer;
-    transition: all var(--transition-fast);
+    transition: all var(--transition-fast); position: relative;
   }
   .cat-card:hover { border-color: #6366f1; box-shadow: 0 2px 8px rgba(99,102,241,0.1); }
   .cat-card-name { font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
-  .cat-card-subtitle { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 6px; }
+  .cat-card-subtitle { font-size: 0.82rem; color: #555555; margin-bottom: 6px; }
   .cat-card-summary { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; }
+  /* Strength tiers */
+  .cat-card.tier-gold { border-left: 3px solid #D4A017; background: #FFFDF5; }
+  .cat-card.tier-green { border-left: 3px solid #4CAF50; }
+  .cat-card.tier-muted { background: #F8F8F8; }
+  .cat-card.tier-muted .cat-card-name { color: #777; }
+  .cat-card.tier-muted .cat-card-subtitle { color: #999; }
+  .cat-card.tier-muted .cat-card-summary { color: #999; }
+  .cat-card-star { color: #D4A017; font-size: 0.75rem; margin-left: 4px; }
+  /* Status overrides (layer on top of tiers) */
+  .cat-card.status-deceased { border-left: 3px solid #9E9E9E; background: #FAFAFA; }
+  .cat-card.status-deceased .cat-card-name { color: var(--text-primary); }
+  .cat-card.status-former-spouse { border-left: 3px solid #FF9800; }
+  .cat-card.status-current-spouse { border-left: 3px solid #4CAF50; }
+  /* Status pills */
+  .cat-status-pill {
+    position: absolute; top: 10px; right: 10px;
+    font-size: 0.65rem; font-weight: 600; padding: 2px 8px;
+    border-radius: 10px; text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .cat-status-pill.pill-current { background: #E8F5E9; color: #2E7D32; }
+  .cat-status-pill.pill-former { background: #FFF3E0; color: #E65100; }
+  .cat-status-pill.pill-deceased { background: #F5F5F5; color: #616161; }
+  .cat-status-pill.pill-complex { background: #FFF3E0; color: #E65100; }
+  .cat-subsection { margin-bottom: 20px; }
+  .cat-subsection-label {
+    font-size: 0.9rem; font-weight: 600; color: var(--text-primary);
+    margin-bottom: 10px; padding-left: 2px;
+    border-bottom: 1px solid var(--border-subtle, var(--border-primary)); padding-bottom: 6px;
+  }
+  .cat-sub-divider {
+    font-size: 0.82rem; font-weight: 500; color: #888;
+    margin-top: 16px; margin-bottom: 8px; padding-left: 2px;
+    border-top: 1px solid #E0E0E0; padding-top: 10px;
+  }
+  .cat-sub-divider:first-child { margin-top: 0; border-top: none; padding-top: 0; }
   .sidebar-footer-user {
     display: flex; align-items: center; gap: 8px;
     margin-bottom: 6px; justify-content: center;
@@ -5161,186 +6472,141 @@ function findPrimaryUser(ents, user) {
   return null;
 }
 
-function categorizePerson(entity, relMapEntry) {
-  // Priority 1: Check for categorization_hint attribute (set by /api/recategorize or extraction)
-  var attrs = entity.attributes || [];
-  for (var hi = 0; hi < attrs.length; hi++) {
-    if (attrs[hi].key === 'categorization_hint' && attrs[hi].value) {
-      var hint = attrs[hi].value.toLowerCase().trim();
-      if (hint === 'family' || hint === 'friends' || hint === 'inner_circle' || hint === 'professional' || hint === 'community' || hint === 'celebrity' || hint === 'other') {
-        var mapped = hint === 'inner_circle' ? 'friends' : hint;
-        return { category: mapped, trigger: 'hint:' + attrs[hi].value };
-      }
-    }
+// === DIMENSION-READING FUNCTIONS ===
+// All categorization is driven by relationship_dimensions. No keyword matching.
+
+function getPage(entity) {
+  var d = entity.relationship_dimensions;
+  if (!d || !d.connection_type) return 'other';
+
+  // Family: blood, or marriage direct, or any in-law (sub_role gates it)
+  if (d.connection_type === 'blood' || d.connection_type === 'marriage') {
+    if (!d.connected_through) return 'family';
+    if (d.connection_type === 'blood') return 'family';
+    if (d.connection_type === 'marriage' && d.sub_role === 'in_law') return 'family';
+    // Marriage through someone else (friend's spouse) = Other
+    if (d.connection_type === 'marriage' && d.connected_through) return 'other';
+    return 'family';
   }
 
-  // Priority 2: Keyword matching using TARGETED text (not noisy blob)
+  // Indirect connections with low strength = Other (friend's partners, etc.)
+  if (d.connected_through && (d.strength || 0) < 0.30) return 'other';
 
-  // primaryText: relMap entry + entity's summary + relationship-specific attributes
-  // This describes the person's relationship TO CJ — safe for family/friend keyword search
-  var priParts = [];
-  if (relMapEntry) {
-    if (relMapEntry.type) priParts.push(relMapEntry.type.toLowerCase());
-    if (relMapEntry.context) priParts.push(relMapEntry.context.toLowerCase());
+  // Page assignment uses connection_type only — never access score
+  if (d.connection_type === 'chosen') return 'friends';
+  if (d.connection_type === 'professional') return 'professional';
+  if (d.connection_type === 'community') return 'other';
+
+  return 'other';
+}
+
+function getFamilySection(entity) {
+  var d = entity.relationship_dimensions;
+  if (!d) return 'Extended Family';
+  if (d.sub_role === 'spouse') return 'Spouse';
+  if (d.sub_role === 'child') return 'Children';
+  if (d.sub_role === 'parent' || d.sub_role === 'sibling' || d.sub_role === 'grandparent') return 'Parents & Siblings';
+  return 'Extended Family';
+}
+
+function getParentsSiblingsSubSection(entity) {
+  var d = entity.relationship_dimensions;
+  if (!d) return 'Siblings';
+  if (d.sub_role === 'parent' || d.sub_role === 'grandparent') return 'Parents';
+  return 'Siblings';
+}
+
+function getFriendsSection(entity) {
+  var d = entity.relationship_dimensions;
+  if (!d) return 'Friends';
+  var str = d.strength || 0;
+  if (str >= 0.85) return 'Inner Circle';
+  if (str >= 0.65) return 'Close Friends';
+  if (str >= 0.40) return 'Friends';
+  return 'Acquaintances';
+}
+
+function getProfessionalSection(entity) {
+  var d = entity.relationship_dimensions;
+  if (!d) return 'Current';
+  if (d.sub_role === 'partner') return 'Partners';
+  if (d.status === 'active' || d.status === 'stable') return 'Current';
+  return 'Former';
+}
+
+function getCardClasses(entity) {
+  var d = entity.relationship_dimensions;
+  if (!d) return 'cat-card';
+  var classes = 'cat-card';
+  // Status overrides come first
+  if (d.status === 'deceased') {
+    return 'cat-card status-deceased';
   }
-  if (entity._primaryText) priParts.push(entity._primaryText);
-  var primaryText = priParts.join(' ');
-
-  // broadText: summary + all attributes (for celebrity/professional detection)
-  var broadText = entity._catText || '';
-
-  function hasAny(haystack, terms) {
-    for (var i = 0; i < terms.length; i++) {
-      if (haystack.indexOf(terms[i]) !== -1) return terms[i];
-    }
-    return null;
+  if (d.sub_role === 'spouse' && d.status !== 'active' && d.status !== 'stable') {
+    return 'cat-card status-former-spouse';
   }
-  function hasAnyWord(haystack, terms) {
-    for (var i = 0; i < terms.length; i++) {
-      var idx = haystack.indexOf(terms[i]);
-      if (idx === -1) continue;
-      var before = idx > 0 ? haystack.charAt(idx - 1) : ' ';
-      var after = idx + terms[i].length < haystack.length ? haystack.charAt(idx + terms[i].length) : ' ';
-      var bOk = before === ' ' || before === '-' || before === ',' || before === '.' || before === '(' || before === '/' || before === ':' || before === ';' || idx === 0;
-      var aOk = after === ' ' || after === '-' || after === ',' || after === '.' || after === ')' || after === '/' || after === ':' || after === ';' || (idx + terms[i].length) === haystack.length;
-      if (bOk && aOk) return terms[i];
-    }
-    return null;
-  }
+  // Strength tier
+  var tier = d.visual_tier || 'neutral';
+  if (tier === 'gold') return 'cat-card tier-gold';
+  if (tier === 'green') return 'cat-card tier-green';
+  if (tier === 'muted') return 'cat-card tier-muted';
+  return 'cat-card';
+}
 
-  // Check surrogate terms first — these override family keywords
-  var surrogateTerms = ['like a brother', 'like a sister', 'like family', 'surrogate',
-    'father figure', 'mother figure', 'big brother figure', 'sister figure', 'brother figure'];
-  var isSurrogate = hasAny(primaryText, surrogateTerms);
+function getStatusPill(entity) {
+  var d = entity.relationship_dimensions;
+  if (!d) return '';
+  if (d.status === 'deceased') return '<span class="cat-status-pill pill-deceased">In Memory</span>';
+  if (d.sub_role === 'spouse' && d.status !== 'active' && d.status !== 'stable')
+    return '<span class="cat-status-pill pill-former">Former</span>';
+  if (d.sub_role === 'spouse' && (d.status === 'active' || d.status === 'stable'))
+    return '<span class="cat-status-pill pill-current">Current</span>';
+  if (d.status === 'complicated') return '<span class="cat-status-pill pill-complex">Complex</span>';
+  return '';
+}
 
-  // INNER CIRCLE — check FIRST (multi-word terms like "childhood friend" beat substring "child")
-  var innerTerms = ['best friend', 'close friend', 'closest friend', 'groomsman', 'bridesmaid',
-    'loyalty anchor', 'accountability partner', 'ride or die', 'day one',
-    'childhood friend', 'lifelong friend', 'like a brother', 'like a sister',
-    'like family', 'brotherhood', 'super close', 'ai assistant', 'collaborator',
-    'co-founder', 's-tier', 'a-tier', 'surrogate', 'father figure', 'mother figure',
-    'big brother', 'big sister', 'mba homie', 'homie', 'mentee', 'trusted'];
-  var it = hasAny(primaryText, innerTerms);
-  if (it) return { category: 'friends', trigger: it };
-  if (relMapEntry) {
-    if (relMapEntry.strength === 'close') return { category: 'friends', trigger: 'strength:close' };
-    var tl = String(relMapEntry.trust_level || '');
-    if (tl.indexOf('9') !== -1 || tl.indexOf('10') !== -1) return { category: 'friends', trigger: 'trust:' + tl };
-  }
+function showGoldStar(entity) {
+  var d = entity.relationship_dimensions;
+  return d && d.visual_tier === 'gold';
+}
 
-  // FAMILY — skip if surrogate
-  // CRITICAL: Must verify the family keyword is IN RELATION TO CJ, not someone else
-  // Strategy: relMapEntry.type is CJ's DIRECT relationship label (trusted). Context text needs directionality check.
-  if (!isSurrogate) {
-    var familyTerms = ['spouse', 'wife', 'husband', 'ex-wife', 'ex-husband', 'ex-spouse', 'co-parent',
-      'mother', 'father', 'parent', 'mom', 'dad', 'son', 'daughter', 'child',
-      'brother', 'sister', 'sibling', 'half-brother', 'half-sister',
-      'stepmother', 'stepfather', 'nephew', 'niece', 'uncle', 'aunt', 'cousin',
-      'in-law', 'grandparent', 'grandmother', 'grandfather'];
-
-    // Check relMapEntry.type first — CJ's direct relationship label, always trusted
-    var relTypeText2 = relMapEntry ? (relMapEntry.type || '').toLowerCase() : '';
-    var ftRelType2 = hasAnyWord(relTypeText2, familyTerms);
-    if (ftRelType2) return { category: 'family', trigger: ftRelType2 };
-
-    // If relMapEntry.type exists and is NOT a family term, do NOT promote to family from context
-    // e.g., "childhood neighbor" with context "same age as CJ's sister" — "sister" describes someone else
-    if (!relMapEntry || !relTypeText2) {
-      var ft = hasAnyWord(primaryText, familyTerms);
-      if (ft) {
-        var pAliases = [];
-        var sNames = [];
-        if (primaryEntityData && primaryEntityData.entity) {
-          var pen = primaryEntityData.entity.name || {};
-          var pfull = (pen.full || '').toLowerCase();
-          if (pfull) {
-            pAliases.push(pfull);
-            var pp = pfull.split(/\s+/);
-            if (pp.length >= 1) pAliases.push(pp[0]);
-            if (pp.length >= 2) pAliases.push(pp[0] + ' ' + pp[pp.length - 1]);
-          }
-          if (pen.preferred) pAliases.push(pen.preferred.toLowerCase());
-          if (pen.aliases) { for (var ai2 = 0; ai2 < pen.aliases.length; ai2++) pAliases.push(pen.aliases[ai2].toLowerCase()); }
-        }
-        if (primaryEntityData && primaryEntityData.relationships) {
-          var prels = primaryEntityData.relationships;
-          for (var si = 0; si < prels.length; si++) {
-            var srt = (prels[si].relationship_type || '').toLowerCase();
-            if (srt === 'spouse' || srt === 'wife' || srt === 'husband' || srt === 'current spouse' || srt === 'ex-wife' || srt === 'ex-husband' || srt === 'co-parent') {
-              var sn2 = (prels[si].name || '').toLowerCase().trim();
-              if (sn2) {
-                sNames.push(sn2);
-                var snp = sn2.split(/\s+/);
-                if (snp.length >= 1) sNames.push(snp[0]);
-              }
-            }
-          }
-        }
-        var isFamOther = false;
-        var ofRe = /(?:spouse|wife|husband|mother|father|sister|brother|daughter|son|parent|child|sibling|nephew|niece|uncle|aunt|cousin|grandmother|grandfather)\s+of\s+(\w[\w\s]*)/gi;
-        var fm;
-        while ((fm = ofRe.exec(primaryText)) !== null) {
-          var ofW = fm[1].trim().toLowerCase();
-          var isCJ2 = false;
-          var isSp2 = false;
-          for (var k2 = 0; k2 < pAliases.length; k2++) { if (pAliases[k2] && ofW.indexOf(pAliases[k2]) !== -1) { isCJ2 = true; break; } }
-          for (var k3 = 0; k3 < sNames.length; k3++) { if (sNames[k3] && ofW.indexOf(sNames[k3]) !== -1) { isSp2 = true; break; } }
-          if (!isCJ2 && !isSp2) { isFamOther = true; break; }
-        }
-        if (!isFamOther) {
-          var posRe = /(\w[\w\s]*?)(?:'s|'s)\s+(?:spouse|wife|husband|mother|father|sister|brother|daughter|son|parent|child|sibling|nephew|niece|uncle|aunt|cousin|grandmother|grandfather)/gi;
-          while ((fm = posRe.exec(primaryText)) !== null) {
-            var own = fm[1].trim().toLowerCase();
-            var isCJ3 = false;
-            var isSp3 = false;
-            for (var k4 = 0; k4 < pAliases.length; k4++) { if (pAliases[k4] && own.indexOf(pAliases[k4]) !== -1) { isCJ3 = true; break; } }
-            for (var k5 = 0; k5 < sNames.length; k5++) { if (sNames[k5] && own.indexOf(sNames[k5]) !== -1) { isSp3 = true; break; } }
-            if (!isCJ3 && !isSp3 && own.length > 1) { isFamOther = true; break; }
-          }
-        }
-        if (!isFamOther) {
-          var ffRe = /(?:spouse|wife|husband|mother|father|sister|brother|daughter|son)\s+of\s+(?:a\s+|deceased\s+)?(?:friend|colleague|coworker|associate|peer|buddy)/gi;
-          if (ffRe.test(primaryText)) isFamOther = true;
-        }
-        if (!isFamOther) return { category: 'family', trigger: ft };
-      }
-    }
-  }
-
-  // PROFESSIONAL — search primaryText
-  var proTerms = ['colleague', 'coworker', 'manager', 'direct report', 'supervisor',
-    'mentor', 'business partner', 'professional', 'security architect',
-    'from your school', 'employer', 'employee'];
-  var pt = hasAny(primaryText, proTerms);
-  if (pt) return { category: 'professional', trigger: pt };
-
-  // CELEBRITY — search broadText, only if NO relationship to primary user
-  if (!relMapEntry) {
-    var celTerms = ['rapper', 'musician', 'artist', 'athlete', 'actor', 'actress',
-      'singer', 'public figure', 'celebrity', 'entertainer', 'comedian'];
-    var ct = hasAny(broadText, celTerms);
-    if (ct) return { category: 'celebrity', trigger: ct };
-  }
-
-  return { category: 'other', trigger: 'default' };
+function getCardSubtitle(entity) {
+  var d = entity.relationship_dimensions;
+  return (d && d.descriptor) || entity.descriptor || entity._relType || entity.summary || '';
 }
 
 function sortPeopleGroup(group, category) {
+  // All sections: living first by strength desc, then deceased by strength desc
   if (category === 'family') {
-    var priority = { 'spouse': 1, 'wife': 1, 'husband': 1, 'son': 2, 'daughter': 2, 'child': 2, 'brother': 3, 'sister': 3, 'sibling': 3 };
+    var rolePriority = { 'spouse': 1, 'child': 2, 'parent': 3, 'grandparent': 3, 'sibling': 4 };
     group.sort(function(a, b) {
-      var ra = (a._relType || '').toLowerCase();
-      var rb = (b._relType || '').toLowerCase();
-      var pa = 99, pb = 99;
-      for (var k in priority) {
-        if (ra.indexOf(k) !== -1) { pa = Math.min(pa, priority[k]); }
-        if (rb.indexOf(k) !== -1) { pb = Math.min(pb, priority[k]); }
-      }
+      var da = a.relationship_dimensions || {};
+      var db = b.relationship_dimensions || {};
+      // Deceased sort after living
+      var aDead = da.status === 'deceased' ? 1 : 0;
+      var bDead = db.status === 'deceased' ? 1 : 0;
+      if (aDead !== bDead) return aDead - bDead;
+      var pa = rolePriority[da.sub_role] || 99;
+      var pb = rolePriority[db.sub_role] || 99;
       if (pa !== pb) return pa - pb;
+      var sa = da.strength || 0;
+      var sb = db.strength || 0;
+      if (sa !== sb) return sb - sa;
       return (a.name || '').localeCompare(b.name || '');
     });
   } else {
-    group.sort(function(a, b) { return (a.name || '').localeCompare(b.name || ''); });
+    // Friends, Professional, Other: living first, then deceased, each by strength desc
+    group.sort(function(a, b) {
+      var da = a.relationship_dimensions || {};
+      var db = b.relationship_dimensions || {};
+      var aDead = da.status === 'deceased' ? 1 : 0;
+      var bDead = db.status === 'deceased' ? 1 : 0;
+      if (aDead !== bDead) return aDead - bDead;
+      var sa = da.strength || 0;
+      var sb = db.strength || 0;
+      if (sa !== sb) return sb - sa;
+      return (a.name || '').localeCompare(b.name || '');
+    });
   }
   return group;
 }
@@ -5430,7 +6696,7 @@ function buildSidebarData() {
 
   var you = null;
   var people = { family: [], friends: [], professional: [], community: [], other: [] };
-  var organizations = { career: [], education: [], other: [] };
+  var organizations = { career: [], education: [], affiliations: [], services: [], other: [] };
   var projects = { active: [], rnd: [], archive: [] };
   var seenOrgNames = {}; // lowercase name -> entity_id (dedup: prefer connected objects)
 
@@ -5510,26 +6776,18 @@ function buildSidebarData() {
         }
       }
 
-      // Categorize using enriched data
-      var catResult = categorizePerson(e, relEntry);
-      console.log('CAT_DEBUG:', ename, '->', catResult.category, '(' + catResult.trigger + ')');
+      // Categorize using dimension-reading functions
+      var page = getPage(e);
+      console.log('CAT_DEBUG:', ename, '->', page);
 
-      // Skip celebrities
-      if (catResult.category === 'celebrity') continue;
+      // Set subtitle from descriptor
+      e._relType = getCardSubtitle(e);
 
-      // Use relMap type as _relType, or entity role attribute as fallback
-      e._relType = (relEntry && relEntry.type) ? relEntry.type : '';
-      if (!e._relType) {
-        var eAttrs = e.attributes || [];
-        for (var ai = 0; ai < eAttrs.length; ai++) {
-          if (eAttrs[ai].key === 'role' && eAttrs[ai].value) {
-            e._relType = eAttrs[ai].value;
-            break;
-          }
-        }
+      if (people[page]) {
+        people[page].push(e);
+      } else {
+        people.other.push(e);
       }
-
-      people[catResult.category].push(e);
     } else if (t === 'organization' || t === 'business' || t === 'institution') {
       var oname = ename.toLowerCase().trim();
 
@@ -5538,36 +6796,65 @@ function buildSidebarData() {
       if (seenOrgNames[oname] && seenOrgNames[oname] !== e.entity_id) continue;
       seenOrgNames[oname] = e.entity_id;
 
-      // Categorize: try entity_id match first, then exact name, then fuzzy name
-      if (roleByOrgId[e.entity_id]) {
-        organizations.career.push({ org: e, roleTitle: roleByOrgId[e.entity_id] });
-      } else if (credByOrgId[e.entity_id]) {
-        organizations.education.push({ org: e, credLabel: credByOrgId[e.entity_id] });
-      } else if (roleByOrg[oname]) {
-        organizations.career.push({ org: e, roleTitle: roleByOrg[oname] });
-      } else if (credByOrg[oname]) {
-        organizations.education.push({ org: e, credLabel: credByOrg[oname] });
+      // Priority 1: Read org_category attribute (set by /api/cleanup-orgs)
+      var orgCat = '';
+      var orgRole = '';
+      var orgDates = '';
+      var orgCred = '';
+      var orgGradYear = '';
+      var eaList = e.attributes || [];
+      for (var ai = 0; ai < eaList.length; ai++) {
+        if (eaList[ai].key === 'org_category') orgCat = (eaList[ai].value || '').toLowerCase();
+        if (eaList[ai].key === 'cj_role') orgRole = eaList[ai].value || '';
+        if (eaList[ai].key === 'cj_dates') orgDates = eaList[ai].value || '';
+        if (eaList[ai].key === 'cj_credential') orgCred = eaList[ai].value || '';
+        if (eaList[ai].key === 'cj_grad_year') orgGradYear = eaList[ai].value || '';
+      }
+
+      // Build subtitle from attribute data
+      var orgSubtitle = '';
+      if (orgCat === 'career') {
+        orgSubtitle = orgRole || roleByOrgId[e.entity_id] || roleByOrg[oname] || '';
+        if (orgDates) orgSubtitle += (orgSubtitle ? ' (' + orgDates + ')' : orgDates);
+      } else if (orgCat === 'education') {
+        orgSubtitle = orgCred || credByOrgId[e.entity_id] || credByOrg[oname] || '';
+        if (orgGradYear) orgSubtitle += (orgSubtitle ? ' (' + orgGradYear + ')' : orgGradYear);
+      }
+
+      if (orgCat === 'career' || orgCat === 'education' || orgCat === 'affiliations' || orgCat === 'services') {
+        organizations[orgCat].push({ org: e, subtitle: orgSubtitle });
       } else {
-        // Fuzzy match: check if entity name is contained in any role/credential org name or vice versa
-        var matched = false;
-        for (var rk in roleByOrg) {
-          if (oname.indexOf(rk) !== -1 || rk.indexOf(oname) !== -1) {
-            organizations.career.push({ org: e, roleTitle: roleByOrg[rk] });
-            matched = true;
-            break;
-          }
-        }
-        if (!matched) {
-          for (var ck in credByOrg) {
-            if (oname.indexOf(ck) !== -1 || ck.indexOf(oname) !== -1) {
-              organizations.education.push({ org: e, credLabel: credByOrg[ck] });
+        // Priority 2: Fallback to role/credential matching
+        if (roleByOrgId[e.entity_id]) {
+          organizations.career.push({ org: e, subtitle: roleByOrgId[e.entity_id] });
+        } else if (credByOrgId[e.entity_id]) {
+          organizations.education.push({ org: e, subtitle: credByOrgId[e.entity_id] });
+        } else if (roleByOrg[oname]) {
+          organizations.career.push({ org: e, subtitle: roleByOrg[oname] });
+        } else if (credByOrg[oname]) {
+          organizations.education.push({ org: e, subtitle: credByOrg[oname] });
+        } else {
+          // Fuzzy match
+          var matched = false;
+          for (var rk in roleByOrg) {
+            if (oname.indexOf(rk) !== -1 || rk.indexOf(oname) !== -1) {
+              organizations.career.push({ org: e, subtitle: roleByOrg[rk] });
               matched = true;
               break;
             }
           }
-        }
-        if (!matched) {
-          organizations.other.push(e);
+          if (!matched) {
+            for (var ck in credByOrg) {
+              if (oname.indexOf(ck) !== -1 || ck.indexOf(oname) !== -1) {
+                organizations.education.push({ org: e, subtitle: credByOrg[ck] });
+                matched = true;
+                break;
+              }
+            }
+          }
+          if (!matched) {
+            organizations.other.push({ org: e, subtitle: '' });
+          }
         }
       }
     } else if (t === 'project') {
@@ -5656,6 +6943,72 @@ function selectCategoryPage(category) {
   renderSidebar();
 }
 
+function renderPeopleCards(people, category) {
+  var html = '';
+  for (var i = 0; i < people.length; i++) {
+    var p = people[i];
+    var pName = p.name || '';
+    var pSub = getCardSubtitle(p);
+    var pSummary = (p.summary || '').substring(0, 120);
+    if ((p.summary || '').length > 120) pSummary += '...';
+
+    var cardClass = getCardClasses(p);
+    var pillHtml = getStatusPill(p);
+    var starHtml = showGoldStar(p) ? '<span class="cat-card-star">\u2605</span>' : '';
+
+    // Keep star for deceased gold-tier entities
+    var d = p.relationship_dimensions || {};
+    if (d.status === 'deceased' && d.visual_tier === 'gold') {
+      starHtml = '<span class="cat-card-star">\u2605</span>';
+    }
+
+    html += '<div class="' + cardClass + '" onclick="selectEntity(' + "'" + esc(p.entity_id) + "'" + ',' + "'" + category + "'" + ')">';
+    if (pillHtml) html += pillHtml;
+    html += '<div class="cat-card-name">' + esc(pName) + starHtml + '</div>';
+    if (pSub) html += '<div class="cat-card-subtitle">' + esc(pSub) + '</div>';
+    if (pSummary) html += '<div class="cat-card-summary">' + esc(pSummary) + '</div>';
+    html += '</div>';
+  }
+  return html;
+}
+
+function renderSubSection(label, people, category) {
+  if (people.length === 0) return '';
+  var html = '<div class="cat-subsection">';
+  html += '<div class="cat-subsection-label">' + esc(label) + ' (' + people.length + ')</div>';
+  html += '<div class="cat-card-grid">';
+  html += renderPeopleCards(people, category);
+  html += '</div></div>';
+  return html;
+}
+
+function renderParentsSiblingsSection(parentsSiblings, category) {
+  if (parentsSiblings.length === 0) return '';
+  // Split using sub_role from dimensions — no keyword matching
+  var parents = [], siblings = [];
+  for (var i = 0; i < parentsSiblings.length; i++) {
+    var subSec = getParentsSiblingsSubSection(parentsSiblings[i]);
+    if (subSec === 'Parents') parents.push(parentsSiblings[i]);
+    else siblings.push(parentsSiblings[i]);
+  }
+  var html = '<div class="cat-subsection">';
+  html += '<div class="cat-subsection-label">Parents & Siblings (' + parentsSiblings.length + ')</div>';
+  if (parents.length > 0) {
+    html += '<div class="cat-sub-divider">Parents (' + parents.length + ')</div>';
+    html += '<div class="cat-card-grid">';
+    html += renderPeopleCards(parents, category);
+    html += '</div>';
+  }
+  if (siblings.length > 0) {
+    html += '<div class="cat-sub-divider">Siblings (' + siblings.length + ')</div>';
+    html += '<div class="cat-card-grid">';
+    html += renderPeopleCards(siblings, category);
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
 function renderCategoryPage(category, people) {
   var catMeta = {
     family: { emoji: '\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC66', label: 'Family' },
@@ -5669,22 +7022,136 @@ function renderCategoryPage(category, people) {
   html += '<div class="cat-page-header">' + meta.emoji + ' ' + esc(meta.label);
   html += '<span class="cat-page-count">&middot; ' + people.length + ' ' + (people.length === 1 ? 'person' : 'people') + '</span>';
   html += '</div>';
+
+  if (category === 'family') {
+    // Family sub-sections using getFamilySection() — pure dimension reads
+    var spouse = [], children = [], parentsSiblings = [], extended = [];
+    for (var i = 0; i < people.length; i++) {
+      var section = getFamilySection(people[i]);
+      if (section === 'Spouse') spouse.push(people[i]);
+      else if (section === 'Children') children.push(people[i]);
+      else if (section === 'Parents & Siblings') parentsSiblings.push(people[i]);
+      else extended.push(people[i]);
+    }
+    // Sort: spouse active/stable first, then by strength
+    spouse.sort(function(a, b) {
+      var da = (a.relationship_dimensions || {});
+      var db = (b.relationship_dimensions || {});
+      var aActive = (da.status === 'active' || da.status === 'stable') ? 0 : 1;
+      var bActive = (db.status === 'active' || db.status === 'stable') ? 0 : 1;
+      if (aActive !== bActive) return aActive - bActive;
+      return (db.strength || 0) - (da.strength || 0);
+    });
+    // Parents before grandparents, then by strength
+    parentsSiblings.sort(function(a, b) {
+      var da = (a.relationship_dimensions || {});
+      var db = (b.relationship_dimensions || {});
+      var rolePri = { 'parent': 1, 'grandparent': 2, 'sibling': 3 };
+      var pa = rolePri[da.sub_role] || 99;
+      var pb = rolePri[db.sub_role] || 99;
+      if (pa !== pb) return pa - pb;
+      return (db.strength || 0) - (da.strength || 0);
+    });
+    // Extended by strength descending
+    extended.sort(function(a, b) {
+      return ((b.relationship_dimensions || {}).strength || 0) - ((a.relationship_dimensions || {}).strength || 0);
+    });
+    html += renderSubSection('Spouse', spouse, category);
+    html += renderSubSection('Children', children, category);
+    html += renderParentsSiblingsSection(parentsSiblings, category);
+    html += renderSubSection('Extended Family', extended, category);
+  } else if (category === 'friends') {
+    // Friends sub-sections using getFriendsSection()
+    var innerCircle = [], closeFriends = [], friends = [], acquaintances = [];
+    for (var i = 0; i < people.length; i++) {
+      var section = getFriendsSection(people[i]);
+      if (section === 'Inner Circle') innerCircle.push(people[i]);
+      else if (section === 'Close Friends') closeFriends.push(people[i]);
+      else if (section === 'Friends') friends.push(people[i]);
+      else acquaintances.push(people[i]);
+    }
+    html += renderSubSection('Inner Circle', innerCircle, category);
+    html += renderSubSection('Close Friends', closeFriends, category);
+    html += renderSubSection('Friends', friends, category);
+    html += renderSubSection('Acquaintances', acquaintances, category);
+  } else if (category === 'professional') {
+    // Professional sub-sections using getProfessionalSection()
+    var partners = [], current = [], former = [];
+    for (var i = 0; i < people.length; i++) {
+      var section = getProfessionalSection(people[i]);
+      if (section === 'Partners') partners.push(people[i]);
+      else if (section === 'Current') current.push(people[i]);
+      else former.push(people[i]);
+    }
+    html += renderSubSection('Partners', partners, category);
+    html += renderSubSection('Current', current, category);
+    html += renderSubSection('Former', former, category);
+  } else {
+    // Other / Community: flat grid sorted by strength
+    html += '<div class="cat-card-grid">';
+    html += renderPeopleCards(people, category);
+    html += '</div>';
+  }
+
+  if (people.length === 0) {
+    html += '<div style="padding:24px;color:var(--text-muted);text-align:center;">No people in this category</div>';
+  }
+  html += '</div>';
+  document.getElementById('main').innerHTML = html;
+}
+
+function selectOrgCategoryPage(category) {
+  selectedCategory = 'org_' + category;
+  selectedId = null;
+  selectedView = null;
+  var empty = document.getElementById('emptyState');
+  if (empty) empty.style.display = 'none';
+  var catLabels = { career: 'Career', education: 'Education', affiliations: 'Affiliations', services: 'Services', other: 'Other' };
+  breadcrumbs = [
+    { label: 'Organizations', action: '' },
+    { label: catLabels[category] || category }
+  ];
+  renderBreadcrumbs();
+  var data = buildSidebarData();
+  var orgs = data.organizations[category] || [];
+  renderOrgCategoryPage(category, orgs);
+  renderSidebar();
+}
+
+function renderOrgCategoryPage(category, orgs) {
+  var catMeta = {
+    career: { emoji: '\uD83D\uDCBC', label: 'Career' },
+    education: { emoji: '\uD83C\uDF93', label: 'Education' },
+    affiliations: { emoji: '\uD83E\uDD1D', label: 'Affiliations' },
+    services: { emoji: '\uD83C\uDFE6', label: 'Services' },
+    other: { emoji: '\uD83C\uDFE2', label: 'Other' }
+  };
+  var meta = catMeta[category] || { emoji: '', label: category };
+  var html = '<div style="padding: 24px 28px;">';
+  html += '<div class="cat-page-header">' + meta.emoji + ' ' + esc(meta.label);
+  html += '<span class="cat-page-count">&middot; ' + orgs.length + ' ' + (orgs.length === 1 ? 'organization' : 'organizations') + '</span>';
+  html += '</div>';
   html += '<div class="cat-card-grid">';
-  for (var i = 0; i < people.length; i++) {
-    var p = people[i];
-    var pName = p.name || '';
-    var pSub = p._relType || '';
-    var pSummary = (p.summary || '').substring(0, 120);
-    if ((p.summary || '').length > 120) pSummary += '...';
-    html += '<div class="cat-card" onclick="selectEntity(' + "'" + esc(p.entity_id) + "'" + ',' + "'" + category + "'" + ')">';
-    html += '<div class="cat-card-name">' + esc(pName) + '</div>';
-    if (pSub) html += '<div class="cat-card-subtitle">' + esc(pSub) + '</div>';
-    if (pSummary) html += '<div class="cat-card-summary">' + esc(pSummary) + '</div>';
+  for (var i = 0; i < orgs.length; i++) {
+    var item = orgs[i];
+    var o = item.org || item;
+    var oName = o.name || '';
+    var oSub = item.subtitle || '';
+    var oSummary = (o.summary || '').substring(0, 140);
+    if ((o.summary || '').length > 140) oSummary += '...';
+    var oType = o.entity_type || '';
+    var typeBadge = '';
+    if (oType === 'institution') typeBadge = '<span style="font-size:0.7rem;background:#e0e7ff;color:#4338ca;padding:1px 6px;border-radius:8px;margin-left:6px;">Institution</span>';
+    else if (oType === 'business') typeBadge = '<span style="font-size:0.7rem;background:#dcfce7;color:#166534;padding:1px 6px;border-radius:8px;margin-left:6px;">Business</span>';
+    html += '<div class="cat-card" onclick="selectEntity(' + "'" + esc(o.entity_id) + "'" + ',' + "'" + 'org_' + category + "'" + ')">';
+    html += '<div class="cat-card-name">' + esc(oName) + typeBadge + '</div>';
+    if (oSub) html += '<div class="cat-card-subtitle">' + esc(oSub) + '</div>';
+    if (oSummary) html += '<div class="cat-card-summary">' + esc(oSummary) + '</div>';
     html += '</div>';
   }
   html += '</div>';
-  if (people.length === 0) {
-    html += '<div style="padding:24px;color:var(--text-muted);text-align:center;">No people in this category</div>';
+  if (orgs.length === 0) {
+    html += '<div style="padding:24px;color:var(--text-muted);text-align:center;">No organizations in this category</div>';
   }
   html += '</div>';
   document.getElementById('main').innerHTML = html;
@@ -6157,7 +7624,7 @@ function renderSidebar() {
   console.log('SIDEBAR_DEBUG: primaryEntityId:', primaryEntityId);
   console.log('SIDEBAR_DEBUG: primaryEntityData:', primaryEntityData ? 'loaded' : 'null');
   console.log('SIDEBAR_DEBUG: people fam/friends/pro/community/other:', data.people.family.length, data.people.friends.length, data.people.professional.length, data.people.community.length, data.people.other.length);
-  console.log('SIDEBAR_DEBUG: orgs career/edu/other:', data.organizations.career.length, data.organizations.education.length, data.organizations.other.length);
+  console.log('SIDEBAR_DEBUG: orgs career/edu/affil/svc/other:', data.organizations.career.length, data.organizations.education.length, data.organizations.affiliations.length, data.organizations.services.length, data.organizations.other.length);
   var html = '';
   var totalCount = 0;
 
@@ -6244,38 +7711,33 @@ function renderSidebar() {
     totalCount += peopleCount;
   }
 
-  // Section 3: Organizations
-  var orgCount = data.organizations.career.length + data.organizations.education.length + data.organizations.other.length;
+  // Section 3: Organizations (category link rows)
+  var orgCount = data.organizations.career.length + data.organizations.education.length + data.organizations.affiliations.length + data.organizations.services.length + data.organizations.other.length;
   if (orgCount > 0) {
     html += renderSidebarSection('orgs', '\uD83C\uDFE2', 'Organizations', orgCount, function() {
       var h = '';
-      // Career orgs (with roles)
-      if (data.organizations.career.length > 0) {
-        h += '<div class="sidebar-group-label">\uD83D\uDCBC Career</div>';
-        for (var i = 0; i < data.organizations.career.length; i++) {
-          var item = data.organizations.career[i];
-          h += renderSidebarEntityRow(item.org, item.roleTitle);
-        }
+      var orgCats = [
+        { key: 'career', emoji: '\uD83D\uDCBC', label: 'Career' },
+        { key: 'education', emoji: '\uD83C\uDF93', label: 'Education' },
+        { key: 'affiliations', emoji: '\uD83E\uDD1D', label: 'Affiliations' },
+        { key: 'services', emoji: '\uD83C\uDFE6', label: 'Services' },
+        { key: 'other', emoji: '\uD83C\uDFE2', label: 'Other' }
+      ];
+      for (var g = 0; g < orgCats.length; g++) {
+        var items = data.organizations[orgCats[g].key] || [];
+        if (items.length === 0) continue;
+        var isActive = selectedCategory === ('org_' + orgCats[g].key);
+        h += '<div class="sidebar-cat-row' + (isActive ? ' active' : '') + '" onclick="selectOrgCategoryPage(' + "'" + orgCats[g].key + "'" + ')">';
+        h += '<span class="cat-emoji">' + orgCats[g].emoji + '</span>';
+        h += '<span class="cat-label">' + esc(orgCats[g].label) + '</span>';
+        h += '<span class="cat-count">' + items.length + '</span>';
+        h += '</div>';
       }
-      // Education orgs (with credentials)
-      if (data.organizations.education.length > 0) {
-        h += '<div class="sidebar-group-label">\uD83C\uDF93 Education</div>';
-        for (var i = 0; i < data.organizations.education.length; i++) {
-          var item = data.organizations.education[i];
-          h += renderSidebarEntityRow(item.org, item.credLabel);
-        }
-      }
-      // Other orgs
-      if (data.organizations.other.length > 0) {
-        if (data.organizations.career.length > 0 || data.organizations.education.length > 0) {
-          h += '<div class="sidebar-group-label">Other</div>';
-        }
-        for (var i = 0; i < data.organizations.other.length; i++) {
-          h += renderSidebarEntityRow(data.organizations.other[i], '');
-        }
+      if (orgCount === 0) {
+        h += '<div class="sidebar-empty-hint">No organizations found</div>';
       }
       return h;
-    }, true);
+    }, false);
     totalCount += orgCount;
   }
 
@@ -6360,10 +7822,20 @@ function selectEntity(id, fromCategory) {
         { label: eName || id }
       ];
     } else if (type === 'organization' || type === 'business' || type === 'institution') {
-      breadcrumbs = [
-        { label: 'Organizations', action: '' },
-        { label: eName || id }
-      ];
+      var orgCatLabels = { org_career: 'Career', org_education: 'Education', org_affiliations: 'Affiliations', org_services: 'Services', org_other: 'Other' };
+      if (prevCategory && orgCatLabels[prevCategory]) {
+        var orgCatKey = prevCategory.replace('org_', '');
+        breadcrumbs = [
+          { label: 'Organizations', action: '' },
+          { label: orgCatLabels[prevCategory], action: 'selectOrgCategoryPage(' + "'" + orgCatKey + "'" + ')' },
+          { label: eName || id }
+        ];
+      } else {
+        breadcrumbs = [
+          { label: 'Organizations', action: '' },
+          { label: eName || id }
+        ];
+      }
     } else if (type === 'person') {
       breadcrumbs = [
         { label: 'People', action: '' },

@@ -1,0 +1,209 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-19T17:25:37.497Z",
+    "updated_at": "2026-02-19T17:25:37.497Z",
+    "source_description": "drive_import:CJ_Relationships_Markham_Era.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Tanya Loggins",
+      "preferred": "Tanya",
+      "confidence": 0.6,
+      "facts_layer": 2,
+      "aliases": []
+    },
+    "summary": {
+      "value": "Oldest Loggins child, approximately 10 years older than CJ. Left home early and moved to Indianapolis where she runs in-home childcare. She is the reason CJ's brother Jeff and many Markham people moved to Indianapolis.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-TL-074"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "birth_year_approx",
+      "value": "1973",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "location",
+      "value": "Indianapolis, IN",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "occupation",
+      "value": "runs in-home childcare",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "marital_status",
+      "value": "married (long-term)",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "CJ",
+      "relationship_type": "older neighbor",
+      "context": "left early, about 10 years older",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "Randy Loggins",
+      "relationship_type": "sibling",
+      "context": "shares father Clarence",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-003",
+      "name": "Nell Loggins",
+      "relationship_type": "mother",
+      "context": "biological mother",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-004",
+      "name": "Jeffrey Richard Mitchell",
+      "relationship_type": "influenced relocation",
+      "context": "The real reason Jeff and many Markham people live in Indianapolis",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "Oldest Loggins child. About 10 years older than CJ. Left home early and moved to Indianapolis.",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-TL-074-20260219172537-001"
+    },
+    {
+      "observation": "Tanya is the real reason why CJ's brother Jeff (and many Markham people) moved to Indianapolis.",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-TL-074-20260219172537-002"
+    },
+    {
+      "observation": "influencer: ENT_TANYA_LOGGINS_001, destination: Indianapolis, IN, influenced: ENT_JEFF_MITCHELL_001, various_markham_residents, notes: The real reason Jeff and many Markham people live in Indianapolis",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-TL-074-20260219172537-003"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-19T17:25:37.497Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+        "ingested_at": "2026-02-19T17:25:37.497Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-19T17:25:37.738Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_Relationships_Markham_Era.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-19T17:25:37.738Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_Relationships_Markham_Era.txt: merged data and 1 observations"
+        ]
+      }
+    ]
+  },
+  "active_projects": [],
+  "translations": [],
+  "relationship_dimensions": {
+    "connection_type": "community",
+    "access": 0.25,
+    "connected_through": null,
+    "status": "passive",
+    "strength": 0.3,
+    "sub_role": "neighbor",
+    "descriptor": "older neighbor, bridged Jeff to Indianapolis",
+    "descriptor_origin": "",
+    "visual_tier": "neutral"
+  },
+  "descriptor": "older neighbor, bridged Jeff to Indianapolis"
+}

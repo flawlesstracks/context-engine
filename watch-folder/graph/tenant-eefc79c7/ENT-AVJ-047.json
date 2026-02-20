@@ -1,0 +1,595 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-19T03:20:25.830Z",
+    "updated_at": "2026-02-19T03:20:25.830Z",
+    "source_description": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Allen Van Jones",
+      "nickname": "Big Al",
+      "confidence": 0.6,
+      "facts_layer": 2,
+      "aliases": [
+        "Big Al",
+        "Al"
+      ]
+    },
+    "summary": {
+      "value": "Allen 'Big Al' Van Jones is one of CJ's groomsmen, representing CJ's closest male relationship from his 'ex-dope boy' phase in Markham, IL (1990-2001). He is formerly incarcerated, works in a warehouse, and is father of 5 children. CJ keeps Al's '73 Skylark as symbolic closure from his street days.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-AVJ-047"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "best friend",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "occupation",
+      "value": "Warehouse work",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "location",
+      "value": "Markham, IL",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "family",
+      "value": "father of 5 (three boys, two girls)",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "nickname",
+      "value": "Big Al",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "origin_location",
+      "value": "Markham, IL",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-007",
+      "key": "origin_period",
+      "value": "1990-2001",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-008",
+      "key": "current_occupation",
+      "value": "warehouse work",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-009",
+      "key": "children",
+      "value": "father of 5 (three boys, two girls)",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "criminal_history",
+      "value": "former drug-dealer at the highest level, served 4 years in prison",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-011",
+      "key": "birth_date",
+      "value": "1982-07-21",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-012",
+      "key": "zodiac_sign",
+      "value": "Cancer",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-013",
+      "key": "wealth_status",
+      "value": "millionaire",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-014",
+      "key": "personality",
+      "value": "successful entrepreneur",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-015",
+      "key": "location_association",
+      "value": "Markham",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "CJ",
+      "relationship_type": "close friend/groomsman",
+      "context": "Represents CJ's closest male relationship from his street phase",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "Janale",
+      "relationship_type": "spouse (2nd marriage)",
+      "context": "CJ and Chuckie Dennis were groomsmen",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-003",
+      "name": "Antoine Johnson",
+      "relationship_type": "current best friend",
+      "context": "Friendship shifted from Jeff to Big Al as primary peer bond",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-004",
+      "name": "Chuckie Dennis",
+      "relationship_type": "super close friend",
+      "context": "Both were groomsmen in Al's wedding",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-005",
+      "name": "Zebedee Jennings",
+      "relationship_type": "closest friend (deceased)",
+      "context": "Block friendship",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-006",
+      "name": "Cliff",
+      "relationship_type": "good friends",
+      "context": "Good friends with Big Al",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-007",
+      "name": "CJ Mitchell",
+      "relationship_type": "close friend",
+      "context": "from Markham era",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "Allen 'Big Al' Van Jones, nickname: Big Al, origin: Markham, IL during CJ's 'ex-dope boy' phase. (1990-2001)",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-AVJ-047-20260219032025-001"
+    },
+    {
+      "observation": "current_status: Warehouse work, formerly incarcerated, father of 5 (three boys, two girls)",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-AVJ-047-20260219032025-002"
+    },
+    {
+      "observation": "CJ keeps Al's '73 Skylark as symbolic closure from his street days",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-AVJ-047-20260219032025-003"
+    },
+    {
+      "observation": "Al represents the path not taken.",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-AVJ-047-20260219032025-004"
+    },
+    {
+      "observation": "One of CJ's closest friends period. Remain in regular contact. Can talk for hours about life.",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-AVJ-047-20260219172537-005"
+    },
+    {
+      "observation": "Has made millions through from 2010 to 2018 selling illegal drugs at scale, served 4 years in prison for selling drugs",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-AVJ-047-20260219172537-006"
+    },
+    {
+      "observation": "Part of the 'most successful from the block' trio with CJ and Twill",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-AVJ-047-20260219172537-007"
+    },
+    {
+      "observation": "Groomsman in CJ's wedding - Formal recognition of brotherhood",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-AVJ-047-20260219172537-008"
+    },
+    {
+      "observation": "CJ groomsman in Al's 2nd wedding to Janale",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-AVJ-047-20260219172537-009"
+    },
+    {
+      "observation": "Friendship shifted from Jeff to Big Al as primary peer bond. Relationship with CJ deepened independently.",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-AVJ-047-20260219172537-010"
+    },
+    {
+      "observation": "Part of the 'most successful from the block' trio with CJ and Big Al",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-AVJ-047-20260219172537-011"
+    },
+    {
+      "observation": "groom: ENT_ALLEN_JONES_001, bride: Janale, groomsmen: ENT_CJ_000, ENT_CHUCKIE_DENNIS_001",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-AVJ-047-20260219172537-012"
+    },
+    {
+      "observation": "close friends from different life eras including Allen 'Big Al' Jones from Markham",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-AVJ-047-20260219172717-013"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-19T03:20:25.830Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+        "ingested_at": "2026-02-19T03:20:25.830Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-19T03:21:20.945Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-19T03:21:20.945Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 4 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:25:37.672Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_Relationships_Markham_Era.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "Friend, Groomsman",
+            "new_value": "best friend, S-Tier",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:25:37.672Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-010",
+            "key": "criminal_history",
+            "old_value": "formerly incarcerated",
+            "new_value": "former drug-dealer at the highest level, served 4 years in prison",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:25:37.673Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:25:37.672Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_Relationships_Markham_Era.txt: merged data and 5 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:25:37.699Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_Relationships_Markham_Era.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "best friend, S-Tier",
+            "new_value": "best friend",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:25:37.700Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:25:37.699Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_Relationships_Markham_Era.txt: merged data and 3 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.536Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.536Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt: merged data and 1 observations"
+        ]
+      }
+    ]
+  },
+  "active_projects": [],
+  "translations": [],
+  "relationship_dimensions": {
+    "connection_type": "chosen",
+    "access": 0.88,
+    "connected_through": null,
+    "status": "active",
+    "strength": 0.9,
+    "sub_role": "friend",
+    "descriptor": "Big Al, best friend, groomsman",
+    "descriptor_origin": "",
+    "visual_tier": "gold"
+  },
+  "descriptor": "Big Al, best friend, groomsman"
+}

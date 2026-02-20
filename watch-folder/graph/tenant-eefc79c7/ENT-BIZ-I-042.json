@@ -1,0 +1,126 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-19T03:20:25.830Z",
+    "updated_at": "2026-02-19T03:20:25.830Z",
+    "source_description": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "business",
+    "name": {
+      "common": "Instrumental.ly",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "Instrumental.ly is a company founded by Andre Burgin, reflecting his entrepreneurial pursuits alongside his work at Meta.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-BIZ-I-042"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "industry",
+      "value": "Technology/Entrepreneurship",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "org_category",
+      "value": "career",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "cj_role",
+      "value": "Co-Founder",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "cj_dates",
+      "value": "2013-2016",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    }
+  ],
+  "relationships": [],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "current_role: Founder of Instrumental.ly, UX Researcher (Meta), Candidate for Atlanta City Council District 11",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-I-042-20260219032025-001"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-19T03:20:25.830Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+        "ingested_at": "2026-02-19T03:20:25.830Z"
+      }
+    ],
+    "merge_history": []
+  },
+  "org_dimensions": {
+    "relationship_to_primary": "employer",
+    "org_category": "career",
+    "org_status": "former",
+    "primary_user_role": "Co-Founder",
+    "org_dates": "2013-2016",
+    "org_descriptor": "entrepreneurial venture, technology startup"
+  },
+  "descriptor": "entrepreneurial venture, technology startup"
+}

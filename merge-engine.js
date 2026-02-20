@@ -3,6 +3,27 @@
 const fs = require('fs');
 const path = require('path');
 
+// --- Relationship type normalization ---
+
+function normalizeRelationshipType(type) {
+  const t = (type || '').toLowerCase().trim();
+  const familyMap = {
+    family: ['sister', 'brother', 'sibling', 'mother', 'father', 'parent', 'daughter', 'son', 'child',
+             'aunt', 'uncle', 'cousin', 'niece', 'nephew', 'grandmother', 'grandfather', 'grandparent',
+             'wife', 'husband', 'spouse', 'partner', 'ex-wife', 'ex-husband', 'ex-spouse',
+             'in-law', 'step-', 'half-'],
+    friend: ['friend', 'close friend', 'best friend', 'childhood friend', 'family friend'],
+    professional: ['colleague', 'coworker', 'co-worker', 'manager', 'boss', 'mentor', 'mentee',
+                   'report', 'supervisor'],
+  };
+  for (const [category, keywords] of Object.entries(familyMap)) {
+    for (const kw of keywords) {
+      if (t.includes(kw)) return category;
+    }
+  }
+  return t;
+}
+
 // --- String similarity (Dice coefficient on bigrams) ---
 
 function bigrams(str) {
@@ -231,14 +252,13 @@ function entitiesMatch(base, incoming) {
   // High name similarity (original threshold)
   if (similarity(baseName, incomingName) > 0.85) return true;
 
-  // Enhanced matching for persons: nickname awareness + property overlap
+  // Enhanced matching for persons: nickname awareness + property overlap + shared relationships
   if (type === 'person') {
     const baseNames = getAllNames(base);
     const incomingNames = getAllNames(incoming);
 
     // Nickname/alias-aware name match
     if (namesLikelyMatch(baseNames, incomingNames)) {
-      // Names very likely match — shared last name is sufficient
       return true;
     }
 
@@ -246,9 +266,41 @@ function entitiesMatch(base, incoming) {
     if (similarity(baseName, incomingName) > 0.5 && propertyOverlapCount(base, incoming) >= 2) {
       return true;
     }
+
+    // Shared relationship match: fuzzy name + 1 shared relationship, or different name + 2 shared relationships
+    const sharedRels = countSharedRelationships(base, incoming);
+    if (similarity(baseName, incomingName) > 0.5 && sharedRels >= 1) {
+      return true;
+    }
+    if (sharedRels >= 2) {
+      return true;
+    }
+  }
+
+  // Enhanced org matching: handle common abbreviations
+  if (type !== 'person' && baseName && incomingName) {
+    const normBase = baseName.toLowerCase().replace(/[.,\-\s]+(com|inc|llc|corp|ltd)$/i, '').trim();
+    const normIncoming = incomingName.toLowerCase().replace(/[.,\-\s]+(com|inc|llc|corp|ltd)$/i, '').trim();
+    if (normBase && normIncoming && similarity(normBase, normIncoming) > 0.85) return true;
   }
 
   return false;
+}
+
+function countSharedRelationships(base, incoming) {
+  const baseRels = (base.relationships || []).map(r => (r.name || '').toLowerCase().trim()).filter(Boolean);
+  const incomingRels = (incoming.relationships || []).map(r => (r.name || '').toLowerCase().trim()).filter(Boolean);
+  if (baseRels.length === 0 || incomingRels.length === 0) return 0;
+  let count = 0;
+  for (const br of baseRels) {
+    for (const ir of incomingRels) {
+      if (br === ir || similarity(br, ir) > 0.85) {
+        count++;
+        break;
+      }
+    }
+  }
+  return count;
 }
 
 // --- Merge functions ---
@@ -312,30 +364,31 @@ function mergeRelationships(baseRels, incomingRels) {
   const history = [];
 
   for (const incoming of incomingRels) {
-    // Deduplicate by name + relationship_type
+    // Deduplicate by name + normalized relationship category
     const existing = merged.find(r =>
       similarity(r.name || '', incoming.name || '') > 0.85 &&
-      r.relationship_type === incoming.relationship_type
+      normalizeRelationshipType(r.relationship_type) === normalizeRelationshipType(incoming.relationship_type)
     );
 
     if (existing) {
-      // If sentiment differs, keep newer
-      if (incoming.sentiment && incoming.sentiment !== existing.sentiment) {
-        history.push({
-          type: 'relationship_sentiment_changed',
-          relationship_id: existing.relationship_id,
-          name: existing.name,
-          old_sentiment: existing.sentiment,
-          new_sentiment: incoming.sentiment,
-          timestamp: new Date().toISOString(),
-        });
-        existing.sentiment = incoming.sentiment;
-      }
-      // Higher confidence wins for other fields
-      if (incoming.confidence > existing.confidence) {
+      // Keep the version with more context detail, or higher confidence
+      const existingDetail = (existing.context || '').length + (existing.relationship_type || '').length;
+      const incomingDetail = (incoming.context || '').length + (incoming.relationship_type || '').length;
+      if (incomingDetail > existingDetail || incoming.confidence > existing.confidence) {
         const oldId = existing.relationship_id;
+        const oldSentiment = existing.sentiment;
         Object.assign(existing, incoming);
         existing.relationship_id = oldId;
+        if (incoming.sentiment && incoming.sentiment !== oldSentiment) {
+          history.push({
+            type: 'relationship_sentiment_changed',
+            relationship_id: existing.relationship_id,
+            name: existing.name,
+            old_sentiment: oldSentiment,
+            new_sentiment: incoming.sentiment,
+            timestamp: new Date().toISOString(),
+          });
+        }
       }
     } else {
       // New relationship
@@ -608,6 +661,23 @@ function merge(base, incoming) {
   // Constraints
   result.constraints = mergeConstraints(result.constraints || [], incoming.constraints || []);
 
+  // Relationship dimensions: existing wins unless absent
+  if (incoming.relationship_dimensions && !result.relationship_dimensions) {
+    result.relationship_dimensions = incoming.relationship_dimensions;
+  }
+  if (incoming.descriptor && !result.descriptor) {
+    result.descriptor = incoming.descriptor;
+  }
+  if (incoming.org_dimensions && !result.org_dimensions) {
+    result.org_dimensions = incoming.org_dimensions;
+  }
+  if (incoming.wiki_page && !result.wiki_page) {
+    result.wiki_page = incoming.wiki_page;
+  }
+  if (incoming.wiki_section && !result.wiki_section) {
+    result.wiki_section = incoming.wiki_section;
+  }
+
   // Provenance chain: append, never delete
   if (!result.provenance_chain) {
     result.provenance_chain = { created_at: now, created_by: 'context-engine-v2', source_documents: [], merge_history: [] };
@@ -645,7 +715,7 @@ function merge(base, incoming) {
 // --- Exports for use as module ---
 
 module.exports = {
-  merge, entitiesMatch, similarity,
+  merge, entitiesMatch, similarity, normalizeRelationshipType,
   getAllNames, namesLikelyMatch, propertyOverlapCount,
 };
 

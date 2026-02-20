@@ -1,0 +1,94 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-19T03:19:17.564Z",
+    "updated_at": "2026-02-19T03:19:17.564Z",
+    "source_description": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Tara Davis",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "Married to Justin Davis, currently navigating separation as of April 2025.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-TD-067"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "spouse of Justin Davis",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "Justin Davis",
+      "relationship_type": "spouse",
+      "context": "currently navigating separation (as of April 2025)",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "Married to Tara Davis — currently navigating separation (as of April 2025)",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-TD-067-20260219031917-001"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-19T03:19:17.564Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+        "ingested_at": "2026-02-19T03:19:17.564Z"
+      }
+    ],
+    "merge_history": []
+  },
+  "relationship_dimensions": {
+    "connection_type": "community",
+    "access": 0.4,
+    "connected_through": "Justin Davis",
+    "status": "stable",
+    "strength": 0.35,
+    "sub_role": "acquaintance",
+    "descriptor": "Justin's wife, always cordial",
+    "descriptor_origin": "",
+    "visual_tier": "neutral"
+  },
+  "descriptor": "Justin's wife, always cordial"
+}

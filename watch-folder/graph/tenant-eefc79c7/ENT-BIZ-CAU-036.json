@@ -14,7 +14,8 @@
     "name": {
       "common": "Clark Atlanta University",
       "confidence": 0.6,
-      "facts_layer": 2
+      "facts_layer": 2,
+      "aliases": []
     },
     "summary": {
       "value": "University where Clarence J. Mitchell obtained his MBA - Finance & Product Management.",
@@ -53,6 +54,81 @@
         "facts_layer": 2,
         "layer_label": "group"
       }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "institution_type",
+      "value": "university",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "location",
+      "value": "Atlanta (implied)",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "org_category",
+      "value": "education",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "cj_credential",
+      "value": "MBA",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    },
+    {
+      "attribute_id": "ATTR-007",
+      "key": "cj_grad_year",
+      "value": "2012",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
     }
   ],
   "relationships": [
@@ -61,6 +137,60 @@
       "name": "Clarence J. Mitchell",
       "relationship_type": "alma mater",
       "context": "Master of Business Administration - Finance & Product Management",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "CJ Mitchell",
+      "relationship_type": "alumnus",
+      "context": "MBA program",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-003",
+      "name": "Tiffany Pringle",
+      "relationship_type": "alumnus",
+      "context": "MBA program starting August 2009",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-004",
+      "name": "Justin Davis",
+      "relationship_type": "alumnus",
+      "context": "MBA Class of 2012 with Marketing Focus",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-005",
+      "name": "CJ Mitchell",
+      "relationship_type": "alumni",
+      "context": "MBA program",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-006",
+      "name": "Tiffany N. Pringle",
+      "relationship_type": "alumni",
+      "context": "MBA program",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-007",
+      "name": "Andre Burgin",
+      "relationship_type": "alumni",
+      "context": "MBA program",
       "sentiment": "neutral",
       "confidence": 0.6,
       "confidence_label": "MODERATE"
@@ -81,6 +211,114 @@
       "observed_by": "Clarence Mitchell",
       "truth_level": "INFERRED",
       "observation_id": "OBS-ENT-BIZ-CAU-036-20260218232311-001"
+    },
+    {
+      "observation": "CJ and Tiffany first met in August 2009 while pursuing their MBA at Clark Atlanta University",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-CAU-036-20260219032025-002"
+    },
+    {
+      "observation": "Justin Davis education: Clark Atlanta University – Marketing Focus",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-CAU-036-20260219032025-003"
+    },
+    {
+      "observation": "CAU MBA Class of 2012",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-CAU-036-20260219032025-004"
+    },
+    {
+      "observation": "CJ and Tiffany first met in August 2009 while pursuing their MBA at Clark Atlanta University.",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-CAU-036-20260219032025-005"
+    },
+    {
+      "observation": "Achieving her MBA at Clark Atlanta University — changed her life's trajectory across career, travel, social circles, and personal goals.",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-CAU-036-20260219032025-006"
+    },
+    {
+      "observation": "Met during our Clark Atlanta MBA program. Instant bond over strategic thinking, ambition, and practical execution.",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-CAU-036-20260219032025-007"
+    },
+    {
+      "observation": "Achieving her MBA at Clark Atlanta University — changed her life's trajectory across career, travel, social circles, and personal goals",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-CAU-036-20260219031917-008"
+    },
+    {
+      "observation": "education degrees: MBA, institution: Clark Atlanta University",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-CAU-036-20260219172717-009"
+    },
+    {
+      "observation": "Education: MBA (Clark Atlanta), BBA (Howard University)",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-INST-CA-004-20260219172717-001"
     }
   ],
   "provenance_chain": {
@@ -92,6 +330,83 @@
         "ingested_at": "2026-02-18T23:23:11.164Z"
       }
     ],
-    "merge_history": []
-  }
+    "merge_history": [
+      {
+        "merged_at": "2026-02-19T03:20:25.966Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-19T03:20:25.966Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 3 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:20:26.064Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-19T03:20:26.064Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 3 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:21:21.184Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-004",
+            "key": "location",
+            "old_value": "Atlanta, GA",
+            "new_value": "Atlanta (implied)",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:21:21.184Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:21:21.184Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 3 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.710Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.710Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt: merged data and 1 observations"
+        ]
+      }
+    ]
+  },
+  "key_people": [],
+  "org_dimensions": {
+    "relationship_to_primary": "alma_mater",
+    "org_category": "education",
+    "org_status": "former",
+    "primary_user_role": "MBA Student",
+    "org_dates": "2012",
+    "org_descriptor": "alma mater, MBA in Finance & Product Management"
+  },
+  "descriptor": "alma mater, MBA in Finance & Product Management"
 }

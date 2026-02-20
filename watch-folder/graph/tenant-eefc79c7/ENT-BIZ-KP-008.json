@@ -1,0 +1,110 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-18T18:29:13.290Z",
+    "updated_at": "2026-02-18T18:29:13.290Z",
+    "source_description": "file_import:test-relationships.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "business",
+    "name": {
+      "common": "Kaiser Permanente",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "Healthcare organization where Angela Thompson works as a pediatrician.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-BIZ-KP-008"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "industry",
+      "value": "Healthcare",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-18"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "org_category",
+      "value": "services",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    },
+    {
+      "key": "flagged_for_deletion",
+      "value": "true",
+      "source": "generate-dimensions"
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "Angela Thompson",
+      "relationship_type": "employee",
+      "context": "Pediatrician",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "a pediatrician at Kaiser Permanente",
+      "observed_at": "2026-02-18T18:29:13.290Z",
+      "source": "file_import:test-relationships.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "test-relationships-2",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-KP-008-20260218182913-001"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-18T18:29:13.290Z",
+    "created_by": "test-relationships-2",
+    "source_documents": [
+      {
+        "source": "file_import:test-relationships.txt",
+        "ingested_at": "2026-02-18T18:29:13.290Z"
+      }
+    ],
+    "merge_history": []
+  },
+  "org_dimensions": {
+    "relationship_to_primary": "other",
+    "status": "former",
+    "primary_user_role": "",
+    "dates": "",
+    "confidence": 0
+  },
+  "descriptor": "unrelated third party organization"
+}

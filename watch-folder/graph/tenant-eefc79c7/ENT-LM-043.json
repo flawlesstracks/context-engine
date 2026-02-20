@@ -1,0 +1,549 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-19T03:20:25.830Z",
+    "updated_at": "2026-02-19T03:20:25.830Z",
+    "source_description": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Lola Mafe",
+      "preferred": "Lola",
+      "confidence": 0.6,
+      "facts_layer": 2,
+      "aliases": []
+    },
+    "summary": {
+      "value": "CJ's current spouse, age 42, born April 9, 1983. ISFJ-T personality type described as providing emotional counterbalance in their relationship with a 'Tony Stark meets Pepper Potts dynamic.' They maintain separate homes two blocks apart while married. Lola is deeply involved in supporting her family including her mother who has bipolar disorder and her sisters Seona (36) and Tolu (40). Currently going through fertility journey via IVF.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-LM-043"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "Current Spouse",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-001",
+      "key": "location",
+      "value": "1704 Drew Drive NW, Atlanta, GA 30318",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "birth_date",
+      "value": "1983-04-09",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "age",
+      "value": "42",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "zodiac_sign",
+      "value": "Aries",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "personality",
+      "value": "ISFJ - The Defender - organized, nurturing, practical, dependable",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-007",
+      "key": "health_philosophy",
+      "value": "Preventative, consistent, non-negotiable",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-008",
+      "key": "traits",
+      "value": "organized, nurturing, practical",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-009",
+      "key": "heritage",
+      "value": "Nigerian",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "CJ",
+      "relationship_type": "spouse",
+      "context": "Started dating 2020-06-17, became official 2020-07-04, engaged 2023-01-02, married 2023-02-14",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "Seona",
+      "relationship_type": "sister",
+      "context": "Age 36, provides emotional stability and practical advice",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-003",
+      "name": "Tolu",
+      "relationship_type": "sister",
+      "context": "Age 40, handles logistical coordination and family communication",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-004",
+      "name": "CJ Mitchell",
+      "relationship_type": "spouse",
+      "context": "married February 14, 2023",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-005",
+      "name": "London Khal Mitchell",
+      "relationship_type": "stepmother",
+      "context": "Developing strong stepmother bond",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "Married but maintain separate homes two blocks apart, CJ address: 1524 Drew Dr NW, Atlanta, GA 30318, Lola address: 1704 Drew Drive NW, Atlanta, GA 30318",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-LM-043-20260219032025-001"
+    },
+    {
+      "observation": "Relationship description: Tony Stark meets Pepper Potts dynamic (chaos meets calm)",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-LM-043-20260219032025-002"
+    },
+    {
+      "observation": "Core role: Stabilizing force for family since father's death",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-LM-043-20260219032025-003"
+    },
+    {
+      "observation": "Mother dynamic: Primary support and protector, Managing bipolar episodes, ensuring medication compliance, financial support",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-LM-043-20260219032025-004"
+    },
+    {
+      "observation": "Second chemical pregnancy loss, date: 2024-12-10, emotional impact: High",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-LM-043-20260219032025-005"
+    },
+    {
+      "observation": "Married but maintain separate homes two blocks apart, cj_address: 1524 Drew Dr NW, Atlanta, GA 30318, lola_address: 1704 Drew Drive NW, Atlanta, GA 30318",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-LM-043-20260219031917-006"
+    },
+    {
+      "observation": "Tony Stark meets Pepper Potts dynamic (chaos meets calm)",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-LM-043-20260219031917-007"
+    },
+    {
+      "observation": "Trying to start family through IVF, Second chemical pregnancy loss, date: 2024-12-10",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-LM-043-20260219031917-008"
+    },
+    {
+      "observation": "Key relationships include his wife Lola Mafe (ISFJ, married February 2023, living two blocks apart)",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-LM-043-20260219172717-009"
+    },
+    {
+      "observation": "Current Spouse: Lola Mafe (m. Feb 14, 2023)",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-LM-043-20260219172717-010"
+    },
+    {
+      "observation": "Living Arrangement: Married but in separate homes 2 blocks apart",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-LM-043-20260219172717-011"
+    },
+    {
+      "observation": "Lola's Personality: ISFJ – organized, nurturing, practical",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-LM-043-20260219172717-012"
+    },
+    {
+      "observation": "full_name: Lola Mafe, birth_date: 1983-04-09, age: 42",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-LM-043-20260219172717-013"
+    },
+    {
+      "observation": "personality_type: ISFJ, personality_description: The Defender - organized, nurturing, practical, dependable",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-LM-043-20260219172717-014"
+    },
+    {
+      "observation": "traits: nurturing, early riser, practical, organized, peace-carrying presence",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-LM-043-20260219172717-015"
+    },
+    {
+      "observation": "family_background: Nigerian heritage, Mother and sister in North Carolina",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-LM-043-20260219172717-016"
+    },
+    {
+      "observation": "lola_address: 1704 Drew Drive NW, Atlanta, GA 30318",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-LM-043-20260219172717-017"
+    },
+    {
+      "observation": "marriage_date: 2023-02-14, location: Lola's home, witnesses: Destinee (CJ's sister)",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-LM-043-20260219172717-018"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-19T03:20:25.830Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+        "ingested_at": "2026-02-19T03:20:25.830Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-19T03:21:20.928Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-006",
+            "key": "personality",
+            "old_value": "ISFJ-T - Defender, steady grounding presence, deeply responsible, protective of family",
+            "new_value": "ISFJ-T, Steady, grounding presence, Deeply responsible, Protective of family",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:21:20.928Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:21:20.928Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 3 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.524Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-005",
+            "key": "personality",
+            "old_value": "ISFJ-T, Steady, grounding presence, Deeply responsible, Protective of family",
+            "new_value": "ISFJ",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:27:17.524Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-002",
+            "key": "location",
+            "old_value": "1704 Drew Drive NW, Atlanta, GA 30318",
+            "new_value": "Atlanta, GA",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:27:17.524Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.524Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt: merged data and 4 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.674Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-003",
+            "key": "location",
+            "old_value": "Atlanta, GA",
+            "new_value": "1704 Drew Drive NW, Atlanta, GA 30318",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:27:17.674Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "personality",
+            "old_value": "ISFJ",
+            "new_value": "ISFJ - The Defender - organized, nurturing, practical, dependable",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:27:17.674Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.674Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt: merged data and 6 observations"
+        ]
+      }
+    ]
+  },
+  "active_projects": [],
+  "translations": [],
+  "relationship_dimensions": {
+    "connection_type": "marriage",
+    "access": 0.98,
+    "connected_through": null,
+    "status": "active",
+    "strength": 0.95,
+    "sub_role": "spouse",
+    "descriptor": "wife Lola, married February 2023",
+    "descriptor_origin": "",
+    "visual_tier": "gold"
+  },
+  "descriptor": "wife Lola, married February 2023"
+}

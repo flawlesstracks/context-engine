@@ -1,0 +1,443 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-19T03:20:25.830Z",
+    "updated_at": "2026-02-19T03:20:25.830Z",
+    "source_description": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Destinee Hughes",
+      "preferred": "Destinee",
+      "confidence": 0.6,
+      "facts_layer": 2,
+      "aliases": []
+    },
+    "summary": {
+      "value": "CJ's youngest sister, founder of Spiritual Aurora spiritual business. An advanced astrology practitioner with INFP-A personality type who lives between Atlanta and South America doing a year abroad. She has 38,000 Instagram followers and her business made $210k revenue in 2024.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-DH-030"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "sister of CJ Mitchell",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "birth_date",
+      "value": "1998-02-26",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "zodiac_sign",
+      "value": "Pisces",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "personality_type",
+      "value": "INFP-A",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "location",
+      "value": "Atlanta, but doing 1 year abroad in South America",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "occupation",
+      "value": "Founder of Spiritual Aurora",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-007",
+      "key": "sibling_position",
+      "value": "5",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "CJ",
+      "relationship_type": "brother",
+      "context": "High connection intensity with 8/10 trust level; shared context of Spiritual growth, global travel, entrepreneurial support",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "London",
+      "relationship_type": "nephew",
+      "context": "Served as London's nanny during Carrie's collapse (2018-2019)",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-003",
+      "name": "CJ Mitchell",
+      "relationship_type": "sibling",
+      "context": "sister, witnessed wedding",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-004",
+      "name": "Lola Mafe",
+      "relationship_type": "sister-in-law",
+      "context": "met at Wolf Mountain Vineyard 2020-09-19",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "Youngest sister of CJ; founder of Spiritual Aurora, lives between Atlanta and South America",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-DH-030-20260219032025-001"
+    },
+    {
+      "observation": "company_name: Spiritual Aurora",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-DH-030-20260219032025-002"
+    },
+    {
+      "observation": "ig_followers: 38000",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-DH-030-20260219032025-003"
+    },
+    {
+      "observation": "revenue_2024: $210k",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-DH-030-20260219032025-004"
+    },
+    {
+      "observation": "Astrology as the fundamental blueprint of human existence and relationships",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-DH-030-20260219032025-005"
+    },
+    {
+      "observation": "family_role: Served as London's nanny during Carrie's collapse (2018-2019)",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-DH-030-20260219032025-006"
+    },
+    {
+      "observation": "mbti: INFP-A",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-DH-030-20260219032025-007"
+    },
+    {
+      "observation": "Company name: Spiritual Aurora with metrics: ig_followers: 38000, revenue_2024: $210k",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-DH-030-20260219031917-008"
+    },
+    {
+      "observation": "Astrology as the fundamental blueprint of human existence and relationships - core belief",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-DH-030-20260219031917-009"
+    },
+    {
+      "observation": "Services include: Birth chart readings and analyses, Relationship compatibility assessments, Astrologically-timed business consulting",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-DH-030-20260219031917-010"
+    },
+    {
+      "observation": "Family role: Served as London's nanny during Carrie's collapse (2018-2019)",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-DH-030-20260219031917-011"
+    },
+    {
+      "observation": "witnesses at wedding: Destinee (CJ's sister)",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-DH-030-20260219172717-012"
+    },
+    {
+      "observation": "event_date 2020-09-19: Lola met CJ's sister Destinee at Wolf Mountain Vineyard",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-DH-030-20260219172717-013"
+    },
+    {
+      "observation": "Argument over where Destinee would sleep; Carrie hits CJ and leaves for a week",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-DH-030-20260219172717-014"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-19T03:20:25.830Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+        "ingested_at": "2026-02-19T03:20:25.830Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-19T03:21:20.869Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-005",
+            "key": "location",
+            "old_value": "Atlanta, but is doing 1 year abroad in South America",
+            "new_value": "Atlanta, but doing 1 year abroad in South America",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:21:20.869Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-006",
+            "key": "occupation",
+            "old_value": "Runs 'Spiritual Aurora'",
+            "new_value": "Founder of Spiritual Aurora",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:21:20.869Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:21:20.869Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 5 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.687Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "Younger Sister",
+            "new_value": "sister of CJ Mitchell",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:27:17.687Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.687Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt: merged data and 2 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.728Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.728Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt: merged data and 1 observations"
+        ]
+      }
+    ]
+  },
+  "active_projects": [],
+  "translations": [],
+  "relationship_dimensions": {
+    "connection_type": "blood",
+    "access": 0.8,
+    "connected_through": null,
+    "status": "active",
+    "strength": 0.78,
+    "sub_role": "sibling",
+    "descriptor": "youngest sister, spiritual entrepreneur abroad",
+    "descriptor_origin": "",
+    "visual_tier": "green"
+  },
+  "descriptor": "youngest sister, spiritual entrepreneur abroad"
+}

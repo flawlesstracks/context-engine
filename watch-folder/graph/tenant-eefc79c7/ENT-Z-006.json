@@ -1,0 +1,121 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-17T23:29:10.693Z",
+    "updated_at": "2026-02-17T23:29:10.693Z",
+    "source_description": "file_import:AUTHOR_PROFILE_RAIYA.json",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Zahrya",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "Zahrya, nicknamed Z, is Raiya's 17-year-old daughter. She is described as smart, curious, adventurous, athletic (plays flag football and basketball), outspoken but kind, and the Zina Bina character is loosely based on her.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-Z-006"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "age",
+      "value": "17",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-17"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "gender",
+      "value": "female",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-17"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "Raiya",
+      "relationship_type": "daughter",
+      "context": "17-year-old daughter of Raiya",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "17-year-old daughter of Raiya, nicknamed Z, described as smart, curious, adventurous, athletic (flag football, basketball), outspoken but kind",
+      "observed_at": "2026-02-17T23:29:10.693Z",
+      "source": "file_import:AUTHOR_PROFILE_RAIYA.json",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-Z-006-20260217232910-001"
+    },
+    {
+      "observation": "Zina Bina character is loosely based on Zahrya",
+      "observed_at": "2026-02-17T23:29:10.693Z",
+      "source": "file_import:AUTHOR_PROFILE_RAIYA.json",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-Z-006-20260217232910-002"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-17T23:29:10.693Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "file_import:AUTHOR_PROFILE_RAIYA.json",
+        "ingested_at": "2026-02-17T23:29:10.693Z"
+      }
+    ],
+    "merge_history": []
+  },
+  "relationship_dimensions": {
+    "connection_type": "chosen",
+    "access": 0.38,
+    "connected_through": "Raiya",
+    "status": "stable",
+    "strength": 0.35,
+    "sub_role": "friend",
+    "descriptor": "Raiya's daughter, smart and curious",
+    "descriptor_origin": "",
+    "visual_tier": "neutral"
+  },
+  "descriptor": "Raiya's daughter, smart and curious"
+}

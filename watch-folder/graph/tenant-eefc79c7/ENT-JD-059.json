@@ -1,0 +1,407 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-19T03:20:25.830Z",
+    "updated_at": "2026-02-19T03:20:25.830Z",
+    "source_description": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Justin Davis",
+      "confidence": 0.6,
+      "facts_layer": 2,
+      "aliases": []
+    },
+    "summary": {
+      "value": "Friend of CJ from CAU MBA program, corporate strategist and fitness startup founder known for exceptional strength (benches 415 lbs). Currently navigating separation from wife Tara Davis while maintaining active fatherhood to children Raye (5) and Ezra (infant).",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-JD-059"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "Corporate employee + Fitness startup founder",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "location",
+      "value": "Mableton, GA",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "personality",
+      "value": "Introvert-Extrovert blend, calm, centered, stable",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "age",
+      "value": "~37 (CAU MBA Class of 2012)",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "notable_trait",
+      "value": "Benches 415lbs",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "CJ Mitchell",
+      "relationship_type": "friend",
+      "context": "CAU MBA network, BDAT Circle",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "Tara Davis",
+      "relationship_type": "spouse",
+      "context": "currently navigating separation as of April 2025",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-003",
+      "name": "Raye",
+      "relationship_type": "parent",
+      "context": "daughter age 5, close with London",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-004",
+      "name": "Ezra",
+      "relationship_type": "parent",
+      "context": "infant son",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-005",
+      "name": "London",
+      "relationship_type": "friend's child connection",
+      "context": "his daughter Raye is close with London",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-006",
+      "name": "Stevana",
+      "relationship_type": "close through fitness",
+      "context": "Close with Stevana, CJ's cousin through fitness",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-007",
+      "name": "CJ",
+      "relationship_type": "friend",
+      "context": "Connected through CAU MBA and BDAT Circle",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "Justin Davis is a corporate strategist and fitness founder — raised between Indiana and Atlanta",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-JD-059-20260219032025-001"
+    },
+    {
+      "observation": "Known for: Benching 415 lbs like it's a warm-up. No flash. All form.",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-JD-059-20260219032025-002"
+    },
+    {
+      "observation": "Education: University of Toledo – B.S. in Professional Sales & Marketing; Clark Atlanta University – Marketing Focus",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-JD-059-20260219032025-003"
+    },
+    {
+      "observation": "Current residence: Mableton, GA",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-JD-059-20260219032025-004"
+    },
+    {
+      "observation": "CJ observation: 'JD's body is built for reliability, not Instagram.'",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-JD-059-20260219032025-005"
+    },
+    {
+      "observation": "Strength legend (benches 415lbs), CAU MBA peer",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-JD-059-20260219031917-006"
+    },
+    {
+      "observation": "Children: Raye (age 5, relationships: close to London), Ezra (age <2)",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-JD-059-20260219031917-007"
+    },
+    {
+      "observation": "Current_status: Navigating separation (2025)",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-JD-059-20260219031917-008"
+    },
+    {
+      "observation": "JD benches 415 lbs with ease. His strength isn't loud — it's baseline. It's baked into who he is",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-JD-059-20260219031917-009"
+    },
+    {
+      "observation": "Justin Davis is a corporate strategist and fitness founder — raised between Indiana and Atlanta — who blends introverted depth with extroverted presence. He holds an MBA in Marketing from Clark Atlanta",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-JD-059-20260219031917-010"
+    },
+    {
+      "observation": "Married to Tara Davis — currently navigating separation (as of April 2025)",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-JD-059-20260219031917-011"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-19T03:20:25.830Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+        "ingested_at": "2026-02-19T03:20:25.830Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-19T03:21:20.994Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "Corporate employee + Fitness startup founder",
+            "new_value": "Father, CAU MBA alumnus",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:21:20.994Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-002",
+            "key": "location",
+            "old_value": "Mableton, GA",
+            "new_value": "Atlanta",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:21:20.994Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:21:20.994Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 3 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:21:21.024Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "Father, CAU MBA alumnus",
+            "new_value": "Corporate employee + Fitness startup founder",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:21:21.024Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-002",
+            "key": "location",
+            "old_value": "Atlanta",
+            "new_value": "Mableton, GA",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:21:21.024Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-003",
+            "key": "personality",
+            "old_value": "Calm, Centered, Introvert-Extrovert blend",
+            "new_value": "Introvert-Extrovert blend, calm, centered, stable",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:21:21.024Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:21:21.024Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 3 observations"
+        ]
+      }
+    ]
+  },
+  "active_projects": [],
+  "translations": [],
+  "relationship_dimensions": {
+    "connection_type": "chosen",
+    "access": 0.82,
+    "connected_through": null,
+    "status": "active",
+    "strength": 0.87,
+    "sub_role": "friend",
+    "descriptor": "CAU MBA brother, BDAT and trivia crew",
+    "descriptor_origin": "",
+    "visual_tier": "gold"
+  },
+  "descriptor": "CAU MBA brother, BDAT and trivia crew"
+}

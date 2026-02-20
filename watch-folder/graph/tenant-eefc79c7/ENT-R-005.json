@@ -1,0 +1,356 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-17T23:29:10.693Z",
+    "updated_at": "2026-02-17T23:29:10.693Z",
+    "source_description": "file_import:AUTHOR_PROFILE_RAIYA.json",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Raiya",
+      "confidence": 0.6,
+      "facts_layer": 2,
+      "aliases": []
+    },
+    "summary": {
+      "value": "Raiya is a Black woman in her early 40s living in Atlanta, Georgia, working as a Customer Service Specialist. She is a single mother who has always wanted to be married and has worked in service-oriented roles including flight attendant and student counselor/teacher. CJ Mitchell, a close friend and collaborator, created a detailed profile of her personality and characteristics.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-R-005"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "Emotional Confidante, Platonic Intimacy",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "location",
+      "value": "Atlanta",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "age_range",
+      "value": "early 40s",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-17"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "gender",
+      "value": "female",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-17"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "race_ethnicity",
+      "value": "Black/African-American",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-17"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "marital_status",
+      "value": "never_married",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-17"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-007",
+      "key": "parenting_status",
+      "value": "single_mother",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-17"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-008",
+      "key": "personality",
+      "value": "INFP - spiritual empath, trauma alchemist",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "CJ Mitchell",
+      "relationship_type": "close friend and collaborator",
+      "context": "CJ Mitchell created Raiya's creator profile based on years of friendship and collaboration",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "Zahrya",
+      "relationship_type": "daughter",
+      "context": "Raiya's 17-year-old daughter, nicknamed Z",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-003",
+      "name": "CJ Mitchell",
+      "relationship_type": "closest female confidante",
+      "context": "Anchored in emotional intimacy, healing dialogue, and loyalty through personal lows of romantic lives",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-004",
+      "name": "Tone P",
+      "relationship_type": "former girlfriend",
+      "context": "Former girlfriend 2010-2012, became bonded with CJ post-breakup",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-005",
+      "name": "Zaryia",
+      "relationship_type": "mother",
+      "context": "Mother to Zaryia (b. ~2009, Age: 16)",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "Basic identity shows she is in her early 40s, female, Black/African-American, located in Atlanta, Georgia, never married but always wanted to be married, and is a single mother",
+      "observed_at": "2026-02-17T23:29:10.693Z",
+      "source": "file_import:AUTHOR_PROFILE_RAIYA.json",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-R-005-20260217232910-001"
+    },
+    {
+      "observation": "Professional history includes past roles as Flight Attendant and Student Counselor/Teacher, currently works as Customer Service Specialist",
+      "observed_at": "2026-02-17T23:29:10.693Z",
+      "source": "file_import:AUTHOR_PROFILE_RAIYA.json",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-R-005-20260217232910-002"
+    },
+    {
+      "observation": "Career pattern shows all roles involve serving others, listening, connecting, and helping people navigate challenges, but none have allowed her to build something of her own",
+      "observed_at": "2026-02-17T23:29:10.693Z",
+      "source": "file_import:AUTHOR_PROFILE_RAIYA.json",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-R-005-20260217232910-003"
+    },
+    {
+      "observation": "Psychographic profile indicates MBTI type INFP with very high introversion, intuition, feeling, and perceiving scores",
+      "observed_at": "2026-02-17T23:29:10.693Z",
+      "source": "file_import:AUTHOR_PROFILE_RAIYA.json",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-R-005-20260217232910-004"
+    },
+    {
+      "observation": "Closest female confidante; emotionally intense platonic friendship based on romantic advise",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-R-005-20260219032025-005"
+    },
+    {
+      "observation": "Former girlfriend of Tone P (2010–2012); became bonded with CJ post-breakup",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-R-005-20260219032025-006"
+    },
+    {
+      "observation": "CJ and Lola gifted Raiya's daughter, Zaryia, a car in January 2025 — symbol of chosen family and emotional trust",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-R-005-20260219032025-007"
+    },
+    {
+      "observation": "Hours-long phone conversations, unpacking the emotional nuances of relationships with their current and past partners and romantic wounds",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-R-005-20260219032025-008"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-17T23:29:10.693Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "file_import:AUTHOR_PROFILE_RAIYA.json",
+        "ingested_at": "2026-02-17T23:29:10.693Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-19T03:20:25.933Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "Customer Service Specialist",
+            "new_value": "Emotional Confidante, Platonic Intimacy",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:20:25.933Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-002",
+            "key": "location",
+            "old_value": "Atlanta, Georgia",
+            "new_value": "Atlanta",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:20:25.933Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:20:25.933Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 4 observations"
+        ]
+      }
+    ]
+  },
+  "active_projects": [],
+  "translations": [],
+  "relationship_dimensions": {
+    "connection_type": "chosen",
+    "access": 0.82,
+    "connected_through": null,
+    "status": "active",
+    "strength": 0.87,
+    "sub_role": "confidant",
+    "descriptor": "closest female confidante and anchor",
+    "descriptor_origin": "",
+    "visual_tier": "gold"
+  },
+  "descriptor": "closest female confidante and anchor"
+}

@@ -1,0 +1,175 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-18T23:23:11.164Z",
+    "updated_at": "2026-02-18T23:23:11.164Z",
+    "source_description": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "business",
+    "name": {
+      "common": "Wayfair",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "E-commerce company where Clarence J. Mitchell worked as Associate Director of Product Management.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-BIZ-W-032"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "location",
+      "value": "Boston, MA",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-18"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "industry",
+      "value": "E-commerce",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-18"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "org_category",
+      "value": "career",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "cj_role",
+      "value": "Associate Director of Product Management",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "cj_dates",
+      "value": "2017-2019",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "Clarence J. Mitchell",
+      "relationship_type": "former employer",
+      "context": "Associate Director of Product Management - E-Commerce & AI, Jan 2020 - Sep 2022",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "Associate Director of Product Management - E-Commerce & AI, Wayfair | Boston, MA | Jan 2020 - Sep 2022",
+      "observed_at": "2026-02-18T23:23:11.164Z",
+      "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-W-032-20260218232311-001"
+    },
+    {
+      "observation": "Spearheaded AI-driven innovations across search optimization, marketing attribution, and logistics, achieving 20% improvement in customer satisfaction and significant sales growth",
+      "observed_at": "2026-02-18T23:23:11.164Z",
+      "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-W-032-20260218232311-002"
+    },
+    {
+      "observation": "Developed AI-powered affiliate platform and advanced data analytics infrastructure",
+      "observed_at": "2026-02-18T23:23:11.164Z",
+      "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-W-032-20260218232311-003"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-18T23:23:11.164Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+        "ingested_at": "2026-02-18T23:23:11.164Z"
+      }
+    ],
+    "merge_history": []
+  },
+  "org_dimensions": {
+    "relationship_to_primary": "employer",
+    "org_category": "career",
+    "org_status": "former",
+    "primary_user_role": "Associate Director of Product Management",
+    "org_dates": "2017-2019",
+    "org_descriptor": "former employer, e-commerce and AI product management"
+  },
+  "descriptor": "former employer, e-commerce and AI product management"
+}

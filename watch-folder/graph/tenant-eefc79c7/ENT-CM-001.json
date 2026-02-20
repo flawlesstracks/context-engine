@@ -164,12 +164,12 @@
     {
       "attribute_id": "ATTR-002",
       "key": "location",
-      "value": "Atlanta, GA",
+      "value": "1524 Drew Dr NW, Atlanta, GA 30318",
       "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
-        "stability": "semi_stable",
-        "captured_date": "2026-02-16"
+        "stability": "stable",
+        "captured_date": "2026-02-19"
       },
       "source_attribution": {
         "facts_layer": 2,
@@ -177,14 +177,14 @@
       }
     },
     {
-      "attribute_id": "ATTR-004",
+      "attribute_id": "ATTR-001",
       "key": "role",
       "value": "Principal Product Manager",
       "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
-        "captured_date": "2026-02-18"
+        "captured_date": "2026-02-19"
       },
       "source_attribution": {
         "facts_layer": 2,
@@ -260,6 +260,111 @@
       "time_decay": {
         "stability": "stable",
         "captured_date": "2026-02-18"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "personality",
+      "value": "ENTP - The Debater - strategic, extroverted, witty, adaptable",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-009",
+      "key": "birth_year",
+      "value": "1983",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-010",
+      "key": "employer",
+      "value": "Amazon",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-011",
+      "key": "date_of_birth",
+      "value": "June 8, 1983",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-012",
+      "key": "education",
+      "value": "MBA (Clark Atlanta), BBA (Howard University)",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-013",
+      "key": "birth_date",
+      "value": "1983-06-08",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-014",
+      "key": "age",
+      "value": "41",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
       },
       "source_attribution": {
         "facts_layer": 2,
@@ -420,6 +525,65 @@
       "sentiment": "neutral",
       "confidence": 0.6,
       "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-018",
+      "name": "Tiffany N. Pringle",
+      "relationship_type": "very close friend",
+      "context": "met during MBA at Clark Atlanta University in August 2009",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-019",
+      "name": "Andre Burgin",
+      "relationship_type": "close friend and groomsman",
+      "context": "met during Clark Atlanta MBA program",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-020",
+      "name": "London",
+      "relationship_type": "son",
+      "context": "shared custody with ex-wife Carrie",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-021",
+      "name": "Allen Jones",
+      "relationship_type": "close friend",
+      "context": "from Markham era",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-022",
+      "name": "Destinee",
+      "relationship_type": "sister",
+      "context": "Witness at wedding",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-023",
+      "name": "Amazon",
+      "relationship_type": "employer",
+      "context": "Works as Principal Product Manager at Amazon (Relay)",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "name": "Harrison Osuorji",
+      "relationship_type": "friend",
+      "context": "CAU MBA classmate, trivia crew, BDAT brotherhood"
     }
   ],
   "values": [],
@@ -754,6 +918,234 @@
       "observed_by": "Clarence Mitchell",
       "truth_level": "INFERRED",
       "observation_id": "OBS-ENT-CM-001-20260218232311-011"
+    },
+    {
+      "observation": "CJ and Tiffany first met in August 2009 while pursuing their MBA at Clark Atlanta University.",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219032025-012"
+    },
+    {
+      "observation": "CJ rerouted his trip so he could join Tiffany, Ty, and others for the celebration at the Ritz-Carlton in Krabi",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219032025-013"
+    },
+    {
+      "observation": "CJ showed up to the wedding wearing Adidas sweatpants and a fitted Adidas long sleeve shirt",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219032025-014"
+    },
+    {
+      "observation": "Tiffany is part of an Afrotech investment group chat with CJ",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219032025-015"
+    },
+    {
+      "observation": "CJ showed up to the wedding wearing Adidas sweatpants and a fitted Adidas long sleeve shirt — pure athletic wear — while everyone else was dressed in full formal attire",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219031917-016"
+    },
+    {
+      "observation": "Dre is part of CJ's Groomsmen Circle — the most emotionally trusted and battle-tested brotherhood",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219031917-017"
+    },
+    {
+      "observation": "Central narrator and anchor for all Markham-era relationships.",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172537-018"
+    },
+    {
+      "observation": "Core childhood neighborhood on 165th & Marshfield in Markham, Illinois from 1983 to 2001",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172537-019"
+    },
+    {
+      "observation": "Backyard served as primary basketball court and social hub for neighborhood kids.",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172537-020"
+    },
+    {
+      "observation": "CJ Mitchell is building 'The Context Journey' - a comprehensive digital continuation system designed to preserve his thinking, values, and voice for his son London.",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172717-021"
+    },
+    {
+      "observation": "CJ operates as a Principal Product Manager at Amazon in AI Forecasting and Logistics, managing five AI models that have delivered $55 million in validated savings.",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172717-022"
+    },
+    {
+      "observation": "He runs the 'Putchuon' YouTube channel (65k+ subscribers) focused on AI education",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172717-023"
+    },
+    {
+      "observation": "His ENTP personality drives systematic documentation of personal knowledge, relationships, and decision-making frameworks",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172717-024"
+    },
+    {
+      "observation": "full_name: Clarence James Mitchell, preferred_name: CJ, birth_date: 1983-06-08, birth_place: Northridge, California, age: 41",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172717-025"
+    },
+    {
+      "observation": "current_occupation: Principal Product Manager, company: Amazon (Relay), focus: AI Forecasting, Logistics",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172717-026"
+    },
+    {
+      "observation": "degrees: MBA from Clark Atlanta University, BBA from Howard University",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172717-027"
+    },
+    {
+      "observation": "Chess enthusiast, Master level, 2100+ rating",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172717-028"
+    },
+    {
+      "observation": "marriage_date to Lola Mafe: 2023-02-14",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172717-029"
+    },
+    {
+      "observation": "divorce_date from Carrie Mitchell: 2020-12-23",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172717-030"
     }
   ],
   "provenance_chain": {
@@ -991,6 +1383,189 @@
         "changes": [
           "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf: merged data and 4 observations"
         ]
+      },
+      {
+        "merged_at": "2026-02-19T03:20:25.969Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-004",
+            "key": "role",
+            "old_value": "Principal Product Manager",
+            "new_value": "MBA graduate, friend, groomsman",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:20:25.969Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-002",
+            "key": "location",
+            "old_value": "Atlanta, GA",
+            "new_value": "Atlanta area",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:20:25.969Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:20:25.969Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 4 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:21:21.056Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "MBA graduate, friend, groomsman",
+            "new_value": "Friend, MBA classmate",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:21:21.056Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-002",
+            "key": "location",
+            "old_value": "Atlanta area",
+            "new_value": "Atlanta area (implied)",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:21:21.056Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-009",
+            "key": "personality",
+            "old_value": "socially connected, values deep friendships",
+            "new_value": "Trusted, socially connected",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:21:21.056Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:21:21.056Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 4 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:25:37.505Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_Relationships_Markham_Era.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "Friend, MBA classmate",
+            "new_value": "primary_perspective",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:25:37.505Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-002",
+            "key": "location",
+            "old_value": "Atlanta area (implied)",
+            "new_value": "Markham, IL",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:25:37.505Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:25:37.505Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_Relationships_Markham_Era.txt: merged data and 3 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.403Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "primary_perspective",
+            "new_value": "Principal Product Manager",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:27:17.403Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-003",
+            "key": "location",
+            "old_value": "Markham, IL",
+            "new_value": "Atlanta, GA",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:27:17.403Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-003",
+            "key": "personality",
+            "old_value": "Trusted, socially connected",
+            "new_value": "ENTP",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:27:17.403Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.403Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt: merged data and 4 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.561Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-003",
+            "key": "location",
+            "old_value": "Atlanta, GA",
+            "new_value": "1524 Drew Dr NW, Atlanta, GA 30318",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:27:17.561Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-005",
+            "key": "personality",
+            "old_value": "ENTP",
+            "new_value": "ENTP - The Debater - strategic, extroverted, witty, adaptable",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:27:17.561Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.561Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt: merged data and 6 observations"
+        ]
       }
     ]
   },
@@ -1039,7 +1614,7 @@
     },
     {
       "entity_id": "ENT-ORG-009",
-      "entity_type": "organization",
+      "entity_type": "institution",
       "label": "Harvard University"
     },
     {
@@ -1053,57 +1628,57 @@
       "label": "Howard University"
     },
     {
-      "entity_id": "ENT-ROLE-049",
+      "entity_id": "ENT-ROLE-089",
       "entity_type": "role",
       "label": "Principal Product Manager at Amazon (Relay)"
     },
     {
-      "entity_id": "ENT-ROLE-050",
+      "entity_id": "ENT-ROLE-090",
       "entity_type": "role",
       "label": "AI/DS Lead at Fandom"
     },
     {
-      "entity_id": "ENT-ROLE-051",
+      "entity_id": "ENT-ROLE-091",
       "entity_type": "role",
       "label": "AI/DS Lead at Wayfair"
     },
     {
-      "entity_id": "ENT-ROLE-052",
+      "entity_id": "ENT-ROLE-092",
       "entity_type": "role",
       "label": "AI/DS Lead at Walmart"
     },
     {
-      "entity_id": "ENT-ROLE-053",
+      "entity_id": "ENT-ROLE-093",
       "entity_type": "role",
       "label": "Position at Dell EMC"
     },
     {
-      "entity_id": "ENT-ROLE-054",
+      "entity_id": "ENT-ROLE-094",
       "entity_type": "role",
       "label": "Position at Deloitte"
     },
     {
-      "entity_id": "ENT-ROLE-055",
+      "entity_id": "ENT-ROLE-095",
       "entity_type": "role",
       "label": "YouTube Creator at Putchuon Channel"
     },
     {
-      "entity_id": "ENT-ROLE-056",
+      "entity_id": "ENT-ROLE-096",
       "entity_type": "role",
       "label": "Context Architecture Consultant at Self-employed"
     },
     {
-      "entity_id": "ENT-CRED-019",
+      "entity_id": "ENT-CRED-034",
       "entity_type": "credential",
       "label": "Master of Business Administration - MBA Entrepreneurship/Entrepreneurial Studies, Harvard University"
     },
     {
-      "entity_id": "ENT-CRED-020",
+      "entity_id": "ENT-CRED-035",
       "entity_type": "credential",
       "label": "MBA, Clark Atlanta University"
     },
     {
-      "entity_id": "ENT-CRED-021",
+      "entity_id": "ENT-CRED-036",
       "entity_type": "credential",
       "label": "BBA, Howard University"
     },
@@ -1191,6 +1766,11 @@
       "entity_id": "ENT-SKILL-017",
       "entity_type": "skill",
       "label": "AI Infrastructure Analysis"
+    },
+    {
+      "entity_id": "ENT-HO-100",
+      "entity_type": "person",
+      "label": "Harrison Osuorji"
     }
   ]
 }

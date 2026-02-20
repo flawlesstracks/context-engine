@@ -1,0 +1,132 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-19T17:27:17.384Z",
+    "updated_at": "2026-02-19T17:27:17.384Z",
+    "source_description": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "institution",
+    "name": {
+      "common": "Fulton County Court",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "Fulton County Court is where CJ's custody trial proceedings took place. The conclusion of CJ's custody trial occurred there in April 2024, with an updated parenting plan established. A final custody order was issued in July 2024.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-INST-FCC-005"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "institution_type",
+      "value": "court",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "org_category",
+      "value": "services",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    }
+  ],
+  "relationships": [],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "Conclusion of CJ's custody trial, location: Fulton County Court",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-INST-FCC-005-20260219172717-001"
+    },
+    {
+      "observation": "Updated parenting plan established",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-INST-FCC-005-20260219172717-002"
+    },
+    {
+      "observation": "Final custody order issued, location: Fulton County Court",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-INST-FCC-005-20260219172717-003"
+    },
+    {
+      "observation": "Modification denied; new parenting plan implemented",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-INST-FCC-005-20260219172717-004"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-19T17:27:17.384Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+        "ingested_at": "2026-02-19T17:27:17.384Z"
+      }
+    ],
+    "merge_history": []
+  },
+  "org_dimensions": {
+    "relationship_to_primary": "service_provider",
+    "org_category": "services",
+    "org_status": "former",
+    "primary_user_role": "party in custody proceedings",
+    "org_dates": "April 2024 - July 2024",
+    "org_descriptor": "legal services, custody trial and final order"
+  },
+  "descriptor": "legal services, custody trial and final order"
+}

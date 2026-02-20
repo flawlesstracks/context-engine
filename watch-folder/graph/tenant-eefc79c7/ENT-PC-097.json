@@ -1,0 +1,134 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-19T17:27:17.384Z",
+    "updated_at": "2026-02-19T17:27:17.384Z",
+    "source_description": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Pat Cunningham",
+      "confidence": 0.6,
+      "facts_layer": 2,
+      "aliases": []
+    },
+    "summary": {
+      "value": "Pat Cunningham is Carrie Mitchell's mother.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-PC-097"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "trip participant",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "Carrie Mitchell",
+      "relationship_type": "mother",
+      "context": "parent",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "family_relationships for Carrie: mother: Pat Cunningham",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-PC-097-20260219172717-001"
+    },
+    {
+      "observation": "CJ's 34th birthday celebration with infant London, participants ind_001, ind_004, ind_003, Pat Cunningham",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-PC-097-20260219172717-002"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-19T17:27:17.384Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+        "ingested_at": "2026-02-19T17:27:17.384Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-19T17:27:17.724Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "mother of Carrie Mitchell",
+            "new_value": "trip participant",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:27:17.724Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.724Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt: merged data and 1 observations"
+        ]
+      }
+    ]
+  },
+  "active_projects": [],
+  "translations": [],
+  "relationship_dimensions": {
+    "connection_type": "marriage",
+    "access": 0.42,
+    "connected_through": "Carrie Mitchell",
+    "status": "stable",
+    "strength": 0.38,
+    "sub_role": "in_law",
+    "descriptor": "Carrie's mother, trip participant",
+    "descriptor_origin": "",
+    "visual_tier": "neutral"
+  },
+  "descriptor": "Carrie's mother, trip participant"
+}

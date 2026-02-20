@@ -14,7 +14,8 @@
     "name": {
       "common": "Howard University",
       "confidence": 0.6,
-      "facts_layer": 2
+      "facts_layer": 2,
+      "aliases": []
     },
     "summary": {
       "value": "University where Clarence J. Mitchell obtained his BBA in International Business.",
@@ -53,6 +54,111 @@
         "facts_layer": 2,
         "layer_label": "group"
       }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "institution_type",
+      "value": "university",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "location",
+      "value": "Washington DC",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "time_period",
+      "value": "2002-2006",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "timeframe",
+      "value": "2002-2006",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-007",
+      "key": "org_category",
+      "value": "education",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    },
+    {
+      "attribute_id": "ATTR-008",
+      "key": "cj_credential",
+      "value": "BBA",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    },
+    {
+      "attribute_id": "ATTR-009",
+      "key": "cj_grad_year",
+      "value": "2005",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
     }
   ],
   "relationships": [
@@ -61,6 +167,78 @@
       "name": "Clarence J. Mitchell",
       "relationship_type": "alma mater",
       "context": "Bachelor of Business Administration - International Business",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "CJ",
+      "relationship_type": "alumni",
+      "context": "attended 2002-2006",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-003",
+      "name": "Justin Johnson",
+      "relationship_type": "alumni",
+      "context": "roommate during 2002-2006",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-004",
+      "name": "CJ Mitchell",
+      "relationship_type": "alumnus",
+      "context": "earned BBA degree",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-005",
+      "name": "Steven W. Hughes",
+      "relationship_type": "alumnus",
+      "context": "met CJ there",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-006",
+      "name": "LaQuan McCoy",
+      "relationship_type": "alumnus",
+      "context": "met CJ there in 2002",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-007",
+      "name": "CJ",
+      "relationship_type": "alumnus",
+      "context": "Attended 2002-2006",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-008",
+      "name": "Justin Johnson",
+      "relationship_type": "alumnus",
+      "context": "Attended with CJ, were roommates",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-009",
+      "name": "Thomas Butler",
+      "relationship_type": "alumnus/influencer",
+      "context": "The reason why CJ went to Howard University",
       "sentiment": "neutral",
       "confidence": 0.6,
       "confidence_label": "MODERATE"
@@ -81,6 +259,138 @@
       "observed_by": "Clarence Mitchell",
       "truth_level": "INFERRED",
       "observation_id": "OBS-ENT-BIZ-HU-037-20260218232311-001"
+    },
+    {
+      "observation": "Justin Johnson, origin: 'The Howard University Years' (2002-2006)",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-HU-037-20260219032025-002"
+    },
+    {
+      "observation": "background: Roommate at Howard (9 W Street NW)",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-HU-037-20260219032025-003"
+    },
+    {
+      "observation": "The #HU group of people that CJ met and built relationships with during his time at Howard University (2002-2006)",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-HU-037-20260219032025-004"
+    },
+    {
+      "observation": "The Trivia Team name is 'Black Mecca' as a double entendre for what people refer to both Howard University and the city of Atlanta",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-HU-037-20260219032025-005"
+    },
+    {
+      "observation": "Origin: 'The Howard University Years' (2002-2006)",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-HU-037-20260219032025-006"
+    },
+    {
+      "observation": "Francis Sammy graduated from Howard University in 2005 with major in Electrical Engineering",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-HU-037-20260219032025-007"
+    },
+    {
+      "observation": "CJ and Quan met at Howard University in 2002, specifically within the legendary halls of Carver Hall — a place CJ describes as 'the nucleus of almost every friend from Howard I still know today.'",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-HU-037-20260219032025-008"
+    },
+    {
+      "observation": "background: Roommate at Howard (9 W Street NW), ATL-based tax attorney",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-HU-037-20260219031917-009"
+    },
+    {
+      "observation": "The reason why CJ went to Howard University. Is CJ's older brother's age and functioned as a surrogate big brother.",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-HU-037-20260219172537-010"
+    },
+    {
+      "observation": "Education: MBA (Clark Atlanta), BBA (Howard University)",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-HU-037-20260219172717-011"
+    },
+    {
+      "observation": "close friends from different life eras including Allen 'Big Al' Jones from Markham, Steven Hughes from Howard University",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-HU-037-20260219172717-012"
     }
   ],
   "provenance_chain": {
@@ -92,6 +402,135 @@
         "ingested_at": "2026-02-18T23:23:11.164Z"
       }
     ],
-    "merge_history": []
-  }
+    "merge_history": [
+      {
+        "merged_at": "2026-02-19T03:20:25.906Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-19T03:20:25.906Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 2 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:20:25.936Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-19T03:20:25.936Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 4 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:20:25.964Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-19T03:20:25.964Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 1 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:21:20.965Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-004",
+            "key": "location",
+            "old_value": "Washington DC",
+            "new_value": "Washington, DC area",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:21:20.965Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:21:20.965Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 2 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:21:21.006Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-003",
+            "key": "location",
+            "old_value": "Washington, DC area",
+            "new_value": "Washington DC",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:21:21.006Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:21:21.006Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 2 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:25:37.691Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_Relationships_Markham_Era.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-19T17:25:37.691Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_Relationships_Markham_Era.txt: merged data and 1 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.553Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.553Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt: merged data and 2 observations"
+        ]
+      }
+    ]
+  },
+  "key_people": [],
+  "org_dimensions": {
+    "relationship_to_primary": "alma_mater",
+    "org_category": "education",
+    "org_status": "former",
+    "primary_user_role": "Student - BBA International Business",
+    "org_dates": "2002-2006",
+    "org_descriptor": "undergraduate alma mater, BBA International Business"
+  },
+  "descriptor": "undergraduate alma mater, BBA International Business"
 }

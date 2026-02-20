@@ -1,0 +1,298 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-18T23:23:11.164Z",
+    "updated_at": "2026-02-18T23:23:11.164Z",
+    "source_description": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "business",
+    "name": {
+      "common": "Amazon",
+      "confidence": 0.6,
+      "facts_layer": 2,
+      "aliases": []
+    },
+    "summary": {
+      "value": "Technology company where Clarence J. Mitchell works as Principal Product Manager - AI Forecasting since January 2024.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-BIZ-A-030"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "location",
+      "value": "Atlanta, GA",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-18"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-001",
+      "key": "industry",
+      "value": "Technology",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "division",
+      "value": "Relay",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "org_category",
+      "value": "career",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "cj_role",
+      "value": "Principal Product Manager",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "cj_dates",
+      "value": "2020-present",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "Clarence J. Mitchell",
+      "relationship_type": "employer",
+      "context": "Principal Product Manager - AI Forecasting, Jan 2024 - Present",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "CJ Mitchell",
+      "relationship_type": "employer",
+      "context": "Principal Product Manager",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-001",
+      "name": "Priya Patel",
+      "relationship_type": "employee",
+      "context": "Senior Director",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "Principal Product Manager - AI Forecasting, Amazon | Atlanta, GA | Jan 2024 - Present",
+      "observed_at": "2026-02-18T23:23:11.164Z",
+      "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-A-030-20260218232311-001"
+    },
+    {
+      "observation": "Own multi-model ML forecasting architecture (5 production models) generating 2.8M+ weekly predictions influencing $4.2B in downstream logistics decisions",
+      "observed_at": "2026-02-18T23:23:11.164Z",
+      "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-A-030-20260218232311-002"
+    },
+    {
+      "observation": "Led launch of production AI model delivering $40MM validated annual business impact; additional $23MM in active roadmap",
+      "observed_at": "2026-02-18T23:23:11.164Z",
+      "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-A-030-20260218232311-003"
+    },
+    {
+      "observation": "CJ operates as a Principal Product Manager at Amazon in AI Forecasting and Logistics, managing five AI models that have delivered $55 million in validated savings",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-A-030-20260219172717-004"
+    },
+    {
+      "observation": "Role: Principal Product Manager (Amazon, Relay) - Oversees 'Expected Costs' forecasting product for Middle Mile logistics",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-A-030-20260219172717-005"
+    },
+    {
+      "observation": "current_occupation: Principal Product Manager, company: Amazon (Relay), focus: AI Forecasting, Logistics",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-A-030-20260219172717-006"
+    },
+    {
+      "observation": "Senior Director at Amazon Web Services, Seattle",
+      "observed_at": "2026-02-18T18:29:13.290Z",
+      "source": "file_import:test-relationships.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "test-relationships-2",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-AWS-018-20260218182913-001"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-18T23:23:11.164Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+        "ingested_at": "2026-02-18T23:23:11.164Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-19T17:27:17.549Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-002",
+            "key": "industry",
+            "old_value": "Technology/E-commerce",
+            "new_value": "Technology",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:27:17.549Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.549Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt: merged data and 2 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.707Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.707Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt: merged data and 1 observations"
+        ]
+      }
+    ]
+  },
+  "products_services": [],
+  "key_people": [],
+  "org_dimensions": {
+    "relationship_to_primary": "employer",
+    "org_category": "career",
+    "org_status": "current",
+    "primary_user_role": "Principal Product Manager - AI Forecasting",
+    "org_dates": "2020-present",
+    "org_descriptor": "current employer, AI forecasting and knowledge graphs"
+  },
+  "descriptor": "current employer, AI forecasting and knowledge graphs"
+}

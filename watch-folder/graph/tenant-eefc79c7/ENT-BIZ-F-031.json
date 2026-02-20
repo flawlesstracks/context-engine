@@ -1,0 +1,175 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-18T23:23:11.164Z",
+    "updated_at": "2026-02-18T23:23:11.164Z",
+    "source_description": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "business",
+    "name": {
+      "common": "Fandom",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "Company where Clarence J. Mitchell worked as Senior Product Manager - AI/ML & Entity Data Systems from 2022 to 2024.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-BIZ-F-031"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "location",
+      "value": "Remote",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-18"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "industry",
+      "value": "Technology/Media",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-18"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "org_category",
+      "value": "career",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "cj_role",
+      "value": "Senior Product Manager, AI/ML",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "cj_dates",
+      "value": "2019-2021",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "Clarence J. Mitchell",
+      "relationship_type": "former employer",
+      "context": "Senior Product Manager - AI/ML & Entity Data Systems, 2022 - 2024",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "Senior Product Manager - AI/ML & Entity Data Systems, Fandom | Remote | 2022 - 2024",
+      "observed_at": "2026-02-18T23:23:11.164Z",
+      "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-F-031-20260218232311-001"
+    },
+    {
+      "observation": "Architected enterprise-scale Canonical Entity Data Model powering content recommendation, search, and personalization across 400M+ monthly users",
+      "observed_at": "2026-02-18T23:23:11.164Z",
+      "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-F-031-20260218232311-002"
+    },
+    {
+      "observation": "Led adoption of Transformer models (BERT) and NLP for content classification, sentiment analysis, and semantic search optimization",
+      "observed_at": "2026-02-18T23:23:11.164Z",
+      "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-F-031-20260218232311-003"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-18T23:23:11.164Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+        "ingested_at": "2026-02-18T23:23:11.164Z"
+      }
+    ],
+    "merge_history": []
+  },
+  "org_dimensions": {
+    "relationship_to_primary": "employer",
+    "org_category": "career",
+    "org_status": "former",
+    "primary_user_role": "Senior Product Manager - AI/ML & Entity Data Systems",
+    "org_dates": "2022-2024",
+    "org_descriptor": "former employer, AI/ML and entity data systems"
+  },
+  "descriptor": "former employer, AI/ML and entity data systems"
+}

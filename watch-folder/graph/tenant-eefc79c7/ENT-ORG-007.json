@@ -26,7 +26,38 @@
   "organization_data": {
     "name": "Putchuon Channel"
   },
-  "attributes": [],
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "org_category",
+      "value": "career",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "cj_role",
+      "value": "YouTube Creator",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    }
+  ],
   "relationships": [],
   "observations": [],
   "provenance_chain": {
@@ -39,5 +70,14 @@
       }
     ],
     "merge_history": []
-  }
+  },
+  "org_dimensions": {
+    "relationship_to_primary": "employer",
+    "org_category": "career",
+    "org_status": "current",
+    "primary_user_role": "YouTube Creator",
+    "org_dates": "unknown",
+    "org_descriptor": "personal YouTube channel"
+  },
+  "descriptor": "personal YouTube channel"
 }

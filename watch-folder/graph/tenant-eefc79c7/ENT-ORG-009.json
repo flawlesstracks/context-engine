@@ -9,7 +9,7 @@
     "schema_version": "2.0"
   },
   "entity": {
-    "entity_type": "organization",
+    "entity_type": "institution",
     "entity_id": "ENT-ORG-009",
     "parent_entity_id": "ENT-CM-001",
     "name": {
@@ -26,7 +26,38 @@
   "organization_data": {
     "name": "Harvard University"
   },
-  "attributes": [],
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "org_category",
+      "value": "education",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "cj_credential",
+      "value": "MBA",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 1,
+        "layer_label": "cleanup-orgs"
+      }
+    }
+  ],
   "relationships": [],
   "observations": [],
   "provenance_chain": {
@@ -39,5 +70,14 @@
       }
     ],
     "merge_history": []
-  }
+  },
+  "org_dimensions": {
+    "relationship_to_primary": "alma_mater",
+    "org_category": "education",
+    "org_status": "former",
+    "primary_user_role": "MBA graduate",
+    "org_dates": "unknown",
+    "org_descriptor": "graduate business school"
+  },
+  "descriptor": "graduate business school"
 }
