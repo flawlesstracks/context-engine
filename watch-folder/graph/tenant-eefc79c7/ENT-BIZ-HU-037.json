@@ -56,14 +56,14 @@
       }
     },
     {
-      "attribute_id": "ATTR-003",
+      "attribute_id": "ATTR-001",
       "key": "institution_type",
       "value": "university",
       "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
-        "captured_date": "2026-02-19"
+        "captured_date": "2026-02-20"
       },
       "source_attribution": {
         "facts_layer": 2,
@@ -73,12 +73,12 @@
     {
       "attribute_id": "ATTR-002",
       "key": "location",
-      "value": "Washington DC",
+      "value": "Washington, D.C.",
       "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
-        "captured_date": "2026-02-19"
+        "captured_date": "2026-02-20"
       },
       "source_attribution": {
         "facts_layer": 2,
@@ -159,6 +159,21 @@
         "facts_layer": 1,
         "layer_label": "cleanup-orgs"
       }
+    },
+    {
+      "attribute_id": "ATTR-010",
+      "key": "prestige",
+      "value": "Historically Black University, high prestige",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-20"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
     }
   ],
   "relationships": [
@@ -202,7 +217,7 @@
       "relationship_id": "REL-005",
       "name": "Steven W. Hughes",
       "relationship_type": "alumnus",
-      "context": "met CJ there",
+      "context": "Bachelor's Degree in Finance, 2003-2007",
       "sentiment": "neutral",
       "confidence": 0.6,
       "confidence_label": "MODERATE"
@@ -239,6 +254,15 @@
       "name": "Thomas Butler",
       "relationship_type": "alumnus/influencer",
       "context": "The reason why CJ went to Howard University",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-010",
+      "name": "Clarence James Mitchell",
+      "relationship_type": "alumnus",
+      "context": "College friend, Carver Hall",
       "sentiment": "neutral",
       "confidence": 0.6,
       "confidence_label": "MODERATE"
@@ -391,6 +415,78 @@
       "observed_by": "Clarence Mitchell",
       "truth_level": "INFERRED",
       "observation_id": "OBS-ENT-BIZ-HU-037-20260219172717-012"
+    },
+    {
+      "observation": "Steven attended from 2003-2007, earning 'Bachelor's Degree' in 'Finance'",
+      "observed_at": "2026-02-20T18:18:14.342Z",
+      "source": "drive_import:Steven Hughes_Master Profile.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-HU-037-20260220181814-013"
+    },
+    {
+      "observation": "Carver Hall dormitory described as 'Legendary dorm where lifelong friendships were formed' with CJ Mitchell and LaQuan McCoy",
+      "observed_at": "2026-02-20T18:18:14.342Z",
+      "source": "drive_import:Steven Hughes_Master Profile.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-HU-037-20260220181814-014"
+    },
+    {
+      "observation": "Significance includes 'Foundation for financial and business understanding', 'Brotherhood formation, identity development', 'Core friendships, professional connections'",
+      "observed_at": "2026-02-20T18:18:14.342Z",
+      "source": "drive_import:Steven Hughes_Master Profile.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-HU-037-20260220181814-015"
+    },
+    {
+      "observation": "Steven 'Put himself through Howard University without family safety nets'",
+      "observed_at": "2026-02-20T18:18:14.342Z",
+      "source": "drive_import:Steven Hughes_Master Profile.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-HU-037-20260220181814-016"
+    },
+    {
+      "observation": "relationship_duration: 20+ years (Howard University)",
+      "observed_at": "2026-02-20T18:32:06.159Z",
+      "source": "file_import:Steve master.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-HU-037-20260220183206-017"
+    },
+    {
+      "observation": "Educational background details (Howard University confirmed, details TBD)",
+      "observed_at": "2026-02-20T18:32:06.159Z",
+      "source": "file_import:Steve master.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-HU-037-20260220183206-018"
     }
   ],
   "provenance_chain": {
@@ -519,6 +615,63 @@
         "merged_by": "Clarence Mitchell",
         "changes": [
           "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt: merged data and 2 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-20T18:18:14.904Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:Steven Hughes_Master Profile.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-003",
+            "key": "institution_type",
+            "old_value": "university",
+            "new_value": "University",
+            "confidence": 0.6,
+            "timestamp": "2026-02-20T18:18:14.904Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-002",
+            "key": "location",
+            "old_value": "Washington DC",
+            "new_value": "Washington, D.C.",
+            "confidence": 0.6,
+            "timestamp": "2026-02-20T18:18:14.904Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-20T18:18:14.904Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:Steven Hughes_Master Profile.txt: merged data and 4 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-20T18:35:47.624Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Steve master.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "institution_type",
+            "old_value": "University",
+            "new_value": "university",
+            "confidence": 0.6,
+            "timestamp": "2026-02-20T18:35:47.624Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-20T18:35:47.624Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "Steve master.txt: merged data and 2 observations"
         ]
       }
     ]

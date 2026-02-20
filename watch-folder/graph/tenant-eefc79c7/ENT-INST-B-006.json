@@ -1,0 +1,122 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-20T18:19:48.241Z",
+    "updated_at": "2026-02-20T18:19:48.241Z",
+    "source_description": "drive_import:Steve Hughes_Work.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "institution",
+    "name": {
+      "common": "BDAT",
+      "full": "Black Dads Are There",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "BDAT (Black Dads Are There) is a community leadership organization co-founded by Steve Hughes, focused on fatherhood support, community development, and mentorship programs. Steve serves as co-founder and community coordinator, dedicating 10-15 hours weekly to active community building.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-INST-B-006"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "institution_type",
+      "value": "community organization",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-20"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "focus",
+      "value": "fatherhood support, community development, mentorship",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-20"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "Steve Hughes",
+      "relationship_type": "co-founder",
+      "context": "Co-founder and community coordinator",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "BDAT (Black Dads Are There) Leadership, Co-founder and community coordinator, Active community building, Fatherhood support, community development, mentorship programs, Community service and relationship building",
+      "observed_at": "2026-02-20T18:19:48.241Z",
+      "source": "drive_import:Steve Hughes_Work.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-INST-B-006-20260220181948-001"
+    },
+    {
+      "observation": "Community leadership: 10-15 hours weekly, Balance approach: Family time protected, community work as extension of values",
+      "observed_at": "2026-02-20T18:19:48.241Z",
+      "source": "drive_import:Steve Hughes_Work.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-INST-B-006-20260220181948-002"
+    },
+    {
+      "observation": "BDAT leadership role: Co-founder and active community coordinator, responsibilities include Event planning and coordination, Relationship facilitation and conflict resolution, New member onboarding and integration, Partnership development with other organizations",
+      "observed_at": "2026-02-20T18:19:48.241Z",
+      "source": "drive_import:Steve Hughes_Work.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-INST-B-006-20260220181948-003"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-20T18:19:48.241Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "drive_import:Steve Hughes_Work.txt",
+        "ingested_at": "2026-02-20T18:19:48.241Z"
+      }
+    ],
+    "merge_history": []
+  }
+}

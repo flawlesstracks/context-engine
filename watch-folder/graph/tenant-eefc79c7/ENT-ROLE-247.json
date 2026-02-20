@@ -2,7 +2,7 @@
   "schema_version": "2.0",
   "schema_type": "context_architecture_entity",
   "extraction_metadata": {
-    "extracted_at": "2026-02-19T17:27:17.561Z",
+    "extracted_at": "2026-02-20T18:35:47.495Z",
     "source_description": "decomposed from ENT-CM-001",
     "extraction_model": "object-decomposer",
     "extraction_confidence": 0.6,
@@ -10,36 +10,36 @@
   },
   "entity": {
     "entity_type": "role",
-    "entity_id": "ENT-ROLE-092",
+    "entity_id": "ENT-ROLE-247",
     "parent_entity_id": "ENT-CM-001",
     "name": {
-      "full": "AI/DS Lead at Walmart",
+      "full": "YouTube Creator at Putchuon Channel",
       "aliases": []
     },
     "summary": {
-      "value": "Led AI and data science efforts.",
+      "value": "AI education content creator with 65k+ subscribers. Produces 'AI cinema' approach videos using narrative storytelling and cinematic hooks, targeting 4-6 hour production cycles.",
       "confidence": 0.6,
       "facts_layer": 2
     }
   },
   "role_data": {
-    "title": "AI/DS Lead",
-    "company": "Walmart",
-    "organization_id": "ENT-ORG-004",
+    "title": "YouTube Creator",
+    "company": "Putchuon Channel",
+    "organization_id": "ENT-ORG-007",
     "start_date": "",
-    "end_date": "",
-    "description": "Led AI and data science efforts."
+    "end_date": "Present",
+    "description": "AI education content creator with 65k+ subscribers. Produces 'AI cinema' approach videos using narrative storytelling and cinematic hooks, targeting 4-6 hour production cycles."
   },
   "attributes": [],
   "relationships": [],
   "observations": [],
   "provenance_chain": {
-    "created_at": "2026-02-19T17:27:17.561Z",
+    "created_at": "2026-02-20T18:35:47.495Z",
     "created_by": "object-decomposer",
     "source_documents": [
       {
         "source": "decomposed from ENT-CM-001",
-        "ingested_at": "2026-02-19T17:27:17.561Z"
+        "ingested_at": "2026-02-20T18:35:47.495Z"
       }
     ],
     "merge_history": []

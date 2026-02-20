@@ -2,7 +2,7 @@
   "schema_version": "2.0",
   "schema_type": "context_architecture_entity",
   "extraction_metadata": {
-    "extracted_at": "2026-02-19T17:27:17.561Z",
+    "extracted_at": "2026-02-20T18:35:47.495Z",
     "source_description": "decomposed from ENT-CM-001",
     "extraction_model": "object-decomposer",
     "extraction_confidence": 0.6,
@@ -10,36 +10,36 @@
   },
   "entity": {
     "entity_type": "role",
-    "entity_id": "ENT-ROLE-094",
+    "entity_id": "ENT-ROLE-244",
     "parent_entity_id": "ENT-CM-001",
     "name": {
-      "full": "Position at Deloitte",
+      "full": "AI/DS Lead at Walmart",
       "aliases": []
     },
     "summary": {
-      "value": "Professional services experience.",
+      "value": "Led AI and data science efforts.",
       "confidence": 0.6,
       "facts_layer": 2
     }
   },
   "role_data": {
-    "title": "Position",
-    "company": "Deloitte",
-    "organization_id": "ENT-ORG-006",
+    "title": "AI/DS Lead",
+    "company": "Walmart",
+    "organization_id": "ENT-ORG-004",
     "start_date": "",
     "end_date": "",
-    "description": "Professional services experience."
+    "description": "Led AI and data science efforts."
   },
   "attributes": [],
   "relationships": [],
   "observations": [],
   "provenance_chain": {
-    "created_at": "2026-02-19T17:27:17.561Z",
+    "created_at": "2026-02-20T18:35:47.495Z",
     "created_by": "object-decomposer",
     "source_documents": [
       {
         "source": "decomposed from ENT-CM-001",
-        "ingested_at": "2026-02-19T17:27:17.561Z"
+        "ingested_at": "2026-02-20T18:35:47.495Z"
       }
     ],
     "merge_history": []

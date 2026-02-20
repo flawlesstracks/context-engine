@@ -1,0 +1,112 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-16T18:51:50.298Z",
+    "updated_at": "2026-02-16T18:51:50.298Z",
+    "source_description": "file_import:test.pdf",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Jane Doe",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "Jane Doe is a Product Manager at Microsoft based in Seattle, Washington. She has experience in product strategy and user research.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-JD-004"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "Product Manager",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-16"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "location",
+      "value": "Seattle, Washington",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-16"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "expertise",
+      "value": "product strategy and user research",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-16"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "Microsoft",
+      "relationship_type": "employee",
+      "context": "Works as Product Manager",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "Jane Doe - Product Manager at Microsoft. Based in Seattle, Washington. Experienced in product strategy and user research",
+      "observed_at": "2026-02-16T18:51:50.298Z",
+      "source": "file_import:test.pdf",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Acme Corp",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-JD-004-20260216185150-001"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-16T18:51:50.298Z",
+    "created_by": "Acme Corp",
+    "source_documents": [
+      {
+        "source": "file_import:test.pdf",
+        "ingested_at": "2026-02-16T18:51:50.298Z"
+      }
+    ],
+    "merge_history": []
+  }
+}

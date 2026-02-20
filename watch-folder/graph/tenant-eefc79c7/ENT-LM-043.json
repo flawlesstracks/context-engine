@@ -29,12 +29,12 @@
     {
       "attribute_id": "ATTR-001",
       "key": "role",
-      "value": "Current Spouse",
+      "value": "Godparent to Micah Hughes",
       "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
-        "captured_date": "2026-02-19"
+        "captured_date": "2026-02-20"
       },
       "source_attribution": {
         "facts_layer": 2,
@@ -104,12 +104,12 @@
     {
       "attribute_id": "ATTR-002",
       "key": "personality",
-      "value": "ISFJ - The Defender - organized, nurturing, practical, dependable",
+      "value": "Stability and grounding energy, wisdom and nurturing presence",
       "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
-        "captured_date": "2026-02-19"
+        "captured_date": "2026-02-20"
       },
       "source_attribution": {
         "facts_layer": 2,
@@ -204,6 +204,24 @@
       "name": "London Khal Mitchell",
       "relationship_type": "stepmother",
       "context": "Developing strong stepmother bond",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-006",
+      "name": "Micah Hughes",
+      "relationship_type": "godparent",
+      "context": "Chosen family, wisdom and nurturing presence",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-007",
+      "name": "Tahitina Hughes",
+      "relationship_type": "friend",
+      "context": "Respectful, supportive relationship",
       "sentiment": "neutral",
       "confidence": 0.6,
       "confidence_label": "MODERATE"
@@ -428,6 +446,30 @@
       "observed_by": "Clarence Mitchell",
       "truth_level": "INFERRED",
       "observation_id": "OBS-ENT-LM-043-20260219172717-018"
+    },
+    {
+      "observation": "Lola Mafe is godparent to Micah - Represents stability and grounding energy",
+      "observed_at": "2026-02-20T18:19:14.434Z",
+      "source": "drive_import:Steve_Relationships.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-LM-043-20260220181914-019"
+    },
+    {
+      "observation": "Tahitina and Lola maintain respectful, supportive relationship",
+      "observed_at": "2026-02-20T18:19:14.434Z",
+      "source": "drive_import:Steve_Relationships.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-LM-043-20260220181914-020"
     }
   ],
   "provenance_chain": {
@@ -528,6 +570,39 @@
         "merged_by": "Clarence Mitchell",
         "changes": [
           "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt: merged data and 6 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-20T18:19:14.825Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:Steve_Relationships.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "Current Spouse",
+            "new_value": "Godparent to Micah Hughes",
+            "confidence": 0.6,
+            "timestamp": "2026-02-20T18:19:14.825Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-002",
+            "key": "personality",
+            "old_value": "ISFJ - The Defender - organized, nurturing, practical, dependable",
+            "new_value": "Stability and grounding energy, wisdom and nurturing presence",
+            "confidence": 0.6,
+            "timestamp": "2026-02-20T18:19:14.825Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-20T18:19:14.825Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:Steve_Relationships.txt: merged data and 2 observations"
         ]
       }
     ]

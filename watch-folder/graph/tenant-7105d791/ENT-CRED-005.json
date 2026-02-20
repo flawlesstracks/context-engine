@@ -1,0 +1,47 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-17T16:29:11.548Z",
+    "source_description": "decomposed from ENT-SC-002",
+    "extraction_model": "object-decomposer",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "credential",
+    "entity_id": "ENT-CRED-005",
+    "parent_entity_id": "ENT-SC-002",
+    "name": {
+      "full": "Master of Science Computer Science, Stanford University",
+      "aliases": []
+    },
+    "summary": {
+      "value": "",
+      "confidence": 0.6,
+      "facts_layer": 2
+    }
+  },
+  "credential_data": {
+    "institution": "Stanford University",
+    "degree": "Master of Science",
+    "field": "Computer Science",
+    "start_year": "2010",
+    "end_year": "2012",
+    "organization_id": "ENT-ORG-005"
+  },
+  "attributes": [],
+  "relationships": [],
+  "observations": [],
+  "provenance_chain": {
+    "created_at": "2026-02-17T16:29:11.548Z",
+    "created_by": "object-decomposer",
+    "source_documents": [
+      {
+        "source": "decomposed from ENT-SC-002",
+        "ingested_at": "2026-02-17T16:29:11.548Z"
+      }
+    ],
+    "merge_history": []
+  }
+}

@@ -2,18 +2,19 @@
   "schema_version": "2.0",
   "schema_type": "context_architecture_entity",
   "extraction_metadata": {
-    "extracted_at": "2026-02-19T17:27:17.561Z",
-    "source_description": "decomposed from ENT-CM-001",
+    "extracted_at": "2026-02-17T16:28:43.012Z",
+    "source_description": "decomposed from ENT-SC-002",
     "extraction_model": "object-decomposer",
     "extraction_confidence": 0.6,
     "schema_version": "2.0"
   },
   "entity": {
-    "entity_type": "credential",
-    "entity_id": "ENT-CRED-036",
-    "parent_entity_id": "ENT-CM-001",
+    "entity_type": "organization",
+    "entity_id": "ENT-ORG-004",
+    "parent_entity_id": "ENT-SC-002",
     "name": {
-      "full": "BBA, Howard University",
+      "full": "TechStart Inc.",
+      "common": "TechStart Inc.",
       "aliases": []
     },
     "summary": {
@@ -22,24 +23,19 @@
       "facts_layer": 2
     }
   },
-  "credential_data": {
-    "institution": "Howard University",
-    "degree": "BBA",
-    "field": "",
-    "start_year": "",
-    "end_year": "",
-    "organization_id": "ENT-BIZ-HU-037"
+  "organization_data": {
+    "name": "TechStart Inc."
   },
   "attributes": [],
   "relationships": [],
   "observations": [],
   "provenance_chain": {
-    "created_at": "2026-02-19T17:27:17.561Z",
+    "created_at": "2026-02-17T16:28:43.012Z",
     "created_by": "object-decomposer",
     "source_documents": [
       {
-        "source": "decomposed from ENT-CM-001",
-        "ingested_at": "2026-02-19T17:27:17.561Z"
+        "source": "decomposed from ENT-SC-002",
+        "ingested_at": "2026-02-17T16:28:43.012Z"
       }
     ],
     "merge_history": []

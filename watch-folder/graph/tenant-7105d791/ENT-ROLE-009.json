@@ -1,0 +1,47 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-17T16:29:11.548Z",
+    "source_description": "decomposed from ENT-SC-002",
+    "extraction_model": "object-decomposer",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "role",
+    "entity_id": "ENT-ROLE-009",
+    "parent_entity_id": "ENT-SC-002",
+    "name": {
+      "full": "Software Engineering Manager at Google",
+      "aliases": []
+    },
+    "summary": {
+      "value": "Leading a team of 25 engineers on Kubernetes container orchestration. Shipped 3 major features in GKE including Autopilot mode enhancements. Mentoring 5 senior engineers toward staff-level promotion.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    }
+  },
+  "role_data": {
+    "title": "Software Engineering Manager",
+    "company": "Google",
+    "organization_id": "ENT-ORG-001",
+    "start_date": "Jan 2021",
+    "end_date": "Present",
+    "description": "Leading a team of 25 engineers on Kubernetes container orchestration. Shipped 3 major features in GKE including Autopilot mode enhancements. Mentoring 5 senior engineers toward staff-level promotion."
+  },
+  "attributes": [],
+  "relationships": [],
+  "observations": [],
+  "provenance_chain": {
+    "created_at": "2026-02-17T16:29:11.548Z",
+    "created_by": "object-decomposer",
+    "source_documents": [
+      {
+        "source": "decomposed from ENT-SC-002",
+        "ingested_at": "2026-02-17T16:29:11.548Z"
+      }
+    ],
+    "merge_history": []
+  }
+}

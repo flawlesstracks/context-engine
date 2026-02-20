@@ -1,0 +1,211 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-20T18:18:14.342Z",
+    "updated_at": "2026-02-20T18:18:14.342Z",
+    "source_description": "drive_import:Steven Hughes_Master Profile.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "business",
+    "name": {
+      "common": "Lyft",
+      "confidence": 0.6,
+      "facts_layer": 2,
+      "aliases": []
+    },
+    "summary": {
+      "value": "Lyft is Steven Hughes's current employer where he works as Senior Talent Acquisition Manager in the Human Resources/People Operations department, focusing on recruiting, talent strategy, and people development in the technology and transportation industry.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-BIZ-L-049"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "industry",
+      "value": "Technology / Transportation",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-20"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "department",
+      "value": "Human Resources / People Operations",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-20"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "org_category",
+      "value": "career",
+      "confidence": 0.8,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-20"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "Steven W. Hughes",
+      "relationship_type": "employee",
+      "context": "Senior Talent Acquisition Manager",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "Steve Hughes",
+      "relationship_type": "employer",
+      "context": "Senior Talent Acquisition Manager",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "Current employer listed as 'Lyft' with role 'Senior Talent Acquisition Manager'",
+      "observed_at": "2026-02-20T18:18:14.342Z",
+      "source": "drive_import:Steven Hughes_Master Profile.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-L-049-20260220181814-001"
+    },
+    {
+      "observation": "Department described as 'Human Resources / People Operations' with focus areas including 'Recruiting', 'Talent Strategy', 'People Development'",
+      "observed_at": "2026-02-20T18:18:14.342Z",
+      "source": "drive_import:Steven Hughes_Master Profile.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-L-049-20260220181814-002"
+    },
+    {
+      "observation": "Senior Talent Acquisition Manager, Lyft, Human Resources / People Operations department, Current role, Atlanta, GA (Remote)",
+      "observed_at": "2026-02-20T18:19:48.241Z",
+      "source": "drive_import:Steve Hughes_Work.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-L-049-20260220181948-003"
+    },
+    {
+      "observation": "Strategic talent acquisition: Senior-level recruiting across technology functions, Quality of hire, diversity pipeline, retention rates",
+      "observed_at": "2026-02-20T18:19:48.241Z",
+      "source": "drive_import:Steve Hughes_Work.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-L-049-20260220181948-004"
+    },
+    {
+      "observation": "current_role: Senior Talent Acquisition Manager, company: Lyft, industry: Human Resources / Recruiting / People Operations",
+      "observed_at": "2026-02-20T18:32:06.159Z",
+      "source": "file_import:Steve master.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-BIZ-L-049-20260220183206-005"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-20T18:18:14.342Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "drive_import:Steven Hughes_Master Profile.txt",
+        "ingested_at": "2026-02-20T18:18:14.342Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-20T18:19:48.267Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:Steve Hughes_Work.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "industry",
+            "old_value": "Technology, Transportation",
+            "new_value": "Technology / Transportation",
+            "confidence": 0.6,
+            "timestamp": "2026-02-20T18:19:48.267Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-20T18:19:48.267Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:Steve Hughes_Work.txt: merged data and 2 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-20T18:35:46.968Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Steve master.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-20T18:35:46.968Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "Steve master.txt: merged data and 1 observations"
+        ]
+      }
+    ]
+  },
+  "products_services": [],
+  "key_people": []
+}

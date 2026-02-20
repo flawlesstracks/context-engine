@@ -132,6 +132,96 @@
         "facts_layer": 2,
         "layer_label": "group"
       }
+    },
+    {
+      "attribute_id": "ATTR-008",
+      "key": "gender",
+      "value": "Male",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-20"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-009",
+      "key": "birth_year",
+      "value": "2023",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-20"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-010",
+      "key": "age",
+      "value": "About to turn 3",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-20"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-011",
+      "key": "godparents",
+      "value": "CJ Mitchell, Lola Mafe",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-20"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-012",
+      "key": "origin",
+      "value": "Nigeria",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-20"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-013",
+      "key": "personality_trait",
+      "value": "introvert",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-20"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
     }
   ],
   "relationships": [
@@ -176,6 +266,33 @@
       "name": "CJ Mitchell",
       "relationship_type": "MBA friend and trivia partner",
       "context": "Met during CAU MBA years",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-007",
+      "name": "Steven W. Hughes",
+      "relationship_type": "son",
+      "context": "child",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-008",
+      "name": "Lola Mafe",
+      "relationship_type": "godson",
+      "context": "godparent",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-009",
+      "name": "Micah Hughes",
+      "relationship_type": "godparent",
+      "context": "godmother",
       "sentiment": "neutral",
       "confidence": 0.6,
       "confidence_label": "MODERATE"
@@ -340,6 +457,42 @@
       "observed_by": "Clarence Mitchell",
       "truth_level": "INFERRED",
       "observation_id": "OBS-ENT-AB-051-20260219031917-013"
+    },
+    {
+      "observation": "name: Micah Hughes, gender: Male, birth_year: 2023, age_as_of_profile: About to turn 3, godparents: CJ Mitchell, Lola Mafe",
+      "observed_at": "2026-02-20T18:32:06.159Z",
+      "source": "file_import:Steve master.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-AB-051-20260220183206-014"
+    },
+    {
+      "observation": "Steve and CJ both married African immigrant women (Tihitina from Ethiopia, Lola from Nigeria). Both wives are introverts married to high-extraversion husbands.",
+      "observed_at": "2026-02-20T18:32:06.159Z",
+      "source": "file_import:Steve master.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-AB-051-20260220183206-015"
+    },
+    {
+      "observation": "godparents: CJ Mitchell, Lola Mafe",
+      "observed_at": "2026-02-20T18:32:06.159Z",
+      "source": "file_import:Steve master.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-AB-051-20260220183206-016"
     }
   ],
   "provenance_chain": {
@@ -496,6 +649,34 @@
         "merged_by": "Clarence Mitchell",
         "changes": [
           "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 5 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-20T18:35:46.960Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Steve master.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-20T18:35:46.960Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "Steve master.txt: merged data and 1 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-20T18:35:46.964Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Steve master.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-20T18:35:46.964Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "Steve master.txt: merged data and 2 observations"
         ]
       }
     ]

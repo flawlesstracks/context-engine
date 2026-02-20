@@ -1,0 +1,42 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-17T16:28:43.012Z",
+    "source_description": "decomposed from ENT-SC-002",
+    "extraction_model": "object-decomposer",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "skill",
+    "entity_id": "ENT-SKILL-008",
+    "parent_entity_id": "ENT-SC-002",
+    "name": {
+      "full": "Cloud Architecture",
+      "aliases": []
+    },
+    "summary": {
+      "value": "",
+      "confidence": 0.6,
+      "facts_layer": 2
+    }
+  },
+  "skill_data": {
+    "name": "Cloud Architecture"
+  },
+  "attributes": [],
+  "relationships": [],
+  "observations": [],
+  "provenance_chain": {
+    "created_at": "2026-02-17T16:28:43.012Z",
+    "created_by": "object-decomposer",
+    "source_documents": [
+      {
+        "source": "decomposed from ENT-SC-002",
+        "ingested_at": "2026-02-17T16:28:43.012Z"
+      }
+    ],
+    "merge_history": []
+  }
+}

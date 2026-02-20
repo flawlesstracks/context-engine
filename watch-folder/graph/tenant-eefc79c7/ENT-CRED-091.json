@@ -2,7 +2,7 @@
   "schema_version": "2.0",
   "schema_type": "context_architecture_entity",
   "extraction_metadata": {
-    "extracted_at": "2026-02-19T17:27:17.561Z",
+    "extracted_at": "2026-02-20T18:35:47.495Z",
     "source_description": "decomposed from ENT-CM-001",
     "extraction_model": "object-decomposer",
     "extraction_confidence": 0.6,
@@ -10,10 +10,10 @@
   },
   "entity": {
     "entity_type": "credential",
-    "entity_id": "ENT-CRED-035",
+    "entity_id": "ENT-CRED-091",
     "parent_entity_id": "ENT-CM-001",
     "name": {
-      "full": "MBA, Clark Atlanta University",
+      "full": "Master of Business Administration - MBA Entrepreneurship/Entrepreneurial Studies, Harvard University",
       "aliases": []
     },
     "summary": {
@@ -23,23 +23,23 @@
     }
   },
   "credential_data": {
-    "institution": "Clark Atlanta University",
-    "degree": "MBA",
-    "field": "",
-    "start_year": "",
-    "end_year": "",
-    "organization_id": "ENT-BIZ-CAU-036"
+    "institution": "Harvard University",
+    "degree": "Master of Business Administration - MBA",
+    "field": "Entrepreneurship/Entrepreneurial Studies",
+    "start_year": "2012",
+    "end_year": "2013",
+    "organization_id": "ENT-ORG-009"
   },
   "attributes": [],
   "relationships": [],
   "observations": [],
   "provenance_chain": {
-    "created_at": "2026-02-19T17:27:17.561Z",
+    "created_at": "2026-02-20T18:35:47.495Z",
     "created_by": "object-decomposer",
     "source_documents": [
       {
         "source": "decomposed from ENT-CM-001",
-        "ingested_at": "2026-02-19T17:27:17.561Z"
+        "ingested_at": "2026-02-20T18:35:47.495Z"
       }
     ],
     "merge_history": []

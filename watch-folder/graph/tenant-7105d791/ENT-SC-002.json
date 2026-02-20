@@ -1,0 +1,418 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-16T18:08:24.262Z",
+    "updated_at": "2026-02-16T18:08:24.262Z",
+    "source_description": "linkedin_import:test-linkedin-profile.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Sarah Chen",
+      "preferred": "Sarah",
+      "aliases": [],
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "Passionate engineering leader with 12+ years of experience building scalable distributed systems. Currently leading a team of 25 engineers at Google Cloud, focused on Kubernetes and container orchestration. Previously built core infrastructure at Stripe and early-stage startups.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-SC-002"
+  },
+  "career_lite": {
+    "interface": "career-lite",
+    "implements": [
+      "Contactable",
+      "Identifiable",
+      "Experienceable"
+    ],
+    "headline": "Software Engineering Manager at Google",
+    "location": "San Francisco Bay Area",
+    "current_role": "Software Engineering Manager",
+    "current_company": "Google",
+    "linkedin_url": "https://www.linkedin.com/in/sarahchen",
+    "experience": [
+      {
+        "title": "Software Engineering Manager",
+        "company": "Google",
+        "start_date": "Jan 2021",
+        "end_date": "Present",
+        "description": "Leading a team of 25 engineers on Kubernetes container orchestration. Shipped 3 major features in GKE including Autopilot mode enhancements. Mentoring 5 senior engineers toward staff-level promotion."
+      },
+      {
+        "title": "Senior Software Engineer",
+        "company": "Stripe",
+        "start_date": "Mar 2017",
+        "end_date": "Dec 2020",
+        "description": "Built core payment processing infrastructure handling 10M+ daily transactions. Led migration from monolith to microservices architecture. Designed and implemented the real-time fraud detection pipeline."
+      },
+      {
+        "title": "Software Engineer",
+        "company": "Dropbox",
+        "start_date": "Jun 2014",
+        "end_date": "Feb 2017",
+        "description": "Worked on distributed file synchronization system. Reduced sync latency by 40% through protocol optimization. Contributed to open-source Magic Pocket storage system."
+      },
+      {
+        "title": "Junior Developer",
+        "company": "TechStart Inc.",
+        "start_date": "Sep 2012",
+        "end_date": "May 2014",
+        "description": "Full-stack development on customer-facing web application. Built REST APIs and React frontend components."
+      }
+    ],
+    "education": [
+      {
+        "institution": "Stanford University",
+        "degree": "Master of Science",
+        "field": "Computer Science",
+        "start_year": "2010",
+        "end_year": "2012"
+      },
+      {
+        "institution": "University of California, Berkeley",
+        "degree": "Bachelor of Science",
+        "field": "Electrical Engineering and Computer Science",
+        "start_year": "2006",
+        "end_year": "2010"
+      }
+    ],
+    "skills": [
+      "Kubernetes",
+      "Distributed Systems",
+      "Go",
+      "Python",
+      "Java",
+      "System Design",
+      "Technical Leadership",
+      "Cloud Architecture",
+      "gRPC",
+      "Protocol Buffers",
+      "Docker",
+      "Terraform",
+      "CI/CD",
+      "Machine Learning Infrastructure",
+      "Team Management"
+    ]
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "headline",
+      "value": "Software Engineering Manager at Google",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-16"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "location",
+      "value": "San Francisco Bay Area",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-16"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "role",
+      "value": "Software Engineering Manager",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-16"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "company",
+      "value": "Google",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-16"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "skills",
+      "value": "Kubernetes, Distributed Systems, Go, Python, Java, System Design, Technical Leadership, Cloud Architecture, gRPC, Protocol Buffers, Docker, Terraform, CI/CD, Machine Learning Infrastructure, Team Management",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-16"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "David Park",
+      "relationship_type": "Former colleague at Stripe",
+      "context": "now VP Engineering at Plaid",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "Maria Rodriguez",
+      "relationship_type": "Direct report at Google",
+      "context": "Senior Engineer",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-003",
+      "name": "James Liu",
+      "relationship_type": "Stanford classmate",
+      "context": "co-founded AI startup NeuralPath",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [
+    {
+      "fact_id": "FACT-001",
+      "fact": "Software Engineering Manager at Google at Jan 2021 - Present",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "test-linkedin-profile.txt"
+    },
+    {
+      "fact_id": "FACT-002",
+      "fact": "Senior Software Engineer at Stripe at Mar 2017 - Dec 2020",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "test-linkedin-profile.txt"
+    },
+    {
+      "fact_id": "FACT-003",
+      "fact": "Software Engineer at Dropbox at Jun 2014 - Feb 2017",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "test-linkedin-profile.txt"
+    },
+    {
+      "fact_id": "FACT-004",
+      "fact": "Junior Developer at TechStart Inc. at Sep 2012 - May 2014",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "test-linkedin-profile.txt"
+    },
+    {
+      "fact_id": "FACT-005",
+      "fact": "Master of Science, Computer Science, Stanford University, (2010-2012)",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "test-linkedin-profile.txt"
+    },
+    {
+      "fact_id": "FACT-006",
+      "fact": "Bachelor of Science, Electrical Engineering and Computer Science, University of California, Berkeley, (2006-2010)",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "test-linkedin-profile.txt"
+    }
+  ],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "LinkedIn profile imported from test-linkedin-profile.txt",
+      "observed_at": "2026-02-16T18:08:24.262Z",
+      "source": "linkedin_import",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "truth_level": "INFERRED",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Acme Corp",
+      "observation_id": "OBS-ENT-SC-002-20260216180824-001"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-16T18:08:24.262Z",
+    "created_by": "Acme Corp",
+    "source_documents": [
+      {
+        "source": "linkedin_import:test-linkedin-profile.txt",
+        "ingested_at": "2026-02-16T18:08:24.262Z"
+      }
+    ],
+    "merge_history": []
+  },
+  "connected_objects": [
+    {
+      "entity_id": "ENT-ORG-001",
+      "entity_type": "organization",
+      "label": "Google"
+    },
+    {
+      "entity_id": "ENT-ORG-002",
+      "entity_type": "organization",
+      "label": "Stripe"
+    },
+    {
+      "entity_id": "ENT-ORG-003",
+      "entity_type": "organization",
+      "label": "Dropbox"
+    },
+    {
+      "entity_id": "ENT-ORG-004",
+      "entity_type": "organization",
+      "label": "TechStart Inc."
+    },
+    {
+      "entity_id": "ENT-ORG-005",
+      "entity_type": "organization",
+      "label": "Stanford University"
+    },
+    {
+      "entity_id": "ENT-ORG-006",
+      "entity_type": "organization",
+      "label": "University of California, Berkeley"
+    },
+    {
+      "entity_id": "ENT-ROLE-009",
+      "entity_type": "role",
+      "label": "Software Engineering Manager at Google"
+    },
+    {
+      "entity_id": "ENT-ROLE-010",
+      "entity_type": "role",
+      "label": "Senior Software Engineer at Stripe"
+    },
+    {
+      "entity_id": "ENT-ROLE-011",
+      "entity_type": "role",
+      "label": "Software Engineer at Dropbox"
+    },
+    {
+      "entity_id": "ENT-ROLE-012",
+      "entity_type": "role",
+      "label": "Junior Developer at TechStart Inc."
+    },
+    {
+      "entity_id": "ENT-CRED-005",
+      "entity_type": "credential",
+      "label": "Master of Science Computer Science, Stanford University"
+    },
+    {
+      "entity_id": "ENT-CRED-006",
+      "entity_type": "credential",
+      "label": "Bachelor of Science Electrical Engineering and Computer Science, University of California, Berkeley"
+    },
+    {
+      "entity_id": "ENT-SKILL-001",
+      "entity_type": "skill",
+      "label": "Kubernetes"
+    },
+    {
+      "entity_id": "ENT-SKILL-002",
+      "entity_type": "skill",
+      "label": "Distributed Systems"
+    },
+    {
+      "entity_id": "ENT-SKILL-003",
+      "entity_type": "skill",
+      "label": "Go"
+    },
+    {
+      "entity_id": "ENT-SKILL-004",
+      "entity_type": "skill",
+      "label": "Python"
+    },
+    {
+      "entity_id": "ENT-SKILL-005",
+      "entity_type": "skill",
+      "label": "Java"
+    },
+    {
+      "entity_id": "ENT-SKILL-006",
+      "entity_type": "skill",
+      "label": "System Design"
+    },
+    {
+      "entity_id": "ENT-SKILL-007",
+      "entity_type": "skill",
+      "label": "Technical Leadership"
+    },
+    {
+      "entity_id": "ENT-SKILL-008",
+      "entity_type": "skill",
+      "label": "Cloud Architecture"
+    },
+    {
+      "entity_id": "ENT-SKILL-009",
+      "entity_type": "skill",
+      "label": "gRPC"
+    },
+    {
+      "entity_id": "ENT-SKILL-010",
+      "entity_type": "skill",
+      "label": "Protocol Buffers"
+    },
+    {
+      "entity_id": "ENT-SKILL-011",
+      "entity_type": "skill",
+      "label": "Docker"
+    },
+    {
+      "entity_id": "ENT-SKILL-012",
+      "entity_type": "skill",
+      "label": "Terraform"
+    },
+    {
+      "entity_id": "ENT-SKILL-013",
+      "entity_type": "skill",
+      "label": "CI/CD"
+    },
+    {
+      "entity_id": "ENT-SKILL-014",
+      "entity_type": "skill",
+      "label": "Machine Learning Infrastructure"
+    },
+    {
+      "entity_id": "ENT-SKILL-015",
+      "entity_type": "skill",
+      "label": "Team Management"
+    }
+  ]
+}
