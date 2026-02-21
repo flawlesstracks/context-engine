@@ -246,4 +246,69 @@ function linkedInResponseToEntity(parsed, sourceFilename, agentId) {
   };
 }
 
-module.exports = { buildLinkedInPrompt, linkedInResponseToEntity };
+/**
+ * Generate org entities for each unique company in the LinkedIn experience.
+ * Each org gets a worked_at relationship back to the person.
+ */
+function linkedInExperienceToOrgs(parsed, personName, sourceFilename, agentId) {
+  const now = new Date().toISOString();
+  const seen = new Set();
+  const orgs = [];
+
+  for (const exp of (parsed.experience || [])) {
+    const company = (exp.company || '').trim();
+    if (!company || seen.has(company.toLowerCase())) continue;
+    seen.add(company.toLowerCase());
+
+    orgs.push({
+      schema_version: '2.0',
+      schema_type: 'context_architecture_entity',
+      extraction_metadata: {
+        extracted_at: now, updated_at: now,
+        source_description: `linkedin_import:${sourceFilename}`,
+        extraction_model: 'claude-sonnet-4-5-20250929',
+        extraction_confidence: 0.6, schema_version: '2.0',
+      },
+      entity: {
+        entity_type: 'business',
+        name: { common: company, legal: company, aliases: [], confidence: 0.6, facts_layer: 2 },
+        summary: { value: `${company} — employer of ${personName}`, confidence: 0.5, facts_layer: 2 },
+      },
+      attributes: [],
+      relationships: [{
+        relationship_id: 'REL-001',
+        name: personName,
+        relationship_type: 'employed',
+        context: `${personName} worked at ${company}` + (exp.title ? ` as ${exp.title}` : ''),
+        sentiment: 'neutral', confidence: 0.6, confidence_label: 'MODERATE',
+      }],
+      values: [], key_facts: [], constraints: [],
+      observations: [{
+        observation: `${personName} worked here as ${exp.title || 'employee'}` +
+          (exp.start_date ? ` (${exp.start_date}` + (exp.end_date ? ` - ${exp.end_date}` : ' - Present') + ')' : ''),
+        observed_at: now,
+        source: 'linkedin_import',
+        source_url: parsed.linkedin_url || '',
+        confidence: 0.6, confidence_label: 'MODERATE',
+        truth_level: 'INFERRED',
+        facts_layer: 'L2_GROUP', layer_number: 2,
+        observed_by: agentId || 'file_upload',
+      }],
+      org_dimensions: {
+        relationship_to_primary: 'employer',
+        org_category: 'career',
+        org_status: exp.end_date ? 'former' : 'current',
+        primary_user_role: exp.title || '',
+      },
+      provenance_chain: {
+        created_at: now, created_by: agentId || 'file_upload',
+        source_documents: [{ source: `linkedin_import:${sourceFilename}`, ingested_at: now }],
+        merge_history: [],
+      },
+    });
+  }
+
+  return orgs;
+}
+
+module.exports = { buildLinkedInPrompt, linkedInResponseToEntity, linkedInExperienceToOrgs };

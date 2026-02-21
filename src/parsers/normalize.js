@@ -26,16 +26,39 @@ const CONTACT_COLUMNS = [
 
 function detectLinkedIn(text) {
   const lower = text.toLowerCase();
-  // Require the linkedin.com/in/ URL — common words like "experience",
-  // "education", "skills" appear in many document types and are not
-  // sufficient on their own to identify a LinkedIn profile export.
-  if (!lower.includes('linkedin.com/in/')) return false;
-  let hits = 1; // already counted the URL
-  for (const marker of LINKEDIN_MARKERS) {
-    if (marker === 'linkedin.com/in/') continue;
-    if (lower.includes(marker)) hits++;
+
+  // Strong signal: linkedin.com/in/ URL present
+  if (lower.includes('linkedin.com/in/')) {
+    let hits = 1;
+    for (const marker of LINKEDIN_MARKERS) {
+      if (marker === 'linkedin.com/in/') continue;
+      if (lower.includes(marker)) hits++;
+    }
+    if (hits >= 3) return true;
   }
-  return hits >= 3;
+
+  // PDF export detection: LinkedIn PDFs have distinctive structural patterns
+  // even without the URL (e.g. "Save to PDF" exports strip the URL)
+  const pdfSignals = [
+    /\bexperience\s*\n/i,
+    /\beducation\s*\n/i,
+    /\bskills\s*\n/i,
+    /\bcontact\s*\n/i,
+    /\bsummary\s*\n/i,
+    /\blicenses?\s*(?:&|and)\s*certifications?\s*\n/i,
+    /\brecommendations?\s*\n/i,
+    /\bhonors?\s*(?:&|and)\s*awards?\s*\n/i,
+    /\bvolunteer\s/i,
+    /\blinkedin\.com/i,
+    /\bprofile\s+viewed/i,
+    /\bconnections?\s*$/mi,
+  ];
+  let pdfHits = 0;
+  for (const sig of pdfSignals) {
+    if (sig.test(text)) pdfHits++;
+  }
+  // LinkedIn PDF exports typically have 5+ of these section headers
+  return pdfHits >= 5;
 }
 
 function detectProfile(text) {

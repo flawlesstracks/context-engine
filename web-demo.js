@@ -11,7 +11,7 @@ const cookieParser = require('cookie-parser');
 const { readEntity, writeEntity, listEntities, listEntitiesByType, getNextCounter, loadConnectedObjects, deleteEntity } = require('./src/graph-ops');
 const { ingestPipeline } = require('./src/ingest-pipeline');
 const { normalizeFileToText } = require('./src/parsers/normalize');
-const { buildLinkedInPrompt, linkedInResponseToEntity } = require('./src/parsers/linkedin');
+const { buildLinkedInPrompt, linkedInResponseToEntity, linkedInExperienceToOrgs } = require('./src/parsers/linkedin');
 const { mapContactRows } = require('./src/parsers/contacts');
 const auth = require('./src/auth');
 const drive = require('./src/drive');
@@ -1173,7 +1173,10 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
         const rawResponse = message.content[0].text;
         const cleaned = rawResponse.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
         const parsed = JSON.parse(cleaned);
-        pendingEntities = [linkedInResponseToEntity(parsed, filename, req.agentId)];
+        const personEntity = linkedInResponseToEntity(parsed, filename, req.agentId);
+        const personName = parsed.name?.full || '';
+        const orgEntities = linkedInExperienceToOrgs(parsed, personName, filename, req.agentId);
+        pendingEntities = [personEntity, ...orgEntities];
 
       } else if (metadata.isProfile) {
         // Profile mode — deep structured extraction
@@ -1664,7 +1667,9 @@ app.post('/api/drive/ingest', apiAuth, async (req, res) => {
         const cleaned = rawResponse.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
         const parsed = JSON.parse(cleaned);
         const entity = linkedInResponseToEntity(parsed, filename, req.agentId);
-        result = await ingestPipeline([entity], req.graphDir, req.agentId, {
+        const personName = parsed.name?.full || '';
+        const orgEntities = linkedInExperienceToOrgs(parsed, personName, filename, req.agentId);
+        result = await ingestPipeline([entity, ...orgEntities], req.graphDir, req.agentId, {
           source: `drive:${filename}`,
           truthLevel: 'INFERRED',
         });
