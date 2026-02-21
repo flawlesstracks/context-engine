@@ -1,0 +1,161 @@
+{
+  "cluster_id": "SIG-2726c940-714",
+  "entity_type": "business",
+  "source": {
+    "type": "linkedin_api",
+    "url": "https://www.linkedin.com/in/steve-hughes/",
+    "extracted_at": "2026-02-21T19:21:49.685Z",
+    "description": "linkedin_api:https://www.linkedin.com/in/steve-hughes/",
+    "weight": 0.9
+  },
+  "state": "unresolved",
+  "confidence": 0.17534246575342466,
+  "signal_confidence": 0.9,
+  "candidate_entity_id": null,
+  "candidate_entity_name": null,
+  "quadrant": 1,
+  "match_type": "name_partial",
+  "signals": {
+    "names": [
+      "American Water Resources Association - Washington Section"
+    ],
+    "handles": {
+      "x": null,
+      "instagram": null,
+      "linkedin": null
+    },
+    "titles": [],
+    "organizations": [],
+    "locations": [],
+    "bios": [
+      "American Water Resources Association - Washington Section — employer of Steven (Steve) Hughes"
+    ],
+    "skills": [],
+    "education": [],
+    "raw_text": "Steven (Steve) Hughes worked here as Board Member (Volunteer) (Jan 2006 - Dec 2013)"
+  },
+  "confident_signals": {
+    "names": [
+      {
+        "value": "American Water Resources Association - Washington Section",
+        "confidence": 0.9,
+        "sources": [
+          "SIG-2726c940-714"
+        ],
+        "projected_confidence": 0.9
+      }
+    ],
+    "handles": {
+      "x": null,
+      "instagram": null,
+      "linkedin": null
+    },
+    "titles": [],
+    "organizations": [],
+    "locations": [],
+    "bios": [
+      {
+        "value": "American Water Resources Association - Washington Section — employer of Steven (Steve) Hughes",
+        "confidence": 0.81,
+        "sources": [
+          "SIG-2726c940-714"
+        ],
+        "projected_confidence": 0.9
+      }
+    ],
+    "skills": [],
+    "education": [],
+    "raw_text": "Steven (Steve) Hughes worked here as Board Member (Volunteer) (Jan 2006 - Dec 2013)"
+  },
+  "_entity_data": {
+    "schema_version": "2.0",
+    "schema_type": "context_architecture_entity",
+    "extraction_metadata": {
+      "extracted_at": "2026-02-21T19:21:49.665Z",
+      "updated_at": "2026-02-21T19:21:49.665Z",
+      "source_description": "linkedin_import:https://www.linkedin.com/in/steve-hughes/",
+      "extraction_model": "claude-sonnet-4-5-20250929",
+      "extraction_confidence": 0.6,
+      "schema_version": "2.0"
+    },
+    "entity": {
+      "entity_type": "business",
+      "name": {
+        "common": "American Water Resources Association - Washington Section",
+        "legal": "American Water Resources Association - Washington Section",
+        "aliases": [],
+        "confidence": 0.6,
+        "facts_layer": 2
+      },
+      "summary": {
+        "value": "American Water Resources Association - Washington Section — employer of Steven (Steve) Hughes",
+        "confidence": 0.5,
+        "facts_layer": 2
+      }
+    },
+    "attributes": [],
+    "relationships": [
+      {
+        "relationship_id": "REL-001",
+        "name": "Steven (Steve) Hughes",
+        "relationship_type": "employed",
+        "context": "Steven (Steve) Hughes worked at American Water Resources Association - Washington Section as Board Member (Volunteer)",
+        "sentiment": "neutral",
+        "confidence": 0.6,
+        "confidence_label": "MODERATE"
+      }
+    ],
+    "values": [],
+    "key_facts": [],
+    "constraints": [],
+    "observations": [
+      {
+        "observation": "Steven (Steve) Hughes worked here as Board Member (Volunteer) (Jan 2006 - Dec 2013)",
+        "observed_at": "2026-02-21T19:21:49.665Z",
+        "source": "linkedin_import",
+        "source_url": "https://www.linkedin.com/in/steve-hughes/",
+        "confidence": 0.6,
+        "confidence_label": "MODERATE",
+        "truth_level": "INFERRED",
+        "facts_layer": "L2_GROUP",
+        "layer_number": 2,
+        "observed_by": "Clarence Mitchell"
+      }
+    ],
+    "org_dimensions": {
+      "relationship_to_primary": "employer",
+      "org_category": "career",
+      "org_status": "former",
+      "primary_user_role": "Board Member (Volunteer)"
+    },
+    "provenance_chain": {
+      "created_at": "2026-02-21T19:21:49.665Z",
+      "created_by": "Clarence Mitchell",
+      "source_documents": [
+        {
+          "source": "linkedin_import:https://www.linkedin.com/in/steve-hughes/",
+          "ingested_at": "2026-02-21T19:21:49.665Z"
+        }
+      ],
+      "merge_history": []
+    }
+  },
+  "created_at": "2026-02-21T19:21:49.685Z",
+  "resolved_at": null,
+  "association_confidence": 0.17534246575342466,
+  "association_factors": {
+    "name": 0.4383561643835616,
+    "handle": 0,
+    "org_title": 0,
+    "location": 0,
+    "bio": 0
+  },
+  "quadrant_label": "Q1_CREATE",
+  "data_novelty_ratio": 1,
+  "data_novelty": {
+    "ratio": 1,
+    "new_signals": 0,
+    "duplicate_signals": 0,
+    "details": []
+  }
+}

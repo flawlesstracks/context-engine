@@ -1,0 +1,190 @@
+{
+  "cluster_id": "SIG-44c6f73c-2ff",
+  "entity_type": "person",
+  "source": {
+    "type": "x",
+    "url": "https://x.com/elonmusk",
+    "extracted_at": "2026-02-21T17:42:38.109Z",
+    "description": "url_extract:https://x.com/elonmusk",
+    "weight": 0.6
+  },
+  "state": "unresolved",
+  "confidence": 0.14545454545454548,
+  "signal_confidence": 0.6,
+  "candidate_entity_id": null,
+  "candidate_entity_name": null,
+  "quadrant": 1,
+  "match_type": "name_partial",
+  "signals": {
+    "names": [
+      "elonmusk",
+      "@elonmusk"
+    ],
+    "handles": {
+      "x": "elonmusk",
+      "instagram": null,
+      "linkedin": null
+    },
+    "titles": [],
+    "organizations": [],
+    "locations": [],
+    "bios": [],
+    "skills": [],
+    "education": [],
+    "raw_text": "Social profile imported from https://x.com/elonmusk"
+  },
+  "confident_signals": {
+    "names": [
+      {
+        "value": "elonmusk",
+        "confidence": 0.6,
+        "sources": [
+          "SIG-44c6f73c-2ff"
+        ],
+        "projected_confidence": 0.6
+      },
+      {
+        "value": "@elonmusk",
+        "confidence": 0.6,
+        "sources": [
+          "SIG-44c6f73c-2ff"
+        ],
+        "projected_confidence": 0.6
+      }
+    ],
+    "handles": {
+      "x": {
+        "value": "elonmusk",
+        "confidence": 0.6,
+        "sources": [
+          "SIG-44c6f73c-2ff"
+        ],
+        "projected_confidence": 0.6
+      },
+      "instagram": null,
+      "linkedin": null
+    },
+    "titles": [],
+    "organizations": [],
+    "locations": [],
+    "bios": [],
+    "skills": [],
+    "education": [],
+    "raw_text": "Social profile imported from https://x.com/elonmusk"
+  },
+  "_entity_data": {
+    "schema_version": "2.0",
+    "schema_type": "context_architecture_entity",
+    "extraction_metadata": {
+      "extracted_at": "2026-02-21T17:42:36.877Z",
+      "updated_at": "2026-02-21T17:42:36.877Z",
+      "source_description": "x_profile:https://x.com/elonmusk",
+      "extraction_model": "meta-tag-parser",
+      "extraction_confidence": 0.7,
+      "schema_version": "2.0"
+    },
+    "entity": {
+      "entity_type": "person",
+      "name": {
+        "full": "elonmusk",
+        "preferred": "",
+        "aliases": [
+          "@elonmusk"
+        ],
+        "confidence": 0.7,
+        "facts_layer": 2
+      },
+      "summary": {
+        "value": "",
+        "confidence": 0,
+        "facts_layer": 2
+      }
+    },
+    "attributes": [
+      {
+        "attribute_id": "ATTR-001",
+        "key": "x_handle",
+        "value": "@elonmusk",
+        "confidence": 1,
+        "confidence_label": "VERIFIED",
+        "time_decay": {
+          "stability": "stable",
+          "captured_date": "2026-02-21"
+        },
+        "source_attribution": {
+          "type": "x",
+          "url": "https://x.com/elonmusk",
+          "extracted_at": "2026-02-21T17:42:36.877Z",
+          "facts_layer": 1,
+          "layer_label": "self"
+        }
+      },
+      {
+        "attribute_id": "ATTR-002",
+        "key": "x_url",
+        "value": "https://x.com/elonmusk",
+        "confidence": 1,
+        "confidence_label": "VERIFIED",
+        "time_decay": {
+          "stability": "stable",
+          "captured_date": "2026-02-21"
+        },
+        "source_attribution": {
+          "type": "x",
+          "url": "https://x.com/elonmusk",
+          "extracted_at": "2026-02-21T17:42:36.877Z",
+          "facts_layer": 1,
+          "layer_label": "self"
+        }
+      }
+    ],
+    "relationships": [],
+    "values": [],
+    "key_facts": [],
+    "constraints": [],
+    "observations": [
+      {
+        "observation": "Social profile imported from https://x.com/elonmusk",
+        "observed_at": "2026-02-21T17:42:36.877Z",
+        "source": "x_profile",
+        "source_url": "https://x.com/elonmusk",
+        "confidence": 1,
+        "confidence_label": "VERIFIED",
+        "truth_level": "STRONG",
+        "facts_layer": "L1_SELF",
+        "layer_number": 1,
+        "observed_by": "Clarence Mitchell"
+      }
+    ],
+    "provenance_chain": {
+      "created_at": "2026-02-21T17:42:36.877Z",
+      "created_by": "Clarence Mitchell",
+      "source_documents": [
+        {
+          "source": "x_profile:https://x.com/elonmusk",
+          "url": "https://x.com/elonmusk",
+          "ingested_at": "2026-02-21T17:42:36.877Z"
+        }
+      ],
+      "merge_history": []
+    }
+  },
+  "created_at": "2026-02-21T17:42:38.109Z",
+  "resolved_at": null,
+  "association_confidence": 0.14545454545454548,
+  "association_factors": {
+    "name": 0.36363636363636365,
+    "handle": 0,
+    "org_title": 0,
+    "location": 0,
+    "bio": 0
+  },
+  "quadrant_label": "Q1_CREATE",
+  "data_novelty_ratio": 1,
+  "data_novelty": {
+    "ratio": 1,
+    "new_signals": 0,
+    "duplicate_signals": 0,
+    "details": []
+  }
+}

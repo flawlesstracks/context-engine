@@ -1,0 +1,372 @@
+{
+  "cluster_id": "SIG-8b4a0712-554",
+  "entity_type": "person",
+  "source": {
+    "type": "linkedin_api",
+    "url": "https://www.linkedin.com/in/steve-hughes/",
+    "extracted_at": "2026-02-21T19:21:49.666Z",
+    "description": "linkedin_api:https://www.linkedin.com/in/steve-hughes/",
+    "weight": 0.9
+  },
+  "state": "provisional",
+  "confidence": 0.328,
+  "signal_confidence": 0.9,
+  "candidate_entity_id": "ENT-SH-052",
+  "candidate_entity_name": "Steve Hughes",
+  "quadrant": 2,
+  "match_type": "name_alias",
+  "signals": {
+    "names": [
+      "Steven (Steve) Hughes",
+      "Steven"
+    ],
+    "handles": {
+      "x": null,
+      "instagram": null,
+      "linkedin": "https://www.linkedin.com/in/steve-hughes"
+    },
+    "titles": [
+      "Board Member (Volunteer)"
+    ],
+    "organizations": [
+      "Evergreen Goodwill Industries",
+      "American Water Resources Association - Washington Section"
+    ],
+    "locations": [
+      "Greater Seattle Area"
+    ],
+    "bios": [
+      "My commitment is to excellence and a collaborative management style, enabling…"
+    ],
+    "skills": [],
+    "education": [
+      "University of Wisconsin-Milwaukee"
+    ],
+    "raw_text": "LinkedIn profile imported from https://www.linkedin.com/in/steve-hughes/"
+  },
+  "confident_signals": {
+    "names": [
+      {
+        "value": "Steven (Steve) Hughes",
+        "confidence": 0.9,
+        "sources": [
+          "SIG-8b4a0712-554"
+        ],
+        "projected_confidence": 1
+      },
+      {
+        "value": "Steven",
+        "confidence": 0.9,
+        "sources": [
+          "SIG-8b4a0712-554"
+        ],
+        "projected_confidence": 1
+      }
+    ],
+    "handles": {
+      "x": null,
+      "instagram": null,
+      "linkedin": {
+        "value": "https://www.linkedin.com/in/steve-hughes",
+        "confidence": 0.9,
+        "sources": [
+          "SIG-8b4a0712-554"
+        ],
+        "projected_confidence": 1
+      }
+    },
+    "titles": [
+      {
+        "value": "Board Member (Volunteer)",
+        "confidence": 0.9,
+        "sources": [
+          "SIG-8b4a0712-554"
+        ],
+        "projected_confidence": 1
+      }
+    ],
+    "organizations": [
+      {
+        "value": "Evergreen Goodwill Industries",
+        "confidence": 0.9,
+        "sources": [
+          "SIG-8b4a0712-554"
+        ],
+        "projected_confidence": 1
+      },
+      {
+        "value": "American Water Resources Association - Washington Section",
+        "confidence": 0.9,
+        "sources": [
+          "SIG-8b4a0712-554"
+        ],
+        "projected_confidence": 1
+      }
+    ],
+    "locations": [
+      {
+        "value": "Greater Seattle Area",
+        "confidence": 0.9,
+        "sources": [
+          "SIG-8b4a0712-554"
+        ],
+        "projected_confidence": 1
+      }
+    ],
+    "bios": [
+      {
+        "value": "My commitment is to excellence and a collaborative management style, enabling…",
+        "confidence": 0.81,
+        "sources": [
+          "SIG-8b4a0712-554"
+        ],
+        "projected_confidence": 1
+      }
+    ],
+    "skills": [],
+    "education": [
+      {
+        "value": "University of Wisconsin-Milwaukee",
+        "confidence": 0.9,
+        "sources": [
+          "SIG-8b4a0712-554"
+        ],
+        "projected_confidence": 1
+      }
+    ],
+    "raw_text": "LinkedIn profile imported from https://www.linkedin.com/in/steve-hughes/"
+  },
+  "_entity_data": {
+    "schema_version": "2.0",
+    "schema_type": "context_architecture_entity",
+    "extraction_metadata": {
+      "extracted_at": "2026-02-21T19:21:49.665Z",
+      "updated_at": "2026-02-21T19:21:49.665Z",
+      "source_description": "linkedin_import:https://www.linkedin.com/in/steve-hughes/",
+      "extraction_model": "claude-sonnet-4-5-20250929",
+      "extraction_confidence": 0.6,
+      "schema_version": "2.0"
+    },
+    "entity": {
+      "entity_type": "person",
+      "name": {
+        "full": "Steven (Steve) Hughes",
+        "preferred": "Steven",
+        "aliases": [],
+        "confidence": 0.6,
+        "facts_layer": 2
+      },
+      "summary": {
+        "value": "My commitment is to excellence and a collaborative management style, enabling…",
+        "confidence": 0.6,
+        "facts_layer": 2
+      }
+    },
+    "career_lite": {
+      "interface": "career-lite",
+      "implements": [
+        "Contactable",
+        "Identifiable",
+        "Experienceable"
+      ],
+      "name": "Steven (Steve) Hughes",
+      "email": "",
+      "location": "Greater Seattle Area",
+      "linkedin_url": "https://www.linkedin.com/in/steve-hughes/",
+      "phone": "",
+      "headline": "",
+      "summary": "My commitment is to excellence and a collaborative management style, enabling…",
+      "current_title": "",
+      "current_company": "Evergreen Goodwill Industries",
+      "current_role": "",
+      "work_history": [
+        {
+          "company": "Evergreen Goodwill Industries",
+          "title": "",
+          "start_date": "",
+          "end_date": "",
+          "description": ""
+        },
+        {
+          "company": "American Water Resources Association - Washington Section",
+          "title": "Board Member (Volunteer)",
+          "start_date": "Jan 2006",
+          "end_date": "Dec 2013",
+          "description": ""
+        }
+      ],
+      "experience": [
+        {
+          "title": "",
+          "company": "Evergreen Goodwill Industries",
+          "start_date": "",
+          "end_date": "",
+          "description": ""
+        },
+        {
+          "title": "Board Member (Volunteer)",
+          "company": "American Water Resources Association - Washington Section",
+          "start_date": "Jan 2006",
+          "end_date": "Dec 2013",
+          "description": ""
+        }
+      ],
+      "education": [
+        {
+          "institution": "University of Wisconsin-Milwaukee",
+          "degree": "",
+          "field": "",
+          "year": "",
+          "start_year": "",
+          "end_year": ""
+        }
+      ],
+      "skills": []
+    },
+    "attributes": [
+      {
+        "attribute_id": "ATTR-001",
+        "key": "location",
+        "value": "Greater Seattle Area",
+        "confidence": 0.85,
+        "confidence_label": "HIGH",
+        "time_decay": {
+          "stability": "semi_stable",
+          "captured_date": "2026-02-21"
+        },
+        "source_attribution": {
+          "facts_layer": 2,
+          "layer_label": "group"
+        }
+      },
+      {
+        "attribute_id": "ATTR-002",
+        "key": "company",
+        "value": "Evergreen Goodwill Industries",
+        "confidence": 0.85,
+        "confidence_label": "HIGH",
+        "time_decay": {
+          "stability": "semi_stable",
+          "captured_date": "2026-02-21"
+        },
+        "source_attribution": {
+          "facts_layer": 2,
+          "layer_label": "group"
+        }
+      },
+      {
+        "attribute_id": "ATTR-003",
+        "key": "linkedin_url",
+        "value": "https://www.linkedin.com/in/steve-hughes/",
+        "confidence": 0.85,
+        "confidence_label": "HIGH",
+        "time_decay": {
+          "stability": "stable",
+          "captured_date": "2026-02-21"
+        },
+        "source_attribution": {
+          "facts_layer": 2,
+          "layer_label": "group"
+        }
+      }
+    ],
+    "relationships": [],
+    "values": [],
+    "key_facts": [
+      {
+        "fact_id": "FACT-001",
+        "fact": "Evergreen Goodwill Industries",
+        "confidence": 0.85,
+        "confidence_label": "HIGH",
+        "source": "https://www.linkedin.com/in/steve-hughes/"
+      },
+      {
+        "fact_id": "FACT-002",
+        "fact": "Board Member (Volunteer) at American Water Resources Association - Washington Section at Jan 2006 - Dec 2013",
+        "confidence": 0.85,
+        "confidence_label": "HIGH",
+        "source": "https://www.linkedin.com/in/steve-hughes/"
+      },
+      {
+        "fact_id": "FACT-003",
+        "fact": "University of Wisconsin-Milwaukee",
+        "confidence": 0.85,
+        "confidence_label": "HIGH",
+        "source": "https://www.linkedin.com/in/steve-hughes/"
+      }
+    ],
+    "constraints": [],
+    "observations": [
+      {
+        "observation": "LinkedIn profile imported from https://www.linkedin.com/in/steve-hughes/",
+        "observed_at": "2026-02-21T19:21:49.665Z",
+        "source": "linkedin_import",
+        "confidence": 0.6,
+        "confidence_label": "MODERATE",
+        "truth_level": "INFERRED",
+        "facts_layer": "L2_GROUP",
+        "layer_number": 2,
+        "observed_by": "Clarence Mitchell"
+      }
+    ],
+    "provenance_chain": {
+      "created_at": "2026-02-21T19:21:49.665Z",
+      "created_by": "Clarence Mitchell",
+      "source_documents": [
+        {
+          "source": "linkedin_import:https://www.linkedin.com/in/steve-hughes/",
+          "ingested_at": "2026-02-21T19:21:49.665Z"
+        }
+      ],
+      "merge_history": []
+    }
+  },
+  "created_at": "2026-02-21T19:21:49.666Z",
+  "resolved_at": null,
+  "association_confidence": 0.328,
+  "association_factors": {
+    "name": 0.82,
+    "handle": 0,
+    "org_title": 0,
+    "location": 0,
+    "bio": 0
+  },
+  "quadrant_label": "Q2_ENRICH",
+  "data_novelty_ratio": 1,
+  "data_novelty": {
+    "ratio": 1,
+    "new_signals": 6,
+    "duplicate_signals": 0,
+    "details": [
+      {
+        "key": "linkedin_url",
+        "status": "new"
+      },
+      {
+        "key": "title",
+        "value": "Board Member (Volunteer)",
+        "status": "new"
+      },
+      {
+        "key": "organization",
+        "value": "Evergreen Goodwill Industries",
+        "status": "new"
+      },
+      {
+        "key": "organization",
+        "value": "American Water Resources Association - Washington Section",
+        "status": "new"
+      },
+      {
+        "key": "location",
+        "value": "Greater Seattle Area",
+        "status": "new"
+      },
+      {
+        "key": "education",
+        "value": "University of Wisconsin-Milwaukee",
+        "status": "new"
+      }
+    ]
+  }
+}

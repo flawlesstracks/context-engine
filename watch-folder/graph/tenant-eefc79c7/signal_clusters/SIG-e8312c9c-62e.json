@@ -1,0 +1,161 @@
+{
+  "cluster_id": "SIG-e8312c9c-62e",
+  "entity_type": "business",
+  "source": {
+    "type": "linkedin_api",
+    "url": "https://www.linkedin.com/in/andreburgin/",
+    "extracted_at": "2026-02-21T18:46:46.009Z",
+    "description": "linkedin_api:https://www.linkedin.com/in/andreburgin/",
+    "weight": 0.9
+  },
+  "state": "provisional",
+  "confidence": 0.4,
+  "signal_confidence": 0.9,
+  "candidate_entity_id": "ENT-ORG-015",
+  "candidate_entity_name": "Adams Park Residents Association",
+  "quadrant": 2,
+  "match_type": "name_high",
+  "signals": {
+    "names": [
+      "Adams Park Residents Association"
+    ],
+    "handles": {
+      "x": null,
+      "instagram": null,
+      "linkedin": null
+    },
+    "titles": [],
+    "organizations": [],
+    "locations": [],
+    "bios": [
+      "Adams Park Residents Association — employer of Andre Burgin"
+    ],
+    "skills": [],
+    "education": [],
+    "raw_text": "Andre Burgin worked here as Co-Chair (Volunteer) (Jan 2018 - Present)"
+  },
+  "confident_signals": {
+    "names": [
+      {
+        "value": "Adams Park Residents Association",
+        "confidence": 0.9,
+        "sources": [
+          "SIG-e8312c9c-62e"
+        ],
+        "projected_confidence": 1
+      }
+    ],
+    "handles": {
+      "x": null,
+      "instagram": null,
+      "linkedin": null
+    },
+    "titles": [],
+    "organizations": [],
+    "locations": [],
+    "bios": [
+      {
+        "value": "Adams Park Residents Association — employer of Andre Burgin",
+        "confidence": 0.81,
+        "sources": [
+          "SIG-e8312c9c-62e"
+        ],
+        "projected_confidence": 1
+      }
+    ],
+    "skills": [],
+    "education": [],
+    "raw_text": "Andre Burgin worked here as Co-Chair (Volunteer) (Jan 2018 - Present)"
+  },
+  "_entity_data": {
+    "schema_version": "2.0",
+    "schema_type": "context_architecture_entity",
+    "extraction_metadata": {
+      "extracted_at": "2026-02-21T18:46:45.988Z",
+      "updated_at": "2026-02-21T18:46:45.988Z",
+      "source_description": "linkedin_import:https://www.linkedin.com/in/andreburgin/",
+      "extraction_model": "claude-sonnet-4-5-20250929",
+      "extraction_confidence": 0.6,
+      "schema_version": "2.0"
+    },
+    "entity": {
+      "entity_type": "business",
+      "name": {
+        "common": "Adams Park Residents Association",
+        "legal": "Adams Park Residents Association",
+        "aliases": [],
+        "confidence": 0.6,
+        "facts_layer": 2
+      },
+      "summary": {
+        "value": "Adams Park Residents Association — employer of Andre Burgin",
+        "confidence": 0.5,
+        "facts_layer": 2
+      }
+    },
+    "attributes": [],
+    "relationships": [
+      {
+        "relationship_id": "REL-001",
+        "name": "Andre Burgin",
+        "relationship_type": "employed",
+        "context": "Andre Burgin worked at Adams Park Residents Association as Co-Chair (Volunteer)",
+        "sentiment": "neutral",
+        "confidence": 0.6,
+        "confidence_label": "MODERATE"
+      }
+    ],
+    "values": [],
+    "key_facts": [],
+    "constraints": [],
+    "observations": [
+      {
+        "observation": "Andre Burgin worked here as Co-Chair (Volunteer) (Jan 2018 - Present)",
+        "observed_at": "2026-02-21T18:46:45.988Z",
+        "source": "linkedin_import",
+        "source_url": "https://www.linkedin.com/in/andreburgin/",
+        "confidence": 0.6,
+        "confidence_label": "MODERATE",
+        "truth_level": "INFERRED",
+        "facts_layer": "L2_GROUP",
+        "layer_number": 2,
+        "observed_by": "Clarence Mitchell"
+      }
+    ],
+    "org_dimensions": {
+      "relationship_to_primary": "employer",
+      "org_category": "career",
+      "org_status": "former",
+      "primary_user_role": "Co-Chair (Volunteer)"
+    },
+    "provenance_chain": {
+      "created_at": "2026-02-21T18:46:45.988Z",
+      "created_by": "Clarence Mitchell",
+      "source_documents": [
+        {
+          "source": "linkedin_import:https://www.linkedin.com/in/andreburgin/",
+          "ingested_at": "2026-02-21T18:46:45.988Z"
+        }
+      ],
+      "merge_history": []
+    }
+  },
+  "created_at": "2026-02-21T18:46:46.009Z",
+  "resolved_at": null,
+  "association_confidence": 0.4,
+  "association_factors": {
+    "name": 1,
+    "handle": 0,
+    "org_title": 0,
+    "location": 0,
+    "bio": 0
+  },
+  "quadrant_label": "Q2_ENRICH",
+  "data_novelty_ratio": 1,
+  "data_novelty": {
+    "ratio": 1,
+    "new_signals": 0,
+    "duplicate_signals": 0,
+    "details": []
+  }
+}

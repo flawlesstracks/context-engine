@@ -97,25 +97,32 @@ All extraction paths (URL paste, LinkedIn, X/IG, file upload) flow through signa
 - **PROVISIONAL** → scored with candidate match, awaiting user decision
 - **CONFIRMED** → user resolved (created, merged, skipped)
 
-### Confidence Scoring (Three Levels)
-1. **Signal Confidence** — source weight (LinkedIn API: 0.9, X/IG: 0.6, Web: 0.5, File: 0.7)
-2. **Association Confidence** — match score (social_handle: 0.90, name_high: 0.85, org_normalized: 0.85)
-3. **Attribute Confidence** — base × recency × corroboration (2 sources: ×1.3, 3+: ×1.5 cap)
+### scoreCluster — 5-Step Provisioner Scoring
+1. **STEP 1: Signal Confidence** — per-signal base_source_weight from SOURCE_WEIGHTS table (user_input: 0.95, linkedin_api: 0.9, linkedin_pdf: 0.85, company_website: 0.8, file: 0.75, social: 0.6, web: 0.5, mention: 0.4)
+2. **STEP 2: Association Confidence** — 5-factor weighted composite matching against all existing entities:
+   - name_match: 0.4 weight (Dice coefficient + namesLikelyMatch for nicknames)
+   - handle_match: 0.3 weight (LinkedIn URL, X handle, Instagram handle — exact match)
+   - org_title_match: 0.15 weight (company + title fuzzy match)
+   - location_match: 0.1 weight (city/state token overlap)
+   - bio_similarity: 0.05 weight (keyword overlap on summary/bio)
+   - Entity with highest score > 0.3 threshold = candidate_entity_id
+3. **STEP 3: Data Novelty** — per-signal check against candidate entity. >50% new = NEW DATA, >50% duplicate = DUPLICATE DATA. Stored as data_novelty_ratio.
+4. **STEP 4: Quadrant Assignment** — entity existence (score > 0.3) × data novelty (>50% new):
+   - Q1_CREATE: New Data + New Entity
+   - Q2_ENRICH: New Data + Existing Entity
+   - Q3_CONSOLIDATE: Duplicate Data + New Entity
+   - Q4_CONFIRM: Duplicate Data + Existing Entity
+5. **STEP 5: Projected Confidence** — per-signal: base_source_weight × recency_modifier × corroboration_multiplier. Recency only decays volatile attributes (headline, role, company, location). Historical facts (education, past roles) always 1.0.
 
-### Entity Matching Priority
-| Priority | Match Type | Confidence |
-|----------|------------|------------|
-| 1 | social_handle (x, instagram, linkedin) | 0.90 |
-| 2 | handle_alias_cross | 0.85 |
-| 3 | name_high (Dice > 0.85) | 0.85 |
-| 4 | name_alias (namesLikelyMatch) | 0.82 |
-| 5 | name + 2 properties | 0.75 |
-| 6 | name + shared rels | 0.70 |
-| 7 | org name normalized | 0.85 |
+### Confidence Scoring (Three Levels)
+1. **Signal Confidence** — source weight set once at scoring time
+2. **Association Confidence** — 5-factor weighted composite (threshold: 0.3)
+3. **Attribute Confidence** — base × recency × corroboration (2 sources: ×1.3, 3+: ×1.5 cap)
 
 ### Signal Clusters
 Stored in `{graphDir}/signal_clusters/SIG-{uuid}.json`. Deleted on resolution.
-Per-signal values carry: `{value, confidence, sources}` format.
+Per-signal values carry: `{value, confidence, sources, projected_confidence}` format.
+Cluster stores: signal_confidence, association_confidence, association_factors, data_novelty_ratio, data_novelty, quadrant, quadrant_label, candidate_entity_id.
 
 ### Test Results (Feb 21, 2026)
 - **Q3 PASS**: Two Amazon extractions from different URLs → both scored Q3 → cluster 1 promoted to entity → cluster 2 re-scored as Q2 (0.85 name_high) → merged. Corroboration multiplier applied (industry attr: 0.7 × 1.3 = 0.91), both source URLs in provenance.

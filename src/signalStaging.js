@@ -51,6 +51,8 @@ function listClusters(graphDir) {
 
 // Base source weights: how trustworthy is this source type?
 const SOURCE_WEIGHTS = {
+  user_input: 0.95,        // Manual user entry — highest trust
+  manual: 0.95,
   linkedin_api: 0.9,       // Proxycurl
   linkedin_proxycurl: 0.9,
   linkedin_pdf: 0.85,
@@ -58,13 +60,19 @@ const SOURCE_WEIGHTS = {
   company_website: 0.8,
   about_page: 0.8,
   file_upload: 0.75,       // Resume, bio doc
+  file_import: 0.75,
+  uploaded_document: 0.75,
   file: 0.75,
   x: 0.6,                  // Social profiles
   instagram: 0.6,
   social: 0.6,
+  social_media: 0.6,
   web: 0.5,                // Generic scraped page
   url_extract: 0.5,
-  mention: 0.4,            // Mentioned in someone else's data
+  scraped_web_page: 0.5,
+  generic_url: 0.5,
+  entity_mention: 0.4,     // Referenced in another entity's doc
+  mention: 0.4,
   unknown: 0.4,
 };
 
@@ -313,164 +321,351 @@ function getEntitySocialHandles(entity) {
   return handles;
 }
 
-function scoreEntityMatch(signals, entityType, entity) {
+// --- STEP 2: 5-Factor Weighted Association Scoring ---
+
+const ASSOCIATION_WEIGHTS = {
+  name: 0.4,
+  handle: 0.3,
+  org_title: 0.15,
+  location: 0.1,
+  bio: 0.05,
+};
+
+function computeAssociationScore(signals, entityType, entity) {
   const existingType = entity.entity?.entity_type;
-  if (!existingType) return { confidence: 0, matchType: null };
+  if (!existingType) return { score: 0, factors: {}, matchType: null };
 
   // Type compatibility check
   if (entityType !== existingType) {
     const orgTypes = new Set(['organization', 'institution', 'business']);
     if (!orgTypes.has(entityType) || !orgTypes.has(existingType)) {
-      return { confidence: 0, matchType: null };
+      return { score: 0, factors: {}, matchType: null };
     }
   }
 
-  // 1. Email match
-  const existingProps = getEntityProperties(entity);
-  const incomingEmail = signals.names.length ? null : null; // emails from attributes
-  // Check email from _entity_data if available
-  // (handled via property overlap below)
-
-  // 2. Social handle match
-  const existingHandles = getEntitySocialHandles(entity);
-  const existingAliases = (entity.entity?.name?.aliases || []).map(a => a.toLowerCase().replace(/^@/, ''));
-  const existingNames = getAllNames(entity);
-
-  // X handle match
-  if (signals.handles.x && existingHandles.x && signals.handles.x === existingHandles.x) {
-    return { confidence: 0.90, matchType: 'social_handle_x' };
-  }
-  // Instagram handle match
-  if (signals.handles.instagram && existingHandles.instagram && signals.handles.instagram === existingHandles.instagram) {
-    return { confidence: 0.90, matchType: 'social_handle_instagram' };
-  }
-  // LinkedIn URL match
-  if (signals.handles.linkedin && existingHandles.linkedin && signals.handles.linkedin === existingHandles.linkedin) {
-    return { confidence: 0.90, matchType: 'social_url_linkedin' };
-  }
-
-  // 3. Handle ↔ alias cross-match: incoming handle found in existing aliases
-  if (signals.handles.x && existingAliases.includes(signals.handles.x)) {
-    return { confidence: 0.85, matchType: 'handle_alias_cross' };
-  }
-  if (signals.handles.instagram && existingAliases.includes(signals.handles.instagram)) {
-    return { confidence: 0.85, matchType: 'handle_alias_cross' };
-  }
-  // Reverse: existing handle found in incoming names/aliases
-  if (existingHandles.x) {
-    const incomingLower = signals.names.map(n => n.toLowerCase().replace(/^@/, ''));
-    if (incomingLower.includes(existingHandles.x)) {
-      return { confidence: 0.85, matchType: 'handle_alias_cross' };
-    }
-  }
-
-  // 4. Name matching
   const isPerson = entityType === 'person';
-  const incomingNames = signals.names;
 
-  // Get primary name for Dice comparison
-  let existingPrimaryName = '';
-  if (isPerson) {
-    existingPrimaryName = entity.entity?.name?.full || '';
-  } else {
-    existingPrimaryName = entity.entity?.name?.common || entity.entity?.name?.legal || '';
-  }
-  const incomingPrimaryName = incomingNames[0] || '';
+  // --- Factor 1: Name match (weight: 0.4) ---
+  let nameScore = 0;
+  let nameMethod = null;
+  const existingNames = getAllNames(entity);
+  const existingPrimary = isPerson
+    ? (entity.entity?.name?.full || '')
+    : (entity.entity?.name?.common || entity.entity?.name?.legal || '');
+  const incomingPrimary = signals.names[0] || '';
 
-  // High name similarity (Dice > 0.85)
-  if (incomingPrimaryName && existingPrimaryName && similarity(incomingPrimaryName, existingPrimaryName) > 0.85) {
-    return { confidence: 0.85, matchType: 'name_high' };
-  }
-
-  if (isPerson) {
-    // Names-likely-match (alias/initials/token subset)
-    if (incomingNames.length > 0 && existingNames.length > 0 && namesLikelyMatch(incomingNames, existingNames)) {
-      return { confidence: 0.82, matchType: 'name_alias' };
+  if (incomingPrimary && existingPrimary) {
+    const dice = similarity(incomingPrimary, existingPrimary);
+    if (dice > 0.85) {
+      nameScore = dice;
+      nameMethod = 'name_high';
+    } else if (isPerson && signals.names.length > 0 && existingNames.length > 0 && namesLikelyMatch(signals.names, existingNames)) {
+      nameScore = 0.82;
+      nameMethod = 'name_alias';
+    } else if (dice > 0.5) {
+      nameScore = dice;
+      nameMethod = 'name_partial';
     }
-
-    // Build a fake entity for property/relationship comparison
-    const fakeIncoming = {
-      entity: { entity_type: 'person', name: { full: incomingPrimaryName, aliases: incomingNames.slice(1) } },
-      attributes: [],
-      relationships: [],
-    };
-
-    // Moderate name + 2 property overlaps
-    const nameSim = incomingPrimaryName ? similarity(incomingPrimaryName, existingPrimaryName) : 0;
-    if (nameSim > 0.5) {
-      // Build minimal entity for propertyOverlapCount
-      const overlap = propertyOverlapCount(entity, fakeIncoming);
-      if (overlap >= 2) return { confidence: 0.75, matchType: 'name_properties' };
-
-      // Shared relationships
-      const sharedRels = countSharedRelationships(entity, fakeIncoming);
-      if (sharedRels >= 1) return { confidence: 0.70, matchType: 'name_shared_rels' };
+  }
+  // Check all name combinations for a better match
+  for (const iName of signals.names) {
+    for (const eName of existingNames) {
+      const d = similarity(iName, eName);
+      if (d > nameScore) {
+        nameScore = d;
+        nameMethod = d > 0.85 ? 'name_high' : 'name_partial';
+      }
     }
-  } else {
-    // Org name normalization (strip Inc, LLC, etc.)
-    if (incomingPrimaryName && existingPrimaryName) {
-      const normIncoming = incomingPrimaryName.toLowerCase().replace(/[.,\-\s]+(com|inc|llc|corp|ltd)$/i, '').trim();
-      const normExisting = existingPrimaryName.toLowerCase().replace(/[.,\-\s]+(com|inc|llc|corp|ltd)$/i, '').trim();
-      if (normIncoming && normExisting && similarity(normIncoming, normExisting) > 0.85) {
-        return { confidence: 0.85, matchType: 'org_name_normalized' };
+  }
+  // Org name normalization for non-person entities
+  if (!isPerson && nameScore < 0.85 && incomingPrimary && existingPrimary) {
+    const normIncoming = incomingPrimary.toLowerCase().replace(/[.,\-\s]+(com|inc|llc|corp|ltd)$/i, '').trim();
+    const normExisting = existingPrimary.toLowerCase().replace(/[.,\-\s]+(com|inc|llc|corp|ltd)$/i, '').trim();
+    if (normIncoming && normExisting) {
+      const d = similarity(normIncoming, normExisting);
+      if (d > nameScore) {
+        nameScore = d;
+        nameMethod = 'org_name_normalized';
       }
     }
   }
 
-  return { confidence: 0, matchType: null };
+  // --- Factor 2: Handle match (weight: 0.3) ---
+  let handleScore = 0;
+  const existingHandles = getEntitySocialHandles(entity);
+  const existingAliases = (entity.entity?.name?.aliases || []).map(a => a.toLowerCase().replace(/^@/, ''));
+
+  // Exact handle matches
+  if (signals.handles.x && existingHandles.x && signals.handles.x === existingHandles.x) handleScore = 1.0;
+  else if (signals.handles.instagram && existingHandles.instagram && signals.handles.instagram === existingHandles.instagram) handleScore = 1.0;
+  else if (signals.handles.linkedin && existingHandles.linkedin && signals.handles.linkedin === existingHandles.linkedin) handleScore = 1.0;
+  // Alias cross-match
+  else if (signals.handles.x && existingAliases.includes(signals.handles.x)) handleScore = 0.85;
+  else if (signals.handles.instagram && existingAliases.includes(signals.handles.instagram)) handleScore = 0.85;
+  else if (existingHandles.x) {
+    const incomingLower = signals.names.map(n => n.toLowerCase().replace(/^@/, ''));
+    if (incomingLower.includes(existingHandles.x)) handleScore = 0.85;
+  }
+
+  // --- Factor 3: Org + Title match (weight: 0.15) ---
+  let orgTitleScore = 0;
+  const existingProps = getEntityProperties(entity);
+
+  let orgMatch = false;
+  for (const org of signals.organizations) {
+    const orgLower = org.toLowerCase();
+    const existingCompany = (existingProps.company || '').toLowerCase();
+    if (existingCompany && (similarity(orgLower, existingCompany) > 0.7 ||
+        existingCompany.includes(orgLower) || orgLower.includes(existingCompany))) {
+      orgMatch = true; break;
+    }
+    for (const exp of (entity.career_lite?.experience || entity.career_lite?.work_history || [])) {
+      if (exp.company && similarity(orgLower, exp.company.toLowerCase()) > 0.7) {
+        orgMatch = true; break;
+      }
+    }
+    if (orgMatch) break;
+  }
+
+  let titleMatch = false;
+  for (const title of signals.titles) {
+    for (const attr of (entity.attributes || [])) {
+      if (['headline', 'role', 'current_role'].includes((attr.key || '').toLowerCase())) {
+        if (similarity(title.toLowerCase(), (attr.value || '').toLowerCase()) > 0.7) {
+          titleMatch = true; break;
+        }
+      }
+    }
+    if (titleMatch) break;
+    for (const exp of (entity.career_lite?.experience || entity.career_lite?.work_history || [])) {
+      if (exp.title && similarity(title.toLowerCase(), exp.title.toLowerCase()) > 0.7) {
+        titleMatch = true; break;
+      }
+    }
+    if (titleMatch) break;
+  }
+
+  if (orgMatch && titleMatch) orgTitleScore = 1.0;
+  else if (orgMatch) orgTitleScore = 0.5;
+  else if (titleMatch) orgTitleScore = 0.3;
+
+  // --- Factor 4: Location match (weight: 0.1) ---
+  let locationScore = 0;
+  for (const loc of signals.locations) {
+    const locLower = loc.toLowerCase();
+    const locTokens = locLower.split(/[,\s]+/).filter(Boolean);
+    for (const attr of (entity.attributes || [])) {
+      if (['location', 'current_location'].includes((attr.key || '').toLowerCase())) {
+        const existingLoc = (attr.value || '').toLowerCase();
+        if (similarity(locLower, existingLoc) > 0.7) { locationScore = 1.0; break; }
+        const existingTokens = existingLoc.split(/[,\s]+/).filter(Boolean);
+        const shared = locTokens.filter(t => existingTokens.some(et => et === t || similarity(t, et) > 0.8));
+        if (shared.length > 0) locationScore = Math.max(locationScore, shared.length / Math.max(locTokens.length, 1));
+      }
+    }
+    if (locationScore < 1.0 && entity.career_lite?.location) {
+      const clLoc = entity.career_lite.location.toLowerCase();
+      if (similarity(locLower, clLoc) > 0.7) locationScore = 1.0;
+      else {
+        const clTokens = clLoc.split(/[,\s]+/).filter(Boolean);
+        const shared = locTokens.filter(t => clTokens.some(ct => ct === t || similarity(t, ct) > 0.8));
+        if (shared.length > 0) locationScore = Math.max(locationScore, shared.length / Math.max(locTokens.length, 1));
+      }
+    }
+    if (locationScore >= 1.0) break;
+  }
+
+  // --- Factor 5: Bio similarity (weight: 0.05) ---
+  let bioScore = 0;
+  const entityBios = [];
+  if (entity.entity?.summary?.value) entityBios.push(entity.entity.summary.value.toLowerCase());
+  for (const attr of (entity.attributes || [])) {
+    if (['x_bio', 'instagram_bio', 'bio'].includes((attr.key || '').toLowerCase()) && attr.value) {
+      entityBios.push(attr.value.toLowerCase());
+    }
+  }
+  if (signals.bios.length > 0 && entityBios.length > 0) {
+    const clusterWords = new Set(signals.bios.join(' ').toLowerCase().split(/\s+/).filter(w => w.length > 3));
+    const entityWords = new Set(entityBios.join(' ').split(/\s+/).filter(w => w.length > 3));
+    if (clusterWords.size > 0 && entityWords.size > 0) {
+      let shared = 0;
+      for (const w of clusterWords) { if (entityWords.has(w)) shared++; }
+      bioScore = shared / Math.max(clusterWords.size, 1);
+    }
+  }
+
+  // --- Weighted composite score ---
+  const score = (ASSOCIATION_WEIGHTS.name * nameScore) +
+                (ASSOCIATION_WEIGHTS.handle * handleScore) +
+                (ASSOCIATION_WEIGHTS.org_title * orgTitleScore) +
+                (ASSOCIATION_WEIGHTS.location * locationScore) +
+                (ASSOCIATION_WEIGHTS.bio * bioScore);
+
+  // Determine primary match type from strongest factor
+  let matchType = null;
+  if (handleScore >= 1.0) matchType = 'social_handle';
+  else if (handleScore >= 0.85) matchType = 'handle_alias_cross';
+  else if (nameScore > 0.85) matchType = nameMethod || 'name_high';
+  else if (nameScore > 0.5 && orgTitleScore > 0) matchType = 'name_org_title';
+  else if (nameScore > 0) matchType = nameMethod || 'name_partial';
+
+  return { score, factors: { name: nameScore, handle: handleScore, org_title: orgTitleScore, location: locationScore, bio: bioScore }, matchType };
 }
 
-function computeSignalOverlap(signals, existingEntity) {
-  // Check how much of the incoming signal data already exists on the entity
-  let totalSignals = 0;
-  let matchedSignals = 0;
+// --- STEP 3: Data Novelty Check ---
 
-  const existingProps = getEntityProperties(existingEntity);
-  const existingHandles = getEntitySocialHandles(existingEntity);
+function computeDataNovelty(signals, entity) {
+  if (!entity) return { ratio: 1.0, newSignals: 0, duplicateSignals: 0, details: [] };
+
+  let newSignals = 0;
+  let duplicateSignals = 0;
+  const details = [];
+
+  const existingHandles = getEntitySocialHandles(entity);
+  const existingProps = getEntityProperties(entity);
 
   // Handles
-  if (signals.handles.x) { totalSignals++; if (existingHandles.x === signals.handles.x) matchedSignals++; }
-  if (signals.handles.instagram) { totalSignals++; if (existingHandles.instagram === signals.handles.instagram) matchedSignals++; }
-  if (signals.handles.linkedin) { totalSignals++; if (existingHandles.linkedin === signals.handles.linkedin) matchedSignals++; }
+  if (signals.handles.x) {
+    if (existingHandles.x === signals.handles.x) { duplicateSignals++; details.push({ key: 'x_handle', status: 'duplicate' }); }
+    else { newSignals++; details.push({ key: 'x_handle', status: 'new' }); }
+  }
+  if (signals.handles.instagram) {
+    if (existingHandles.instagram === signals.handles.instagram) { duplicateSignals++; details.push({ key: 'instagram_handle', status: 'duplicate' }); }
+    else { newSignals++; details.push({ key: 'instagram_handle', status: 'new' }); }
+  }
+  if (signals.handles.linkedin) {
+    if (existingHandles.linkedin === signals.handles.linkedin) { duplicateSignals++; details.push({ key: 'linkedin_url', status: 'duplicate' }); }
+    else { newSignals++; details.push({ key: 'linkedin_url', status: 'new' }); }
+  }
 
   // Titles
   for (const title of signals.titles) {
-    totalSignals++;
-    // Check against existing attributes
-    for (const attr of (existingEntity.attributes || [])) {
+    let isDup = false;
+    for (const attr of (entity.attributes || [])) {
       if (['headline', 'role', 'current_role'].includes((attr.key || '').toLowerCase())) {
-        if (similarity(title, attr.value || '') > 0.85) { matchedSignals++; break; }
+        if (similarity(title, attr.value || '') > 0.85) { isDup = true; break; }
       }
     }
+    if (!isDup) {
+      for (const exp of (entity.career_lite?.experience || entity.career_lite?.work_history || [])) {
+        if (exp.title && similarity(title, exp.title) > 0.85) { isDup = true; break; }
+      }
+    }
+    details.push({ key: 'title', value: title, status: isDup ? 'duplicate' : 'new' });
+    if (isDup) duplicateSignals++; else newSignals++;
   }
 
   // Organizations
   for (const org of signals.organizations) {
-    totalSignals++;
-    if (existingProps.company && (similarity(org.toLowerCase(), existingProps.company) > 0.7 ||
-        existingProps.company.includes(org.toLowerCase()) || org.toLowerCase().includes(existingProps.company))) {
-      matchedSignals++;
+    let isDup = false;
+    const orgLower = org.toLowerCase();
+    if (existingProps.company && (similarity(orgLower, existingProps.company) > 0.7 ||
+        existingProps.company.includes(orgLower) || orgLower.includes(existingProps.company))) {
+      isDup = true;
     }
+    if (!isDup) {
+      for (const exp of (entity.career_lite?.experience || entity.career_lite?.work_history || [])) {
+        if (exp.company && similarity(orgLower, exp.company.toLowerCase()) > 0.7) { isDup = true; break; }
+      }
+    }
+    details.push({ key: 'organization', value: org, status: isDup ? 'duplicate' : 'new' });
+    if (isDup) duplicateSignals++; else newSignals++;
+  }
+
+  // Locations
+  for (const loc of signals.locations) {
+    let isDup = false;
+    for (const attr of (entity.attributes || [])) {
+      if (['location', 'current_location'].includes((attr.key || '').toLowerCase())) {
+        if (similarity(loc, attr.value || '') > 0.7) { isDup = true; break; }
+      }
+    }
+    if (!isDup && entity.career_lite?.location) {
+      if (similarity(loc.toLowerCase(), entity.career_lite.location.toLowerCase()) > 0.7) isDup = true;
+    }
+    details.push({ key: 'location', value: loc, status: isDup ? 'duplicate' : 'new' });
+    if (isDup) duplicateSignals++; else newSignals++;
   }
 
   // Skills
   for (const skill of signals.skills) {
-    totalSignals++;
-    if (existingProps.skills.some(s => similarity(skill.toLowerCase(), s) > 0.85)) matchedSignals++;
+    const isDup = existingProps.skills.some(s => similarity(skill.toLowerCase(), s) > 0.85);
+    details.push({ key: 'skill', value: skill, status: isDup ? 'duplicate' : 'new' });
+    if (isDup) duplicateSignals++; else newSignals++;
   }
 
-  // Bios (check against existing observations)
-  const existingObsTexts = (existingEntity.observations || []).map(o => (o.observation || '').toLowerCase());
-  for (const bio of signals.bios) {
-    totalSignals++;
-    if (existingObsTexts.some(obs => similarity(bio.toLowerCase(), obs) > 0.7)) matchedSignals++;
+  // Education
+  for (const edu of signals.education) {
+    let isDup = false;
+    for (const e of (entity.career_lite?.education || [])) {
+      if (e.institution && similarity(edu.toLowerCase(), e.institution.toLowerCase()) > 0.85) { isDup = true; break; }
+    }
+    details.push({ key: 'education', value: edu, status: isDup ? 'duplicate' : 'new' });
+    if (isDup) duplicateSignals++; else newSignals++;
   }
 
-  if (totalSignals === 0) return 0;
-  return matchedSignals / totalSignals;
+  const total = newSignals + duplicateSignals;
+  return { ratio: total > 0 ? newSignals / total : 1.0, newSignals, duplicateSignals, details };
 }
 
-// --- Function 2: scoreCluster ---
+// --- STEP 5: Projected Attribute Confidence ---
+
+function computeProjectedConfidences(cluster, candidateEntity) {
+  const sourceWeight = cluster.source.weight || getSourceWeight(cluster.source.type);
+  const capturedDate = cluster.source.extracted_at || new Date().toISOString();
+
+  // Count existing sources on candidate (for corroboration)
+  let existingSourceCount = 0;
+  if (candidateEntity) {
+    existingSourceCount = (candidateEntity.provenance_chain?.source_documents || []).length;
+  }
+
+  const confSignals = cluster.confident_signals;
+  if (!confSignals) return;
+
+  function project(attrKey, isHistorical) {
+    const recency = isHistorical ? 1.0 : recencyModifier(capturedDate, attrKey);
+    const corr = corroborationMultiplier(existingSourceCount + 1);
+    return Math.min(1.0, sourceWeight * recency * corr);
+  }
+
+  // Names (historical — no recency decay)
+  if (confSignals.names) {
+    for (const s of confSignals.names) s.projected_confidence = project('name', true);
+  }
+  // Handles (historical)
+  if (confSignals.handles) {
+    for (const key of ['x', 'instagram', 'linkedin']) {
+      if (confSignals.handles[key]) confSignals.handles[key].projected_confidence = project(key + '_handle', true);
+    }
+  }
+  // Titles (volatile — current state)
+  if (confSignals.titles) {
+    for (const s of confSignals.titles) s.projected_confidence = project('current_role', false);
+  }
+  // Organizations (volatile — current company)
+  if (confSignals.organizations) {
+    for (const s of confSignals.organizations) s.projected_confidence = project('company', false);
+  }
+  // Locations (volatile)
+  if (confSignals.locations) {
+    for (const s of confSignals.locations) s.projected_confidence = project('location', false);
+  }
+  // Bios (historical)
+  if (confSignals.bios) {
+    for (const s of confSignals.bios) s.projected_confidence = project('bio', true);
+  }
+  // Skills (historical)
+  if (confSignals.skills) {
+    for (const s of confSignals.skills) s.projected_confidence = project('skill', true);
+  }
+  // Education (historical — no recency decay)
+  if (confSignals.education) {
+    for (const s of confSignals.education) s.projected_confidence = project('education', true);
+  }
+}
+
+// --- Function 2: scoreCluster (5-Step Provisioner Scoring) ---
 
 function scoreCluster(clusterId, graphDir) {
   const cluster = readCluster(clusterId, graphDir);
@@ -479,58 +674,72 @@ function scoreCluster(clusterId, graphDir) {
   const signals = cluster.signals;
   const entityType = cluster.entity_type;
 
-  // Score against existing confirmed entities
+  // ═══ STEP 1: SIGNAL CONFIDENCE ═══
+  // Per-signal confidence set during staging. Verify source weight is recorded.
+  const sourceWeight = cluster.source.weight || getSourceWeight(cluster.source.type);
+  cluster.signal_confidence = sourceWeight;
+
+  // ═══ STEP 2: ASSOCIATION CONFIDENCE (5-factor weighted matching) ═══
   const existingEntities = listEntities(graphDir);
-  let bestMatch = { confidence: 0, entityId: null, entityName: null, matchType: null };
+  let bestMatch = { score: 0, entityId: null, entityName: null, matchType: null, factors: {} };
 
   for (const { file, data } of existingEntities) {
-    const existingType = data.entity?.entity_type;
-    if (!existingType) continue;
-
-    const { confidence, matchType } = scoreEntityMatch(signals, entityType, data);
-    if (confidence > bestMatch.confidence) {
+    const { score, matchType, factors } = computeAssociationScore(signals, entityType, data);
+    if (score > bestMatch.score) {
       const eid = data.entity?.entity_id || file.replace('.json', '');
+      const existingType = data.entity?.entity_type;
       const ename = existingType === 'person'
         ? (data.entity?.name?.full || '')
         : (data.entity?.name?.common || data.entity?.name?.legal || '');
-      bestMatch = { confidence, entityId: eid, entityName: ename, matchType };
+      bestMatch = { score, entityId: eid, entityName: ename, matchType, factors };
     }
   }
 
-  // Determine quadrant
-  let quadrant = null;
-  let state = 'unresolved';
+  // ═══ STEP 3: DATA NOVELTY CHECK ═══
+  const isExistingEntity = bestMatch.score > 0.3; // Spec threshold: 0.3
+  let novelty = { ratio: 1.0, newSignals: 0, duplicateSignals: 0, details: [] };
+  let candidateEntity = null;
 
-  if (bestMatch.confidence >= 0.5) {
-    // Matched an existing entity — check signal overlap (Q2 vs Q4)
-    const existingEntity = readEntity(bestMatch.entityId, graphDir);
-    const signalOverlap = existingEntity ? computeSignalOverlap(signals, existingEntity) : 0;
-
-    // Self entity: always force Q2 (enrich, never Q4 skip) — user always reviews
-    if (isSelfEntity(bestMatch.entityId, graphDir)) {
-      quadrant = 2;
-      state = 'provisional';
-    } else if (signalOverlap > 0.6) {
-      // Most signals already exist on entity → Q4 (Duplicate Data + Existing Entity)
-      quadrant = 4;
-      state = 'provisional';
-    } else {
-      // New signals for existing entity → Q2 (New Data + Existing Entity)
-      quadrant = 2;
-      state = 'provisional';
+  if (isExistingEntity) {
+    candidateEntity = readEntity(bestMatch.entityId, graphDir);
+    if (candidateEntity) {
+      novelty = computeDataNovelty(signals, candidateEntity);
     }
+  }
 
+  // ═══ STEP 4: QUADRANT ASSIGNMENT ═══
+  // Two binary dimensions: entity existence (score > 0.3) × data novelty (>50% new)
+  const isNewData = novelty.ratio > 0.5;
+  let quadrant, quadrantLabel, state;
+
+  if (isExistingEntity) {
     cluster.candidate_entity_id = bestMatch.entityId;
     cluster.candidate_entity_name = bestMatch.entityName;
+
+    // Self entity: always Q2 (user always reviews their own data)
+    if (isSelfEntity(bestMatch.entityId, graphDir)) {
+      quadrant = 2;
+      quadrantLabel = 'Q2_ENRICH';
+      state = 'provisional';
+    } else if (isNewData) {
+      // New Data + Existing Entity = Q2 ENRICH
+      quadrant = 2;
+      quadrantLabel = 'Q2_ENRICH';
+      state = 'provisional';
+    } else {
+      // Duplicate Data + Existing Entity = Q4 CONFIRM
+      quadrant = 4;
+      quadrantLabel = 'Q4_CONFIRM';
+      state = 'provisional';
+    }
   } else {
-    // No entity match — check for unresolved cluster matches (Q1 vs Q3)
+    // No entity match — check for related clusters/mentions (Q1 vs Q3)
     const unresolvedClusters = listClusters(graphDir).filter(c =>
       c.cluster_id !== clusterId && c.state !== 'confirmed' && c.entity_type === entityType
     );
 
     let clusterMatches = 0;
     for (const other of unresolvedClusters) {
-      // Check name overlap between clusters
       const otherNames = other.signals?.names || [];
       for (const name of signals.names) {
         for (const otherName of otherNames) {
@@ -540,7 +749,6 @@ function scoreCluster(clusterId, graphDir) {
       }
     }
 
-    // Also check for unresolved mentions across existing entity observations
     let unresolvedMentions = 0;
     const primaryName = signals.names[0] || '';
     if (primaryName) {
@@ -559,22 +767,38 @@ function scoreCluster(clusterId, graphDir) {
     }
 
     if (clusterMatches > 0 || unresolvedMentions >= 2) {
-      // Q3 (Duplicate Data + New Entity) — data already referenced elsewhere
+      // Duplicate Data + New Entity = Q3 CONSOLIDATE
       quadrant = 3;
+      quadrantLabel = 'Q3_CONSOLIDATE';
       state = 'provisional';
       cluster.related_mentions = unresolvedMentions;
       cluster.related_clusters = clusterMatches;
     } else {
-      // Q1 (New Data + New Entity)
+      // New Data + New Entity = Q1 CREATE
       quadrant = 1;
+      quadrantLabel = 'Q1_CREATE';
       state = 'unresolved';
     }
   }
 
-  cluster.confidence = bestMatch.confidence;
+  // ═══ STEP 5: PROJECTED ATTRIBUTE CONFIDENCE ═══
+  computeProjectedConfidences(cluster, candidateEntity);
+
+  // ═══ STORE RESULTS ═══
+  cluster.confidence = bestMatch.score;
+  cluster.association_confidence = bestMatch.score;
+  cluster.association_factors = bestMatch.factors;
   cluster.match_type = bestMatch.matchType;
   cluster.quadrant = quadrant;
+  cluster.quadrant_label = quadrantLabel;
   cluster.state = state;
+  cluster.data_novelty_ratio = novelty.ratio;
+  cluster.data_novelty = {
+    ratio: novelty.ratio,
+    new_signals: novelty.newSignals,
+    duplicate_signals: novelty.duplicateSignals,
+    details: novelty.details,
+  };
 
   writeCluster(clusterId, cluster, graphDir);
   return cluster;
