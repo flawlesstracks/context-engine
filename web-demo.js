@@ -214,37 +214,37 @@ if (IS_PRODUCTION) {
         console.log(`  Seeded ${seedFiles.length} entity file(s) to ${candidate}`);
       }
 
-      // Merge repo tenants into persistent disk (repo is source of truth for api_keys)
-      const persistentTenants = path.join(candidate, 'tenants.json');
-      const localTenants = path.join(LOCAL_GRAPH_DIR, 'tenants.json');
-      if (fs.existsSync(localTenants)) {
-        const repoTenants = JSON.parse(fs.readFileSync(localTenants, 'utf-8'));
-        let diskTenants = {};
-        if (fs.existsSync(persistentTenants)) {
-          try { diskTenants = JSON.parse(fs.readFileSync(persistentTenants, 'utf-8')); } catch {}
+      // Merge repo tenant config into persistent disk (repo is source of truth for api_keys)
+      const persistentConfig = path.join(candidate, 'tenants.config.json');
+      const localConfig = path.join(LOCAL_GRAPH_DIR, 'tenants.config.json');
+      if (fs.existsSync(localConfig)) {
+        const repoConfig = JSON.parse(fs.readFileSync(localConfig, 'utf-8'));
+        let diskConfig = {};
+        if (fs.existsSync(persistentConfig)) {
+          try { diskConfig = JSON.parse(fs.readFileSync(persistentConfig, 'utf-8')); } catch {}
         }
         let updated = 0;
-        for (const [id, tenant] of Object.entries(repoTenants)) {
-          if (!diskTenants[id]) {
-            diskTenants[id] = tenant;
+        for (const [id, tenant] of Object.entries(repoConfig)) {
+          if (!diskConfig[id]) {
+            diskConfig[id] = tenant;
             updated++;
           } else {
-            // Merge: repo fields fill in gaps, disk preserves runtime tokens
+            // Merge: repo fields fill in gaps
             for (const [key, val] of Object.entries(tenant)) {
-              if (!diskTenants[id][key]) {
-                diskTenants[id][key] = val;
+              if (!diskConfig[id][key]) {
+                diskConfig[id][key] = val;
               }
             }
             // API key from repo always wins (so external consumers like GPTs can use known keys)
-            if (tenant.api_key && diskTenants[id].api_key !== tenant.api_key) {
-              diskTenants[id].api_key = tenant.api_key;
+            if (tenant.api_key && diskConfig[id].api_key !== tenant.api_key) {
+              diskConfig[id].api_key = tenant.api_key;
               updated++;
             }
           }
         }
-        if (updated > 0 || !fs.existsSync(persistentTenants)) {
-          fs.writeFileSync(persistentTenants, JSON.stringify(diskTenants, null, 2) + '\n');
-          console.log(`  Merged tenants.json: ${updated} tenant(s) updated from repo`);
+        if (updated > 0 || !fs.existsSync(persistentConfig)) {
+          fs.writeFileSync(persistentConfig, JSON.stringify(diskConfig, null, 2) + '\n');
+          console.log(`  Merged tenants.config.json: ${updated} tenant(s) updated from repo`);
         }
       }
 
@@ -288,15 +288,46 @@ function saveConfig(config) {
 
 // --- Tenant management ---
 
-const TENANTS_PATH = path.join(GRAPH_DIR, 'tenants.json');
+const TENANTS_CONFIG_PATH = path.join(GRAPH_DIR, 'tenants.config.json');
+const TENANTS_STATE_PATH = path.join(GRAPH_DIR, 'tenants.state.json');
+
+const STATE_FIELDS = new Set(['email', 'name', 'picture', 'last_login', 'refresh_token', 'access_token']);
 
 function loadTenants() {
-  if (!fs.existsSync(TENANTS_PATH)) return {};
-  return JSON.parse(fs.readFileSync(TENANTS_PATH, 'utf-8'));
+  let config = {};
+  if (fs.existsSync(TENANTS_CONFIG_PATH)) {
+    config = JSON.parse(fs.readFileSync(TENANTS_CONFIG_PATH, 'utf-8'));
+  }
+  let state = {};
+  if (fs.existsSync(TENANTS_STATE_PATH)) {
+    state = JSON.parse(fs.readFileSync(TENANTS_STATE_PATH, 'utf-8'));
+  }
+  // Merge state fields into config per tenant
+  const merged = {};
+  for (const [id, tenant] of Object.entries(config)) {
+    merged[id] = { ...tenant, ...(state[id] || {}) };
+  }
+  return merged;
 }
 
 function saveTenants(tenants) {
-  fs.writeFileSync(TENANTS_PATH, JSON.stringify(tenants, null, 2) + '\n');
+  const config = {};
+  const state = {};
+  for (const [id, tenant] of Object.entries(tenants)) {
+    config[id] = {};
+    state[id] = {};
+    for (const [key, val] of Object.entries(tenant)) {
+      if (STATE_FIELDS.has(key)) {
+        state[id][key] = val;
+      } else {
+        config[id][key] = val;
+      }
+    }
+    // Only keep state entry if it has fields
+    if (Object.keys(state[id]).length === 0) delete state[id];
+  }
+  fs.writeFileSync(TENANTS_CONFIG_PATH, JSON.stringify(config, null, 2) + '\n');
+  fs.writeFileSync(TENANTS_STATE_PATH, JSON.stringify(state, null, 2) + '\n');
 }
 
 // --- Share helpers ---
@@ -1595,7 +1626,7 @@ app.post('/api/clusters/resolve', apiAuth, (req, res) => {
 
 // --- Google Drive integration ---
 
-// Helper: get tenant's Drive tokens from tenants.json
+// Helper: get tenant's Drive tokens
 function getDriveTokens(tenantId) {
   const tenants = loadTenants();
   const tenant = tenants[tenantId];

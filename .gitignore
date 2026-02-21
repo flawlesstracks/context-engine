@@ -7,3 +7,5 @@ watch-folder/processing/
 watch-folder/processed/
 watch-folder/output/
 watch-folder/errors/
+**/tenants.state.json
+**/tenants.json

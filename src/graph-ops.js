@@ -39,8 +39,8 @@ function getSelfEntityId(graphDir) {
   const tenantMatch = dirName.match(/^tenant-([a-f0-9]+)$/);
   if (!tenantMatch) return null;
   const tenantId = tenantMatch[1];
-  // Read tenants.json from parent directory
-  const tenantsPath = path.join(path.dirname(d), 'tenants.json');
+  // Read tenants.config.json from parent directory (config-only, no secrets)
+  const tenantsPath = path.join(path.dirname(d), 'tenants.config.json');
   try {
     const tenants = JSON.parse(fs.readFileSync(tenantsPath, 'utf-8'));
     return (tenants[tenantId] && tenants[tenantId].self_entity_id) || null;
@@ -70,7 +70,7 @@ function listEntities(dir) {
   const d = dir || LOCAL_GRAPH_DIR;
   if (!fs.existsSync(d)) return [];
   return fs.readdirSync(d)
-    .filter(f => f.endsWith('.json') && f !== '_counter.json' && f !== 'tenants.json' && f !== 'shares.json')
+    .filter(f => f.endsWith('.json') && f !== '_counter.json' && f !== 'tenants.json' && f !== 'tenants.config.json' && f !== 'tenants.state.json' && f !== 'shares.json')
     .map(f => {
       try {
         const data = JSON.parse(fs.readFileSync(path.join(d, f), 'utf-8'));

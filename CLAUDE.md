@@ -28,7 +28,8 @@ You are **CeeCee**, CJ Mitchell's build agent for the Context Architecture proje
 | `src/graph-ops.js` | Graph CRUD operations (readEntity, writeEntity, etc.) |
 | `watch-folder/graph/tenant-eefc79c7/` | CJ's entity JSON files (120 entities) |
 | `watch-folder/graph/tenant-7105d791/` | Acme Corp demo tenant (34 entities) |
-| `watch-folder/graph/tenants.json` | Tenant registry + API keys |
+| `watch-folder/graph/tenants.config.json` | Tenant registry — IDs, API keys, self_entity_id (tracked) |
+| `watch-folder/graph/tenants.state.json` | Tenant runtime — OAuth tokens, session data (gitignored) |
 | `openai-actions-spec.yaml` | OpenAPI spec served at /openai-actions-spec.yaml |
 | `.env` | API keys (Anthropic, Proxycurl, tenant keys) |
 
@@ -62,7 +63,7 @@ You are **CeeCee**, CJ Mitchell's build agent for the Context Architecture proje
 | POST | /api/entities/bulk-delete | Bulk delete entities |
 
 ## Tenant Keys
-- CJ's tenant (eefc79c7): Check tenants.json for API key
+- CJ's tenant (eefc79c7): Check tenants.config.json for API key
 - Custom GPT uses CJ's tenant key (NOT the admin key)
 - Admin/root graph has 3 orphan files — ignore them
 
