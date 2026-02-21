@@ -8880,6 +8880,315 @@ const WIKI_HTML = `<!DOCTYPE html>
     100% { transform: rotate(360deg); }
   }
 
+  /* ========================================
+     LINKEDIN-INSPIRED PROFILE CARDS (MAYA)
+     ======================================== */
+  #main.li-profile-bg { background: #f4f2ee; }
+  .li-profile { max-width: 750px; margin: 0 auto; padding: 16px 0 40px; }
+
+  /* Horizontal tab bar */
+  .li-tab-bar {
+    display: flex; gap: 0; background: #fff; border: 1px solid #e0e0e0;
+    border-radius: 8px; margin-bottom: 8px; overflow: hidden;
+  }
+  .li-tab {
+    flex: 1; padding: 12px 8px; text-align: center; font-size: 13px;
+    font-weight: 600; color: #666; cursor: pointer; border: none;
+    background: transparent; font-family: inherit; position: relative;
+    transition: color 0.15s;
+  }
+  .li-tab:hover { color: #191919; background: #f8f8f8; }
+  .li-tab.active { color: #0a66c2; }
+  .li-tab.active::after {
+    content: ''; position: absolute; bottom: 0; left: 16px; right: 16px;
+    height: 2px; background: #0a66c2; border-radius: 2px 2px 0 0;
+  }
+
+  /* Card base */
+  .li-card {
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+    padding: 24px; margin-bottom: 8px; position: relative;
+  }
+  .li-card.editing { border-left: 3px solid #0a66c2; }
+  .li-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+  .li-card-title {
+    font-size: 20px; font-weight: 600; color: #191919; margin: 0;
+  }
+  .li-card-subtitle {
+    font-size: 14px; color: #666; margin-top: 2px;
+  }
+  .li-edit-btn {
+    background: none; border: none; cursor: pointer; padding: 6px;
+    border-radius: 50%; color: #666; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .li-edit-btn:hover { background: #f0f0f0; color: #191919; }
+
+  /* Hero card specifics */
+  .li-hero { padding: 24px; }
+  .li-hero-top { display: flex; gap: 20px; align-items: flex-start; }
+  .li-hero-avatar {
+    width: 80px; height: 80px; border-radius: 50%; display: flex;
+    align-items: center; justify-content: center; font-size: 1.8rem;
+    font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .li-hero-avatar.person { background: linear-gradient(135deg, #0a66c2, #004182); }
+  .li-hero-avatar.org { background: linear-gradient(135deg, #057642, #004d2c); }
+  .li-hero-info { flex: 1; min-width: 0; }
+  .li-hero-name {
+    font-size: 24px; font-weight: 700; color: #191919; margin: 0;
+    line-height: 1.2;
+  }
+  .li-hero-headline {
+    font-size: 14px; color: #191919; margin-top: 4px; line-height: 1.4;
+  }
+  .li-hero-meta {
+    display: flex; align-items: center; gap: 8px; margin-top: 6px;
+    font-size: 14px; color: #666; flex-wrap: wrap;
+  }
+  .li-hero-meta svg { flex-shrink: 0; }
+  .li-hero-type {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; padding: 2px 8px; border-radius: 4px;
+    background: #f0f0f0; color: #666;
+  }
+  .li-hero-stats {
+    display: flex; gap: 16px; margin-top: 10px; font-size: 14px;
+  }
+  .li-hero-stat { color: #0a66c2; font-weight: 600; cursor: pointer; }
+  .li-hero-stat:hover { text-decoration: underline; }
+  .li-hero-stat.muted { color: #666; font-weight: 400; cursor: default; }
+  .li-hero-stat.muted:hover { text-decoration: none; }
+  .li-hero-socials {
+    display: flex; gap: 10px; margin-top: 10px; align-items: center;
+  }
+  .li-hero-social-link {
+    display: flex; align-items: center; gap: 4px; color: #0a66c2;
+    font-size: 13px; text-decoration: none;
+  }
+  .li-hero-social-link:hover { text-decoration: underline; }
+  .li-hero-right {
+    display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+    flex-shrink: 0;
+  }
+
+  /* Health score circle */
+  .li-health-circle {
+    width: 48px; height: 48px; border-radius: 50%; display: flex;
+    align-items: center; justify-content: center; font-size: 14px;
+    font-weight: 700; border: 3px solid;
+  }
+  .li-health-circle.strong { border-color: #057642; color: #057642; }
+  .li-health-circle.developing { border-color: #b45309; color: #b45309; }
+  .li-health-circle.thin { border-color: #cc1016; color: #cc1016; }
+
+  /* About card */
+  .li-about-text {
+    font-size: 14px; color: #191919; line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .li-about-text.expanded {
+    -webkit-line-clamp: unset; overflow: visible;
+  }
+  .li-see-more {
+    color: #666; font-size: 13px; font-weight: 600; cursor: pointer;
+    margin-top: 4px; display: inline-block;
+  }
+  .li-see-more:hover { color: #0a66c2; }
+  .li-skill-pills {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px;
+    align-items: center;
+  }
+  .li-skill-pill {
+    background: #e8f4f8; border-radius: 16px; padding: 4px 12px;
+    font-size: 13px; color: #191919; white-space: nowrap;
+  }
+  .li-skill-label {
+    font-size: 13px; color: #666; font-weight: 600; margin-right: 4px;
+  }
+  .li-show-all {
+    color: #0a66c2; font-size: 13px; font-weight: 600; cursor: pointer;
+    margin-top: 8px; display: inline-block;
+  }
+  .li-show-all:hover { text-decoration: underline; }
+
+  /* Intelligence card */
+  .li-intel-private {
+    font-size: 14px; color: #666; display: flex; align-items: center;
+    gap: 6px;
+  }
+  .li-intel-stats {
+    display: flex; gap: 12px; margin-top: 12px;
+  }
+  .li-intel-stat {
+    flex: 1; background: #f4f2ee; border-radius: 8px; padding: 14px 16px;
+    text-align: center;
+  }
+  .li-intel-stat-value {
+    font-size: 22px; font-weight: 700; color: #191919;
+  }
+  .li-intel-stat-label {
+    font-size: 12px; color: #666; margin-top: 2px;
+  }
+  .li-intel-footer {
+    font-size: 12px; color: #666; margin-top: 12px;
+  }
+  .li-intel-warning {
+    display: flex; align-items: center; gap: 6px; margin-top: 10px;
+    padding: 8px 12px; background: #fff7ed; border: 1px solid #fed7aa;
+    border-radius: 6px; font-size: 13px; color: #b45309;
+  }
+
+  /* Experience card */
+  .li-exp-item {
+    display: flex; gap: 14px; padding: 14px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .li-exp-item:last-child { border-bottom: none; }
+  .li-exp-logo {
+    width: 40px; height: 40px; border-radius: 4px; background: #f0f0f0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: #666; flex-shrink: 0;
+  }
+  .li-exp-info { flex: 1; min-width: 0; }
+  .li-exp-title { font-size: 14px; font-weight: 600; color: #191919; }
+  .li-exp-company { font-size: 14px; color: #191919; }
+  .li-exp-company a { color: #0a66c2; text-decoration: none; }
+  .li-exp-company a:hover { text-decoration: underline; }
+  .li-exp-dates { font-size: 13px; color: #666; margin-top: 2px; }
+  .li-exp-loc { font-size: 13px; color: #666; }
+  .li-exp-desc {
+    font-size: 13px; color: #191919; margin-top: 6px; line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .li-exp-desc.expanded {
+    -webkit-line-clamp: unset; overflow: visible;
+  }
+  .li-conf-dot {
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    margin-left: 4px; vertical-align: middle;
+  }
+  .li-conf-dot.high { background: #057642; }
+  .li-conf-dot.mid { background: #b45309; }
+  .li-conf-dot.low { background: #cc1016; }
+
+  /* Education card */
+  .li-edu-item {
+    display: flex; gap: 14px; padding: 12px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .li-edu-item:last-child { border-bottom: none; }
+  .li-edu-logo {
+    width: 40px; height: 40px; border-radius: 4px; background: #f5f0ff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: #7c3aed; flex-shrink: 0;
+  }
+  .li-edu-info { flex: 1; }
+  .li-edu-name { font-size: 14px; font-weight: 600; color: #191919; }
+  .li-edu-degree { font-size: 14px; color: #191919; }
+  .li-edu-years { font-size: 13px; color: #666; }
+
+  /* Activity / Observations card */
+  .li-obs-item {
+    padding: 12px 0; border-bottom: 1px solid #f0f0f0;
+  }
+  .li-obs-item:last-child { border-bottom: none; }
+  .li-obs-source {
+    display: flex; align-items: center; gap: 6px; font-size: 12px;
+    color: #666; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.03em; margin-bottom: 4px;
+  }
+  .li-obs-source-icon {
+    width: 20px; height: 20px; border-radius: 4px; background: #f0f0f0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+  }
+  .li-obs-text {
+    font-size: 14px; color: #191919; line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .li-obs-date { font-size: 12px; color: #666; margin-top: 4px; }
+
+  /* Connections card — reuse existing conn-grid inside li-card */
+  .li-card .conn-grid-header { margin-bottom: 12px; }
+
+  /* Edit mode form elements */
+  .li-edit-field {
+    width: 100%; padding: 8px 12px; border: 1px solid #e0e0e0;
+    border-radius: 6px; font-size: 14px; font-family: inherit;
+    color: #191919; background: #fff; outline: none;
+    transition: border-color 0.15s;
+  }
+  .li-edit-field:focus { border-color: #0a66c2; }
+  .li-edit-textarea {
+    width: 100%; padding: 8px 12px; border: 1px solid #e0e0e0;
+    border-radius: 6px; font-size: 14px; font-family: inherit;
+    color: #191919; min-height: 80px; resize: vertical;
+    outline: none;
+  }
+  .li-edit-textarea:focus { border-color: #0a66c2; }
+  .li-edit-row {
+    display: flex; gap: 8px; margin-bottom: 8px; align-items: center;
+  }
+  .li-edit-row label {
+    font-size: 13px; color: #666; min-width: 80px; font-weight: 500;
+  }
+  .li-edit-row input, .li-edit-row select {
+    flex: 1; padding: 6px 10px; border: 1px solid #e0e0e0;
+    border-radius: 6px; font-size: 14px; font-family: inherit;
+  }
+  .li-edit-actions {
+    display: flex; gap: 8px; margin-top: 14px; justify-content: flex-end;
+  }
+  .li-btn-save {
+    padding: 8px 20px; background: #0a66c2; color: #fff; border: none;
+    border-radius: 20px; font-size: 14px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  .li-btn-save:hover { background: #004182; }
+  .li-btn-cancel {
+    padding: 8px 20px; background: #fff; color: #666; border: 1px solid #e0e0e0;
+    border-radius: 20px; font-size: 14px; font-weight: 600;
+    cursor: pointer; font-family: inherit;
+  }
+  .li-btn-cancel:hover { background: #f8f8f8; }
+  .li-pill-remove {
+    background: none; border: none; cursor: pointer; color: #999;
+    font-size: 14px; margin-left: 2px; padding: 0 2px;
+  }
+  .li-pill-remove:hover { color: #cc1016; }
+  .li-pill-add {
+    background: #fff; border: 1px dashed #ccc; border-radius: 16px;
+    padding: 4px 12px; font-size: 13px; color: #0a66c2; cursor: pointer;
+  }
+  .li-pill-add:hover { border-color: #0a66c2; }
+  .li-add-entry {
+    display: flex; align-items: center; gap: 6px; padding: 10px 0;
+    color: #0a66c2; font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .li-add-entry:hover { text-decoration: underline; }
+
+  /* Org: People card */
+  .li-people-item {
+    display: flex; gap: 12px; padding: 10px 0; align-items: center;
+    border-bottom: 1px solid #f0f0f0; cursor: pointer;
+  }
+  .li-people-item:last-child { border-bottom: none; }
+  .li-people-item:hover { background: #f8f8f8; margin: 0 -12px; padding: 10px 12px; border-radius: 6px; }
+  .li-people-avatar {
+    width: 36px; height: 36px; border-radius: 50%; background: #e8f4f8;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700; color: #0a66c2; flex-shrink: 0;
+  }
+  .li-people-name { font-size: 14px; font-weight: 600; color: #191919; }
+  .li-people-role { font-size: 13px; color: #666; }
+
 </style>
 </head>
 <body>
@@ -9466,6 +9775,9 @@ function selectView(viewId) {
   selectedId = primaryEntityId;
   selectedView = viewId;
   selectedCategory = null;
+  window._liActiveTab = 'overview';
+  var mainEl = document.getElementById('main');
+  if (mainEl) mainEl.className = '';
   var viewLabels = { 'overview': 'Overview', 'career-lite': 'Career Lite', 'network-map': 'Network Map', 'intelligence-brief': 'Intelligence Brief', 'org-brief': 'Org Brief', 'source-provenance': 'Source Provenance' };
   breadcrumbs = [
     { label: 'My Profiles', action: '' },
@@ -10697,6 +11009,9 @@ function selectEntity(id, fromCategory) {
   selectedId = id;
   selectedView = null;
   selectedCategory = null;
+  window._liActiveTab = 'overview'; // Reset tab when selecting new entity
+  var mainEl = document.getElementById('main');
+  if (mainEl) mainEl.className = ''; // Reset background class
   var empty = document.getElementById('emptyState');
   if (empty) empty.style.display = 'none';
   api('GET', '/api/entity/' + id).then(function(data) {
@@ -12390,6 +12705,208 @@ function resolveEntityConflict(entityId, conflictId, resolution) {
   });
 }
 
+/* --- LinkedIn Card Profile: support functions --- */
+
+function switchLiTab(tabId, entityId) {
+  window._liActiveTab = tabId;
+  if (selectedData) {
+    renderDetail(selectedData);
+  } else if (entityId) {
+    api('GET', '/api/entity/' + entityId).then(function(data) {
+      selectedData = data;
+      renderDetail(data);
+    });
+  }
+}
+
+function toggleCardEdit(cardId, entityId) {
+  var card = document.getElementById('li-card-' + cardId);
+  var display = document.getElementById('li-display-' + cardId);
+  var edit = document.getElementById('li-edit-' + cardId);
+  if (!card) return;
+  if (edit && edit.style.display === 'none') {
+    // Enter edit mode
+    if (display) display.style.display = 'none';
+    edit.style.display = '';
+    card.classList.add('editing');
+  } else {
+    // Exit edit mode
+    if (display) display.style.display = '';
+    if (edit) edit.style.display = 'none';
+    card.classList.remove('editing');
+  }
+}
+
+function saveCardEdit(cardId, entityId) {
+  var payload = {};
+
+  if (cardId === 'hero') {
+    var newName = (document.getElementById('li-edit-name') || {}).value || '';
+    var newHeadline = (document.getElementById('li-edit-headline') || {}).value || '';
+    var newLocation = (document.getElementById('li-edit-location') || {}).value || '';
+    var newLinkedin = (document.getElementById('li-edit-linkedin') || {}).value || '';
+    var newXHandle = (document.getElementById('li-edit-xhandle') || {}).value || '';
+    payload.entity = { name: { full: newName } };
+    payload.career_lite = { headline: newHeadline, location: newLocation, linkedin_url: newLinkedin };
+    // Update attributes
+    payload.attributes_update = [];
+    if (newHeadline) payload.attributes_update.push({ key: 'headline', value: newHeadline });
+    if (newLocation) payload.attributes_update.push({ key: 'location', value: newLocation });
+    if (newLinkedin) payload.attributes_update.push({ key: 'linkedin_url', value: newLinkedin });
+    if (newXHandle) payload.attributes_update.push({ key: 'x_handle', value: newXHandle });
+  }
+
+  if (cardId === 'about') {
+    var newSummary = (document.getElementById('li-edit-summary') || {}).value || '';
+    payload.entity = { summary: { value: newSummary } };
+    // Collect remaining skill pills
+    var pillEls = document.querySelectorAll('#li-edit-skills .li-skill-pill');
+    var newSkills = [];
+    for (var i = 0; i < pillEls.length; i++) {
+      var text = pillEls[i].textContent.replace(/\\u00d7/g, '').trim();
+      if (text) newSkills.push(text);
+    }
+    payload.career_lite = { skills: newSkills };
+  }
+
+  if (cardId === 'experience') {
+    var expRows = document.querySelectorAll('#li-edit-experience [data-exp-idx]');
+    var newExperience = [];
+    for (var i = 0; i < expRows.length; i++) {
+      var row = expRows[i];
+      var entry = {};
+      var fields = row.querySelectorAll('[data-field]');
+      for (var j = 0; j < fields.length; j++) {
+        entry[fields[j].getAttribute('data-field')] = fields[j].value || '';
+      }
+      newExperience.push(entry);
+    }
+    payload.career_lite = { experience: newExperience };
+  }
+
+  if (cardId === 'education') {
+    var eduRows = document.querySelectorAll('#li-edit-education [data-edu-idx]');
+    var newEducation = [];
+    for (var i = 0; i < eduRows.length; i++) {
+      var row = eduRows[i];
+      var entry = {};
+      var fields = row.querySelectorAll('[data-field]');
+      for (var j = 0; j < fields.length; j++) {
+        entry[fields[j].getAttribute('data-field')] = fields[j].value || '';
+      }
+      newEducation.push(entry);
+    }
+    payload.career_lite = { education: newEducation };
+  }
+
+  api('PUT', '/api/entity/' + entityId, payload).then(function(result) {
+    if (result.error) { toast('Error: ' + result.error); return; }
+    toast('Updated successfully');
+    // Reload entity
+    api('GET', '/api/entity/' + entityId).then(function(data) {
+      selectedData = data;
+      if (entityId === primaryEntityId) primaryEntityData = data;
+      renderDetail(data);
+    });
+  }).catch(function(err) {
+    toast('Save failed: ' + (err.message || 'Unknown error'));
+  });
+}
+
+function saveNewObservation(entityId) {
+  var text = (document.getElementById('li-obs-new-text') || {}).value || '';
+  var source = (document.getElementById('li-obs-source') || {}).value || 'user_input';
+  if (!text.trim()) { toast('Enter observation text'); return; }
+  api('POST', '/api/observe', {
+    entity_id: entityId,
+    observation: text,
+    source: source,
+    confidence_label: 'STRONG',
+    facts_layer: 'L2_GROUP'
+  }).then(function(result) {
+    if (result.error) { toast('Error: ' + result.error); return; }
+    toast('Observation added');
+    selectEntity(entityId);
+  }).catch(function(err) {
+    toast('Failed: ' + (err.message || 'Unknown error'));
+  });
+}
+
+function addSkillPill() {
+  var skill = prompt('Enter skill name:');
+  if (!skill || !skill.trim()) return;
+  var container = document.getElementById('li-edit-skills');
+  if (!container) return;
+  var addBtn = container.querySelector('.li-pill-add');
+  var pill = document.createElement('span');
+  pill.className = 'li-skill-pill';
+  pill.innerHTML = esc(skill.trim()) + '<button class="li-pill-remove" onclick="this.parentElement.remove()">&times;</button>';
+  container.insertBefore(pill, addBtn);
+}
+
+function addExperienceEntry() {
+  var container = document.getElementById('li-edit-experience');
+  if (!container) return;
+  var addBtn = container.querySelector('.li-add-entry');
+  var idx = container.querySelectorAll('[data-exp-idx]').length;
+  var div = document.createElement('div');
+  div.className = 'li-exp-item';
+  div.style.cssText = 'flex-direction:column;gap:8px;';
+  div.setAttribute('data-exp-idx', idx);
+  div.innerHTML = '<div class="li-edit-row"><label>Title</label><input class="li-edit-field" data-field="title" value="" /></div>' +
+    '<div class="li-edit-row"><label>Company</label><input class="li-edit-field" data-field="company" value="" /></div>' +
+    '<div class="li-edit-row"><label>Start</label><input class="li-edit-field" data-field="start_date" value="" /><label style="min-width:40px;">End</label><input class="li-edit-field" data-field="end_date" value="" /></div>' +
+    '<div class="li-edit-row"><label>Location</label><input class="li-edit-field" data-field="location" value="" /></div>' +
+    '<div class="li-edit-row"><label>Desc</label><textarea class="li-edit-textarea" data-field="description" style="min-height:50px;"></textarea></div>';
+  container.insertBefore(div, addBtn);
+}
+
+function addEducationEntry() {
+  var container = document.getElementById('li-edit-education');
+  if (!container) return;
+  var addBtn = container.querySelector('.li-add-entry');
+  var idx = container.querySelectorAll('[data-edu-idx]').length;
+  var div = document.createElement('div');
+  div.className = 'li-edu-item';
+  div.style.cssText = 'flex-direction:column;gap:8px;';
+  div.setAttribute('data-edu-idx', idx);
+  div.innerHTML = '<div class="li-edit-row"><label>School</label><input class="li-edit-field" data-field="institution" value="" /></div>' +
+    '<div class="li-edit-row"><label>Degree</label><input class="li-edit-field" data-field="degree" value="" /></div>' +
+    '<div class="li-edit-row"><label>Field</label><input class="li-edit-field" data-field="field" value="" /></div>' +
+    '<div class="li-edit-row"><label>Start</label><input class="li-edit-field" data-field="start_year" value="" /><label style="min-width:40px;">End</label><input class="li-edit-field" data-field="end_year" value="" /></div>';
+  container.insertBefore(div, addBtn);
+}
+
+function showAllSkills() {
+  if (!selectedData || !selectedData.career_lite) return;
+  var skills = selectedData.career_lite.skills || [];
+  var container = document.querySelector('.li-skill-pills');
+  if (!container) return;
+  container.innerHTML = '<span class="li-skill-label">Skills:</span>';
+  for (var i = 0; i < skills.length; i++) {
+    container.innerHTML += '<span class="li-skill-pill">' + esc(skills[i]) + '</span>';
+  }
+}
+
+function showAllObservations() {
+  if (!selectedData) return;
+  var obs = (selectedData.observations || []).slice().sort(function(a, b) {
+    return new Date(b.observed_at || 0) - new Date(a.observed_at || 0);
+  });
+  var container = document.getElementById('li-display-activity');
+  if (!container) return;
+  var h = '';
+  for (var i = 0; i < obs.length; i++) {
+    var o = obs[i];
+    h += '<div class="li-obs-item">';
+    h += '<div class="li-obs-source"><div class="li-obs-source-icon">' + esc(getSourceLabel(o.source || '').slice(0, 2).toUpperCase()) + '</div> ' + esc(getSourceLabel(o.source || '')) + '</div>';
+    h += '<div class="li-obs-text" style="-webkit-line-clamp:unset;overflow:visible;">' + esc(o.observation || '') + '</div>';
+    h += '<div class="li-obs-date">' + esc((o.observed_at || '').slice(0, 10)) + '</div>';
+    h += '</div>';
+  }
+  container.innerHTML = h;
+}
+
 function filterConnections(query) {
   var q = (query || '').toLowerCase().trim();
   var cards = document.querySelectorAll('.conn-grid-card');
@@ -13457,10 +13974,6 @@ function renderDetail(data) {
   if (data.structured_attributes && data.structured_attributes.interface === 'profile') {
     return renderProfileDetail(data);
   }
-  // Check for Career Lite profile
-  if (data.career_lite && data.career_lite.interface === 'career-lite') {
-    return renderCareerLite(data);
-  }
 
   var e = data.entity || {};
   var type = e.entity_type || '';
@@ -13469,117 +13982,440 @@ function renderDetail(data) {
   if (['role', 'credential', 'skill'].indexOf(type) !== -1) {
     return renderConnectedDetail(data);
   }
-  // Route org/business/institution types to their dossier renderer
-  if (['organization', 'business', 'institution'].indexOf(type) !== -1) {
-    return renderOrgDossier(data);
-  }
 
-  var name = type === 'person' ? (e.name?.full || '') : (e.name?.common || e.name?.legal || '');
+  // --- LinkedIn-inspired card layout for Person + Org entities ---
+  var isOrg = ['organization', 'business', 'institution'].indexOf(type) !== -1;
+  var isPerson = type === 'person';
+  var name = isPerson ? (e.name?.full || '') : (e.name?.common || e.name?.legal || e.name?.full || '');
   var summary = e.summary?.value || '';
   var meta = data.extraction_metadata || {};
   var entityId = e.entity_id || '';
   var health = computeEntityHealth(data);
-  var initials = name.split(/\\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
-  var h = '';
-
-  // Hero Card
-  h += '<div class="hero-card">';
-  h += '<div class="hero-top">';
-  if (type === 'person') {
-    h += '<div class="hero-avatar">' + esc(initials) + '</div>';
-  }
-  h += '<div class="hero-info">';
-  h += '<div class="hero-name-row">';
-  h += '<span class="hero-name">' + esc(name) + '</span>';
-  h += '<span class="type-badge ' + type + '">' + type + '</span>';
-  h += '<span class="entity-id-badge">' + esc(entityId) + '</span>';
-  h += '</div>';
-
-  // Show headline/role from attributes
-  var attrs = data.attributes || [];
-  var headline = '', location = '', linkedinUrl = '';
-  for (var i = 0; i < attrs.length; i++) {
-    if (attrs[i].key === 'headline' && attrs[i].value) headline = attrs[i].value;
-    if (attrs[i].key === 'location' && attrs[i].value) location = attrs[i].value;
-    if (attrs[i].key === 'linkedin_url' && attrs[i].value) linkedinUrl = attrs[i].value;
-  }
-  if (headline) h += '<div class="hero-headline">' + esc(headline) + '</div>';
-  if (location) h += '<div class="hero-location"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> ' + esc(location) + '</div>';
-  if (linkedinUrl) {
-    h += '<div class="hero-contact-row"><span class="hero-contact-item"><a href="' + esc(linkedinUrl) + '" target="_blank"><svg width="12" height="12" viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg> LinkedIn</a></span></div>';
-  }
-
-  // Badges
-  h += '<div class="hero-badges">';
-  h += renderTierBadge(entityId);
-  h += renderHealthIndicator(health);
-  h += renderDensityBadge(data);
-  h += confidenceBadge(meta.extraction_confidence);
-  var conflictCount = (data.conflicts || []).length;
-  if (conflictCount > 0) {
-    h += '<span class="conflict-badge">' + conflictCount + ' conflict' + (conflictCount > 1 ? 's' : '') + '</span>';
-  }
-  h += '</div>';
-
-  // Actions
-  h += '<div class="hero-actions">';
-  if (entityId !== primaryEntityId) h += '<button class="btn-delete-entity" onclick="confirmDeleteEntity(' + "'" + esc(entityId) + "'" + ', ' + "'" + esc(name).replace(/'/g, '') + "'" + ')" title="Delete entity">Delete</button>';
-  h += '</div>';
-
-  h += '</div></div></div>';
-
-  // Enrichment prompts for skeleton/partial entities
   var density = getEntityDensity(data);
-  if (density.level === 'skeleton' || density.level === 'partial') {
-    h += '<div class="section" style="margin-top:0;">';
-    if (!linkedinUrl && type === 'person') {
-      h += renderEnrichPrompt('\\uD83D\\uDD17', 'Add a LinkedIn URL to populate career history, education, and skills.', 'Paste URL', 'document.getElementById(' + "'" + 'obsText' + "'" + ').focus()');
-    }
-    if (type === 'person' && (!data.career_lite || !data.career_lite.work_history || data.career_lite.work_history.length === 0)) {
-      h += renderEnrichPrompt('\\uD83D\\uDCBC', 'No career history found. Upload a LinkedIn PDF or paste a profile URL to enrich.', '', '');
-    }
-    if (attrs.length < 3) {
-      h += renderEnrichPrompt('\\uD83D\\uDCCB', 'This entity has very few attributes. Add observations or import from external sources to build a richer profile.', '', '');
-    }
-    if (!headline && type === 'person') {
-      h += renderEnrichPrompt('\\uD83D\\uDC64', 'No headline or role detected. Add context about what this person does.', '', '');
-    }
-    var hasHandles = false;
-    for (var i = 0; i < attrs.length; i++) {
-      if (attrs[i].key === 'x_handle' || attrs[i].key === 'instagram_handle' || attrs[i].key === 'x_url' || attrs[i].key === 'instagram_url') { hasHandles = true; break; }
-    }
-    if (!hasHandles && !linkedinUrl && type === 'person') {
-      h += renderEnrichPrompt('\\uD83D\\uDCF1', 'No social profiles linked. Paste a profile URL to connect social accounts.', '', '');
-    }
+  var cl = data.career_lite || {};
+  var attrs = data.attributes || [];
+  var obs = (data.observations || []).slice().sort(function(a, b) {
+    return new Date(b.observed_at || 0) - new Date(a.observed_at || 0);
+  });
+  var rels = data.relationships || [];
+  var connected = data.connected_objects || [];
+  var initials = name.split(/\\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
+
+  // Extract key attributes
+  var headline = cl.headline || '';
+  var location = cl.location || '';
+  var linkedinUrl = cl.linkedin_url || '';
+  var xHandle = '', xUrl = '', igHandle = '', igUrl = '';
+  for (var i = 0; i < attrs.length; i++) {
+    if (attrs[i].key === 'headline' && attrs[i].value && !headline) headline = attrs[i].value;
+    if (attrs[i].key === 'location' && attrs[i].value && !location) location = attrs[i].value;
+    if (attrs[i].key === 'linkedin_url' && attrs[i].value && !linkedinUrl) linkedinUrl = attrs[i].value;
+    if (attrs[i].key === 'x_handle' && attrs[i].value) xHandle = attrs[i].value;
+    if (attrs[i].key === 'x_url' && attrs[i].value) xUrl = attrs[i].value;
+    if (attrs[i].key === 'instagram_handle' && attrs[i].value) igHandle = attrs[i].value;
+    if (attrs[i].key === 'instagram_url' && attrs[i].value) igUrl = attrs[i].value;
+  }
+  var currentTitle = cl.current_title || cl.current_role || '';
+  var currentCompany = cl.current_company || '';
+  var experience = cl.experience || cl.work_history || [];
+  var education = cl.education || [];
+  var skills = cl.skills || [];
+  var isSelf = entityId === primaryEntityId;
+
+  // Source count
+  var srcSet = {};
+  for (var i = 0; i < obs.length; i++) { if (obs[i].source) srcSet[obs[i].source] = true; }
+  var prov = data.provenance_chain || {};
+  var docs = prov.source_documents || [];
+  for (var i = 0; i < docs.length; i++) { var s = (docs[i].source || '').split(':')[0]; if (s) srcSet[s] = true; }
+  var sourceCount = Object.keys(srcSet).length;
+
+  // --- Determine available lens tabs ---
+  var tabs = [{ id: 'overview', label: 'Overview' }];
+  if (isPerson && experience.length > 0) tabs.push({ id: 'career', label: 'Career Lite' });
+  if (rels.length + connected.length >= 3) tabs.push({ id: 'network', label: 'Network Map' });
+  if (isPerson && obs.length >= 5) tabs.push({ id: 'intel-brief', label: 'Intelligence Brief' });
+  if (isOrg) tabs.push({ id: 'org-brief', label: 'Org Brief' });
+  tabs.push({ id: 'sources', label: 'Source Provenance' });
+
+  // Store current tab context for switching
+  var activeTab = window._liActiveTab || 'overview';
+
+  var mainEl = document.getElementById('main');
+  mainEl.className = 'li-profile-bg';
+
+  var h = '<div class="li-profile" data-entity-id="' + esc(entityId) + '">';
+
+  // --- Tab Bar ---
+  h += '<div class="li-tab-bar">';
+  for (var t = 0; t < tabs.length; t++) {
+    h += '<button class="li-tab' + (tabs[t].id === activeTab ? ' active' : '') + '" onclick="switchLiTab(\\'' + tabs[t].id + '\\',\\'' + esc(entityId) + '\\')">' + esc(tabs[t].label) + '</button>';
+  }
+  h += '</div>';
+
+  // For non-overview tabs, dispatch to existing renderers
+  if (activeTab === 'career') {
+    h += '</div>';
+    mainEl.innerHTML = h;
+    window._liActiveTab = 'career';
+    return renderCareerLite(data);
+  }
+  if (activeTab === 'network') {
+    h += '</div>';
+    mainEl.innerHTML = h;
+    window._liActiveTab = 'network';
+    return renderNetworkMapPlaceholder(data);
+  }
+  if (activeTab === 'intel-brief') {
+    h += '</div>';
+    mainEl.innerHTML = h;
+    window._liActiveTab = 'intel-brief';
+    return renderIntelligenceBriefPlaceholder(data);
+  }
+  if (activeTab === 'org-brief' && isOrg) {
+    h += '</div>';
+    mainEl.innerHTML = h;
+    window._liActiveTab = 'org-brief';
+    return renderOrgDossier(data);
+  }
+  if (activeTab === 'sources') {
+    h += '</div>';
+    mainEl.innerHTML = h;
+    window._liActiveTab = 'sources';
+    return renderSourceProvenance(data);
+  }
+
+  // --- CARD 1: HERO ---
+  var editSvg = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+
+  h += '<div class="li-card li-hero" id="li-card-hero">';
+  h += '<div class="li-hero-top">';
+  h += '<div class="li-hero-avatar ' + (isOrg ? 'org' : 'person') + '">' + esc(initials) + '</div>';
+  h += '<div class="li-hero-info">';
+  h += '<h1 class="li-hero-name" id="li-hero-name">' + esc(name) + '</h1>';
+  if (headline) {
+    h += '<div class="li-hero-headline">' + esc(headline) + '</div>';
+  } else if (currentTitle && currentCompany) {
+    h += '<div class="li-hero-headline">' + esc(currentTitle) + ' at ' + esc(currentCompany) + '</div>';
+  } else if (currentTitle || currentCompany) {
+    h += '<div class="li-hero-headline">' + esc(currentTitle || currentCompany) + '</div>';
+  }
+  h += '<div class="li-hero-meta">';
+  if (location) {
+    h += '<span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> ' + esc(location) + '</span>';
+  }
+  h += '<span class="li-hero-type">' + esc(type) + '</span>';
+  h += '</div>';
+  // Stats row
+  h += '<div class="li-hero-stats">';
+  if (rels.length > 0) {
+    h += '<span class="li-hero-stat" onclick="showConnectionsPage(\\'' + esc(entityId) + '\\')">' + rels.length + ' connection' + (rels.length !== 1 ? 's' : '') + '</span>';
+  }
+  h += '<span class="li-hero-stat muted">' + sourceCount + ' source' + (sourceCount !== 1 ? 's' : '') + '</span>';
+  h += '</div>';
+  // Socials
+  var hasSocials = linkedinUrl || xHandle || xUrl || igHandle || igUrl;
+  if (hasSocials) {
+    h += '<div class="li-hero-socials">';
+    if (linkedinUrl) h += '<a class="li-hero-social-link" href="' + esc(linkedinUrl) + '" target="_blank"><svg width="14" height="14" viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg> LinkedIn</a>';
+    if (xUrl || xHandle) h += '<a class="li-hero-social-link" href="' + esc(xUrl || ('https://x.com/' + xHandle)) + '" target="_blank"><svg width="14" height="14" viewBox="0 0 24 24" fill="#191919"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg> ' + esc(xHandle || 'X') + '</a>';
+    if (igUrl || igHandle) h += '<a class="li-hero-social-link" href="' + esc(igUrl || ('https://instagram.com/' + igHandle)) + '" target="_blank"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#E4405F" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="5"/><circle cx="17.5" cy="6.5" r="1.5"/></svg> ' + esc(igHandle || 'Instagram') + '</a>';
     h += '</div>';
   }
+  h += '</div>'; // li-hero-info
 
-  // Summary
-  h += '<div class="section">';
-  h += '<div class="section-header"><span class="section-title"><span class="section-header-icon" style="background:rgba(99,102,241,0.08);">&#128196;</span> Summary</span>';
-  h += '<button class="btn-sm" id="btnEditSummary" onclick="toggleSummaryEdit()">Edit</button></div>';
-  h += '<div id="summaryDisplay" class="summary-text">' + esc(summary) + '</div>';
-  h += '<div id="summaryEditSection" style="display:none">';
-  h += '<textarea class="summary-edit" id="summaryEdit">' + esc(summary) + '</textarea>';
-  h += '<div class="edit-actions"><button class="btn-save" onclick="saveSummary()">Save</button>';
-  h += '<button class="btn-cancel" onclick="toggleSummaryEdit()">Cancel</button></div>';
+  // Right side: tier badge + health circle
+  h += '<div class="li-hero-right">';
+  h += renderTierBadge(entityId);
+  var healthPct = health.level === 'strong' ? '95' : health.level === 'developing' ? '60' : '25';
+  h += '<div class="li-health-circle ' + health.level + '" title="Health: ' + health.label + '">' + healthPct + '</div>';
+  // Delete button for non-self
+  if (entityId !== primaryEntityId) {
+    h += '<button style="margin-top:4px;font-size:12px;color:#cc1016;background:none;border:1px solid #fecaca;border-radius:6px;padding:4px 10px;cursor:pointer;" onclick="confirmDeleteEntity(\\'' + esc(entityId) + '\\',\\'' + esc(name).replace(/'/g, '') + '\\')">Delete</button>';
+  }
+  h += '</div>';
+
+  // Edit button
+  h += '<button class="li-edit-btn" onclick="toggleCardEdit(\\'hero\\',\\'' + esc(entityId) + '\\')" title="Edit" style="position:absolute;top:12px;right:12px;">' + editSvg + '</button>';
+
+  h += '</div>'; // li-hero-top
+
+  // Hero edit form (hidden by default)
+  h += '<div id="li-edit-hero" style="display:none;margin-top:16px;">';
+  h += '<div class="li-edit-row"><label>Name</label><input class="li-edit-field" id="li-edit-name" value="' + esc(name) + '" /></div>';
+  h += '<div class="li-edit-row"><label>Headline</label><input class="li-edit-field" id="li-edit-headline" value="' + esc(headline) + '" /></div>';
+  h += '<div class="li-edit-row"><label>Location</label><input class="li-edit-field" id="li-edit-location" value="' + esc(location) + '" /></div>';
+  h += '<div class="li-edit-row"><label>LinkedIn</label><input class="li-edit-field" id="li-edit-linkedin" value="' + esc(linkedinUrl) + '" /></div>';
+  h += '<div class="li-edit-row"><label>X Handle</label><input class="li-edit-field" id="li-edit-xhandle" value="' + esc(xHandle) + '" /></div>';
+  h += '<div class="li-edit-actions">';
+  h += '<button class="li-btn-cancel" onclick="toggleCardEdit(\\'hero\\')">Cancel</button>';
+  h += '<button class="li-btn-save" onclick="saveCardEdit(\\'hero\\',\\'' + esc(entityId) + '\\')">Save</button>';
   h += '</div></div>';
 
-  // Attributes with color-coded confidence
-  if (attrs.length > 0) {
-    h += '<div class="section"><div class="section-header"><span class="section-title"><span class="section-header-icon" style="background:rgba(107,114,128,0.08);">&#128203;</span> Attributes</span></div>';
-    for (var i = 0; i < attrs.length; i++) {
-      var a = attrs[i];
-      h += '<div class="attr-row"><span class="attr-key">' + esc(a.key) + '</span>';
-      h += '<span class="attr-value">' + esc(String(a.value || '')) + '</span>';
-      h += confidenceBadge(a.confidence, a.confidence_label);
+  h += '</div>'; // li-card hero
+
+  // --- CARD 2: ABOUT ---
+  if (summary || skills.length > 0) {
+    h += '<div class="li-card" id="li-card-about">';
+    h += '<div class="li-card-header"><h2 class="li-card-title">About</h2>';
+    h += '<button class="li-edit-btn" onclick="toggleCardEdit(\\'about\\',\\'' + esc(entityId) + '\\')" title="Edit">' + editSvg + '</button></div>';
+
+    // Display mode
+    h += '<div id="li-display-about">';
+    if (summary) {
+      h += '<div class="li-about-text" id="li-about-text">' + esc(summary) + '</div>';
+      h += '<span class="li-see-more" onclick="var t=document.getElementById(\\'li-about-text\\');t.classList.toggle(\\'expanded\\');this.textContent=t.classList.contains(\\'expanded\\')?\\'. . .see less\\':\\'. . .see more\\'">. . .see more</span>';
+    }
+    if (skills.length > 0) {
+      h += '<div class="li-skill-pills">';
+      h += '<span class="li-skill-label">Top Skills:</span>';
+      var showSkills = Math.min(skills.length, 5);
+      for (var i = 0; i < showSkills; i++) {
+        h += '<span class="li-skill-pill">' + esc(skills[i]) + '</span>';
+      }
+      if (skills.length > 5) {
+        h += '<span class="li-show-all" onclick="showAllSkills()">Show all ' + skills.length + ' skills &#8594;</span>';
+      }
       h += '</div>';
     }
     h += '</div>';
+
+    // Edit mode (hidden)
+    h += '<div id="li-edit-about" style="display:none;">';
+    h += '<div class="li-edit-row"><label>Summary</label></div>';
+    h += '<textarea class="li-edit-textarea" id="li-edit-summary">' + esc(summary) + '</textarea>';
+    if (skills.length > 0) {
+      h += '<div style="margin-top:12px;"><label style="font-size:13px;color:#666;font-weight:500;">Skills</label></div>';
+      h += '<div class="li-skill-pills" id="li-edit-skills">';
+      for (var i = 0; i < skills.length; i++) {
+        h += '<span class="li-skill-pill">' + esc(skills[i]) + '<button class="li-pill-remove" onclick="this.parentElement.remove()">&times;</button></span>';
+      }
+      h += '<span class="li-pill-add" onclick="addSkillPill()">+ Add</span>';
+      h += '</div>';
+    }
+    h += '<div class="li-edit-actions">';
+    h += '<button class="li-btn-cancel" onclick="toggleCardEdit(\\'about\\')">Cancel</button>';
+    h += '<button class="li-btn-save" onclick="saveCardEdit(\\'about\\',\\'' + esc(entityId) + '\\')">Save</button>';
+    h += '</div></div>';
+
+    h += '</div>'; // li-card about
   }
 
-  // Connections — Facebook-style grid layout
-  var rels = data.relationships || [];
+  // --- CARD 3: INTELLIGENCE (self entity only) ---
+  if (isSelf) {
+    var avgConf = density.avgConf || 0;
+    var coveragePct = Math.min(100, Math.round((density.attrCount / 15) * 100));
+    var lastEnriched = meta.extracted_at ? meta.extracted_at.slice(0, 10) : 'Unknown';
+    var conflictCount = (data.conflicts || []).length;
+
+    h += '<div class="li-card" id="li-card-intel">';
+    h += '<div class="li-card-header"><h2 class="li-card-title">Intelligence</h2>';
+    h += '<span class="li-intel-private"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Private to you</span></div>';
+    h += '<div class="li-intel-stats">';
+    h += '<div class="li-intel-stat"><div class="li-intel-stat-value">' + coveragePct + '%</div><div class="li-intel-stat-label">Data Coverage</div></div>';
+    h += '<div class="li-intel-stat"><div class="li-intel-stat-value">' + avgConf.toFixed(2) + '</div><div class="li-intel-stat-label">Avg Confidence</div></div>';
+    h += '<div class="li-intel-stat"><div class="li-intel-stat-value">' + sourceCount + '</div><div class="li-intel-stat-label">Sources</div></div>';
+    h += '</div>';
+    h += '<div class="li-intel-footer">Last enriched: ' + esc(lastEnriched) + '</div>';
+    if (conflictCount > 0) {
+      h += '<div class="li-intel-warning"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>' + conflictCount + ' active conflict' + (conflictCount > 1 ? 's' : '') + ' need review</div>';
+    }
+    h += '</div>';
+  }
+
+  // --- CARD 4: EXPERIENCE (person only, if work_history exists) ---
+  if (isPerson && experience.length > 0) {
+    h += '<div class="li-card" id="li-card-experience">';
+    h += '<div class="li-card-header"><h2 class="li-card-title">Experience</h2>';
+    h += '<button class="li-edit-btn" onclick="toggleCardEdit(\\'experience\\',\\'' + esc(entityId) + '\\')" title="Edit">' + editSvg + '</button></div>';
+
+    h += '<div id="li-display-experience">';
+    // Sort experience: current first
+    var sortedExp = experience.slice().sort(function(a, b) {
+      var aEnd = (a.end_date || 'Present').toLowerCase();
+      var bEnd = (b.end_date || 'Present').toLowerCase();
+      if (aEnd === 'present' && bEnd !== 'present') return -1;
+      if (bEnd === 'present' && aEnd !== 'present') return 1;
+      return (bEnd > aEnd) ? 1 : -1;
+    });
+    for (var i = 0; i < sortedExp.length; i++) {
+      var exp = sortedExp[i];
+      var compInit = (exp.company || '').slice(0, 2).toUpperCase();
+      var isCurrent = (exp.end_date || '').toLowerCase() === 'present' || !exp.end_date;
+      // Calculate duration
+      var dur = '';
+      if (exp.start_date) {
+        var startStr = exp.start_date;
+        var endStr = isCurrent ? new Date().toISOString().slice(0, 7) : (exp.end_date || '');
+        var sDate = new Date(startStr);
+        var eDate = endStr ? new Date(endStr) : new Date();
+        if (!isNaN(sDate) && !isNaN(eDate)) {
+          var months = (eDate.getFullYear() - sDate.getFullYear()) * 12 + (eDate.getMonth() - sDate.getMonth());
+          var yrs = Math.floor(months / 12);
+          var mos = months % 12;
+          dur = (yrs > 0 ? yrs + ' yr' + (yrs > 1 ? 's' : '') : '') + (mos > 0 ? (yrs > 0 ? ' ' : '') + mos + ' mo' + (mos > 1 ? 's' : '') : '');
+        }
+      }
+
+      // Check if org entity exists in graph for clickable link
+      var orgEntityId = '';
+      for (var k = 0; k < allEntities.length; k++) {
+        if (allEntities[k].name && allEntities[k].name.toLowerCase() === (exp.company || '').toLowerCase()) {
+          orgEntityId = allEntities[k].entity_id;
+          break;
+        }
+      }
+
+      h += '<div class="li-exp-item">';
+      h += '<div class="li-exp-logo">' + esc(compInit) + '</div>';
+      h += '<div class="li-exp-info">';
+      h += '<div class="li-exp-title">' + esc(exp.title || '') + '</div>';
+      if (orgEntityId) {
+        h += '<div class="li-exp-company"><a href="#" onclick="selectEntity(\\'' + esc(orgEntityId) + '\\');return false;">' + esc(exp.company || '') + '</a></div>';
+      } else {
+        h += '<div class="li-exp-company">' + esc(exp.company || '') + '</div>';
+      }
+      var dateStr = (exp.start_date || '') + (exp.start_date ? ' - ' : '') + (isCurrent ? 'Present' : (exp.end_date || ''));
+      if (dur) dateStr += ' \\u00B7 ' + dur;
+      h += '<div class="li-exp-dates">' + esc(dateStr) + '</div>';
+      if (exp.location) h += '<div class="li-exp-loc">' + esc(exp.location) + '</div>';
+      if (exp.description) {
+        h += '<div class="li-exp-desc" id="li-exp-desc-' + i + '">' + esc(exp.description) + '</div>';
+        h += '<span class="li-see-more" onclick="var t=document.getElementById(\\'li-exp-desc-' + i + '\\');t.classList.toggle(\\'expanded\\');this.textContent=t.classList.contains(\\'expanded\\')?\\'. . .see less\\':\\'. . .see more\\'">. . .see more</span>';
+      }
+      h += '</div></div>';
+    }
+    h += '</div>';
+
+    // Edit mode (hidden)
+    h += '<div id="li-edit-experience" style="display:none;">';
+    for (var i = 0; i < sortedExp.length; i++) {
+      var exp = sortedExp[i];
+      h += '<div class="li-exp-item" style="flex-direction:column;gap:8px;" data-exp-idx="' + i + '">';
+      h += '<div class="li-edit-row"><label>Title</label><input class="li-edit-field" data-field="title" value="' + esc(exp.title || '') + '" /></div>';
+      h += '<div class="li-edit-row"><label>Company</label><input class="li-edit-field" data-field="company" value="' + esc(exp.company || '') + '" /></div>';
+      h += '<div class="li-edit-row"><label>Start</label><input class="li-edit-field" data-field="start_date" value="' + esc(exp.start_date || '') + '" /><label style="min-width:40px;">End</label><input class="li-edit-field" data-field="end_date" value="' + esc(exp.end_date || '') + '" /></div>';
+      h += '<div class="li-edit-row"><label>Location</label><input class="li-edit-field" data-field="location" value="' + esc(exp.location || '') + '" /></div>';
+      h += '<div class="li-edit-row"><label>Desc</label><textarea class="li-edit-textarea" data-field="description" style="min-height:50px;">' + esc(exp.description || '') + '</textarea></div>';
+      h += '</div>';
+    }
+    h += '<div class="li-add-entry" onclick="addExperienceEntry()">+ Add experience</div>';
+    h += '<div class="li-edit-actions">';
+    h += '<button class="li-btn-cancel" onclick="toggleCardEdit(\\'experience\\')">Cancel</button>';
+    h += '<button class="li-btn-save" onclick="saveCardEdit(\\'experience\\',\\'' + esc(entityId) + '\\')">Save</button>';
+    h += '</div></div>';
+
+    h += '</div>';
+  }
+
+  // --- CARD 5: EDUCATION (person only, if education exists) ---
+  if (isPerson && education.length > 0) {
+    h += '<div class="li-card" id="li-card-education">';
+    h += '<div class="li-card-header"><h2 class="li-card-title">Education</h2>';
+    h += '<button class="li-edit-btn" onclick="toggleCardEdit(\\'education\\',\\'' + esc(entityId) + '\\')" title="Edit">' + editSvg + '</button></div>';
+
+    h += '<div id="li-display-education">';
+    for (var i = 0; i < education.length; i++) {
+      var edu = education[i];
+      var instInit = (edu.institution || '').slice(0, 2).toUpperCase();
+      h += '<div class="li-edu-item">';
+      h += '<div class="li-edu-logo">' + esc(instInit) + '</div>';
+      h += '<div class="li-edu-info">';
+      h += '<div class="li-edu-name">' + esc(edu.institution || '') + '</div>';
+      var degreeStr = (edu.degree || '');
+      if (edu.field) degreeStr += (degreeStr ? ', ' : '') + edu.field;
+      if (degreeStr) h += '<div class="li-edu-degree">' + esc(degreeStr) + '</div>';
+      var yearStr = '';
+      if (edu.start_year) yearStr = edu.start_year + (edu.end_year ? ' - ' + edu.end_year : '');
+      else if (edu.years) yearStr = edu.years;
+      if (yearStr) h += '<div class="li-edu-years">' + esc(yearStr) + '</div>';
+      h += '</div></div>';
+    }
+    h += '</div>';
+
+    // Edit mode (hidden)
+    h += '<div id="li-edit-education" style="display:none;">';
+    for (var i = 0; i < education.length; i++) {
+      var edu = education[i];
+      h += '<div class="li-edu-item" style="flex-direction:column;gap:8px;" data-edu-idx="' + i + '">';
+      h += '<div class="li-edit-row"><label>School</label><input class="li-edit-field" data-field="institution" value="' + esc(edu.institution || '') + '" /></div>';
+      h += '<div class="li-edit-row"><label>Degree</label><input class="li-edit-field" data-field="degree" value="' + esc(edu.degree || '') + '" /></div>';
+      h += '<div class="li-edit-row"><label>Field</label><input class="li-edit-field" data-field="field" value="' + esc(edu.field || '') + '" /></div>';
+      h += '<div class="li-edit-row"><label>Start</label><input class="li-edit-field" data-field="start_year" value="' + esc(edu.start_year || '') + '" /><label style="min-width:40px;">End</label><input class="li-edit-field" data-field="end_year" value="' + esc(edu.end_year || '') + '" /></div>';
+      h += '</div>';
+    }
+    h += '<div class="li-add-entry" onclick="addEducationEntry()">+ Add education</div>';
+    h += '<div class="li-edit-actions">';
+    h += '<button class="li-btn-cancel" onclick="toggleCardEdit(\\'education\\')">Cancel</button>';
+    h += '<button class="li-btn-save" onclick="saveCardEdit(\\'education\\',\\'' + esc(entityId) + '\\')">Save</button>';
+    h += '</div></div>';
+
+    h += '</div>';
+  }
+
+  // --- ORG: PEOPLE card (instead of Experience/Education) ---
+  if (isOrg) {
+    var orgPeople = [];
+    for (var i = 0; i < rels.length; i++) {
+      orgPeople.push(rels[i]);
+    }
+    for (var i = 0; i < connected.length; i++) {
+      if (connected[i].entity_type === 'person') orgPeople.push(connected[i]);
+    }
+    if (orgPeople.length > 0) {
+      h += '<div class="li-card" id="li-card-people">';
+      h += '<div class="li-card-header"><h2 class="li-card-title">People</h2></div>';
+      for (var i = 0; i < orgPeople.length; i++) {
+        var p = orgPeople[i];
+        var pName = p.name || p.label || '';
+        var pInit = pName.split(/\\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
+        var pRole = p.relationship_type || p.context || '';
+        var pClickId = p.target_entity_id || p.entity_id || '';
+        h += '<div class="li-people-item"' + (pClickId ? ' onclick="selectEntity(\\'' + esc(pClickId) + '\\')"' : '') + '>';
+        h += '<div class="li-people-avatar">' + esc(pInit) + '</div>';
+        h += '<div><div class="li-people-name">' + esc(pName) + '</div>';
+        if (pRole) h += '<div class="li-people-role">' + esc(pRole) + '</div>';
+        h += '</div></div>';
+      }
+      h += '</div>';
+    }
+  }
+
+  // --- CARD 6: ACTIVITY / OBSERVATIONS ---
+  h += '<div class="li-card" id="li-card-activity">';
+  h += '<div class="li-card-header"><h2 class="li-card-title">Activity</h2>';
+  h += '<button class="li-edit-btn" onclick="toggleCardEdit(\\'activity\\',\\'' + esc(entityId) + '\\')" title="Add observation">' + editSvg + '</button></div>';
+
+  h += '<div id="li-display-activity">';
+  if (obs.length === 0) {
+    h += '<div style="font-size:14px;color:#666;">No observations yet</div>';
+  }
+  var showObs = Math.min(obs.length, 3);
+  for (var i = 0; i < showObs; i++) {
+    var o = obs[i];
+    h += '<div class="li-obs-item">';
+    h += '<div class="li-obs-source"><div class="li-obs-source-icon">' + esc(getSourceLabel(o.source || '').slice(0, 2).toUpperCase()) + '</div> ' + esc(getSourceLabel(o.source || '')) + '</div>';
+    h += '<div class="li-obs-text">' + esc(o.observation || '') + '</div>';
+    h += '<div class="li-obs-date">' + esc((o.observed_at || '').slice(0, 10)) + '</div>';
+    h += '</div>';
+  }
+  if (obs.length > 3) {
+    h += '<div class="li-show-all" onclick="showAllObservations()">Show all ' + obs.length + ' observations &#8594;</div>';
+  }
+  h += '</div>';
+
+  // Edit mode: add observation form
+  h += '<div id="li-edit-activity" style="display:none;">';
+  h += '<textarea class="li-edit-textarea" id="li-obs-new-text" placeholder="What did you learn about this entity?"></textarea>';
+  h += '<div class="li-edit-row" style="margin-top:8px;"><label>Source</label><select id="li-obs-source" class="li-edit-field" style="padding:6px 10px;"><option value="user_input">User Input</option><option value="linkedin_api">LinkedIn</option><option value="web">Web</option><option value="file">File</option></select></div>';
+  h += '<div class="li-edit-actions">';
+  h += '<button class="li-btn-cancel" onclick="toggleCardEdit(\\'activity\\')">Cancel</button>';
+  h += '<button class="li-btn-save" onclick="saveNewObservation(\\'' + esc(entityId) + '\\')">Add Observation</button>';
+  h += '</div></div>';
+
+  h += '</div>';
+
+  // --- CARD 7: CONNECTIONS ---
   if (rels.length > 0) {
     var tierDefs = {
       5: { label: 'Family', color: '#ef4444' },
@@ -13594,22 +14430,21 @@ function renderDetail(data) {
       tierBuckets[tier].push(rels[i]);
     }
 
-    h += '<div class="section">';
+    h += '<div class="li-card" id="li-card-connections">';
 
-    // Summary header with search
-    h += '<div class="conn-grid-header">';
-    h += '<span class="section-title"><span class="section-header-icon" style="background:rgba(59,130,246,0.08);">&#129309;</span> Connections (' + rels.length + ')</span>';
-    h += '<div class="conn-grid-search"><input type="text" placeholder="Search connections..." oninput="filterConnections(this.value)" /></div>';
+    // Header with link to full page
+    h += '<div class="li-card-header">';
+    h += '<h2 class="li-card-title" style="cursor:pointer;" onclick="showConnectionsPage(\\'' + esc(entityId) + '\\')">Connections (' + rels.length + ')</h2>';
     h += '</div>';
 
-    // Summary line: 5 Family · 8 Close Friends · etc.
-    h += '<div class="conn-grid-summary">';
+    // Summary line
+    h += '<div class="conn-grid-summary" style="margin-bottom:12px;">';
     var tierOrder = [5, 4, 3, 2, 1];
     for (var t = 0; t < tierOrder.length; t++) {
       var tid = tierOrder[t];
       var td = tierDefs[tid];
       if (tierBuckets[tid].length === 0) continue;
-      if (t > 0 && tierBuckets[tierOrder[t-1]].length > 0) h += '<span style="color:var(--text-muted);"> &middot; </span>';
+      if (t > 0 && tierBuckets[tierOrder[t-1]].length > 0) h += '<span style="color:#999;"> &middot; </span>';
       h += '<span class="conn-grid-summary-item"><span class="conn-grid-summary-dot" style="background:' + td.color + ';"></span> ' + tierBuckets[tid].length + ' ' + td.label + '</span>';
     }
     h += '</div>';
@@ -13624,10 +14459,7 @@ function renderDetail(data) {
       var sectionId = 'conn-tier-' + tid;
 
       h += '<div class="conn-tier-section" id="' + sectionId + '">';
-
-      // Tier label header
       if (tid === 1) {
-        // Following collapsed by default
         h += '<div class="conn-tier-label conn-tier-toggle" style="cursor:pointer;color:' + td.color + ';" onclick="var el=document.getElementById(\\'conn-grid-' + tid + '\\');var vis=el.style.display!==\\'none\\';el.style.display=vis?\\'none\\':\\'grid\\';this.querySelector(\\'.chevron\\').textContent=vis?\\'\\u25B6\\':\\'\\u25BC\\'">';
         h += '<span class="chevron">\\u25B6</span> ' + td.label + ' (' + bucket.length + ')';
         h += '</div>';
@@ -13635,10 +14467,8 @@ function renderDetail(data) {
         h += '<div class="conn-tier-label" style="color:' + td.color + ';border-bottom-color:' + td.color + ';">' + td.label + ' (' + bucket.length + ')</div>';
       }
 
-      // Grid of connection cards
       var gridDisplay = tid === 1 ? 'none' : 'grid';
       h += '<div class="conn-grid" id="conn-grid-' + tid + '" style="display:' + gridDisplay + ';">';
-
       for (var j = 0; j < bucket.length; j++) {
         var r = bucket[j];
         var rName = r.name || '';
@@ -13648,161 +14478,59 @@ function renderDetail(data) {
         if (!hasEntity) {
           for (var k = 0; k < allEntities.length; k++) {
             if (allEntities[k].name && allEntities[k].name.toLowerCase() === rName.toLowerCase()) {
-              existsInGraph = true;
-              r._matched_entity_id = allEntities[k].entity_id;
-              break;
+              existsInGraph = true; r._matched_entity_id = allEntities[k].entity_id; break;
             }
           }
         }
         var clickable = hasEntity || r._matched_entity_id;
         var clickId = r.target_entity_id || r._matched_entity_id || '';
         var desc = (r.context || r.relationship_type || '').substring(0, 60);
-
-        // Show only first CARDS_PER_TIER, rest hidden
         var hiddenStyle = j >= CARDS_PER_TIER ? ' style="display:none;" data-conn-overflow="' + sectionId + '"' : '';
 
-        h += '<div class="conn-grid-card conn-item' + (clickable ? ' clickable' : '') + '"' + (clickable ? ' onclick="selectEntity(' + "'" + esc(clickId) + "'" + ')"' : '') + hiddenStyle + ' data-conn-name="' + esc(rName.toLowerCase()) + '">';
+        h += '<div class="conn-grid-card conn-item' + (clickable ? ' clickable' : '') + '"' + (clickable ? ' onclick="selectEntity(\\'' + esc(clickId) + '\\')"' : '') + hiddenStyle + ' data-conn-name="' + esc(rName.toLowerCase()) + '">';
         h += '<div class="conn-grid-avatar' + (existsInGraph ? ' in-graph' : '') + '">' + esc(rInit) + '</div>';
-        h += '<div class="conn-grid-info">';
-        h += '<div class="conn-grid-name">' + esc(rName) + '</div>';
+        h += '<div class="conn-grid-info"><div class="conn-grid-name">' + esc(rName) + '</div>';
         if (desc) h += '<div class="conn-grid-desc">' + esc(desc) + '</div>';
         h += '</div>';
         h += '<span class="conn-grid-tier" style="background:' + td.color + ';">T' + tid + '</span>';
         h += '</div>';
       }
       h += '</div>';
-
-      // Show more link if truncated
       if (bucket.length > CARDS_PER_TIER) {
-        h += '<div class="conn-show-more" id="show-more-' + tid + '" onclick="showAllTierConnections(' + tid + ',' + "'" + sectionId + "'" + ')">Show all ' + bucket.length + ' ' + td.label + '</div>';
+        h += '<div class="conn-show-more" id="show-more-' + tid + '" onclick="showAllTierConnections(' + tid + ',\\'' + sectionId + '\\')">Show all ' + bucket.length + ' ' + td.label + '</div>';
       }
-
-      h += '</div>'; // conn-tier-section
+      h += '</div>';
     }
-
-    // View all connections link
-    h += '<div class="conn-view-all-link" onclick="showConnectionsPage(' + "'" + esc(entityId) + "'" + ')">View all ' + rels.length + ' connections &rarr;</div>';
-
-    h += '</div>'; // section
+    h += '<div class="conn-view-all-link" onclick="showConnectionsPage(\\'' + esc(entityId) + '\\')">View all ' + rels.length + ' connections &#8594;</div>';
+    h += '</div>';
   }
 
-  // Conflicts section — ONLY shown when active conflicts exist
+  // --- Conflicts section (if any) ---
   var activeConflicts = data.conflicts || [];
   if (activeConflicts.length > 0) {
-    h += '<div class="conflict-section">';
-    h += '<h3>&#9888; Conflicts (' + activeConflicts.length + ')</h3>';
+    h += '<div class="li-card" style="border-left:3px solid #f97316;">';
+    h += '<div class="li-card-header"><h2 class="li-card-title" style="color:#f97316;">&#9888; Conflicts (' + activeConflicts.length + ')</h2></div>';
     for (var ci = 0; ci < activeConflicts.length; ci++) {
       var cf = activeConflicts[ci];
       var cfType = (cf.conflict_type || 'FACTUAL').toLowerCase();
       h += '<div class="conflict-card">';
-      h += '<div class="conflict-card-header">';
-      h += '<span class="conflict-attr">' + esc(cf.attribute || '') + '</span>';
-      h += '<span class="conflict-type-tag ' + cfType + '">' + esc(cf.conflict_type || '') + '</span>';
-      h += '</div>';
+      h += '<div class="conflict-card-header"><span class="conflict-attr">' + esc(cf.attribute || '') + '</span><span class="conflict-type-tag ' + cfType + '">' + esc(cf.conflict_type || '') + '</span></div>';
       h += '<div class="conflict-values">';
-      h += '<div class="conflict-val val-a">';
-      h += '<div class="conflict-val-label">Value A (existing)</div>';
-      h += '<div class="conflict-val-text">' + esc(String(cf.value_a || '')) + '</div>';
-      h += '<div class="conflict-val-source">' + esc(String(cf.source_a || '')) + (cf.date_a ? ' &middot; ' + esc(String(cf.date_a).slice(0,10)) : '') + '</div>';
-      h += '</div>';
-      h += '<div class="conflict-val val-b">';
-      h += '<div class="conflict-val-label">Value B (incoming)</div>';
-      h += '<div class="conflict-val-text">' + esc(String(cf.value_b || '')) + '</div>';
-      h += '<div class="conflict-val-source">' + esc(String(cf.source_b || '')) + (cf.date_b ? ' &middot; ' + esc(String(cf.date_b).slice(0,10)) : '') + '</div>';
-      h += '</div>';
+      h += '<div class="conflict-val val-a"><div class="conflict-val-label">Value A (existing)</div><div class="conflict-val-text">' + esc(String(cf.value_a || '')) + '</div></div>';
+      h += '<div class="conflict-val val-b"><div class="conflict-val-label">Value B (incoming)</div><div class="conflict-val-text">' + esc(String(cf.value_b || '')) + '</div></div>';
       h += '</div>';
       h += '<div class="conflict-actions">';
-      h += '<button onclick="resolveEntityConflict(' + "'" + esc(entityId) + "','" + esc(cf.conflict_id) + "','keep_a'" + ')">Keep A</button>';
-      h += '<button onclick="resolveEntityConflict(' + "'" + esc(entityId) + "','" + esc(cf.conflict_id) + "','keep_b'" + ')">Keep B</button>';
-      h += '<button class="btn-keep-both" onclick="resolveEntityConflict(' + "'" + esc(entityId) + "','" + esc(cf.conflict_id) + "','keep_both'" + ')">Keep Both (not a conflict)</button>';
-      h += '</div>';
-      h += '</div>';
+      h += '<button onclick="resolveEntityConflict(\\'' + esc(entityId) + '\\',\\'' + esc(cf.conflict_id) + '\\',\\'keep_a\\')">Keep A</button>';
+      h += '<button onclick="resolveEntityConflict(\\'' + esc(entityId) + '\\',\\'' + esc(cf.conflict_id) + '\\',\\'keep_b\\')">Keep B</button>';
+      h += '<button class="btn-keep-both" onclick="resolveEntityConflict(\\'' + esc(entityId) + '\\',\\'' + esc(cf.conflict_id) + '\\',\\'keep_both\\')">Keep Both</button>';
+      h += '</div></div>';
     }
     h += '</div>';
   }
 
-  // Values
-  var vals = data.values || [];
-  if (vals.length > 0) {
-    h += '<div class="section"><div class="section-header"><span class="section-title"><span class="section-header-icon" style="background:rgba(34,197,94,0.08);">&#128142;</span> Values</span></div>';
-    for (var i = 0; i < vals.length; i++) {
-      h += '<div class="value-item"><span class="value-text">' + esc(vals[i].value || '') + '</span>';
-      h += confidenceBadge(vals[i].confidence, vals[i].confidence_label);
-      h += '</div>';
-    }
-    h += '</div>';
-  }
-
-  // Observations
-  var obs = (data.observations || []).slice().sort(function(a, b) {
-    return new Date(b.observed_at || 0) - new Date(a.observed_at || 0);
-  });
-  h += '<div class="section"><div class="section-header"><span class="section-title"><span class="section-header-icon" style="background:rgba(107,114,128,0.08);">&#128065;</span> Observations (' + obs.length + ')</span></div>';
-  if (obs.length === 0) {
-    h += '<div style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">No observations yet</div>';
-  }
-  for (var i = 0; i < obs.length; i++) {
-    var o = obs[i];
-    var decay = calcDecay(o.observed_at);
-    var opacity = Math.max(0.35, decay);
-    h += '<div class="obs-card" style="opacity:' + opacity.toFixed(2) + '">';
-    h += '<div class="obs-text">' + esc(o.observation) + '</div>';
-    h += '<div class="obs-meta">';
-    h += confidenceBadge(o.confidence, o.confidence_label);
-    h += layerBadge(o.layer_number);
-    if (o.source) h += '<span class="obs-source">' + esc(getSourceLabel(o.source)) + '</span>';
-    h += '<span class="obs-date">' + esc((o.observed_at || '').slice(0, 10)) + '</span>';
-    h += '<span class="obs-decay">' + (decay * 100).toFixed(0) + '% weight</span>';
-    h += '<button class="btn-delete" data-id="' + esc(o.observation_id || '') + '" onclick="deleteObs(this.dataset.id)">delete</button>';
-    h += '</div></div>';
-  }
-  h += '</div>';
-
-  // Connected Objects
-  var connected = data.connected_objects || [];
-  if (connected.length > 0) {
-    h += '<div class="section"><div class="section-header"><span class="section-title"><span class="section-header-icon" style="background:rgba(168,85,247,0.08);">&#128279;</span> Connected Objects (' + connected.length + ')</span></div>';
-    var groups = { role: [], organization: [], institution: [], credential: [], skill: [] };
-    for (var i = 0; i < connected.length; i++) {
-      var c = connected[i];
-      if (groups[c.entity_type]) groups[c.entity_type].push(c);
-    }
-    var groupLabels = { role: 'Roles', organization: 'Organizations', institution: 'Institutions', credential: 'Credentials', skill: 'Skills' };
-    var groupKeys = ['role', 'organization', 'institution', 'credential', 'skill'];
-    for (var g = 0; g < groupKeys.length; g++) {
-      var gk = groupKeys[g];
-      var items = groups[gk];
-      if (items.length === 0) continue;
-      h += '<div style="margin-bottom:12px;"><div style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">' + groupLabels[gk] + '</div>';
-      for (var j = 0; j < items.length; j++) {
-        h += '<div class="rel-card" style="cursor:pointer;" onclick="selectEntity(' + "'" + esc(items[j].entity_id) + "'" + ')">';
-        h += '<div class="rel-card-avatar" style="border-radius:var(--radius-sm);font-size:0.7rem;">' + esc(items[j].entity_type.slice(0, 2).toUpperCase()) + '</div>';
-        h += '<div class="rel-card-info"><div class="rel-card-name">' + esc(items[j].label) + '</div></div>';
-        h += '<span class="type-badge ' + esc(items[j].entity_type) + '">' + esc(items[j].entity_type) + '</span>';
-        h += '</div>';
-      }
-      h += '</div>';
-    }
-    h += '</div>';
-  }
-
-  // Add Observation Form
-  h += '<div class="section"><div class="section-header"><span class="section-title">Add Observation</span></div>';
-  h += '<div class="add-obs-form">';
-  h += '<textarea class="obs-textarea" id="obsText" placeholder="What did you learn about this entity?"></textarea>';
-  h += '<div class="obs-form-row">';
-  h += '<select id="obsConfidence"><option value="VERIFIED">Verified</option>';
-  h += '<option value="STRONG" selected>Strong</option><option value="MODERATE">Moderate</option>';
-  h += '<option value="SPECULATIVE">Speculative</option><option value="UNCERTAIN">Uncertain</option></select>';
-  h += '<select id="obsLayer"><option value="L1_OBJECTIVE">L1 Objective</option>';
-  h += '<option value="L2_GROUP" selected>L2 Group</option><option value="L3_PERSONAL">L3 Personal</option></select>';
-  h += '<button class="btn-add" id="btnAddObs" onclick="addObs()">Add Observation</button>';
-  h += '</div></div></div>';
-
-  // Source Attribution Footer
-  h += renderSourceFooter(data);
-
-  document.getElementById('main').innerHTML = h;
+  h += '</div>'; // li-profile
+  mainEl.innerHTML = h;
+  window._liActiveTab = 'overview';
 }
 
 function renderOrgDossier(data) {
