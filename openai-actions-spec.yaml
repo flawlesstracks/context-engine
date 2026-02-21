@@ -1,0 +1,386 @@
+openapi: 3.1.0
+info:
+  title: Context Architecture API
+  description: >
+    Personal knowledge graph API for querying entities (people, organizations, businesses),
+    their relationships, observations, and structured attributes. Use this API to look up
+    information about people in the user's life, their relationships, and organizational
+    connections. Always search before assuming you don't have information.
+  version: 1.0.0
+
+servers:
+  - url: https://context-engine-nw4l.onrender.com
+    description: Production deployment
+
+paths:
+  /api/search:
+    get:
+      operationId: searchEntities
+      summary: Search entities by name or keyword
+      description: >
+        Fuzzy search across all entities in the knowledge graph. Use q=* to retrieve
+        all entities. Supports optional type filtering. Returns matching entities with
+        summary info, attributes, relationships, and relationship dimensions. Use this
+        as your primary lookup — search by name, nickname, role, or any keyword.
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: >
+            Search query string. Use a person's name, nickname, keyword, or * for all entities.
+            Search is case-insensitive and uses fuzzy matching.
+          schema:
+            type: string
+          examples:
+            allEntities:
+              value: "*"
+              summary: Retrieve all entities
+            byName:
+              value: "Andre"
+              summary: Search by name
+        - name: type
+          in: query
+          required: false
+          description: >
+            Filter by entity type. Comma-separated list of types.
+            Valid types: person, business, organization, institution.
+          schema:
+            type: string
+          examples:
+            people:
+              value: "person"
+            orgs:
+              value: "organization,business"
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                    description: The search query that was executed
+                  count:
+                    type: integer
+                    description: Total number of matching entities
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SearchResult"
+        "400":
+          description: Missing query parameter
+        "401":
+          description: Invalid or missing API key
+
+  /api/entity/{id}:
+    get:
+      operationId: getEntity
+      summary: Get full entity detail by ID
+      description: >
+        Retrieve the complete entity record including all observations, relationships,
+        attributes, values, key facts, constraints, and structured attributes.
+        Use this after finding an entity via search to get their full profile.
+        Entity IDs look like ENT-XX-NNN (e.g., ENT-AB-051).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: "Entity ID (format: ENT-XX-NNN)"
+          schema:
+            type: string
+          example: ENT-AB-051
+      responses:
+        "200":
+          description: Full entity record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FullEntity"
+        "404":
+          description: Entity not found
+        "401":
+          description: Invalid or missing API key
+
+  /api/entities/category/{category}:
+    get:
+      operationId: listEntitiesByCategory
+      summary: List all entities in a relationship category
+      description: >
+        Get all entities belonging to a specific category. Person categories are
+        derived from relationship dimensions: family (blood relatives and in-laws),
+        friends (chosen connections), professional (work connections), other
+        (community, weak ties). Organization categories come from org_dimensions:
+        career (employers), education (schools), affiliations (memberships),
+        services (service providers).
+      parameters:
+        - name: category
+          in: path
+          required: true
+          description: >
+            Category to filter by. Person categories: family, friends, professional, other.
+            Organization categories: career, education, affiliations, services.
+          schema:
+            type: string
+            enum:
+              - family
+              - friends
+              - professional
+              - other
+              - career
+              - education
+              - affiliations
+              - services
+      responses:
+        "200":
+          description: Entities in the requested category
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  category:
+                    type: string
+                    description: The category that was queried
+                  count:
+                    type: integer
+                    description: Number of entities in this category
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/SearchResult"
+        "400":
+          description: Invalid category name
+        "401":
+          description: Invalid or missing API key
+
+components:
+  schemas:
+    SearchResult:
+      type: object
+      description: Entity summary returned in search and category listings
+      properties:
+        entity_id:
+          type: string
+          description: "Unique entity identifier (format: ENT-XX-NNN)"
+        entity_type:
+          type: string
+          enum: [person, business, organization, institution]
+          description: Type of entity
+        name:
+          type: string
+          description: Display name of the entity
+        summary:
+          type: string
+          description: Brief description of who/what this entity is
+        match_score:
+          type: number
+          description: Relevance score from search (0-1, only in search results)
+        observation_count:
+          type: integer
+          description: Number of recorded observations about this entity
+        relationship_count:
+          type: integer
+          description: Number of known relationships
+        attributes:
+          type: array
+          description: Key-value attributes (role, location, personality, etc.)
+          items:
+            type: object
+            properties:
+              key:
+                type: string
+              value:
+                type: string
+        relationships:
+          type: array
+          description: Known relationships to other entities
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Name of the related entity
+              relationship_type:
+                type: string
+                description: Nature of the relationship (friend, spouse, colleague, etc.)
+              context:
+                type: string
+                description: Additional context about the relationship
+        relationship_dimensions:
+          $ref: "#/components/schemas/RelationshipDimensions"
+        descriptor:
+          type: string
+          description: Short relational descriptor (e.g., "close friend from Howard")
+        org_dimensions:
+          type: object
+          description: Organization-specific dimensions (for org/business entities)
+          properties:
+            relationship_to_primary:
+              type: string
+            org_category:
+              type: string
+            org_status:
+              type: string
+            primary_user_role:
+              type: string
+
+    FullEntity:
+      type: object
+      description: Complete entity record with all data
+      properties:
+        schema_version:
+          type: string
+        schema_type:
+          type: string
+        extraction_metadata:
+          type: object
+          properties:
+            extracted_at:
+              type: string
+              format: date-time
+            updated_at:
+              type: string
+              format: date-time
+            source_description:
+              type: string
+            extraction_model:
+              type: string
+            extraction_confidence:
+              type: number
+        entity:
+          type: object
+          description: Core entity identity
+          properties:
+            entity_type:
+              type: string
+            name:
+              type: object
+              properties:
+                full:
+                  type: string
+                nickname:
+                  type: string
+                aliases:
+                  type: array
+                  items:
+                    type: string
+            summary:
+              type: object
+              properties:
+                value:
+                  type: string
+            entity_id:
+              type: string
+        attributes:
+          type: array
+          description: Structured key-value attributes with confidence scores
+          items:
+            type: object
+            properties:
+              attribute_id:
+                type: string
+              key:
+                type: string
+              value:
+                type: string
+              confidence:
+                type: number
+              confidence_label:
+                type: string
+        relationships:
+          type: array
+          description: All known relationships
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              relationship_type:
+                type: string
+              context:
+                type: string
+        observations:
+          type: array
+          description: Timestamped observations and memories about this entity
+          items:
+            type: object
+            properties:
+              observation_id:
+                type: string
+              observation:
+                type: string
+              observed_at:
+                type: string
+                format: date-time
+              confidence:
+                type: number
+              source:
+                type: string
+        values:
+          type: array
+          description: Core values associated with this entity
+        key_facts:
+          type: array
+          description: Important factual information
+        constraints:
+          type: array
+          description: Known constraints or limitations
+        structured_attributes:
+          type: object
+          description: >
+            Deeply structured profile data organized by category (identity,
+            professional, personality_assessments, behavioral_patterns, family,
+            relationship_to_primary_user, etc.)
+        relationship_dimensions:
+          $ref: "#/components/schemas/RelationshipDimensions"
+        descriptor:
+          type: string
+          description: Short relational descriptor
+
+    RelationshipDimensions:
+      type: object
+      description: >
+        Quantified relationship metrics. connection_type determines the category
+        (blood/marriage = family, chosen = friends, professional = professional).
+        Access (0-1) measures how reachable someone is. Strength (0-1) measures
+        emotional closeness or impact.
+      properties:
+        connection_type:
+          type: string
+          enum: [blood, marriage, chosen, professional, community]
+          description: Primary type of connection
+        access:
+          type: number
+          description: "How reachable this person is (0-1)"
+        strength:
+          type: number
+          description: "Emotional closeness or impact (0-1)"
+        connected_through:
+          type: string
+          nullable: true
+          description: If connected via another person, their name
+        status:
+          type: string
+          description: "Relationship status (active, inactive, deceased, etc.)"
+        sub_role:
+          type: string
+          description: "Specific role (spouse, sibling, mentor, in_law, etc.)"
+        descriptor:
+          type: string
+          description: "Brief relationship description"
+        descriptor_origin:
+          type: string
+          description: "Where the relationship originated"
+
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-Context-API-Key
+      description: >
+        API key for authenticating requests. Pass in the X-Context-API-Key header.
+
+security:
+  - apiKey: []

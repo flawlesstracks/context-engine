@@ -3860,6 +3860,49 @@ app.post('/api/extract', apiAuth, async (req, res) => {
   }
 });
 
+// GET /api/entities/category/:category — List entities by wiki category
+app.get('/api/entities/category/:category', apiAuth, (req, res) => {
+  const category = req.params.category.toLowerCase();
+  const validCategories = ['family', 'friends', 'professional', 'other', 'career', 'education', 'affiliations', 'services'];
+  if (!validCategories.includes(category)) {
+    return res.status(400).json({ error: `Invalid category. Valid: ${validCategories.join(', ')}` });
+  }
+
+  const entities = listEntities(req.graphDir);
+  const results = [];
+
+  for (const { data } of entities) {
+    const e = data.entity || {};
+    const type = e.entity_type;
+    const name = type === 'person' ? (e.name?.full || '') : (e.name?.common || e.name?.legal || e.name?.full || '');
+
+    // Person categories: family, friends, professional, other
+    if (type === 'person') {
+      const page = computeWikiPage(data.relationship_dimensions);
+      if (page === category) {
+        const r = { entity_id: e.entity_id, entity_type: type, name, summary: e.summary?.value || '', observation_count: (data.observations || []).length, relationship_count: (data.relationships || []).length };
+        if (data.relationship_dimensions) r.relationship_dimensions = data.relationship_dimensions;
+        if (data.descriptor) r.descriptor = data.descriptor;
+        r.attributes = (data.attributes || []).map(a => ({ key: a.key, value: a.value }));
+        r.relationships = (data.relationships || []).map(rel => ({ name: rel.name, relationship_type: rel.relationship_type, context: rel.context }));
+        results.push(r);
+      }
+    }
+
+    // Org categories: career, education, affiliations, services
+    if (type === 'organization' || type === 'business' || type === 'institution') {
+      const orgCat = (data.org_dimensions?.org_category || '').toLowerCase();
+      const attrs = data.attributes || [];
+      const attrCat = (attrs.find(a => a.key === 'org_category') || {}).value || '';
+      if (orgCat === category || attrCat.toLowerCase() === category) {
+        results.push({ entity_id: e.entity_id, entity_type: type, name, summary: e.summary?.value || '', attributes: attrs.map(a => ({ key: a.key, value: a.value })), org_dimensions: data.org_dimensions || null });
+      }
+    }
+  }
+
+  res.json({ category, count: results.length, results });
+});
+
 // GET /api/graph/stats — Knowledge graph health check
 app.get('/api/graph/stats', apiAuth, (req, res) => {
   const entities = listEntities(req.graphDir);
