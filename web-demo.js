@@ -6611,9 +6611,10 @@ const WIKI_HTML = `<!DOCTYPE html>
 
   /* --- Sidebar Count --- */
   .sidebar-count {
-    padding: 8px 20px; font-size: 0.68rem; color: var(--text-muted);
-    text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;
+    padding: 10px 20px; font-size: 0.68rem; color: var(--text-muted);
+    letter-spacing: 0.06em; font-weight: 600;
     border-bottom: 1px solid var(--border-primary);
+    display: flex; align-items: baseline; gap: 6px;
   }
 
   /* --- Entity List --- */
@@ -7646,6 +7647,404 @@ const WIKI_HTML = `<!DOCTYPE html>
     animation: shimmer 1.5s infinite;
     border-radius: var(--radius-sm);
   }
+
+  /* ========================================
+     UI UPGRADE: Knowledge Intelligence Platform
+     ======================================== */
+
+  /* --- Hero Card --- */
+  .hero-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-xl);
+    padding: 28px 32px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-md);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 4px;
+    background: var(--accent-gradient);
+  }
+  .hero-top {
+    display: flex; gap: 20px; align-items: flex-start;
+  }
+  .hero-avatar {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: var(--accent-gradient);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; font-weight: 700; color: white; flex-shrink: 0;
+    box-shadow: 0 4px 16px rgba(99,102,241,0.25);
+    overflow: hidden;
+  }
+  .hero-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .hero-info { flex: 1; min-width: 0; }
+  .hero-name-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+  .hero-name {
+    font-size: 1.6rem; font-weight: 700; color: var(--text-primary);
+    letter-spacing: -0.02em;
+  }
+  .hero-headline { font-size: 0.92rem; color: var(--text-secondary); margin-bottom: 4px; }
+  .hero-current { font-size: 0.86rem; color: var(--accent-tertiary); margin-bottom: 4px; font-weight: 500; }
+  .hero-location {
+    font-size: 0.8rem; color: var(--text-tertiary);
+    display: flex; align-items: center; gap: 4px;
+  }
+  .hero-contact-row {
+    display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; font-size: 0.8rem;
+  }
+  .hero-contact-item {
+    display: flex; align-items: center; gap: 5px;
+    color: var(--text-secondary); font-size: 0.78rem;
+  }
+  .hero-contact-item a {
+    color: var(--info); text-decoration: none;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .hero-contact-item a:hover { text-decoration: underline; }
+  .hero-badges {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; align-items: center;
+  }
+  .hero-actions {
+    display: flex; gap: 8px; align-items: center; margin-top: 12px;
+  }
+
+  /* --- Tier Badges --- */
+  .tier-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 0.65rem; font-weight: 700; padding: 3px 10px;
+    border-radius: 12px; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .tier-badge.tier-self {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: #78350f; box-shadow: 0 1px 4px rgba(245,158,11,0.3);
+  }
+  .tier-badge.tier-inner {
+    background: rgba(34,197,94,0.12); color: #15803d;
+    border: 1px solid rgba(34,197,94,0.25);
+  }
+  .tier-badge.tier-outer {
+    background: rgba(107,114,128,0.1); color: var(--text-tertiary);
+    border: 1px solid rgba(107,114,128,0.2);
+  }
+
+  /* --- Health Score Indicator --- */
+  .health-indicator {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 0.72rem; font-weight: 600; padding: 3px 10px;
+    border-radius: 12px;
+  }
+  .health-indicator .health-dots {
+    display: flex; gap: 3px;
+  }
+  .health-indicator .health-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--border-primary);
+  }
+  .health-indicator .health-dot.filled { background: currentColor; }
+  .health-thin { color: #ef4444; background: rgba(239,68,68,0.08); }
+  .health-developing { color: #f59e0b; background: rgba(245,158,11,0.08); }
+  .health-strong { color: #22c55e; background: rgba(34,197,94,0.08); }
+
+  /* --- Confidence Badges (color coded) --- */
+  .conf-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 0.65rem; font-weight: 600; padding: 2px 8px;
+    border-radius: 10px; white-space: nowrap;
+  }
+  .conf-badge .conf-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: currentColor;
+  }
+  .conf-high { color: #15803d; background: rgba(34,197,94,0.1); }
+  .conf-mid { color: #b45309; background: rgba(245,158,11,0.1); }
+  .conf-low { color: #dc2626; background: rgba(239,68,68,0.1); }
+
+  /* --- Timeline Experience Cards --- */
+  .timeline-section { position: relative; padding-left: 24px; }
+  .timeline-section::before {
+    content: '';
+    position: absolute; left: 7px; top: 8px; bottom: 8px;
+    width: 2px; background: var(--border-primary);
+    border-radius: 1px;
+  }
+  .timeline-item {
+    position: relative;
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    padding: 16px 18px;
+    margin-bottom: 10px;
+    transition: all var(--transition-fast);
+    box-shadow: var(--shadow-sm);
+  }
+  .timeline-item:hover { border-color: var(--accent-tertiary); box-shadow: var(--shadow-md); }
+  .timeline-item::before {
+    content: '';
+    position: absolute; left: -20px; top: 18px;
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--accent-primary);
+    border: 2px solid var(--bg-primary);
+    box-shadow: 0 0 0 2px var(--accent-primary);
+  }
+  .timeline-item.current::before {
+    background: #22c55e;
+    box-shadow: 0 0 0 2px #22c55e;
+  }
+  .timeline-company { font-size: 0.92rem; font-weight: 600; color: var(--text-primary); }
+  .timeline-title { font-size: 0.84rem; color: var(--accent-tertiary); font-weight: 500; }
+  .timeline-dates { font-size: 0.72rem; color: var(--text-tertiary); margin-top: 2px; }
+  .timeline-desc { font-size: 0.8rem; color: var(--text-secondary); margin-top: 8px; line-height: 1.6; }
+
+  /* --- Education Cards --- */
+  .edu-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    padding: 14px 18px;
+    margin-bottom: 8px;
+    display: flex; align-items: flex-start; gap: 14px;
+    transition: all var(--transition-fast);
+    box-shadow: var(--shadow-sm);
+  }
+  .edu-card:hover { border-color: var(--accent-tertiary); }
+  .edu-icon {
+    width: 36px; height: 36px; border-radius: var(--radius-sm);
+    background: rgba(168,85,247,0.1);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem; flex-shrink: 0;
+  }
+  .edu-info { flex: 1; }
+  .edu-institution { font-size: 0.9rem; font-weight: 600; color: var(--text-primary); }
+  .edu-degree { font-size: 0.82rem; color: var(--text-secondary); }
+  .edu-years { font-size: 0.72rem; color: var(--text-tertiary); }
+
+  /* --- Skill Tags (upgraded) --- */
+  .skill-grid {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .skill-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 6px 14px; border-radius: 20px;
+    font-size: 0.75rem; font-weight: 500;
+    background: rgba(99,102,241,0.06); color: var(--accent-light);
+    border: 1px solid rgba(99,102,241,0.12);
+    transition: all var(--transition-fast);
+  }
+  .skill-chip:hover {
+    background: rgba(99,102,241,0.12);
+    border-color: rgba(99,102,241,0.25);
+    transform: translateY(-1px);
+  }
+
+  /* --- Relationship Cards --- */
+  .rel-card {
+    display: flex; align-items: center; gap: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    padding: 12px 16px;
+    margin-bottom: 8px;
+    transition: all var(--transition-fast);
+    box-shadow: var(--shadow-sm);
+  }
+  .rel-card:hover { border-color: var(--accent-tertiary); }
+  .rel-card-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--bg-tertiary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 700; color: var(--text-muted); flex-shrink: 0;
+  }
+  .rel-card-info { flex: 1; min-width: 0; }
+  .rel-card-name { font-size: 0.86rem; font-weight: 600; color: var(--text-primary); }
+  .rel-card-context { font-size: 0.75rem; color: var(--text-tertiary); margin-top: 2px; }
+  .rel-type-badge {
+    font-size: 0.62rem; font-weight: 600; padding: 2px 8px;
+    border-radius: 10px; text-transform: uppercase; letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+  .rel-type-badge.friend { background: rgba(59,130,246,0.1); color: #2563eb; }
+  .rel-type-badge.colleague { background: rgba(99,102,241,0.1); color: #6366f1; }
+  .rel-type-badge.family { background: rgba(236,72,153,0.1); color: #ec4899; }
+  .rel-type-badge.mentor { background: rgba(168,85,247,0.1); color: #7c3aed; }
+  .rel-type-badge.default { background: rgba(107,114,128,0.1); color: var(--text-tertiary); }
+
+  /* --- Source Attribution --- */
+  .source-footer {
+    display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    padding: 14px 18px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    margin-top: 16px;
+  }
+  .source-footer-label {
+    font-size: 0.68rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--text-muted); margin-right: 4px;
+  }
+  .source-tag {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 0.7rem; padding: 3px 10px;
+    border-radius: 10px; font-weight: 500;
+    background: var(--bg-tertiary); color: var(--text-secondary);
+  }
+  .source-tag svg { width: 12px; height: 12px; opacity: 0.7; }
+
+  /* --- Review Queue Upgrade --- */
+  .rq-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px; flex-wrap: wrap; gap: 12px;
+  }
+  .rq-header h2 {
+    font-size: 1.3rem; font-weight: 700; color: var(--text-primary);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .rq-stats {
+    display: flex; gap: 16px;
+  }
+  .rq-stat {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 8px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md);
+    min-width: 80px;
+  }
+  .rq-stat-num {
+    font-size: 1.3rem; font-weight: 700; letter-spacing: -0.02em;
+  }
+  .rq-stat-num.unresolved { color: #6366f1; }
+  .rq-stat-num.provisional { color: #f59e0b; }
+  .rq-stat-num.ready { color: #22c55e; }
+  .rq-stat-label {
+    font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--text-muted); font-weight: 600;
+  }
+
+  .rq-group-header {
+    font-size: 0.75rem; font-weight: 600; color: var(--text-tertiary);
+    padding: 12px 0 6px; margin-top: 8px;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .rq-group-header svg { width: 14px; height: 14px; opacity: 0.5; }
+
+  .rq-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    margin-bottom: 10px;
+    transition: all var(--transition-fast);
+    box-shadow: var(--shadow-sm);
+  }
+  .rq-card:hover { border-color: var(--accent-tertiary); box-shadow: var(--shadow-md); }
+  .rq-card-header {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  }
+  .rq-entity-icon {
+    width: 32px; height: 32px; border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem; flex-shrink: 0;
+  }
+  .rq-entity-icon.person { background: rgba(99,102,241,0.1); }
+  .rq-entity-icon.business, .rq-entity-icon.organization { background: rgba(14,165,233,0.1); }
+  .rq-card-title { flex: 1; }
+  .rq-card-name { font-size: 0.95rem; font-weight: 600; color: var(--text-primary); }
+  .rq-card-source {
+    font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .rq-conf-bar {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+  }
+  .rq-conf-track {
+    flex: 1; height: 6px; background: var(--bg-tertiary);
+    border-radius: 3px; overflow: hidden;
+  }
+  .rq-conf-fill {
+    height: 100%; border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+  .rq-conf-fill.high { background: linear-gradient(90deg, #22c55e, #16a34a); }
+  .rq-conf-fill.mid { background: linear-gradient(90deg, #f59e0b, #d97706); }
+  .rq-conf-fill.low { background: linear-gradient(90deg, #ef4444, #dc2626); }
+  .rq-conf-label { font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); min-width: 35px; }
+  .rq-signals {
+    font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 12px;
+    display: flex; gap: 14px; flex-wrap: wrap;
+  }
+  .rq-signal-item { display: flex; align-items: center; gap: 4px; }
+  .rq-actions {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .rq-actions button {
+    padding: 7px 16px; border-radius: var(--radius-md);
+    font-size: 0.78rem; font-weight: 600; cursor: pointer;
+    transition: all var(--transition-fast);
+    border: none;
+  }
+  .rq-btn-create { background: #22c55e; color: #fff; }
+  .rq-btn-create:hover { background: #16a34a; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(34,197,94,0.3); }
+  .rq-btn-merge { background: #6366f1; color: #fff; }
+  .rq-btn-merge:hover { background: #4f46e5; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(99,102,241,0.3); }
+  .rq-btn-hold { background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-primary) !important; }
+  .rq-btn-hold:hover { background: var(--bg-hover); }
+  .rq-btn-reject { background: rgba(239,68,68,0.1); color: #ef4444; border: 1px solid rgba(239,68,68,0.2) !important; }
+  .rq-btn-reject:hover { background: #ef4444; color: #fff; }
+  .rq-btn-source { background: rgba(245,158,11,0.1); color: #b45309; border: 1px solid rgba(245,158,11,0.2) !important; }
+  .rq-btn-source:hover { background: #f59e0b; color: #fff; }
+
+  /* Quadrant badges (upgraded) */
+  .rq-quadrant {
+    font-size: 0.62rem; font-weight: 700; padding: 3px 10px;
+    border-radius: 10px; letter-spacing: 0.04em;
+    display: inline-flex; align-items: center; gap: 4px;
+  }
+  .rq-quadrant.q1 { background: #dbeafe; color: #1d4ed8; }
+  .rq-quadrant.q2 { background: #dcfce7; color: #15803d; }
+  .rq-quadrant.q3 { background: #fef3c7; color: #92400e; }
+  .rq-quadrant.q4 { background: #f3e8ff; color: #6b21a8; }
+
+  /* --- Sidebar Upgrades --- */
+  .sidebar-health-dot {
+    display: inline-block; width: 8px; height: 8px;
+    border-radius: 50%; margin-left: 6px; vertical-align: middle;
+  }
+  .sidebar-health-dot.health-thin { background: #ef4444; }
+  .sidebar-health-dot.health-developing { background: #f59e0b; }
+  .sidebar-health-dot.health-strong { background: #22c55e; }
+
+  .sidebar-metric {
+    font-size: 1.1rem; font-weight: 700; color: var(--text-primary);
+    margin-right: 4px; letter-spacing: -0.01em;
+  }
+  .sidebar-metric-label {
+    font-size: 0.65rem; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+
+  @keyframes pulseBadge {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.15); }
+  }
+  .review-queue-badge.pulse {
+    animation: pulseBadge 2s ease-in-out infinite;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    box-shadow: 0 2px 8px rgba(239,68,68,0.4);
+  }
+
+  /* --- Section Headers (upgraded) --- */
+  .section-header-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border-radius: var(--radius-sm);
+    font-size: 0.85rem; margin-right: 8px; flex-shrink: 0;
+  }
+
 </style>
 </head>
 <body>
@@ -9015,24 +9414,26 @@ function renderSidebar() {
   if (data.you) {
     html += renderSidebarSection('you', '\uD83D\uDC64', 'My Profiles', null, function() {
       var h = '';
-      // Profile card with avatar + name + headline
+      // Profile card with avatar + name + headline + health indicator
       var headline = '';
       var pAttrs = (primaryEntityData && primaryEntityData.attributes) || [];
       for (var a = 0; a < pAttrs.length; a++) {
         if (pAttrs[a].key === 'headline') { headline = String(pAttrs[a].value || ''); break; }
       }
+      // Compute health for primary entity
+      var myHealth = primaryEntityData ? computeEntityHealth(primaryEntityData) : { level: 'thin', label: 'Thin' };
       h += '<div class="sidebar-profile-header">';
       h += '<div class="sidebar-profile-avatar">';
       if (sessionUser && sessionUser.picture) {
         h += '<img src="' + esc(sessionUser.picture) + '" alt="" />';
       } else {
         var n = data.you.name || (sessionUser && sessionUser.name) || '';
-        var init = n.split(/\\s+/).map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
+        var init = n.split(/\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
         h += init;
       }
       h += '</div>';
-      h += '<div style="overflow:hidden;">';
-      h += '<div class="sidebar-profile-name">' + esc(data.you.name || '') + '</div>';
+      h += '<div style="overflow:hidden;flex:1;">';
+      h += '<div class="sidebar-profile-name">' + esc(data.you.name || '') + '<span class="sidebar-health-dot health-' + myHealth.level + '" title="Entity health: ' + myHealth.label + '"></span></div>';
       if (headline) h += '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(headline) + '</div>';
       h += '</div>';
       h += '</div>';
@@ -9159,7 +9560,7 @@ function renderSidebar() {
   }, true);
 
   document.getElementById('entityList').innerHTML = html || '<div style="padding:16px;color:#3a3a4a;font-size:0.82rem;">No entities found</div>';
-  document.getElementById('sidebarCount').textContent = totalCount + ' entit' + (totalCount === 1 ? 'y' : 'ies');
+  document.getElementById('sidebarCount').innerHTML = '<span class="sidebar-metric">' + totalCount + '</span><span class="sidebar-metric-label">entit' + (totalCount === 1 ? 'y' : 'ies') + ' in graph</span>';
 }
 
 // Backward-compat alias
@@ -9246,13 +9647,18 @@ function selectEntity(id, fromCategory) {
 
 function confidenceBadge(conf, label) {
   if (conf == null && !label) return '';
-  var cls = 'badge-moderate'; var lbl = label || '';
-  if (conf >= 0.90 || lbl === 'VERIFIED') { cls = 'badge-verified'; lbl = lbl || 'VERIFIED'; }
-  else if (conf >= 0.75 || lbl === 'STRONG') { cls = 'badge-strong'; lbl = lbl || 'STRONG'; }
-  else if (conf >= 0.50 || lbl === 'MODERATE') { cls = 'badge-moderate'; lbl = lbl || 'MODERATE'; }
-  else if (conf >= 0.25 || lbl === 'SPECULATIVE') { cls = 'badge-speculative'; lbl = lbl || 'SPECULATIVE'; }
-  else { cls = 'badge-uncertain'; lbl = lbl || 'UNCERTAIN'; }
-  return ' <span class="badge ' + cls + '">' + lbl + (conf != null ? ' ' + conf.toFixed(2) : '') + '</span>';
+  var lbl = label || '';
+  if (conf >= 0.90 || lbl === 'VERIFIED') { lbl = lbl || 'VERIFIED'; }
+  else if (conf >= 0.75 || lbl === 'STRONG') { lbl = lbl || 'STRONG'; }
+  else if (conf >= 0.50 || lbl === 'MODERATE') { lbl = lbl || 'MODERATE'; }
+  else if (conf >= 0.25 || lbl === 'SPECULATIVE') { lbl = lbl || 'SPECULATIVE'; }
+  else { lbl = lbl || 'UNCERTAIN'; }
+  // Color-coded: green >0.7, orange 0.4-0.7, red <0.4
+  var confCls = 'conf-mid';
+  var numConf = (conf != null) ? conf : (lbl === 'VERIFIED' ? 0.95 : lbl === 'STRONG' ? 0.8 : lbl === 'MODERATE' ? 0.6 : lbl === 'SPECULATIVE' ? 0.3 : 0.15);
+  if (numConf > 0.7) confCls = 'conf-high';
+  else if (numConf < 0.4) confCls = 'conf-low';
+  return ' <span class="conf-badge ' + confCls + '"><span class="conf-dot"></span>' + lbl + (conf != null ? ' ' + conf.toFixed(2) : '') + '</span>';
 }
 
 function layerBadge(layer) {
@@ -9267,6 +9673,111 @@ function sentimentBadge(s) {
   if (s === 'positive') cls = 'sentiment-positive';
   else if (s === 'strained') cls = 'sentiment-strained';
   return ' <span class="rel-sentiment ' + cls + '">' + esc(s) + '</span>';
+}
+
+function computeEntityTier(entityId) {
+  if (entityId === primaryEntityId) return 'self';
+  // Check if entity has direct relationship to self
+  if (primaryEntityData && primaryEntityData.relationships) {
+    for (var i = 0; i < primaryEntityData.relationships.length; i++) {
+      var r = primaryEntityData.relationships[i];
+      if (r.target_entity_id === entityId || r.name === entityId) return 'inner';
+    }
+  }
+  return 'outer';
+}
+
+function computeEntityHealth(data) {
+  // Score based on: observations count, attributes count, relationships count, recency
+  var score = 0;
+  var obs = data.observations || [];
+  var attrs = data.attributes || [];
+  var rels = data.relationships || [];
+  var cl = data.career_lite || {};
+
+  score += Math.min(obs.length * 0.5, 2);  // max 2 from observations
+  score += Math.min(attrs.length * 0.3, 1.5); // max 1.5 from attributes
+  score += Math.min(rels.length * 0.3, 1); // max 1 from relationships
+  // Career lite data richness
+  if (cl.work_history && cl.work_history.length > 0) score += 0.5;
+  if (cl.education && cl.education.length > 0) score += 0.5;
+  if (cl.skills && cl.skills.length > 0) score += 0.5;
+  if (cl.headline) score += 0.2;
+  if (cl.location) score += 0.2;
+  // Summary
+  if (data.entity && data.entity.summary && data.entity.summary.value) score += 0.5;
+  // Normalize: thin <2, developing 2-4, strong >4
+  if (score >= 4) return { level: 'strong', label: 'Strong', score: score };
+  if (score >= 2) return { level: 'developing', label: 'Developing', score: score };
+  return { level: 'thin', label: 'Thin', score: score };
+}
+
+function renderHealthIndicator(health) {
+  var dots = health.level === 'strong' ? 3 : health.level === 'developing' ? 2 : 1;
+  var h = '<span class="health-indicator health-' + health.level + '">';
+  h += '<span class="health-dots">';
+  for (var i = 0; i < 3; i++) {
+    h += '<span class="health-dot' + (i < dots ? ' filled' : '') + '"></span>';
+  }
+  h += '</span>' + esc(health.label) + '</span>';
+  return h;
+}
+
+function renderTierBadge(entityId) {
+  var tier = computeEntityTier(entityId);
+  return '<span class="tier-badge tier-' + tier + '">' + tier.toUpperCase() + '</span>';
+}
+
+function getSourceIcon(sourceType) {
+  if (!sourceType) return '';
+  var s = sourceType.toLowerCase();
+  if (s.indexOf('linkedin') !== -1) return '<svg viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg>';
+  if (s.indexOf('file') !== -1) return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/></svg>';
+  if (s.indexOf('web') !== -1 || s.indexOf('url') !== -1) return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>';
+  if (s.indexOf('chatgpt') !== -1) return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83"/></svg>';
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>';
+}
+
+function getSourceLabel(sourceType) {
+  if (!sourceType) return 'Unknown';
+  var s = sourceType.toLowerCase();
+  if (s.indexOf('linkedin_api') !== -1) return 'LinkedIn API';
+  if (s.indexOf('linkedin_pdf') !== -1) return 'LinkedIn PDF';
+  if (s.indexOf('linkedin') !== -1) return 'LinkedIn';
+  if (s.indexOf('file_import') !== -1 || s.indexOf('file_upload') !== -1) return 'File Import';
+  if (s.indexOf('chatgpt') !== -1) return 'ChatGPT Import';
+  if (s.indexOf('drive') !== -1) return 'Google Drive';
+  if (s.indexOf('web') !== -1 || s.indexOf('url') !== -1) return 'Web';
+  return sourceType;
+}
+
+function renderSourceFooter(data) {
+  var sources = {};
+  var pc = data.provenance_chain;
+  if (pc && pc.source_documents) {
+    for (var i = 0; i < pc.source_documents.length; i++) {
+      var src = pc.source_documents[i].source || '';
+      var type = src.split(':')[0] || src;
+      sources[type] = true;
+    }
+  }
+  // Also check observations for source types
+  var obs = data.observations || [];
+  for (var i = 0; i < obs.length; i++) {
+    if (obs[i].source) {
+      var type = obs[i].source.split(':')[0] || obs[i].source;
+      sources[type] = true;
+    }
+  }
+  var keys = Object.keys(sources);
+  if (keys.length === 0) return '';
+  var h = '<div class="source-footer">';
+  h += '<span class="source-footer-label">Sources</span>';
+  for (var i = 0; i < keys.length; i++) {
+    h += '<span class="source-tag">' + getSourceIcon(keys[i]) + ' ' + esc(getSourceLabel(keys[i])) + '</span>';
+  }
+  h += '</div>';
+  return h;
 }
 
 function calcDecay(observedAt) {
@@ -10013,8 +10524,10 @@ function refreshReviewQueueBadge() {
     if (count > 0) {
       badge.style.display = 'inline-block';
       badge.textContent = count;
+      badge.classList.add('pulse');
     } else {
       badge.style.display = 'none';
+      badge.classList.remove('pulse');
     }
   }).catch(function() {});
 }
@@ -10034,17 +10547,47 @@ function showReviewQueue() {
 
 function renderReviewQueue(clusters) {
   var h = '<div class="review-queue">';
-  h += '<h2>Review Queue <span style="font-size:0.85rem;font-weight:400;color:var(--text-muted);">(' + clusters.length + ' clusters)</span></h2>';
+
+  // Count by state
+  var unresolved = 0, provisional = 0, ready = 0;
+  for (var i = 0; i < clusters.length; i++) {
+    var state = (clusters[i].state || '').toLowerCase();
+    if (state === 'unresolved') unresolved++;
+    else if (state === 'provisional') provisional++;
+    else ready++;
+  }
+
+  // Header with stats
+  h += '<div class="rq-header">';
+  h += '<h2><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg> Review Queue</h2>';
+  h += '<div class="rq-stats">';
+  h += '<div class="rq-stat"><span class="rq-stat-num unresolved">' + unresolved + '</span><span class="rq-stat-label">Unresolved</span></div>';
+  h += '<div class="rq-stat"><span class="rq-stat-num provisional">' + provisional + '</span><span class="rq-stat-label">Provisional</span></div>';
+  h += '<div class="rq-stat"><span class="rq-stat-num ready">' + ready + '</span><span class="rq-stat-label">Ready</span></div>';
+  h += '</div></div>';
 
   if (clusters.length === 0) {
-    h += '<div class="review-queue-empty">No signal clusters pending review. Extract from a URL or upload files to see clusters here.</div>';
+    h += '<div class="review-queue-empty"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.2" style="margin-bottom:12px"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg><br/>No signal clusters pending review.<br/>Extract from a URL or upload files to see clusters here.</div>';
     h += '</div>';
     document.getElementById('main').innerHTML = h;
     return;
   }
 
+  // Group by source URL
+  var groups = {};
+  var ungrouped = [];
   for (var i = 0; i < clusters.length; i++) {
     var c = clusters[i];
+    var sourceUrl = (c.source && c.source.url) || '';
+    if (sourceUrl) {
+      if (!groups[sourceUrl]) groups[sourceUrl] = [];
+      groups[sourceUrl].push(c);
+    } else {
+      ungrouped.push(c);
+    }
+  }
+
+  function renderClusterCard(c) {
     var q = c.quadrant || 1;
     var names = (c.signals && c.signals.names) || [];
     var displayName = names[0] || c.cluster_id;
@@ -10052,58 +10595,94 @@ function renderReviewQueue(clusters) {
     var sourceUrl = (c.source && c.source.url) || '';
     var conf = c.confidence || 0;
     var candidateName = c.candidate_entity_name || '';
-    var candidateId = c.candidate_entity_id || '';
     var cid = c.cluster_id;
+    var entityType = c.entity_type || 'person';
+    var entityIcon = entityType === 'person' ? '&#128100;' : entityType === 'organization' || entityType === 'business' ? '&#127970;' : '&#128196;';
 
-    h += '<div class="cluster-card" id="cluster-' + esc(cid) + '">';
-    h += '<div class="cluster-header">';
-    h += '<span class="cluster-name">' + esc(displayName) + ' <span class="type-badge ' + (c.entity_type || '') + '" style="font-size:0.65rem;padding:1px 6px;">' + (c.entity_type || '') + '</span></span>';
-    h += '<span class="quadrant-badge q' + q + '">Q' + q + ' ' + esc(quadrantLabel(q)) + '</span>';
-    h += '</div>';
+    var ch = '<div class="rq-card" id="cluster-' + esc(cid) + '">';
 
-    h += '<div class="cluster-source">' + esc(sourceType);
-    if (sourceUrl) h += ' — ' + esc(sourceUrl.length > 60 ? sourceUrl.substring(0, 60) + '...' : sourceUrl);
-    h += ' — ' + esc(c.state || '') + (conf > 0 ? ' (' + Math.round(conf * 100) + '% match)' : '');
-    h += '</div>';
+    // Card header with icon, name, quadrant badge
+    ch += '<div class="rq-card-header">';
+    ch += '<div class="rq-entity-icon ' + esc(entityType) + '">' + entityIcon + '</div>';
+    ch += '<div class="rq-card-title">';
+    ch += '<div class="rq-card-name">' + esc(displayName) + ' <span class="type-badge ' + esc(entityType) + '" style="font-size:0.6rem;padding:1px 6px;">' + esc(entityType) + '</span></div>';
+    ch += '<div class="rq-card-source">' + esc(getSourceLabel(sourceType));
+    if (sourceUrl) ch += ' &mdash; ' + esc(sourceUrl.length > 50 ? sourceUrl.substring(0, 50) + '...' : sourceUrl);
+    ch += '</div>';
+    ch += '</div>';
+    ch += '<span class="rq-quadrant q' + q + '">Q' + q + ' ' + esc(quadrantLabel(q)) + '</span>';
+    ch += '</div>';
+
+    // Confidence progress bar
+    if (conf > 0) {
+      var confPct = Math.round(conf * 100);
+      var confCls = conf > 0.7 ? 'high' : conf >= 0.4 ? 'mid' : 'low';
+      ch += '<div class="rq-conf-bar">';
+      ch += '<div class="rq-conf-track"><div class="rq-conf-fill ' + confCls + '" style="width:' + confPct + '%"></div></div>';
+      ch += '<span class="rq-conf-label">' + confPct + '%</span>';
+      ch += '</div>';
+    }
 
     // Signal summary
-    h += '<div class="cluster-signals">';
-    if (names.length > 0) h += '<span>Names: ' + names.map(function(n) { return esc(n); }).join(', ') + '</span>';
+    ch += '<div class="rq-signals">';
+    if (names.length > 0) ch += '<span class="rq-signal-item"><strong>Names:</strong> ' + names.map(function(n) { return esc(n); }).join(', ') + '</span>';
     var handles = c.signals && c.signals.handles;
     if (handles) {
       var hs = [];
       if (handles.x) hs.push('X: @' + handles.x);
       if (handles.instagram) hs.push('IG: @' + handles.instagram);
       if (handles.linkedin) hs.push('LI');
-      if (hs.length > 0) h += '<span>' + hs.join(', ') + '</span>';
+      if (hs.length > 0) ch += '<span class="rq-signal-item"><strong>Handles:</strong> ' + hs.join(', ') + '</span>';
     }
     var orgs = (c.signals && c.signals.organizations) || [];
-    if (orgs.length > 0) h += '<span>Orgs: ' + orgs.slice(0, 3).map(function(o) { return esc(o); }).join(', ') + '</span>';
-    h += '</div>';
+    if (orgs.length > 0) ch += '<span class="rq-signal-item"><strong>Orgs:</strong> ' + orgs.slice(0, 3).map(function(o) { return esc(o); }).join(', ') + '</span>';
+    ch += '</div>';
 
-    // Actions per quadrant
-    h += '<div class="cluster-actions">';
+    // Action buttons
+    ch += '<div class="rq-actions">';
     if (q === 1) {
-      h += '<button class="btn-create-entity" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create New Entity</button>';
-      h += '<button class="btn-hold" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'hold' + "'" + ')">Hold</button>';
+      ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(\'' + cid + '\',\'create_new\')">Create New Entity</button>';
+      ch += '<button class="rq-btn-hold" onclick="resolveQueueCluster(\'' + cid + '\',\'hold\')">Hold</button>';
     } else if (q === 2) {
-      h += '<button class="btn-merge" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'merge' + "'" + ')">Merge into ' + esc(candidateName) + '</button>';
-      h += '<button class="btn-create-entity" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create Separate</button>';
-      h += '<button class="btn-hold" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'hold' + "'" + ')">Hold</button>';
+      ch += '<button class="rq-btn-merge" onclick="resolveQueueCluster(\'' + cid + '\',\'merge\')">Merge into ' + esc(candidateName) + '</button>';
+      ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(\'' + cid + '\',\'create_new\')">Create Separate</button>';
+      ch += '<button class="rq-btn-hold" onclick="resolveQueueCluster(\'' + cid + '\',\'hold\')">Hold</button>';
     } else if (q === 3) {
       var mentions = c.related_mentions || 0;
-      h += '<button class="btn-create-entity" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create Entity & Merge ' + mentions + ' Mentions</button>';
-      h += '<button class="btn-hold" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'hold' + "'" + ')">Hold</button>';
+      ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(\'' + cid + '\',\'create_new\')">Create Entity' + (mentions > 0 ? ' & Merge ' + mentions + ' Mentions' : '') + '</button>';
+      ch += '<button class="rq-btn-hold" onclick="resolveQueueCluster(\'' + cid + '\',\'hold\')">Hold</button>';
     } else if (q === 4) {
-      h += '<button class="btn-add-source" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'skip' + "'" + ')">Add Source — Already Captured</button>';
-      h += '<button class="btn-create-entity" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create Separate</button>';
+      ch += '<button class="rq-btn-source" onclick="resolveQueueCluster(\'' + cid + '\',\'skip\')">Add Source &mdash; Already Captured</button>';
+      ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(\'' + cid + '\',\'create_new\')">Create Separate</button>';
     }
-    h += '</div>';
-    h += '</div>';
+    ch += '</div>';
+    ch += '</div>';
+    return ch;
   }
 
-  h += '<div style="margin-top:16px;text-align:center;">';
-  h += '<button style="padding:8px 16px;border-radius:var(--radius-sm);border:1px solid var(--border-primary);background:var(--bg-primary);color:var(--text-secondary);font-size:0.82rem;cursor:pointer;" onclick="hideUploadView()">Back</button>';
+  // Render grouped clusters
+  var groupKeys = Object.keys(groups);
+  for (var g = 0; g < groupKeys.length; g++) {
+    var url = groupKeys[g];
+    var grpClusters = groups[url];
+    h += '<div class="rq-group-header"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg> ' + esc(url.length > 70 ? url.substring(0, 70) + '...' : url) + ' <span style="color:var(--text-muted);">(' + grpClusters.length + ')</span></div>';
+    for (var i = 0; i < grpClusters.length; i++) {
+      h += renderClusterCard(grpClusters[i]);
+    }
+  }
+
+  // Render ungrouped clusters
+  if (ungrouped.length > 0) {
+    if (groupKeys.length > 0) {
+      h += '<div class="rq-group-header"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Other Sources <span style="color:var(--text-muted);">(' + ungrouped.length + ')</span></div>';
+    }
+    for (var i = 0; i < ungrouped.length; i++) {
+      h += renderClusterCard(ungrouped[i]);
+    }
+  }
+
+  h += '<div style="margin-top:20px;text-align:center;">';
+  h += '<button class="rq-btn-hold" style="padding:10px 24px;" onclick="hideUploadView()">Back to Wiki</button>';
   h += '</div>';
   h += '</div>';
   document.getElementById('main').innerHTML = h;
@@ -10512,127 +11091,175 @@ function renderCareerLite(data) {
   var e = data.entity || {};
   var cl = data.career_lite || {};
   var name = e.name?.full || '';
-  var initials = name.split(/\\s+/).map(function(w) { return w[0]; }).join('').toUpperCase();
+  var initials = name.split(/\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
+  var entityId = e.entity_id || '';
+  var health = computeEntityHealth(data);
   var h = '';
 
-  // Header with avatar
-  h += '<div class="section">';
-  h += '<div class="cl-header">';
-  h += '<div class="cl-avatar">' + esc(initials) + '</div>';
-  h += '<div class="cl-header-info">';
-  h += '<div class="cl-name">' + esc(name) + '</div>';
-  if (cl.headline) h += '<div class="cl-headline">' + esc(cl.headline) + '</div>';
-  if (cl.current_role && cl.current_company) {
-    h += '<div class="cl-current">' + esc(cl.current_role) + ' @ ' + esc(cl.current_company) + '</div>';
-  } else if (cl.current_role || cl.current_company) {
-    h += '<div class="cl-current">' + esc(cl.current_role || cl.current_company) + '</div>';
+  // Hero Card
+  h += '<div class="hero-card">';
+  h += '<div class="hero-top">';
+  h += '<div class="hero-avatar">' + esc(initials) + '</div>';
+  h += '<div class="hero-info">';
+  h += '<div class="hero-name-row">';
+  h += '<span class="hero-name">' + esc(name) + '</span>';
+  h += '<span class="entity-id-badge">' + esc(entityId) + '</span>';
+  h += '</div>';
+  if (cl.headline) h += '<div class="hero-headline">' + esc(cl.headline) + '</div>';
+  var currentTitle = cl.current_title || cl.current_role || '';
+  var currentCompany = cl.current_company || '';
+  if (currentTitle && currentCompany) {
+    h += '<div class="hero-current">' + esc(currentTitle) + ' at ' + esc(currentCompany) + '</div>';
+  } else if (currentTitle || currentCompany) {
+    h += '<div class="hero-current">' + esc(currentTitle || currentCompany) + '</div>';
   }
-  if (cl.location) h += '<div class="cl-location">' + esc(cl.location) + '</div>';
+  if (cl.location) h += '<div class="hero-location"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> ' + esc(cl.location) + '</div>';
 
   // Contact row
-  var contacts = [];
+  h += '<div class="hero-contact-row">';
   var attrs = data.attributes || [];
   for (var i = 0; i < attrs.length; i++) {
-    if (attrs[i].key === 'email' && attrs[i].value) contacts.push('<span class="cl-contact-item">' + esc(attrs[i].value) + '</span>');
-    if (attrs[i].key === 'phone' && attrs[i].value) contacts.push('<span class="cl-contact-item">' + esc(attrs[i].value) + '</span>');
+    if (attrs[i].key === 'email' && attrs[i].value) {
+      h += '<span class="hero-contact-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 7L2 7"/></svg> ' + esc(attrs[i].value) + '</span>';
+    }
+    if (attrs[i].key === 'phone' && attrs[i].value) {
+      h += '<span class="hero-contact-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg> ' + esc(attrs[i].value) + '</span>';
+    }
   }
-  if (cl.linkedin_url) contacts.push('<a href="' + esc(cl.linkedin_url) + '" target="_blank">LinkedIn</a>');
-  if (contacts.length > 0) h += '<div class="cl-contact-row">' + contacts.join('') + '</div>';
+  if (cl.linkedin_url) {
+    h += '<span class="hero-contact-item"><a href="' + esc(cl.linkedin_url) + '" target="_blank"><svg width="12" height="12" viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg> LinkedIn</a></span>';
+  }
+  h += '</div>';
 
-  h += '<div class="cl-header-actions"><div class="cl-interface-badge">Career Lite Profile</div>';
-  h += '<button class="btn-share" onclick="openShareModal()">Share</button></div>';
+  // Badges row
+  h += '<div class="hero-badges">';
+  h += renderTierBadge(entityId);
+  h += renderHealthIndicator(health);
+  h += '<span class="cl-interface-badge">Career Lite</span>';
+  h += '</div>';
+
+  // Actions
+  h += '<div class="hero-actions">';
+  h += '<button class="btn-share" onclick="openShareModal()">Share</button>';
+  if (entityId !== primaryEntityId) h += '<button class="btn-delete-entity" onclick="confirmDeleteEntity(\'' + esc(entityId) + '\', \'' + esc(name).replace(/'/g, '') + '\')" title="Delete entity">Delete</button>';
+  h += '</div>';
+
   h += '</div></div></div>';
 
   // Summary
   var summary = e.summary?.value || '';
   if (summary) {
     h += '<div class="section">';
-    h += '<div class="section-title section-title-only">Summary</div>';
+    h += '<div class="section-header"><span class="section-title"><span class="section-header-icon" style="background:rgba(99,102,241,0.08);">&#128196;</span> Summary</span></div>';
     h += '<div class="summary-text">' + esc(summary) + '</div>';
     h += '</div>';
   }
 
-  // Experience
-  var exp = cl.experience || [];
+  // Experience — Timeline style
+  var exp = cl.experience || cl.work_history || [];
   if (exp.length > 0) {
     h += '<div class="section">';
-    h += '<div class="section-title section-title-only">Experience (' + exp.length + ')</div>';
+    h += '<div class="section-header"><span class="section-title"><span class="section-header-icon" style="background:rgba(99,102,241,0.08);">&#128188;</span> Experience (' + exp.length + ')</span></div>';
+    h += '<div class="timeline-section">';
     for (var i = 0; i < exp.length; i++) {
       var x = exp[i];
-      h += '<div class="cl-exp-card">';
-      if (x.company) h += '<div class="cl-exp-company">' + esc(x.company) + '</div>';
-      if (x.title) h += '<div class="cl-exp-title">' + esc(x.title) + '</div>';
-      var dates = [x.start_date, x.end_date].filter(Boolean).join(' — ');
-      if (dates) h += '<div class="cl-exp-dates">' + esc(dates) + '</div>';
-      if (x.description) h += '<div class="cl-exp-desc">' + esc(x.description) + '</div>';
+      var isCurrent = !x.end_date || (typeof x.end_date === 'string' && x.end_date.toLowerCase() === 'present');
+      h += '<div class="timeline-item' + (isCurrent ? ' current' : '') + '">';
+      if (x.company) h += '<div class="timeline-company">' + esc(x.company) + '</div>';
+      if (x.title) h += '<div class="timeline-title">' + esc(x.title) + '</div>';
+      var dates = [x.start_date, x.end_date || (isCurrent ? 'Present' : '')].filter(Boolean).join(' — ');
+      if (dates) h += '<div class="timeline-dates">' + esc(dates) + '</div>';
+      if (x.description) h += '<div class="timeline-desc">' + esc(x.description) + '</div>';
       h += '</div>';
-    }
-    h += '</div>';
-  }
-
-  // Education
-  var edu = cl.education || [];
-  if (edu.length > 0) {
-    h += '<div class="section">';
-    h += '<div class="section-title section-title-only">Education (' + edu.length + ')</div>';
-    for (var i = 0; i < edu.length; i++) {
-      var ed = edu[i];
-      h += '<div class="cl-edu-card">';
-      if (ed.institution) h += '<div class="cl-edu-institution">' + esc(ed.institution) + '</div>';
-      var degree = [ed.degree, ed.field].filter(Boolean).join(' in ');
-      if (degree) h += '<div class="cl-edu-degree">' + esc(degree) + '</div>';
-      var years = [ed.start_year, ed.end_year].filter(Boolean).join(' — ');
-      if (years) h += '<div class="cl-edu-years">' + esc(years) + '</div>';
-      h += '</div>';
-    }
-    h += '</div>';
-  }
-
-  // Skills
-  var skills = cl.skills || [];
-  if (skills.length > 0) {
-    h += '<div class="section">';
-    h += '<div class="section-title section-title-only">Skills (' + skills.length + ')</div>';
-    h += '<div class="cl-skills-wrap">';
-    for (var i = 0; i < skills.length; i++) {
-      h += '<span class="cl-skill-tag">' + esc(skills[i]) + '</span>';
     }
     h += '</div></div>';
   }
 
-  // Relationships (if any)
+  // Education — Card style with icon
+  var edu = cl.education || [];
+  if (edu.length > 0) {
+    h += '<div class="section">';
+    h += '<div class="section-header"><span class="section-title"><span class="section-header-icon" style="background:rgba(168,85,247,0.08);">&#127891;</span> Education (' + edu.length + ')</span></div>';
+    for (var i = 0; i < edu.length; i++) {
+      var ed = edu[i];
+      h += '<div class="edu-card">';
+      h += '<div class="edu-icon">&#127891;</div>';
+      h += '<div class="edu-info">';
+      if (ed.institution) h += '<div class="edu-institution">' + esc(ed.institution) + '</div>';
+      var degree = [ed.degree, ed.field].filter(Boolean).join(' in ');
+      if (degree) h += '<div class="edu-degree">' + esc(degree) + '</div>';
+      var years = [ed.start_year, ed.end_year].filter(Boolean).join(' — ');
+      if (years) h += '<div class="edu-years">' + esc(years) + '</div>';
+      h += '</div></div>';
+    }
+    h += '</div>';
+  }
+
+  // Skills — Chip grid
+  var skills = cl.skills || [];
+  if (skills.length > 0) {
+    h += '<div class="section">';
+    h += '<div class="section-header"><span class="section-title"><span class="section-header-icon" style="background:rgba(20,184,166,0.08);">&#128161;</span> Skills (' + skills.length + ')</span></div>';
+    h += '<div class="skill-grid">';
+    for (var i = 0; i < skills.length; i++) {
+      h += '<span class="skill-chip">' + esc(skills[i]) + '</span>';
+    }
+    h += '</div></div>';
+  }
+
+  // Connections — Relationship cards with type badges
   var rels = data.relationships || [];
   if (rels.length > 0) {
-    h += '<div class="section"><div class="section-title section-title-only">Connections (' + rels.length + ')</div>';
+    h += '<div class="section">';
+    h += '<div class="section-header"><span class="section-title"><span class="section-header-icon" style="background:rgba(59,130,246,0.08);">&#129309;</span> Connections (' + rels.length + ')</span></div>';
     for (var i = 0; i < rels.length; i++) {
       var r = rels[i];
-      h += '<div class="rel-row"><span class="rel-name">' + esc(r.name) + '</span>';
-      h += '<span class="rel-type">' + esc(r.relationship_type || '') + '</span>';
-      if (r.context) h += '<span class="rel-context">' + esc(r.context) + '</span>';
+      var rName = r.name || '';
+      var rInit = rName.split(/\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
+      var rType = (r.relationship_type || '').toLowerCase();
+      var typeCls = 'default';
+      if (rType.indexOf('friend') !== -1) typeCls = 'friend';
+      else if (rType.indexOf('colleague') !== -1 || rType.indexOf('professional') !== -1 || rType.indexOf('coworker') !== -1) typeCls = 'colleague';
+      else if (rType.indexOf('family') !== -1 || rType.indexOf('parent') !== -1 || rType.indexOf('sibling') !== -1 || rType.indexOf('spouse') !== -1 || rType.indexOf('child') !== -1) typeCls = 'family';
+      else if (rType.indexOf('mentor') !== -1) typeCls = 'mentor';
+      h += '<div class="rel-card"' + (r.target_entity_id ? ' onclick="selectEntity(\'' + esc(r.target_entity_id) + '\')" style="cursor:pointer"' : '') + '>';
+      h += '<div class="rel-card-avatar">' + esc(rInit) + '</div>';
+      h += '<div class="rel-card-info">';
+      h += '<div class="rel-card-name">' + esc(rName) + '</div>';
+      if (r.context) h += '<div class="rel-card-context">' + esc(r.context) + '</div>';
+      h += '</div>';
+      h += '<span class="rel-type-badge ' + typeCls + '">' + esc(r.relationship_type || 'Connection') + '</span>';
+      h += sentimentBadge(r.sentiment);
       h += '</div>';
     }
     h += '</div>';
   }
 
-  // Observations (collapsed view)
+  // Observations with color-coded confidence
   var obs = (data.observations || []).slice().sort(function(a, b) {
     return new Date(b.observed_at || 0) - new Date(a.observed_at || 0);
   });
   if (obs.length > 0) {
-    h += '<div class="section"><div class="section-title section-title-only">Observations (' + obs.length + ')</div>';
+    h += '<div class="section"><div class="section-header"><span class="section-title"><span class="section-header-icon" style="background:rgba(107,114,128,0.08);">&#128065;</span> Observations (' + obs.length + ')</span></div>';
     for (var i = 0; i < obs.length; i++) {
       var o = obs[i];
-      h += '<div class="obs-card">';
+      var decay = calcDecay(o.observed_at);
+      var opacity = Math.max(0.4, decay);
+      h += '<div class="obs-card" style="opacity:' + opacity.toFixed(2) + '">';
       h += '<div class="obs-text">' + esc(o.observation) + '</div>';
       h += '<div class="obs-meta">';
       h += confidenceBadge(o.confidence, o.confidence_label);
-      if (o.source) h += '<span class="obs-source">' + esc(o.source) + '</span>';
+      h += layerBadge(o.layer_number);
+      if (o.source) h += '<span class="obs-source">' + esc(getSourceLabel(o.source)) + '</span>';
       h += '<span class="obs-date">' + esc((o.observed_at || '').slice(0, 10)) + '</span>';
       h += '<button class="btn-delete" data-id="' + esc(o.observation_id || '') + '" onclick="deleteObs(this.dataset.id)">delete</button>';
       h += '</div></div>';
     }
     h += '</div>';
   }
+
+  // Source Attribution Footer
+  h += renderSourceFooter(data);
 
   document.getElementById('main').innerHTML = h;
 }
@@ -11032,23 +11659,63 @@ function renderDetail(data) {
   if (['role', 'credential', 'skill'].indexOf(type) !== -1) {
     return renderConnectedDetail(data);
   }
+  // Route org/business/institution types to their dossier renderer
+  if (['organization', 'business', 'institution'].indexOf(type) !== -1) {
+    return renderOrgDossier(data);
+  }
+
   var name = type === 'person' ? (e.name?.full || '') : (e.name?.common || e.name?.legal || '');
   var summary = e.summary?.value || '';
   var meta = data.extraction_metadata || {};
+  var entityId = e.entity_id || '';
+  var health = computeEntityHealth(data);
+  var initials = name.split(/\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
   var h = '';
 
-  // Header
-  h += '<div class="detail-header">';
-  h += '<h2>' + esc(name) + '</h2>';
+  // Hero Card
+  h += '<div class="hero-card">';
+  h += '<div class="hero-top">';
+  if (type === 'person') {
+    h += '<div class="hero-avatar">' + esc(initials) + '</div>';
+  }
+  h += '<div class="hero-info">';
+  h += '<div class="hero-name-row">';
+  h += '<span class="hero-name">' + esc(name) + '</span>';
   h += '<span class="type-badge ' + type + '">' + type + '</span>';
-  h += '<span class="entity-id-badge">' + esc(e.entity_id || '') + '</span>';
-  h += confidenceBadge(meta.extraction_confidence);
-  if ((e.entity_id || '') !== primaryEntityId) h += '<button class="btn-delete-entity" onclick="confirmDeleteEntity(' + "'" + esc(e.entity_id || '') + "'" + ', ' + "'" + esc(name).replace(/'/g, '') + "'" + ')" title="Delete entity">Delete</button>';
+  h += '<span class="entity-id-badge">' + esc(entityId) + '</span>';
   h += '</div>';
+
+  // Show headline/role from attributes
+  var attrs = data.attributes || [];
+  var headline = '', location = '', linkedinUrl = '';
+  for (var i = 0; i < attrs.length; i++) {
+    if (attrs[i].key === 'headline' && attrs[i].value) headline = attrs[i].value;
+    if (attrs[i].key === 'location' && attrs[i].value) location = attrs[i].value;
+    if (attrs[i].key === 'linkedin_url' && attrs[i].value) linkedinUrl = attrs[i].value;
+  }
+  if (headline) h += '<div class="hero-headline">' + esc(headline) + '</div>';
+  if (location) h += '<div class="hero-location"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg> ' + esc(location) + '</div>';
+  if (linkedinUrl) {
+    h += '<div class="hero-contact-row"><span class="hero-contact-item"><a href="' + esc(linkedinUrl) + '" target="_blank"><svg width="12" height="12" viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg> LinkedIn</a></span></div>';
+  }
+
+  // Badges
+  h += '<div class="hero-badges">';
+  h += renderTierBadge(entityId);
+  h += renderHealthIndicator(health);
+  h += confidenceBadge(meta.extraction_confidence);
+  h += '</div>';
+
+  // Actions
+  h += '<div class="hero-actions">';
+  if (entityId !== primaryEntityId) h += '<button class="btn-delete-entity" onclick="confirmDeleteEntity(\'' + esc(entityId) + '\', \'' + esc(name).replace(/'/g, '') + '\')" title="Delete entity">Delete</button>';
+  h += '</div>';
+
+  h += '</div></div></div>';
 
   // Summary
   h += '<div class="section">';
-  h += '<div class="section-header"><span class="section-title">Summary</span>';
+  h += '<div class="section-header"><span class="section-title"><span class="section-header-icon" style="background:rgba(99,102,241,0.08);">&#128196;</span> Summary</span>';
   h += '<button class="btn-sm" id="btnEditSummary" onclick="toggleSummaryEdit()">Edit</button></div>';
   h += '<div id="summaryDisplay" class="summary-text">' + esc(summary) + '</div>';
   h += '<div id="summaryEditSection" style="display:none">';
@@ -11057,10 +11724,9 @@ function renderDetail(data) {
   h += '<button class="btn-cancel" onclick="toggleSummaryEdit()">Cancel</button></div>';
   h += '</div></div>';
 
-  // Attributes
-  var attrs = data.attributes || [];
+  // Attributes with color-coded confidence
   if (attrs.length > 0) {
-    h += '<div class="section"><div class="section-title section-title-only">Attributes</div>';
+    h += '<div class="section"><div class="section-header"><span class="section-title"><span class="section-header-icon" style="background:rgba(107,114,128,0.08);">&#128203;</span> Attributes</span></div>';
     for (var i = 0; i < attrs.length; i++) {
       var a = attrs[i];
       h += '<div class="attr-row"><span class="attr-key">' + esc(a.key) + '</span>';
@@ -11071,15 +11737,27 @@ function renderDetail(data) {
     h += '</div>';
   }
 
-  // Relationships
+  // Relationships as cards
   var rels = data.relationships || [];
   if (rels.length > 0) {
-    h += '<div class="section"><div class="section-title section-title-only">Relationships</div>';
+    h += '<div class="section"><div class="section-header"><span class="section-title"><span class="section-header-icon" style="background:rgba(59,130,246,0.08);">&#129309;</span> Connections (' + rels.length + ')</span></div>';
     for (var i = 0; i < rels.length; i++) {
       var r = rels[i];
-      h += '<div class="rel-row"><span class="rel-name">' + esc(r.name) + '</span>';
-      h += '<span class="rel-type">' + esc(r.relationship_type || '') + '</span>';
-      if (r.context) h += '<span class="rel-context">' + esc(r.context) + '</span>';
+      var rName = r.name || '';
+      var rInit = rName.split(/\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
+      var rType = (r.relationship_type || '').toLowerCase();
+      var typeCls = 'default';
+      if (rType.indexOf('friend') !== -1) typeCls = 'friend';
+      else if (rType.indexOf('colleague') !== -1 || rType.indexOf('professional') !== -1) typeCls = 'colleague';
+      else if (rType.indexOf('family') !== -1 || rType.indexOf('parent') !== -1 || rType.indexOf('spouse') !== -1 || rType.indexOf('child') !== -1 || rType.indexOf('sibling') !== -1) typeCls = 'family';
+      else if (rType.indexOf('mentor') !== -1) typeCls = 'mentor';
+      h += '<div class="rel-card"' + (r.target_entity_id ? ' onclick="selectEntity(\'' + esc(r.target_entity_id) + '\')" style="cursor:pointer"' : '') + '>';
+      h += '<div class="rel-card-avatar">' + esc(rInit) + '</div>';
+      h += '<div class="rel-card-info">';
+      h += '<div class="rel-card-name">' + esc(rName) + '</div>';
+      if (r.context) h += '<div class="rel-card-context">' + esc(r.context) + '</div>';
+      h += '</div>';
+      h += '<span class="rel-type-badge ' + typeCls + '">' + esc(r.relationship_type || 'Connection') + '</span>';
       h += sentimentBadge(r.sentiment);
       h += confidenceBadge(r.confidence, r.confidence_label);
       h += '</div>';
@@ -11090,7 +11768,7 @@ function renderDetail(data) {
   // Values
   var vals = data.values || [];
   if (vals.length > 0) {
-    h += '<div class="section"><div class="section-title section-title-only">Values</div>';
+    h += '<div class="section"><div class="section-header"><span class="section-title"><span class="section-header-icon" style="background:rgba(34,197,94,0.08);">&#128142;</span> Values</span></div>';
     for (var i = 0; i < vals.length; i++) {
       h += '<div class="value-item"><span class="value-text">' + esc(vals[i].value || '') + '</span>';
       h += confidenceBadge(vals[i].confidence, vals[i].confidence_label);
@@ -11103,9 +11781,9 @@ function renderDetail(data) {
   var obs = (data.observations || []).slice().sort(function(a, b) {
     return new Date(b.observed_at || 0) - new Date(a.observed_at || 0);
   });
-  h += '<div class="section"><div class="section-title section-title-only">Observations (' + obs.length + ')</div>';
+  h += '<div class="section"><div class="section-header"><span class="section-title"><span class="section-header-icon" style="background:rgba(107,114,128,0.08);">&#128065;</span> Observations (' + obs.length + ')</span></div>';
   if (obs.length === 0) {
-    h += '<div style="color:#3a3a4a;font-size:0.82rem;padding:8px 0;">No observations yet</div>';
+    h += '<div style="color:var(--text-muted);font-size:0.82rem;padding:8px 0;">No observations yet</div>';
   }
   for (var i = 0; i < obs.length; i++) {
     var o = obs[i];
@@ -11116,7 +11794,7 @@ function renderDetail(data) {
     h += '<div class="obs-meta">';
     h += confidenceBadge(o.confidence, o.confidence_label);
     h += layerBadge(o.layer_number);
-    if (o.source) h += '<span class="obs-source">' + esc(o.source) + '</span>';
+    if (o.source) h += '<span class="obs-source">' + esc(getSourceLabel(o.source)) + '</span>';
     h += '<span class="obs-date">' + esc((o.observed_at || '').slice(0, 10)) + '</span>';
     h += '<span class="obs-decay">' + (decay * 100).toFixed(0) + '% weight</span>';
     h += '<button class="btn-delete" data-id="' + esc(o.observation_id || '') + '" onclick="deleteObs(this.dataset.id)">delete</button>';
@@ -11127,7 +11805,7 @@ function renderDetail(data) {
   // Connected Objects
   var connected = data.connected_objects || [];
   if (connected.length > 0) {
-    h += '<div class="section"><div class="section-title section-title-only">Connected Objects (' + connected.length + ')</div>';
+    h += '<div class="section"><div class="section-header"><span class="section-title"><span class="section-header-icon" style="background:rgba(168,85,247,0.08);">&#128279;</span> Connected Objects (' + connected.length + ')</span></div>';
     var groups = { role: [], organization: [], institution: [], credential: [], skill: [] };
     for (var i = 0; i < connected.length; i++) {
       var c = connected[i];
@@ -11141,8 +11819,9 @@ function renderDetail(data) {
       if (items.length === 0) continue;
       h += '<div style="margin-bottom:12px;"><div style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">' + groupLabels[gk] + '</div>';
       for (var j = 0; j < items.length; j++) {
-        h += '<div class="entity-item" style="padding:6px 10px;cursor:pointer;" onclick="selectEntity(' + "'" + esc(items[j].entity_id) + "'" + ')">';
-        h += '<span class="entity-item-name">' + esc(items[j].label) + '</span>';
+        h += '<div class="rel-card" style="cursor:pointer;" onclick="selectEntity(\'' + esc(items[j].entity_id) + '\')">';
+        h += '<div class="rel-card-avatar" style="border-radius:var(--radius-sm);font-size:0.7rem;">' + esc(items[j].entity_type.slice(0, 2).toUpperCase()) + '</div>';
+        h += '<div class="rel-card-info"><div class="rel-card-name">' + esc(items[j].label) + '</div></div>';
         h += '<span class="type-badge ' + esc(items[j].entity_type) + '">' + esc(items[j].entity_type) + '</span>';
         h += '</div>';
       }
@@ -11152,7 +11831,7 @@ function renderDetail(data) {
   }
 
   // Add Observation Form
-  h += '<div class="section"><div class="section-title section-title-only">Add Observation</div>';
+  h += '<div class="section"><div class="section-header"><span class="section-title">Add Observation</span></div>';
   h += '<div class="add-obs-form">';
   h += '<textarea class="obs-textarea" id="obsText" placeholder="What did you learn about this entity?"></textarea>';
   h += '<div class="obs-form-row">';
@@ -11163,6 +11842,9 @@ function renderDetail(data) {
   h += '<option value="L2_GROUP" selected>L2 Group</option><option value="L3_PERSONAL">L3 Personal</option></select>';
   h += '<button class="btn-add" id="btnAddObs" onclick="addObs()">Add Observation</button>';
   h += '</div></div></div>';
+
+  // Source Attribution Footer
+  h += renderSourceFooter(data);
 
   document.getElementById('main').innerHTML = h;
 }
