@@ -3860,6 +3860,207 @@ app.post('/api/extract', apiAuth, async (req, res) => {
   }
 });
 
+// POST /api/extract-url — Extract entities from any public URL
+app.post('/api/extract-url', apiAuth, async (req, res) => {
+  const { url } = req.body;
+  if (!url || typeof url !== 'string') {
+    return res.status(400).json({ error: 'Missing "url" field' });
+  }
+  if (!/^https?:\/\//i.test(url)) {
+    return res.status(400).json({ error: 'URL must start with http:// or https://' });
+  }
+
+  try {
+    // Fetch the page
+    const response = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      },
+      redirect: 'follow',
+      signal: AbortSignal.timeout(15000),
+    });
+
+    if (!response.ok) {
+      return res.status(502).json({ error: `Failed to fetch URL: HTTP ${response.status}` });
+    }
+
+    const html = await response.text();
+
+    // Strip HTML to clean text
+    let text = html
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<nav[^>]*>[\s\S]*?<\/nav>/gi, '')
+      .replace(/<footer[^>]*>[\s\S]*?<\/footer>/gi, '')
+      .replace(/<header[^>]*>[\s\S]*?<\/header>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!text || text.length < 50) {
+      return res.status(422).json({ error: 'Could not extract meaningful text from this URL. The page may require JavaScript or be empty.' });
+    }
+
+    // Truncate if extremely large (keep first 30KB for extraction)
+    if (text.length > 30000) {
+      text = text.substring(0, 30000);
+    }
+
+    const primaryUserName = getPrimaryUserName(req.graphDir);
+    const now = new Date().toISOString();
+    const sourceAttribution = { type: 'web', url: url, extracted_at: now };
+
+    // Use existing chunking + extraction pipeline
+    const chunks = chunkText(text);
+    const client = new Anthropic();
+    const allExtracted = [];
+
+    for (let ci = 0; ci < chunks.length; ci++) {
+      const prompt = buildGenericTextPrompt(chunks[ci], url, ci + 1, chunks.length, primaryUserName);
+      const message = await client.messages.create({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 16384,
+        messages: [{ role: 'user', content: prompt }],
+      });
+      const rawResponse = message.content[0].text;
+      const parsed = safeParseExtraction(rawResponse, 'url-extract chunk ' + (ci + 1));
+      allExtracted.push(...(parsed.entities || []));
+    }
+
+    // Convert to v2 entities with source attribution
+    const v2Entities = allExtracted.map(extracted => {
+      let entityType = extracted.entity_type;
+      if (entityType === 'organization') entityType = 'business';
+      if (!entityType || !['person', 'business', 'institution'].includes(entityType)) return null;
+
+      const observations = (extracted.observations || []).map(obs => ({
+        observation: (obs.text || '').trim(),
+        observed_at: now,
+        source: 'url_extract',
+        source_url: url,
+        confidence: 0.6,
+        confidence_label: 'MODERATE',
+        facts_layer: 'L2_GROUP',
+        layer_number: 2,
+        observed_by: req.agentId,
+        truth_level: 'INFERRED',
+      })).filter(o => o.observation);
+
+      const attributes = [];
+      if (extracted.attributes && typeof extracted.attributes === 'object') {
+        let attrSeq = 1;
+        for (const [key, value] of Object.entries(extracted.attributes)) {
+          const val = Array.isArray(value) ? value.join(', ') : String(value);
+          if (!val) continue;
+          attributes.push({
+            attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`,
+            key, value: val, confidence: 0.6, confidence_label: 'MODERATE',
+            time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+            source_attribution: { ...sourceAttribution, facts_layer: 2, layer_label: 'group' },
+          });
+        }
+      }
+
+      const relationships = [];
+      if (Array.isArray(extracted.relationships)) {
+        let relSeq = 1;
+        for (const rel of extracted.relationships) {
+          relationships.push({
+            relationship_id: `REL-${String(relSeq++).padStart(3, '0')}`,
+            name: rel.name || '', relationship_type: rel.relationship || '', context: rel.context || '',
+            sentiment: 'neutral', confidence: 0.6, confidence_label: 'MODERATE',
+          });
+        }
+      }
+
+      const v2Entity = {
+        schema_version: '2.0',
+        schema_type: 'context_architecture_entity',
+        extraction_metadata: {
+          extracted_at: now, updated_at: now,
+          source_description: `url_extract:${url}`,
+          extraction_model: 'claude-sonnet-4-5-20250929',
+          extraction_confidence: 0.6, schema_version: '2.0',
+        },
+        entity: {
+          entity_type: entityType,
+          name: { ...extracted.name, confidence: 0.6, facts_layer: 2 },
+          summary: extracted.summary
+            ? { value: extracted.summary, confidence: 0.6, facts_layer: 2 }
+            : { value: '', confidence: 0, facts_layer: 2 },
+        },
+        attributes, relationships,
+        values: [], key_facts: [], constraints: [],
+        observations,
+        provenance_chain: {
+          created_at: now, created_by: req.agentId,
+          source_documents: [{ source: `url_extract:${url}`, url, ingested_at: now }],
+          merge_history: [],
+        },
+      };
+      if (extracted.relationship_dimensions) {
+        if (typeof extracted.relationship_dimensions.strength === 'number') {
+          extracted.relationship_dimensions.visual_tier = computeVisualTier(extracted.relationship_dimensions.strength);
+        }
+        v2Entity.relationship_dimensions = extracted.relationship_dimensions;
+        var wp = computeWikiPage(extracted.relationship_dimensions);
+        v2Entity.wiki_page = wp;
+        v2Entity.wiki_section = computeWikiSection(extracted.relationship_dimensions, wp);
+      }
+      if (extracted.descriptor) v2Entity.descriptor = extracted.descriptor;
+      if (extracted.org_dimensions) {
+        v2Entity.org_dimensions = extracted.org_dimensions;
+        if (extracted.org_dimensions.org_category) {
+          v2Entity.attributes.push({
+            attribute_id: 'ATTR-ORG-CAT',
+            key: 'org_category', value: extracted.org_dimensions.org_category,
+            confidence: 0.8, confidence_label: 'HIGH',
+            time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+            source_attribution: { ...sourceAttribution, facts_layer: 2, layer_label: 'group' },
+          });
+        }
+      }
+      return v2Entity;
+    }).filter(Boolean);
+
+    // Return entities for preview/approval (same pattern as file upload preview)
+    const previewList = v2Entities.map(e => {
+      const ent = e.entity || {};
+      const type = ent.entity_type || '';
+      return {
+        entity_type: type,
+        name: type === 'person' ? (ent.name?.full || '') : (ent.name?.common || ent.name?.legal || ''),
+        summary: ent.summary?.value || '',
+        attribute_count: (e.attributes || []).length,
+        relationship_count: (e.relationships || []).length,
+        observation_count: (e.observations || []).length,
+      };
+    });
+
+    res.json({
+      entities: v2Entities,
+      preview: previewList,
+      source_url: url,
+      source_type: 'web',
+      entity_count: v2Entities.length,
+    });
+
+  } catch (err) {
+    if (err.name === 'TimeoutError' || err.code === 'UND_ERR_CONNECT_TIMEOUT') {
+      return res.status(504).json({ error: 'URL fetch timed out after 15 seconds' });
+    }
+    console.error('[extract-url] Error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/entities/category/:category — List entities by wiki category
 app.get('/api/entities/category/:category', apiAuth, (req, res) => {
   const category = req.params.category.toLowerCase();
@@ -8358,6 +8559,14 @@ function showUploadView() {
   h += '<div class="upload-dropzone-text">Drag & drop files here, or click to browse</div>';
   h += '<div class="upload-dropzone-hint">PDF, DOC, DOCX, XLSX, CSV, TXT, MD, JSON &mdash; up to 50 MB per file</div>';
   h += '</div>';
+  h += '<div class="url-extract-section" style="margin:20px 0;padding:16px;background:var(--bg-secondary,#f5f5f7);border-radius:10px;">';
+  h += '<div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);margin-bottom:8px;">Or paste a URL</div>';
+  h += '<div style="display:flex;gap:8px;">';
+  h += '<input type="url" id="urlExtractInput" placeholder="https://example.com/about" style="flex:1;padding:8px 12px;border:1px solid var(--border,#e2e2e5);border-radius:6px;font-size:0.85rem;background:var(--bg-primary,#fff);color:var(--text-primary);" />';
+  h += '<button onclick="extractFromURL()" id="btnExtractUrl" style="padding:8px 16px;border:none;border-radius:6px;background:#6366f1;color:#fff;font-size:0.82rem;font-weight:600;cursor:pointer;white-space:nowrap;">Extract</button>';
+  h += '</div>';
+  h += '<div id="urlExtractStatus" style="margin-top:8px;font-size:0.78rem;color:var(--text-muted);display:none;"></div>';
+  h += '</div>';
   h += '<div class="upload-file-list" id="uploadFileList"></div>';
   h += '<div id="uploadProgressLog" class="upload-progress-log" style="display:none;"></div>';
   h += '<div id="uploadSummary" style="display:none;"></div>';
@@ -8388,6 +8597,59 @@ function showUploadView() {
 function hideUploadView() {
   if (uploadInProgress) return;
   document.getElementById('main').innerHTML = '<div class="empty-state" id="emptyState">Select an entity from the sidebar<br/>to view its knowledge graph profile</div>';
+}
+
+/* --- URL Extraction --- */
+var urlExtractInProgress = false;
+function extractFromURL() {
+  var urlInput = document.getElementById('urlExtractInput');
+  var statusEl = document.getElementById('urlExtractStatus');
+  var btn = document.getElementById('btnExtractUrl');
+  if (!urlInput || urlExtractInProgress) return;
+  var url = urlInput.value.trim();
+  if (!url) { toast('Please enter a URL'); return; }
+  if (!/^https?:\/\//i.test(url)) { toast('URL must start with http:// or https://'); return; }
+
+  urlExtractInProgress = true;
+  btn.disabled = true;
+  btn.textContent = 'Extracting...';
+  statusEl.style.display = 'block';
+  statusEl.textContent = 'Fetching and analyzing ' + url + '...';
+
+  api('POST', '/api/extract-url', { url: url }).then(function(data) {
+    urlExtractInProgress = false;
+    btn.disabled = false;
+    btn.textContent = 'Extract';
+
+    if (!data.entities || data.entities.length === 0) {
+      statusEl.textContent = 'No entities found at that URL.';
+      statusEl.style.color = 'var(--warning, #d97706)';
+      return;
+    }
+
+    statusEl.textContent = 'Found ' + data.entities.length + ' entities from ' + url;
+    statusEl.style.color = 'var(--success, #22c55e)';
+
+    // Feed into existing preview flow
+    previewEntities = data.entities;
+    previewSource = 'url_extract:' + url;
+
+    // Show summary + preview checklist
+    var sumEl = document.getElementById('uploadSummary');
+    if (sumEl) {
+      sumEl.style.display = 'block';
+      sumEl.innerHTML = '';
+    }
+    var logEl = document.getElementById('uploadProgressLog');
+    if (logEl) { logEl.style.display = 'block'; logEl.innerHTML = '<div style="padding:8px;color:var(--success);">Extracted ' + data.entity_count + ' entities from URL</div>'; }
+    renderPreviewChecklist();
+  }).catch(function(err) {
+    urlExtractInProgress = false;
+    btn.disabled = false;
+    btn.textContent = 'Extract';
+    statusEl.textContent = 'Error: ' + (err.message || 'Failed to extract from URL');
+    statusEl.style.color = 'var(--error, #ef4444)';
+  });
 }
 
 /* --- Cleanup View --- */
