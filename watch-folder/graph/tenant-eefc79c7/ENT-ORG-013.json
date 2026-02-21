@@ -1,0 +1,91 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-21T17:58:12.543Z",
+    "source_description": "decomposed from ENT-AB-051",
+    "extraction_model": "object-decomposer",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "organization",
+    "entity_id": "ENT-ORG-013",
+    "parent_entity_id": "ENT-AB-051",
+    "name": {
+      "full": "Meta",
+      "common": "Meta",
+      "aliases": [],
+      "confidence": 0.6
+    },
+    "summary": {
+      "value": "",
+      "confidence": 0.6,
+      "facts_layer": 2
+    }
+  },
+  "organization_data": {
+    "name": "Meta"
+  },
+  "attributes": [],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "Andre Burgin",
+      "relationship_type": "employed",
+      "context": "Andre Burgin worked at Meta",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "observations": [
+    {
+      "observation": "Andre Burgin worked here as employee",
+      "observed_at": "2026-02-21T18:46:45.988Z",
+      "source": "linkedin_import",
+      "source_url": "https://www.linkedin.com/in/andreburgin/",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "truth_level": "INFERRED",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "observation_id": "OBS-ENT-ORG-013-20260221184645-001"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-21T17:58:12.543Z",
+    "created_by": "object-decomposer",
+    "source_documents": [
+      {
+        "source": "decomposed from ENT-AB-051",
+        "ingested_at": "2026-02-21T17:58:12.543Z"
+      },
+      {
+        "source": "linkedin_api:https://www.linkedin.com/in/andreburgin/",
+        "url": "https://www.linkedin.com/in/andreburgin/",
+        "ingested_at": "2026-02-21T18:58:16.262Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-21T18:58:16.262Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "linkedin_api:https://www.linkedin.com/in/andreburgin/",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-21T18:58:16.262Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "Signal cluster SIG-e3bb4730-8d9: merged data and 1 observations"
+        ]
+      }
+    ]
+  },
+  "key_facts": [],
+  "values": [],
+  "constraints": []
+}

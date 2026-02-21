@@ -1,0 +1,47 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-21T18:50:23.651Z",
+    "source_description": "decomposed from ENT-AB-051",
+    "extraction_model": "object-decomposer",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "role",
+    "entity_id": "ENT-ROLE-259",
+    "parent_entity_id": "ENT-AB-051",
+    "name": {
+      "full": "Board Member (Volunteer) at Friends of FAM, Inc.",
+      "aliases": []
+    },
+    "summary": {
+      "value": "",
+      "confidence": 0.6,
+      "facts_layer": 2
+    }
+  },
+  "role_data": {
+    "title": "Board Member (Volunteer)",
+    "company": "Friends of FAM, Inc.",
+    "organization_id": "ENT-ORG-014",
+    "start_date": "Mar 2023",
+    "end_date": "Present",
+    "description": ""
+  },
+  "attributes": [],
+  "relationships": [],
+  "observations": [],
+  "provenance_chain": {
+    "created_at": "2026-02-21T18:50:23.651Z",
+    "created_by": "object-decomposer",
+    "source_documents": [
+      {
+        "source": "decomposed from ENT-AB-051",
+        "ingested_at": "2026-02-21T18:50:23.651Z"
+      }
+    ],
+    "merge_history": []
+  }
+}

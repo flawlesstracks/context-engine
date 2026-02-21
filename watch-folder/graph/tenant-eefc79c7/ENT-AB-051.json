@@ -44,19 +44,23 @@
       }
     },
     {
-      "attribute_id": "ATTR-002",
+      "attribute_id": "ATTR-001",
       "key": "location",
-      "value": "Atlanta, GA",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE",
+      "value": "Atlanta, Georgia, United States",
+      "confidence": 1,
+      "confidence_label": "HIGH",
       "time_decay": {
-        "stability": "stable",
-        "captured_date": "2026-02-19"
+        "stability": "semi_stable",
+        "captured_date": "2026-02-21"
       },
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      }
+      },
+      "_source_clusters": [
+        "SIG-0cd9fa85-48f",
+        "SIG-8d3231f8-237"
+      ]
     },
     {
       "attribute_id": "ATTR-003",
@@ -222,6 +226,62 @@
         "facts_layer": 2,
         "layer_label": "group"
       }
+    },
+    {
+      "attribute_id": "ATTR-014",
+      "key": "company",
+      "value": "Meta",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-21"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      },
+      "_source_clusters": [
+        "SIG-0cd9fa85-48f",
+        "SIG-8d3231f8-237"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-015",
+      "key": "linkedin_url",
+      "value": "https://www.linkedin.com/in/andreburgin/",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-21"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      },
+      "_source_clusters": [
+        "SIG-0cd9fa85-48f",
+        "SIG-8d3231f8-237"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-016",
+      "key": "skills",
+      "value": "Advertising, Consumer Behavior, Statistics",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-21"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      },
+      "_source_clusters": [
+        "SIG-8d3231f8-237"
+      ]
     }
   ],
   "relationships": [
@@ -299,7 +359,43 @@
     }
   ],
   "values": [],
-  "key_facts": [],
+  "key_facts": [
+    {
+      "fact_id": "FACT-001",
+      "fact": "Meta",
+      "confidence": 0.85,
+      "confidence_label": "HIGH",
+      "source": "https://www.linkedin.com/in/andreburgin/"
+    },
+    {
+      "fact_id": "FACT-002",
+      "fact": "Board Member (Volunteer) at Friends of FAM, Inc. at Mar 2023 - Present",
+      "confidence": 0.85,
+      "confidence_label": "HIGH",
+      "source": "https://www.linkedin.com/in/andreburgin/"
+    },
+    {
+      "fact_id": "FACT-003",
+      "fact": "Co-Chair (Volunteer) at Adams Park Residents Association at Jan 2018 - Present",
+      "confidence": 0.85,
+      "confidence_label": "HIGH",
+      "source": "https://www.linkedin.com/in/andreburgin/"
+    },
+    {
+      "fact_id": "FACT-004",
+      "fact": "President (Volunteer) at Black@ Meta - Atlanta Chapter at Jul 2023 - Present",
+      "confidence": 0.85,
+      "confidence_label": "HIGH",
+      "source": "https://www.linkedin.com/in/andreburgin/"
+    },
+    {
+      "fact_id": "FACT-005",
+      "fact": "Clark Atlanta University",
+      "confidence": 0.85,
+      "confidence_label": "HIGH",
+      "source": "https://www.linkedin.com/in/andreburgin/"
+    }
+  ],
   "constraints": [],
   "observations": [
     {
@@ -493,6 +589,18 @@
       "observed_by": "Clarence Mitchell",
       "truth_level": "INFERRED",
       "observation_id": "OBS-ENT-AB-051-20260220183206-016"
+    },
+    {
+      "observation": "LinkedIn profile imported from https://www.linkedin.com/in/andreburgin/",
+      "observed_at": "2026-02-21T17:57:09.884Z",
+      "source": "linkedin_import",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "truth_level": "INFERRED",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "observation_id": "OBS-ENT-AB-051-20260221175709-017"
     }
   ],
   "provenance_chain": {
@@ -502,6 +610,16 @@
       {
         "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
         "ingested_at": "2026-02-19T03:20:25.830Z"
+      },
+      {
+        "source": "linkedin_api:https://www.linkedin.com/in/andreburgin/",
+        "url": "https://www.linkedin.com/in/andreburgin/",
+        "ingested_at": "2026-02-21T17:58:12.538Z"
+      },
+      {
+        "source": "linkedin_api:https://www.linkedin.com/in/andreburgin/",
+        "url": "https://www.linkedin.com/in/andreburgin/",
+        "ingested_at": "2026-02-21T18:50:23.648Z"
       }
     ],
     "merge_history": [
@@ -678,6 +796,45 @@
         "changes": [
           "Steve master.txt: merged data and 2 observations"
         ]
+      },
+      {
+        "merged_at": "2026-02-21T17:58:12.539Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "linkedin_api:https://www.linkedin.com/in/andreburgin/",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced",
+            "attribute_id": "ATTR-002",
+            "key": "location",
+            "old_value": "Atlanta, GA",
+            "old_confidence": 0.6,
+            "new_value": "Atlanta, Georgia, United States",
+            "new_confidence": 0.85,
+            "timestamp": "2026-02-21T17:58:12.540Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-21T17:58:12.538Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "Signal cluster SIG-0cd9fa85-48f: merged data and 1 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-21T18:50:23.649Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "linkedin_api:https://www.linkedin.com/in/andreburgin/",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-21T18:50:23.648Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "Signal cluster SIG-8d3231f8-237: merged data and 0 observations"
+        ]
       }
     ]
   },
@@ -695,5 +852,165 @@
     "visual_tier": "gold"
   },
   "descriptor": "MBA homie, groomsman, trivia co-leader",
-  "entity_tier": "inner"
+  "entity_tier": "inner",
+  "career_lite": {
+    "interface": "career-lite",
+    "implements": [
+      "Contactable",
+      "Identifiable",
+      "Experienceable"
+    ],
+    "name": "Andre Burgin",
+    "email": "",
+    "location": "Atlanta, Georgia, United States",
+    "linkedin_url": "https://www.linkedin.com/in/andreburgin/",
+    "phone": "",
+    "headline": "",
+    "summary": "With over 15 years in customer and user experience research, I transform complex insights…",
+    "current_title": "",
+    "current_company": "Meta",
+    "current_role": "",
+    "work_history": [
+      {
+        "company": "Meta",
+        "title": "",
+        "start_date": "",
+        "end_date": "",
+        "description": ""
+      },
+      {
+        "company": "Friends of FAM, Inc.",
+        "title": "Board Member (Volunteer)",
+        "start_date": "Mar 2023",
+        "end_date": "Present",
+        "description": ""
+      },
+      {
+        "company": "Adams Park Residents Association",
+        "title": "Co-Chair (Volunteer)",
+        "start_date": "Jan 2018",
+        "end_date": "Present",
+        "description": ""
+      },
+      {
+        "company": "Black@ Meta - Atlanta Chapter",
+        "title": "President (Volunteer)",
+        "start_date": "Jul 2023",
+        "end_date": "Present",
+        "description": ""
+      }
+    ],
+    "experience": [
+      {
+        "title": "",
+        "company": "Meta",
+        "start_date": "",
+        "end_date": "",
+        "description": ""
+      },
+      {
+        "title": "Board Member (Volunteer)",
+        "company": "Friends of FAM, Inc.",
+        "start_date": "Mar 2023",
+        "end_date": "Present",
+        "description": ""
+      },
+      {
+        "title": "Co-Chair (Volunteer)",
+        "company": "Adams Park Residents Association",
+        "start_date": "Jan 2018",
+        "end_date": "Present",
+        "description": ""
+      },
+      {
+        "title": "President (Volunteer)",
+        "company": "Black@ Meta - Atlanta Chapter",
+        "start_date": "Jul 2023",
+        "end_date": "Present",
+        "description": ""
+      }
+    ],
+    "education": [
+      {
+        "institution": "Clark Atlanta University",
+        "degree": "",
+        "field": "",
+        "year": "",
+        "start_year": "",
+        "end_year": ""
+      }
+    ],
+    "skills": [
+      "Advertising",
+      "Consumer Behavior",
+      "Statistics"
+    ]
+  },
+  "connected_objects": [
+    {
+      "entity_id": "ENT-ORG-013",
+      "entity_type": "organization",
+      "label": "Meta"
+    },
+    {
+      "entity_id": "ENT-ORG-014",
+      "entity_type": "organization",
+      "label": "Friends of FAM, Inc."
+    },
+    {
+      "entity_id": "ENT-ORG-015",
+      "entity_type": "organization",
+      "label": "Adams Park Residents Association"
+    },
+    {
+      "entity_id": "ENT-ORG-016",
+      "entity_type": "organization",
+      "label": "Black@ Meta - Atlanta Chapter"
+    },
+    {
+      "entity_id": "ENT-BIZ-CAU-036",
+      "entity_type": "institution",
+      "label": "Clark Atlanta University"
+    },
+    {
+      "entity_id": "ENT-ROLE-258",
+      "entity_type": "role",
+      "label": " at Meta"
+    },
+    {
+      "entity_id": "ENT-ROLE-259",
+      "entity_type": "role",
+      "label": "Board Member (Volunteer) at Friends of FAM, Inc."
+    },
+    {
+      "entity_id": "ENT-ROLE-260",
+      "entity_type": "role",
+      "label": "Co-Chair (Volunteer) at Adams Park Residents Association"
+    },
+    {
+      "entity_id": "ENT-ROLE-261",
+      "entity_type": "role",
+      "label": "President (Volunteer) at Black@ Meta - Atlanta Chapter"
+    },
+    {
+      "entity_id": "ENT-CRED-097",
+      "entity_type": "credential",
+      "label": ", Clark Atlanta University"
+    },
+    {
+      "entity_id": "ENT-SKILL-018",
+      "entity_type": "skill",
+      "label": "Advertising"
+    },
+    {
+      "entity_id": "ENT-SKILL-019",
+      "entity_type": "skill",
+      "label": "Consumer Behavior"
+    },
+    {
+      "entity_id": "ENT-SKILL-020",
+      "entity_type": "skill",
+      "label": "Statistics"
+    }
+  ]
 }
