@@ -4154,6 +4154,10 @@ app.post('/api/extract-url', apiAuth, async (req, res) => {
     });
 
     if (!response.ok) {
+      // LinkedIn blocks direct web fetches — give a specific error
+      if (/linkedin\.com/i.test(url)) {
+        return res.status(502).json({ error: 'LinkedIn blocks direct web access. ScrapingDog API failed — the profile may be loading for the first time. Please try again in 2-3 minutes.' });
+      }
       return res.status(502).json({ error: `Failed to fetch URL: HTTP ${response.status}` });
     }
 

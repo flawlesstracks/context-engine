@@ -8,6 +8,7 @@
 
 ## How to Read This Document
 
+
 Each MECE framework has three layers:
 
 * **Layer 1 (MECE Framework):** The complete, exhaustive categories. Permanent. Never changes.  
@@ -21,6 +22,7 @@ everything Context Architecture builds.
 
 |  |
 | :---- |
+
 
 ## The AAA Loop: The Meta-Framework
 
@@ -85,6 +87,28 @@ ASSESS validates both ACQUIRE and APPLY. The LEARN lever closes the loop.
 
 |  |
 | :---- |
+
+## The Fractal Principle
+
+MECE frameworks are recursive. Every node in a framework can be decomposed into 
+its own MECE underneath it. The structure holds at every zoom level:
+
+AAA Loop (3 phases)
+  └─ ACQUIRE (4 levers)
+       └─ EXTRACT (10 levels)
+            └─ Collector Agent (4 modes)
+                 └─ DIRECTED mode (4 source types)
+                      └─ Identity sources (specific platforms)
+
+When building or debugging, zoom to the right level of the fractal:
+- If the PROBLEM is "we're not getting enough data" → zoom to ACQUIRE levers
+- If the PROBLEM is "extraction is missing things" → zoom to EXTRACT levels or Collector modes  
+- If the PROBLEM is "we're getting noise" → zoom to Collection Filters
+- If a MECE doesn't exist at the level you need, BUILD ONE before writing code
+
+This is the core thinking pattern: decompose until you find the right layer, 
+then solve at that layer without disturbing the layers above or below it.
+
 
 ## Framework Registry
 
@@ -318,6 +342,72 @@ Track current state. Update after every build session.
 
 |  |
 | :---- |
+
+
+## MECE-006: Collection Intelligence
+
+**Primary Lever:** EXTRACT
+**Domain:** How the Collector agent acquires signal (not noise) across all sources.
+**Parent in fractal:** Sits inside MECE-005 Agent Architecture → Collector Agent
+
+### Layer 1: Four Collection Modes (MECE)
+
+Every collection task operates in exactly one mode:
+
+| Mode | Trigger | Intelligence Required | Autonomous? |
+|------|---------|----------------------|-------------|
+| DIRECTED | User says "learn about X" | Source discovery — WHERE to look | No — user-initiated |
+| ENRICHMENT | Graph flags entity as THIN (<0.5 health) | Gap analysis — WHAT is missing | Yes — triggered by entity health |
+| MONITORING | Schedule or event trigger | Change detection — WHAT changed | Yes — runs on schedule |
+| EXPANSION | Entity references unknown entity | Relationship threading — WHO connects | Yes — triggered by graph analysis |
+
+An adequate Collector does DIRECTED only. A beast does all four, 
+and the last three are fully autonomous.
+
+### Layer 1 (continued): Source Taxonomy
+
+Within any mode, the Collector selects from four source types, 
+prioritized in this order:
+
+| Priority | Source Type | What It Reveals | Signal Quality | Cost |
+|----------|------------|----------------|---------------|------|
+| 1 | Identity sources | WHO — name, title, education, credentials | High (structured) | Low |
+| 2 | Relationship sources | WHO THEY KNOW — connections, emails, meetings | High (behavioral) | High |
+| 3 | Activity sources | WHAT THEY DO — posts, content, projects | Medium (noisy) | Medium |
+| 4 | Context sources | WHERE THEY OPERATE — industry, company, news | Medium (broad) | Low |
+
+Identity first because disambiguation must happen before fan-out.
+Relationship second because it drives EXPANSION mode (graph growth).
+
+### Layer 2: Signal Filters (applied before cluster creation)
+
+| Order | Filter | Question | Kills |
+|-------|--------|----------|-------|
+| 1 | Relevance | Is this actually about our target entity? | Wrong person, tangential mentions, SEO spam |
+| 2 | Novelty | Do we already have this? | Duplicates that would hit Q4 anyway |
+| 3 | Completeness | Does this fill a gap? | Nice-to-know that doesn't improve entity health |
+| 4 | Reliability | Is this source trustworthy for this claim? | Low-confidence claims from weak sources |
+
+### Layer 2 (continued): Stop Conditions
+
+| Condition | Meaning |
+|-----------|---------|
+| Entity health reaches STRONG (>0.8) | Enough corroborated signal — diminishing returns |
+| All source types exhausted | Nothing left to check |
+| 3 consecutive sources added zero new attributes | Diminishing returns detected |
+| Rate limit or budget threshold hit | Cost control |
+| User explicitly stops | Override |
+
+### Layer 2 (continued): Entity Type Awareness
+
+Not all entities enrich the same way:
+
+| Entity Type | Primary Enrichment Path | Why |
+|------------|------------------------|-----|
+| Public professional | Outside-in: LinkedIn → X → company site → news | Rich public footprint |
+| Private individual | Inside-out: ELICIT (ask user) → relationship signals | No public presence to scrape |
+| Organization | Outside-in: website → news → SEC → job boards | Public by nature |
+| Project/concept | Inside-out: documents → conversations → related entities | Exists in user's context, not public web |
 
 ## Adding a New MECE Framework
 
