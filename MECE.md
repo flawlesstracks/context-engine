@@ -97,6 +97,7 @@ connects to the product.
 | MECE-002 | Confidence Scoring | VERIFY, VALIDATE, LEARN | 3 levels | 2026-02-20 |
 | MECE-003 | Entity Hierarchy | STRUCTURE | 3 tiers | 2026-02-20 |
 | MECE-004 | EXTRACT Levels | EXTRACT | 10 levels | 2026-02-19 |
+| MECE-005 | Agent Architecture | EXTRACT, INTEGRATE | 3 agents, 4 quadrants | 2026-02-21 |
 
 |  |
 | :---- |
@@ -254,6 +255,42 @@ Every incoming signal falls into one of four quadrants:
 * Every level feeds through the Data Lifecycle (MECE-001) staging layer  
 * Every extraction produces signal clusters, not finished entities  
 * Current level: 5 (URL extraction live), approaching 6 (social profiles)
+
+|  |
+| :---- |
+
+## MECE-005: Agent Architecture
+
+**Primary Levers:** EXTRACT, INTEGRATE
+**Domain:** How data enters the system — which agent handles the interaction.
+
+### Layer 1: Three Agents (MECE)
+
+Every data acquisition interaction is handled by exactly one agent:
+
+| Agent | Trigger | What It Does | Primary Lever |
+| :---- | :---- | :---- | :---- |
+| **Connect Agent** | User links an OAuth account (Google, LinkedIn, Slack) | Continuous crawl. Pulls new data on schedule. Maps connected accounts to entity graph. | INTEGRATE |
+| **Point Agent** | User provides a name, URL, or handle | Fan-out across public sources (web, social, news). On-demand or monitor mode. | EXTRACT |
+| **Paste Agent** | User uploads a file or pastes text | Extract entities and signals from provided content. Resolve against existing graph. | EXTRACT |
+
+MECE check: Every way data enters the system is either connected (Connect), pointed at (Point), or handed over (Paste). No gaps. No overlaps.
+
+### Layer 1 (continued): Agent Quadrant
+
+|  | **Reactive (user-triggered)** | **Proactive (system-triggered)** |
+| :---- | :---- | :---- |
+| **Your Data** | Paste Agent — file/text upload, extract and resolve | Connect Agent — OAuth accounts, continuous crawl |
+| **Public Data** | Point Agent (on-demand) — name/URL, fan-out search | Point Agent (monitor mode) — scheduled re-crawl of watched entities |
+
+### Layer 2: Behavioral Rules
+
+* Connect Agent sessions persist across logins. Re-crawl cadence configurable per source.
+* Point Agent on-demand is single-shot: user provides target, system returns signals.
+* Point Agent monitor mode is recurring: system re-checks watched targets on schedule.
+* Paste Agent is always single-shot: user provides content, system extracts and resolves.
+* All three agents feed through the Data Lifecycle (MECE-001) staging layer — no agent creates entities directly.
+* All three agents produce signal clusters scored by Confidence Scoring (MECE-002).
 
 |  |
 | :---- |
