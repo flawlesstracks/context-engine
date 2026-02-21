@@ -4066,6 +4066,160 @@ app.post('/api/extract-url', apiAuth, async (req, res) => {
   }
 });
 
+// POST /api/extract-linkedin — Extract person entity from LinkedIn profile via Proxycurl
+app.post('/api/extract-linkedin', apiAuth, async (req, res) => {
+  const { linkedin_url } = req.body;
+  if (!linkedin_url || typeof linkedin_url !== 'string') {
+    return res.status(400).json({ error: 'Missing "linkedin_url" field' });
+  }
+  if (!linkedin_url.includes('linkedin.com/in/')) {
+    return res.status(400).json({ error: 'URL must be a LinkedIn profile URL (linkedin.com/in/...)' });
+  }
+  if (!process.env.PROXYCURL_API_KEY) {
+    return res.status(503).json({ error: 'Proxycurl API key not configured. Add PROXYCURL_API_KEY to .env' });
+  }
+
+  try {
+    const proxycurlResp = await fetch(
+      `https://nubela.co/proxycurl/api/v2/linkedin?url=${encodeURIComponent(linkedin_url)}`,
+      { headers: { 'Authorization': `Bearer ${process.env.PROXYCURL_API_KEY}` }, signal: AbortSignal.timeout(20000) }
+    );
+
+    if (!proxycurlResp.ok) {
+      const errText = await proxycurlResp.text();
+      return res.status(502).json({ error: `Proxycurl API error (${proxycurlResp.status}): ${errText}` });
+    }
+
+    const profile = await proxycurlResp.json();
+    const now = new Date().toISOString();
+    const sourceAttribution = { type: 'linkedin', url: linkedin_url, extracted_at: now };
+    const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ');
+
+    // Build Career Lite
+    const careerLite = {
+      interface: 'career-lite',
+      implements: ['Contactable', 'Identifiable', 'Experienceable'],
+      headline: profile.headline || '',
+      summary: profile.summary || '',
+      current_role: profile.experiences?.[0]?.title || '',
+      current_company: profile.experiences?.[0]?.company || '',
+      location: [profile.city, profile.state, profile.country_full_name].filter(Boolean).join(', '),
+      linkedin_url: linkedin_url,
+      profile_photo: profile.profile_pic_url || '',
+      follower_count: profile.follower_count || 0,
+      experience: (profile.experiences || []).map(e => ({
+        title: e.title || '',
+        company: e.company || '',
+        start_date: e.starts_at ? `${e.starts_at.year}-${String(e.starts_at.month || 1).padStart(2, '0')}` : '',
+        end_date: e.ends_at ? `${e.ends_at.year}-${String(e.ends_at.month || 1).padStart(2, '0')}` : 'Present',
+        description: e.description || '',
+      })),
+      education: (profile.education || []).map(e => ({
+        institution: e.school || '',
+        degree: e.degree_name || '',
+        field: e.field_of_study || '',
+        start_year: e.starts_at?.year ? String(e.starts_at.year) : '',
+        end_year: e.ends_at?.year ? String(e.ends_at.year) : '',
+      })),
+      skills: (profile.skills || []),
+    };
+
+    // Build attributes
+    const attributes = [];
+    let attrSeq = 1;
+    if (profile.headline) attributes.push({ attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`, key: 'headline', value: profile.headline, confidence: 0.8, confidence_label: 'HIGH', time_decay: { stability: 'stable', captured_date: now.slice(0, 10) }, source_attribution: { ...sourceAttribution, facts_layer: 2, layer_label: 'group' } });
+    if (careerLite.location) attributes.push({ attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`, key: 'location', value: careerLite.location, confidence: 0.8, confidence_label: 'HIGH', time_decay: { stability: 'semi_stable', captured_date: now.slice(0, 10) }, source_attribution: { ...sourceAttribution, facts_layer: 2, layer_label: 'group' } });
+    if (careerLite.current_role) attributes.push({ attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`, key: 'role', value: careerLite.current_role, confidence: 0.8, confidence_label: 'HIGH', time_decay: { stability: 'semi_stable', captured_date: now.slice(0, 10) }, source_attribution: { ...sourceAttribution, facts_layer: 2, layer_label: 'group' } });
+    if (careerLite.current_company) attributes.push({ attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`, key: 'company', value: careerLite.current_company, confidence: 0.8, confidence_label: 'HIGH', time_decay: { stability: 'semi_stable', captured_date: now.slice(0, 10) }, source_attribution: { ...sourceAttribution, facts_layer: 2, layer_label: 'group' } });
+    if (careerLite.skills.length > 0) attributes.push({ attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`, key: 'skills', value: careerLite.skills.join(', '), confidence: 0.8, confidence_label: 'HIGH', time_decay: { stability: 'stable', captured_date: now.slice(0, 10) }, source_attribution: { ...sourceAttribution, facts_layer: 2, layer_label: 'group' } });
+    attributes.push({ attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`, key: 'linkedin_url', value: linkedin_url, confidence: 1.0, confidence_label: 'VERIFIED', time_decay: { stability: 'stable', captured_date: now.slice(0, 10) }, source_attribution: { ...sourceAttribution, facts_layer: 1, layer_label: 'self' } });
+
+    // Build key facts from experience
+    const keyFacts = [];
+    let factSeq = 1;
+    for (const exp of (profile.experiences || [])) {
+      const dateRange = [];
+      if (exp.starts_at) dateRange.push(`${exp.starts_at.year}`);
+      if (exp.ends_at) dateRange.push(`${exp.ends_at.year}`);
+      else if (dateRange.length) dateRange.push('Present');
+      const fact = [exp.title, exp.company, dateRange.join(' - ')].filter(Boolean).join(' at ');
+      if (fact) keyFacts.push({ fact_id: `FACT-${String(factSeq++).padStart(3, '0')}`, fact, confidence: 0.8, confidence_label: 'HIGH', source: linkedin_url });
+    }
+    for (const edu of (profile.education || [])) {
+      const parts = [edu.degree_name, edu.field_of_study, edu.school].filter(Boolean);
+      if (parts.length) keyFacts.push({ fact_id: `FACT-${String(factSeq++).padStart(3, '0')}`, fact: parts.join(', '), confidence: 0.8, confidence_label: 'HIGH', source: linkedin_url });
+    }
+
+    // Build observations
+    const observations = [];
+    if (profile.summary) observations.push({ observation: profile.summary, observed_at: now, source: 'linkedin_proxycurl', source_url: linkedin_url, confidence: 0.8, confidence_label: 'HIGH', truth_level: 'STRONG', facts_layer: 'L2_GROUP', layer_number: 2, observed_by: req.agentId });
+    if (profile.headline) observations.push({ observation: `LinkedIn headline: ${profile.headline}`, observed_at: now, source: 'linkedin_proxycurl', source_url: linkedin_url, confidence: 0.8, confidence_label: 'HIGH', truth_level: 'STRONG', facts_layer: 'L2_GROUP', layer_number: 2, observed_by: req.agentId });
+    observations.push({ observation: `LinkedIn profile imported via Proxycurl from ${linkedin_url}`, observed_at: now, source: 'linkedin_proxycurl', source_url: linkedin_url, confidence: 1.0, confidence_label: 'VERIFIED', truth_level: 'STRONG', facts_layer: 'L1_SELF', layer_number: 1, observed_by: req.agentId });
+
+    // Build person entity
+    const personEntity = {
+      schema_version: '2.0', schema_type: 'context_architecture_entity',
+      extraction_metadata: { extracted_at: now, updated_at: now, source_description: `linkedin_proxycurl:${linkedin_url}`, extraction_model: 'proxycurl-api', extraction_confidence: 0.8, schema_version: '2.0' },
+      entity: {
+        entity_type: 'person',
+        name: { full: fullName, preferred: profile.first_name || '', aliases: [], confidence: 0.8, facts_layer: 2 },
+        summary: profile.summary ? { value: profile.summary, confidence: 0.8, facts_layer: 2 } : { value: profile.headline || '', confidence: 0.6, facts_layer: 2 },
+      },
+      career_lite: careerLite,
+      attributes, relationships: [], values: [], key_facts: keyFacts, constraints: [],
+      observations,
+      provenance_chain: { created_at: now, created_by: req.agentId, source_documents: [{ source: `linkedin_proxycurl:${linkedin_url}`, url: linkedin_url, ingested_at: now }], merge_history: [] },
+    };
+
+    // Build org entities for each unique employer
+    const seenOrgs = new Set();
+    const orgEntities = [];
+    for (const exp of (profile.experiences || [])) {
+      const company = (exp.company || '').trim();
+      if (!company || seenOrgs.has(company.toLowerCase())) continue;
+      seenOrgs.add(company.toLowerCase());
+      const isCurrentRole = !exp.ends_at;
+      orgEntities.push({
+        schema_version: '2.0', schema_type: 'context_architecture_entity',
+        extraction_metadata: { extracted_at: now, updated_at: now, source_description: `linkedin_proxycurl:${linkedin_url}`, extraction_model: 'proxycurl-api', extraction_confidence: 0.6, schema_version: '2.0' },
+        entity: {
+          entity_type: 'business',
+          name: { common: company, legal: company, aliases: [], confidence: 0.6, facts_layer: 2 },
+          summary: { value: `${company} — employer of ${fullName}`, confidence: 0.5, facts_layer: 2 },
+        },
+        attributes: [], relationships: [{ relationship_id: 'REL-001', name: fullName, relationship_type: 'employed', context: `${fullName} worked at ${company} as ${exp.title || 'employee'}`, sentiment: 'neutral', confidence: 0.8, confidence_label: 'HIGH' }],
+        values: [], key_facts: [], constraints: [],
+        observations: [{ observation: `${fullName} worked here as ${exp.title || 'employee'}`, observed_at: now, source: 'linkedin_proxycurl', source_url: linkedin_url, confidence: 0.8, confidence_label: 'HIGH', truth_level: 'STRONG', facts_layer: 'L2_GROUP', layer_number: 2, observed_by: req.agentId }],
+        org_dimensions: { relationship_to_primary: 'employer', org_category: 'career', org_status: isCurrentRole ? 'current' : 'former', primary_user_role: exp.title || '' },
+        provenance_chain: { created_at: now, created_by: req.agentId, source_documents: [{ source: `linkedin_proxycurl:${linkedin_url}`, url: linkedin_url, ingested_at: now }], merge_history: [] },
+      });
+    }
+
+    const allEntities = [personEntity, ...orgEntities];
+
+    // Return preview
+    const previewList = allEntities.map(e => {
+      const ent = e.entity || {};
+      const type = ent.entity_type || '';
+      return {
+        entity_type: type,
+        name: type === 'person' ? (ent.name?.full || '') : (ent.name?.common || ent.name?.legal || ''),
+        summary: ent.summary?.value || '',
+        attribute_count: (e.attributes || []).length,
+        relationship_count: (e.relationships || []).length,
+        observation_count: (e.observations || []).length,
+      };
+    });
+
+    res.json({ entities: allEntities, preview: previewList, source_url: linkedin_url, source_type: 'linkedin', entity_count: allEntities.length });
+
+  } catch (err) {
+    if (err.name === 'TimeoutError') return res.status(504).json({ error: 'Proxycurl API timed out' });
+    console.error('[extract-linkedin] Error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/entities/category/:category — List entities by wiki category
 app.get('/api/entities/category/:category', apiAuth, (req, res) => {
   const category = req.params.category.toLowerCase();
@@ -8619,9 +8773,15 @@ function extractFromURL() {
   btn.disabled = true;
   btn.textContent = 'Extracting...';
   statusEl.style.display = 'block';
-  statusEl.textContent = 'Fetching and analyzing ' + url + '...';
+  statusEl.style.color = 'var(--text-muted)';
 
-  api('POST', '/api/extract-url', { url: url }).then(function(data) {
+  // Smart URL routing: LinkedIn → Proxycurl, everything else → generic
+  var isLinkedIn = url.indexOf('linkedin.com/in/') !== -1;
+  var endpoint = isLinkedIn ? '/api/extract-linkedin' : '/api/extract-url';
+  var body = isLinkedIn ? { linkedin_url: url } : { url: url };
+  statusEl.textContent = isLinkedIn ? 'Looking up LinkedIn profile...' : 'Fetching and analyzing ' + url + '...';
+
+  api('POST', endpoint, body).then(function(data) {
     urlExtractInProgress = false;
     btn.disabled = false;
     btn.textContent = 'Extract';
