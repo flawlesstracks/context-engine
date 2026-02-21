@@ -6,6 +6,9 @@ info:
     their relationships, observations, and structured attributes. Use this API to look up
     information about people in the user's life, their relationships, and organizational
     connections. Always search before assuming you don't have information.
+    When someone is not in the graph, offer to look them up: use extractFromLinkedIn
+    for LinkedIn URLs, extractFromURL for any other URL, then confirmEntities to save.
+    Use enrichOrganization to fill in sparse org profiles from the web.
   version: 1.0.0
 
 servers:
@@ -154,6 +157,217 @@ paths:
           description: Invalid category name
         "401":
           description: Invalid or missing API key
+
+  /api/extract-url:
+    post:
+      operationId: extractFromURL
+      summary: Extract entities from any public URL
+      description: >
+        Fetches a public webpage, strips HTML to clean text, and extracts entities
+        (people, organizations) using AI. Returns entities for preview/approval.
+        Use this when a user provides a URL to a company page, news article, blog post,
+        or any other public webpage. Also handles X (Twitter) and Instagram profile URLs
+        by parsing social meta tags for bio, handle, and follower count.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+              properties:
+                url:
+                  type: string
+                  description: The public URL to extract entities from
+                  example: "https://example.com/about"
+      responses:
+        "200":
+          description: Extracted entities with preview data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entities:
+                    type: array
+                    description: Full v2 entity objects ready for ingestion
+                  preview:
+                    type: array
+                    description: Summary of each extracted entity
+                    items:
+                      type: object
+                      properties:
+                        entity_type:
+                          type: string
+                        name:
+                          type: string
+                        summary:
+                          type: string
+                  source_url:
+                    type: string
+                  source_type:
+                    type: string
+                    enum: [web, x, instagram]
+                  entity_count:
+                    type: integer
+        "400":
+          description: Missing or invalid URL
+        "422":
+          description: Could not extract text from URL
+        "502":
+          description: Failed to fetch URL
+        "504":
+          description: URL fetch timed out
+
+  /api/extract-linkedin:
+    post:
+      operationId: extractFromLinkedIn
+      summary: Extract person entity from a LinkedIn profile URL
+      description: >
+        Uses the Proxycurl API to fetch rich LinkedIn profile data including work history,
+        education, skills, headline, and follower count. Returns a fully structured
+        Career Lite entity plus organization entities for each employer. Use this when
+        a user provides a LinkedIn profile URL (linkedin.com/in/...).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - linkedin_url
+              properties:
+                linkedin_url:
+                  type: string
+                  description: LinkedIn profile URL (must contain linkedin.com/in/)
+                  example: "https://linkedin.com/in/johndoe"
+      responses:
+        "200":
+          description: Extracted person entity with Career Lite data and org entities
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  entities:
+                    type: array
+                    description: Person entity + org entities for each employer
+                  preview:
+                    type: array
+                    description: Summary of each extracted entity
+                  source_url:
+                    type: string
+                  source_type:
+                    type: string
+                    enum: [linkedin]
+                  entity_count:
+                    type: integer
+        "400":
+          description: Missing or invalid LinkedIn URL
+        "502":
+          description: Proxycurl API error
+        "503":
+          description: Proxycurl API key not configured
+
+  /api/enrich-org:
+    post:
+      operationId: enrichOrganization
+      summary: Enrich an organization entity with web data
+      description: >
+        Fetches the organization's website and extracts structured data (industry,
+        headquarters, description, specialties, employee count). Merges enrichment
+        into the existing entity. Use this when an org entity has sparse data and
+        you want to fill it in from the company's public web presence.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - entity_id
+              properties:
+                entity_id:
+                  type: string
+                  description: "Entity ID of the organization to enrich (format: ENT-XX-NNN)"
+                  example: "ENT-BIZ-A-030"
+      responses:
+        "200":
+          description: Enrichment result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enriched:
+                    type: boolean
+                    description: Whether enrichment was successful
+                  entity_id:
+                    type: string
+                  source_url:
+                    type: string
+                    description: URL that was fetched for enrichment data
+                  enrichment:
+                    type: object
+                    properties:
+                      description:
+                        type: string
+                      industry:
+                        type: string
+                      headquarters:
+                        type: string
+                      website:
+                        type: string
+                      new_attributes:
+                        type: integer
+                  message:
+                    type: string
+                    description: Message when enrichment was not possible
+        "400":
+          description: Invalid entity or not an organization
+        "404":
+          description: Entity not found
+
+  /api/ingest/confirm:
+    post:
+      operationId: confirmEntities
+      summary: Save extracted entities after preview/approval
+      description: >
+        After extracting entities via extractFromURL or extractFromLinkedIn,
+        call this endpoint to save the approved entities to the knowledge graph.
+        Pass the full entity objects from the extraction response.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - entities
+              properties:
+                entities:
+                  type: array
+                  description: Array of v2 entity objects to save
+                source:
+                  type: string
+                  description: Source label for provenance tracking
+      responses:
+        "200":
+          description: Ingestion result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  created:
+                    type: integer
+                  updated:
+                    type: integer
+                  observationsAdded:
+                    type: integer
+        "400":
+          description: No entities provided
 
 components:
   schemas:
