@@ -4393,6 +4393,232 @@ app.post('/api/extract-url', apiAuth, async (req, res) => {
   }
 });
 
+// POST /api/discover-entity — Name-and-Learn: Point Agent v1 (MECE-005/006 DIRECTED mode)
+// Accepts a name + optional context, predicts LinkedIn URL, extracts career data, stages clusters
+app.post('/api/discover-entity', apiAuth, async (req, res) => {
+  const { name, context } = req.body;
+  if (!name || typeof name !== 'string' || name.trim().length < 2) {
+    return res.status(400).json({ error: 'Missing or too short "name" field (min 2 chars)' });
+  }
+
+  const personName = name.trim();
+  const hints = (context || '').trim();
+  const steps = [];
+
+  try {
+    steps.push({ step: 'generating_slugs', message: `Searching for ${personName}...` });
+
+    // Step 1: Use Anthropic to predict likely LinkedIn profile slugs
+    const client = new Anthropic();
+    const slugPrompt = `Given the person's name "${personName}"${hints ? ` and these hints: "${hints}"` : ''}, generate 3-5 likely LinkedIn profile URL slugs (the part after linkedin.com/in/).
+
+LinkedIn slugs are typically:
+- firstname-lastname (most common)
+- firstnamelastname
+- firstname-lastname-location
+- firstname-lastname-numbers
+
+Return ONLY a JSON array of strings, no explanation. Example: ["john-doe", "johndoe", "john-doe-atlanta", "john-doe-52b3a1"]`;
+
+    const slugResponse = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 200,
+      messages: [{ role: 'user', content: slugPrompt }],
+    });
+
+    let slugs = [];
+    try {
+      const raw = slugResponse.content[0].text.trim();
+      slugs = JSON.parse(raw);
+      if (!Array.isArray(slugs)) slugs = [slugs];
+    } catch (e) {
+      // Fallback: generate basic slug from name
+      const basic = personName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+      const nospace = personName.toLowerCase().replace(/[^a-z0-9]/g, '');
+      slugs = [basic, nospace];
+    }
+
+    console.log(`[discover] Generated ${slugs.length} candidate slugs for "${personName}":`, slugs);
+    steps.push({ step: 'trying_linkedin', message: `Trying ${slugs.length} LinkedIn profiles...` });
+
+    // Step 2: Try each slug with ScrapingDog
+    const candidates = [];
+    for (const slug of slugs.slice(0, 5)) {
+      try {
+        const linkedinUrl = `https://www.linkedin.com/in/${slug}/`;
+        console.log(`[discover] Trying ScrapingDog for slug: ${slug}`);
+        const rawProfile = await scrapeLinkedInProfile(linkedinUrl);
+
+        if (rawProfile && rawProfile.fullName) {
+          const parsed = transformScrapingDogProfile(rawProfile, linkedinUrl);
+          const profileName = parsed.name?.full || rawProfile.fullName || '';
+          const profileHeadline = rawProfile.headline || parsed.headline || '';
+          const profileLocation = rawProfile.location || parsed.location || '';
+          const profileCompany = (rawProfile.experience && rawProfile.experience[0]) ?
+            (rawProfile.experience[0].company_name || '') : '';
+
+          candidates.push({
+            slug: slug,
+            linkedin_url: linkedinUrl,
+            name: profileName,
+            headline: profileHeadline,
+            location: profileLocation,
+            company: profileCompany,
+            parsed: parsed,
+            raw: rawProfile,
+          });
+          console.log(`[discover] Found profile: ${profileName} (${profileHeadline})`);
+        }
+      } catch (slugErr) {
+        console.log(`[discover] Slug ${slug} failed:`, slugErr.message);
+      }
+    }
+
+    if (candidates.length === 0) {
+      steps.push({ step: 'not_found', message: `No LinkedIn profiles found for "${personName}"` });
+      return res.json({
+        status: 'not_found',
+        name: personName,
+        context: hints,
+        candidates: [],
+        steps: steps,
+        message: `Could not find a LinkedIn profile for "${personName}". Try adding context like company name or location.`,
+      });
+    }
+
+    // Step 3: Check for disambiguation
+    if (candidates.length > 1) {
+      // Multiple candidates found — return them for user selection
+      steps.push({ step: 'disambiguation', message: `Found ${candidates.length} possible matches` });
+      return res.json({
+        status: 'disambiguation',
+        name: personName,
+        context: hints,
+        candidates: candidates.map(c => ({
+          slug: c.slug,
+          linkedin_url: c.linkedin_url,
+          name: c.name,
+          headline: c.headline,
+          location: c.location,
+          company: c.company,
+        })),
+        steps: steps,
+        message: `Found ${candidates.length} possible matches. Please select the correct person.`,
+      });
+    }
+
+    // Step 4: Single match — extract career data through pipeline
+    const match = candidates[0];
+    steps.push({ step: 'extracting', message: `Found ${match.name} — extracting career data...` });
+
+    const personEntity = linkedInResponseToEntity(match.parsed, match.linkedin_url, req.agentId);
+    const pName = match.parsed.name?.full || '';
+    const orgEntities = linkedInExperienceToOrgs(match.parsed, pName, match.linkedin_url, req.agentId);
+    const allEntities = [personEntity, ...orgEntities];
+
+    // Stage through signal staging (same as extract-url LinkedIn path)
+    const scoredClusters = stageAndScoreExtraction(allEntities, {
+      type: 'linkedin_api',
+      url: match.linkedin_url,
+      description: `linkedin_api:${match.linkedin_url}`,
+    }, req.graphDir);
+
+    steps.push({ step: 'done', message: `Done — ${scoredClusters.length} clusters created for review` });
+
+    const previewList = allEntities.map(e => {
+      const ent = e.entity || {};
+      const type = ent.entity_type || '';
+      return {
+        entity_type: type,
+        name: type === 'person' ? (ent.name?.full || '') : (ent.name?.common || ent.name?.legal || ''),
+        summary: ent.summary?.value || '',
+      };
+    });
+
+    return res.json({
+      status: 'found',
+      name: personName,
+      context: hints,
+      match: {
+        name: match.name,
+        headline: match.headline,
+        location: match.location,
+        company: match.company,
+        linkedin_url: match.linkedin_url,
+      },
+      entities: previewList,
+      scored_clusters: scoredClusters,
+      cluster_count: scoredClusters.length,
+      steps: steps,
+      message: `Found ${match.name}. ${scoredClusters.length} clusters staged for review.`,
+    });
+
+  } catch (err) {
+    console.error('[discover] Error:', err.message);
+    steps.push({ step: 'error', message: err.message });
+    res.status(500).json({ error: err.message, steps: steps });
+  }
+});
+
+// POST /api/discover-entity/select — Resolve disambiguation by selecting a candidate
+app.post('/api/discover-entity/select', apiAuth, async (req, res) => {
+  const { slug, linkedin_url } = req.body;
+  if (!slug && !linkedin_url) {
+    return res.status(400).json({ error: 'Missing "slug" or "linkedin_url"' });
+  }
+
+  const url = linkedin_url || `https://www.linkedin.com/in/${slug}/`;
+  const steps = [{ step: 'extracting', message: 'Extracting career data from selected profile...' }];
+
+  try {
+    const rawProfile = await scrapeLinkedInProfile(url);
+    if (!rawProfile) {
+      return res.status(404).json({ error: 'Could not fetch profile', steps: steps });
+    }
+
+    const parsed = transformScrapingDogProfile(rawProfile, url);
+    const personEntity = linkedInResponseToEntity(parsed, url, req.agentId);
+    const personName = parsed.name?.full || '';
+    const orgEntities = linkedInExperienceToOrgs(parsed, personName, url, req.agentId);
+    const allEntities = [personEntity, ...orgEntities];
+
+    const scoredClusters = stageAndScoreExtraction(allEntities, {
+      type: 'linkedin_api',
+      url: url,
+      description: `linkedin_api:${url}`,
+    }, req.graphDir);
+
+    steps.push({ step: 'done', message: `Done — ${scoredClusters.length} clusters created for review` });
+
+    const previewList = allEntities.map(e => {
+      const ent = e.entity || {};
+      const type = ent.entity_type || '';
+      return {
+        entity_type: type,
+        name: type === 'person' ? (ent.name?.full || '') : (ent.name?.common || ent.name?.legal || ''),
+        summary: ent.summary?.value || '',
+      };
+    });
+
+    return res.json({
+      status: 'found',
+      match: {
+        name: personName,
+        linkedin_url: url,
+      },
+      entities: previewList,
+      scored_clusters: scoredClusters,
+      cluster_count: scoredClusters.length,
+      steps: steps,
+      message: `Extracted ${personName}. ${scoredClusters.length} clusters staged for review.`,
+    });
+  } catch (err) {
+    console.error('[discover/select] Error:', err.message);
+    steps.push({ step: 'error', message: err.message });
+    res.status(500).json({ error: err.message, steps: steps });
+  }
+});
+
 // POST /api/enrich-org — Enrich an organization entity from web data
 app.post('/api/enrich-org', apiAuth, async (req, res) => {
   const { entity_id } = req.body;
@@ -8210,6 +8436,22 @@ const WIKI_HTML = `<!DOCTYPE html>
     background: rgba(99,102,241,0.08);
   }
 
+  /* ========================================
+     DISCOVER SPINNER
+     ======================================== */
+  .discover-spinner {
+    width: 14px; height: 14px;
+    border: 2px solid var(--border-primary);
+    border-top: 2px solid #10b981;
+    border-radius: 50%;
+    animation: discoverSpin 0.8s linear infinite;
+    flex-shrink: 0;
+  }
+  @keyframes discoverSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
 </style>
 </head>
 <body>
@@ -10373,6 +10615,19 @@ function showUploadView() {
   h += '</div>';
   h += '<div id="urlExtractStatus" style="margin-top:8px;font-size:0.78rem;color:var(--text-muted);display:none;"></div>';
   h += '</div>';
+  // === NAME DISCOVERY (Point Agent v1) ===
+  h += '<div class="url-extract-section" style="margin:12px 0 20px;padding:16px;background:var(--bg-secondary,#f5f5f7);border-radius:10px;">';
+  h += '<div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);margin-bottom:8px;">Or search by name</div>';
+  h += '<div style="display:flex;gap:8px;margin-bottom:6px;">';
+  h += '<input type="text" id="discoverNameInput" placeholder="e.g. Andre Burgin" style="flex:1;padding:8px 12px;border:1px solid var(--border,#e2e2e5);border-radius:6px;font-size:0.85rem;background:var(--bg-primary,#fff);color:var(--text-primary);" />';
+  h += '<button onclick="discoverEntity()" id="btnDiscover" style="padding:8px 16px;border:none;border-radius:6px;background:#10b981;color:#fff;font-size:0.82rem;font-weight:600;cursor:pointer;white-space:nowrap;">Discover</button>';
+  h += '</div>';
+  h += '<div style="display:flex;gap:8px;">';
+  h += '<input type="text" id="discoverContextInput" placeholder="Optional: works at Meta, Atlanta, etc." style="flex:1;padding:6px 12px;border:1px solid var(--border,#e2e2e5);border-radius:6px;font-size:0.78rem;background:var(--bg-primary,#fff);color:var(--text-muted);" />';
+  h += '</div>';
+  h += '<div id="discoverStatus" style="margin-top:10px;display:none;"></div>';
+  h += '<div id="discoverCandidates" style="margin-top:10px;display:none;"></div>';
+  h += '</div>';
   h += '<div class="upload-file-list" id="uploadFileList"></div>';
   h += '<div id="uploadProgressLog" class="upload-progress-log" style="display:none;"></div>';
   h += '<div id="uploadSummary" style="display:none;"></div>';
@@ -10473,6 +10728,136 @@ function extractFromURL() {
     previewScoredClusters = [];
     var sumEl = document.getElementById('uploadSummary');
     if (sumEl) { sumEl.style.display = 'none'; sumEl.innerHTML = ''; }
+  });
+}
+
+/* --- Name Discovery (Point Agent v1) --- */
+var discoverInProgress = false;
+function discoverEntity() {
+  var nameInput = document.getElementById('discoverNameInput');
+  var ctxInput = document.getElementById('discoverContextInput');
+  var statusEl = document.getElementById('discoverStatus');
+  var candidatesEl = document.getElementById('discoverCandidates');
+  var btn = document.getElementById('btnDiscover');
+  if (!nameInput || discoverInProgress) return;
+  var name = nameInput.value.trim();
+  if (!name) { toast('Please enter a name to discover'); return; }
+
+  discoverInProgress = true;
+  btn.disabled = true;
+  btn.textContent = 'Discovering...';
+  statusEl.style.display = 'block';
+  candidatesEl.style.display = 'none';
+  candidatesEl.innerHTML = '';
+
+  // Show progress steps
+  var stepIdx = 0;
+  var stepMsgs = [
+    'Searching for ' + esc(name) + '...',
+    'Generating LinkedIn profile candidates...',
+    'Trying LinkedIn profiles...',
+    'Analyzing results...'
+  ];
+  statusEl.innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><div class="discover-spinner"></div><span id="discoverStepText">' + stepMsgs[0] + '</span></div>';
+
+  var stepInterval = setInterval(function() {
+    stepIdx++;
+    if (stepIdx < stepMsgs.length) {
+      var stepText = document.getElementById('discoverStepText');
+      if (stepText) stepText.textContent = stepMsgs[stepIdx];
+    }
+  }, 3000);
+
+  var body = { name: name };
+  var ctx = ctxInput ? ctxInput.value.trim() : '';
+  if (ctx) body.context = ctx;
+
+  api('POST', '/api/discover-entity', body).then(function(data) {
+    clearInterval(stepInterval);
+    discoverInProgress = false;
+    btn.disabled = false;
+    btn.textContent = 'Discover';
+
+    if (data.status === 'not_found') {
+      statusEl.innerHTML = '<div style="color:var(--warning,#d97706);font-size:0.82rem;">' + esc(data.message) + '</div>';
+      return;
+    }
+
+    if (data.status === 'disambiguation') {
+      // Multiple candidates — show picker
+      statusEl.innerHTML = '<div style="color:#6366f1;font-size:0.82rem;font-weight:600;">' + esc(data.message) + '</div>';
+      candidatesEl.style.display = 'block';
+      var ch = '';
+      for (var i = 0; i < data.candidates.length; i++) {
+        var c = data.candidates[i];
+        ch += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;margin-bottom:6px;background:var(--bg-card);border:1px solid var(--border-primary);border-radius:8px;cursor:pointer;" onclick="selectDiscoverCandidate(' + "'" + esc(c.slug) + "'" + ', ' + "'" + esc(c.linkedin_url) + "'" + ')">';
+        ch += '<div>';
+        ch += '<div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);">' + esc(c.name) + '</div>';
+        if (c.headline) ch += '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:1px;">' + esc(c.headline) + '</div>';
+        if (c.location || c.company) ch += '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px;">' + esc([c.company, c.location].filter(Boolean).join(' — ')) + '</div>';
+        ch += '</div>';
+        ch += '<button style="padding:4px 12px;border:1px solid #10b981;border-radius:6px;background:transparent;color:#10b981;font-size:0.72rem;font-weight:600;cursor:pointer;white-space:nowrap;">Select</button>';
+        ch += '</div>';
+      }
+      candidatesEl.innerHTML = ch;
+      return;
+    }
+
+    if (data.status === 'found') {
+      statusEl.innerHTML = '<div style="color:var(--success,#22c55e);font-size:0.82rem;font-weight:600;">' + esc(data.message) + '</div>';
+
+      // Show what was found
+      var fh = '<div style="padding:10px 12px;background:var(--bg-card);border:1px solid var(--border-primary);border-radius:8px;margin-top:8px;">';
+      fh += '<div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);">' + esc(data.match.name) + '</div>';
+      if (data.match.headline) fh += '<div style="font-size:0.75rem;color:var(--text-muted);">' + esc(data.match.headline) + '</div>';
+      if (data.match.location) fh += '<div style="font-size:0.72rem;color:var(--text-muted);">' + esc(data.match.location) + '</div>';
+      fh += '<div style="font-size:0.72rem;color:#6366f1;margin-top:4px;">' + data.cluster_count + ' clusters staged for review</div>';
+      fh += '</div>';
+      candidatesEl.style.display = 'block';
+      candidatesEl.innerHTML = fh;
+
+      // Refresh sidebar to show new review queue count
+      loadEntities();
+      refreshReviewQueueBadge();
+      return;
+    }
+  }).catch(function(err) {
+    clearInterval(stepInterval);
+    discoverInProgress = false;
+    btn.disabled = false;
+    btn.textContent = 'Discover';
+    statusEl.innerHTML = '<div style="color:var(--error,#ef4444);font-size:0.82rem;">Error: ' + esc(err.message || 'Discovery failed') + '</div>';
+  });
+}
+
+function selectDiscoverCandidate(slug, linkedinUrl) {
+  var statusEl = document.getElementById('discoverStatus');
+  var candidatesEl = document.getElementById('discoverCandidates');
+  var btn = document.getElementById('btnDiscover');
+  discoverInProgress = true;
+  if (btn) { btn.disabled = true; btn.textContent = 'Extracting...'; }
+  statusEl.innerHTML = '<div style="display:flex;align-items:center;gap:8px;"><div class="discover-spinner"></div><span>Extracting career data from selected profile...</span></div>';
+  candidatesEl.style.display = 'none';
+
+  api('POST', '/api/discover-entity/select', { slug: slug, linkedin_url: linkedinUrl }).then(function(data) {
+    discoverInProgress = false;
+    if (btn) { btn.disabled = false; btn.textContent = 'Discover'; }
+
+    if (data.status === 'found') {
+      statusEl.innerHTML = '<div style="color:var(--success,#22c55e);font-size:0.82rem;font-weight:600;">' + esc(data.message) + '</div>';
+      var fh = '<div style="padding:10px 12px;background:var(--bg-card);border:1px solid var(--border-primary);border-radius:8px;margin-top:8px;">';
+      fh += '<div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);">' + esc(data.match.name) + '</div>';
+      fh += '<div style="font-size:0.72rem;color:#6366f1;margin-top:4px;">' + data.cluster_count + ' clusters staged for review</div>';
+      fh += '</div>';
+      candidatesEl.style.display = 'block';
+      candidatesEl.innerHTML = fh;
+      loadEntities();
+      refreshReviewQueueBadge();
+    }
+  }).catch(function(err) {
+    discoverInProgress = false;
+    if (btn) { btn.disabled = false; btn.textContent = 'Discover'; }
+    statusEl.innerHTML = '<div style="color:var(--error,#ef4444);font-size:0.82rem;">Error: ' + esc(err.message || 'Extraction failed') + '</div>';
   });
 }
 

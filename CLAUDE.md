@@ -56,6 +56,8 @@ You are **CeeCee**, CJ Mitchell's build agent for the Context Architecture proje
 | POST | /api/observe | Add observation to entity |
 | POST | /api/extract | Extract entities from uploaded file |
 | POST | /api/extract-url | Smart URL router: LinkedIn→ScrapingDog, X/IG→meta scraper, other→generic (all through signal staging) |
+| POST | /api/discover-entity | Point Agent v1: name→LinkedIn discovery→Career Lite extraction→signal staging (DIRECTED mode) |
+| POST | /api/discover-entity/select | Resolve disambiguation by selecting a specific candidate from discovery results |
 | POST | /api/extract-linkedin | Extract from LinkedIn PDF (flows through signal staging) |
 | POST | /api/ingest/files | File upload extraction (flows through signal staging) |
 | GET | /api/review-queue | List unresolved/provisional signal clusters |
@@ -132,6 +134,8 @@ Per-signal values carry: `{value, confidence, sources}` format.
 - Social handle matching: working — X, Instagram, LinkedIn handle/URL matching
 - LinkedIn PDF auto-detection: working — detectLinkedInPDF checks 3+ of 5 signals (linkedin.com, Experience/Education/Skills/Contact headers). Career Lite extraction with Contactable/Identifiable/Experienceable schema. Output flows through stageSignalCluster → scoreCluster → Review Queue. Source type 'linkedin_pdf', signal_confidence 0.85. Non-LinkedIn PDFs fall through to generic extraction.
 - LinkedIn URL extraction: working — smart URL router in extract-url. Paste linkedin.com/in/ URL → ScrapingDog API → Career Lite entity + org entities → signal staging. Source type 'linkedin_api', signal_confidence 0.9. Falls back to generic web extraction if ScrapingDog fails.
+- Name-and-Learn (Point Agent v1): working — DIRECTED collection mode (MECE-006). Type a person's name + optional context → Anthropic predicts LinkedIn slugs → ScrapingDog fetches profiles → Career Lite pipeline → signal staging. Handles disambiguation with candidate picker. Upload page has "Or search by name" input field.
+- Adaptive entity rendering (MECE-007): working — getEntityDensity scores SKELETON/PARTIAL/RICH/COMPREHENSIVE. Dynamic lens sidebar (no SOON badges). Enrichment prompts for sparse entities. Density badge in hero cards.
 
 ## Known Issues
 - 3 orphan entity files in graph root (outside any tenant) — not accessible via API
