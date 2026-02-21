@@ -293,6 +293,16 @@ function analyzeEntityHealth(entity) {
   const tierDist = computeTierDistribution(entity);
   const rels = entity.relationships || [];
 
+  // Base quality score from relationship tiers
+  let qualityScore = rels.length > 0
+    ? Math.round(((tierDist[5] * 5 + tierDist[4] * 4 + tierDist[3] * 3 + tierDist[2] * 2 + tierDist[1] * 1) / rels.length) * 20)
+    : 0;
+
+  // Conflict penalty: -0.1 per active FACTUAL conflict (applied to 0-100 scale as -10 per conflict)
+  const activeConflicts = (entity.conflicts || []).filter(c => c.conflict_type === 'FACTUAL');
+  const conflictPenalty = activeConflicts.length * 10;
+  qualityScore = Math.max(0, qualityScore - conflictPenalty);
+
   return {
     total_connections: rels.length,
     duplicate_connections: connections.duplicate_count,
@@ -301,9 +311,9 @@ function analyzeEntityHealth(entity) {
     phantom_count: phantoms.length,
     tier_distribution: tierDist,
     follows_count: tierDist[1],
-    quality_score: rels.length > 0
-      ? Math.round(((tierDist[5] * 5 + tierDist[4] * 4 + tierDist[3] * 3 + tierDist[2] * 2 + tierDist[1] * 1) / rels.length) * 20)
-      : 0,
+    quality_score: qualityScore,
+    conflict_count: activeConflicts.length,
+    conflict_penalty: conflictPenalty,
   };
 }
 

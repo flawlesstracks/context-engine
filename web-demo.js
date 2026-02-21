@@ -10,7 +10,7 @@ const multer = require('multer');
 const cookieParser = require('cookie-parser');
 const { readEntity, writeEntity, listEntities, listEntitiesByType, getNextCounter, loadConnectedObjects, deleteEntity, getSelfEntityId, isSelfEntity } = require('./src/graph-ops');
 const { ingestPipeline } = require('./src/ingest-pipeline');
-const { stageAndScoreExtraction, resolveCluster, getReviewQueue, readCluster } = require('./src/signalStaging');
+const { stageAndScoreExtraction, resolveCluster, getReviewQueue, readCluster, resolveConflict } = require('./src/signalStaging');
 const { normalizeFileToText } = require('./src/parsers/normalize');
 const { buildLinkedInPrompt, linkedInResponseToEntity, linkedInExperienceToOrgs } = require('./src/parsers/linkedin');
 const { mapContactRows } = require('./src/parsers/contacts');
@@ -1637,8 +1637,8 @@ app.post('/api/clusters/resolve', apiAuth, (req, res) => {
   if (!cluster_id || !action) {
     return res.status(400).json({ error: 'Missing cluster_id or action' });
   }
-  if (!['create_new', 'merge', 'skip', 'hold'].includes(action)) {
-    return res.status(400).json({ error: 'Action must be one of: create_new, merge, skip, hold' });
+  if (!['create_new', 'merge', 'skip', 'hold', 'confirm_merge'].includes(action)) {
+    return res.status(400).json({ error: 'Action must be one of: create_new, merge, skip, hold, confirm_merge' });
   }
 
   try {
@@ -1648,6 +1648,42 @@ app.post('/api/clusters/resolve', apiAuth, (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('[staging] Resolve error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Conflict Resolution ---
+
+app.post('/api/conflicts/resolve', apiAuth, (req, res) => {
+  const { entity_id, conflict_id, resolution } = req.body;
+  if (!entity_id || !conflict_id || !resolution) {
+    return res.status(400).json({ error: 'Missing entity_id, conflict_id, or resolution' });
+  }
+  if (!['keep_a', 'keep_b', 'keep_both'].includes(resolution)) {
+    return res.status(400).json({ error: 'Resolution must be one of: keep_a, keep_b, keep_both' });
+  }
+
+  try {
+    const result = resolveConflict(entity_id, conflict_id, resolution, req.graphDir);
+    if (result.error) return res.status(400).json(result);
+    console.log(`[conflicts] Resolved ${conflict_id} on ${entity_id}: ${resolution}`);
+    res.json(result);
+  } catch (err) {
+    console.error('[conflicts] Resolve error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/entity/:id/conflicts', apiAuth, (req, res) => {
+  try {
+    const entity = readEntity(req.params.id, req.graphDir);
+    if (!entity) return res.status(404).json({ error: 'Entity not found' });
+    res.json({
+      entity_id: req.params.id,
+      conflicts: entity.conflicts || [],
+      resolved_conflicts: entity.resolved_conflicts || []
+    });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
@@ -8365,6 +8401,56 @@ const WIKI_HTML = `<!DOCTYPE html>
   .conn-intel-item.intel-info { background: rgba(59,130,246,0.1); color: #3b82f6; }
   .conn-intel-item.intel-muted { background: rgba(156,163,175,0.1); color: #9ca3af; }
 
+  /* --- Conflict Detection UI --- */
+  .conflict-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 700;
+    background: rgba(249,115,22,0.15); color: #f97316; border: 1px solid rgba(249,115,22,0.3);
+  }
+  .conflict-section {
+    margin-top: 20px; padding: 16px; border-radius: var(--radius-md);
+    background: rgba(249,115,22,0.04); border: 1px solid rgba(249,115,22,0.2);
+  }
+  .conflict-section h3 {
+    font-size: 0.82rem; font-weight: 700; color: #f97316; margin: 0 0 12px 0;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .conflict-card {
+    background: var(--bg-card); border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md); padding: 12px 14px; margin-bottom: 10px;
+  }
+  .conflict-card-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 8px;
+  }
+  .conflict-attr { font-size: 0.78rem; font-weight: 700; color: var(--text-primary); text-transform: capitalize; }
+  .conflict-type-tag {
+    font-size: 0.65rem; font-weight: 700; padding: 1px 6px; border-radius: 6px;
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .conflict-type-tag.factual { background: rgba(239,68,68,0.1); color: #ef4444; }
+  .conflict-type-tag.temporal { background: rgba(59,130,246,0.1); color: #3b82f6; }
+  .conflict-type-tag.identity { background: rgba(168,85,247,0.1); color: #a855f7; }
+  .conflict-values {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;
+  }
+  .conflict-val {
+    padding: 8px 10px; border-radius: var(--radius-sm); font-size: 0.75rem;
+  }
+  .conflict-val.val-a { background: rgba(239,68,68,0.06); border: 1px solid rgba(239,68,68,0.15); }
+  .conflict-val.val-b { background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.15); }
+  .conflict-val-label { font-size: 0.65rem; color: var(--text-muted); font-weight: 600; margin-bottom: 2px; }
+  .conflict-val-text { font-weight: 600; color: var(--text-primary); }
+  .conflict-val-source { font-size: 0.62rem; color: var(--text-muted); margin-top: 2px; }
+  .conflict-actions { display: flex; gap: 6px; }
+  .conflict-actions button {
+    padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: 600;
+    cursor: pointer; border: 1px solid var(--border-primary); background: var(--bg-card);
+    color: var(--text-primary); transition: all 0.15s;
+  }
+  .conflict-actions button:hover { background: var(--accent); color: white; border-color: var(--accent); }
+  .conflict-actions button.btn-keep-both { color: var(--text-muted); }
+
   /* --- Section Headers (upgraded) --- */
   .section-header-icon {
     display: inline-flex; align-items: center; justify-content: center;
@@ -10470,6 +10556,9 @@ function computeEntityHealth(data) {
   if (cl.location) score += 0.2;
   // Summary
   if (data.entity && data.entity.summary && data.entity.summary.value) score += 0.5;
+  // Conflict penalty: -0.1 per active FACTUAL conflict
+  var activeConflicts = (data.conflicts || []).filter(function(c) { return c.conflict_type === 'FACTUAL'; });
+  score = Math.max(0, score - (activeConflicts.length * 0.1));
   // Normalize: thin <2, developing 2-4, strong >4
   if (score >= 4) return { level: 'strong', label: 'Strong', score: score };
   if (score >= 2) return { level: 'developing', label: 'Developing', score: score };
@@ -11613,6 +11702,27 @@ function resolvePreviewCluster(idx, clusterId, action) {
       return;
     }
 
+    // IDENTITY conflict blocked — show confirm/cancel in preview row
+    if (result.action === 'conflict_blocked') {
+      if (actionBtn) { actionBtn.disabled = false; }
+      var row = document.querySelectorAll('.preview-entity-row')[idx];
+      if (row) {
+        var acts = row.querySelector('.preview-cluster-actions');
+        if (acts) {
+          var evHtml = '<div style="font-size:0.72rem;color:#a855f7;font-weight:600;margin-bottom:4px;">\\u26A0 Possible identity conflict</div>';
+          var ev = result.evidence || [];
+          for (var ei = 0; ei < ev.length; ei++) {
+            evHtml += '<div style="font-size:0.68rem;margin-bottom:2px;"><strong>' + esc(ev[ei].attribute) + ':</strong> ' + esc(ev[ei].existing_value) + ' vs ' + esc(ev[ei].incoming_value) + '</div>';
+          }
+          evHtml += '<button class="primary" style="margin-top:4px;" onclick="resolvePreviewCluster(' + idx + ',' + "'" + esc(clusterId) + "'" + ',' + "'" + 'confirm_merge' + "'" + ')">Same person \\u2014 merge</button> ';
+          evHtml += '<button onclick="resolvePreviewCluster(' + idx + ',' + "'" + esc(clusterId) + "'" + ',' + "'" + 'create_new' + "'" + ')">Different person</button>';
+          acts.innerHTML = evHtml;
+        }
+      }
+      toast('Identity conflict — review evidence');
+      return;
+    }
+
     // Update the preview row to show resolved state
     var row = document.querySelectorAll('.preview-entity-row')[idx];
     if (!row) { toast(action + ': ' + (result.entity_name || result.entity_id || 'done')); return; }
@@ -11622,7 +11732,7 @@ function resolvePreviewCluster(idx, clusterId, action) {
     for (var b = 0; b < badges.length; b++) badges[b].remove();
 
     var innerDiv = row.querySelector('div');
-    if (action === 'merge') {
+    if (action === 'merge' || action === 'confirm_merge') {
       innerDiv.innerHTML += '<div class="preview-cluster-badge merge" style="margin-top:4px;">MERGED into ' + esc(result.entity_name || result.entity_id) + '</div>';
       // Uncheck this entity since it was resolved via staging
       var checkbox = row.querySelector('input[type=checkbox]');
@@ -11875,20 +11985,42 @@ function resolveQueueCluster(clusterId, action) {
       return;
     }
 
+    // IDENTITY conflict blocked — show evidence panel with confirm/cancel
+    if (result.action === 'conflict_blocked') {
+      if (card) {
+        var actionsDiv = card.querySelector('.cluster-actions');
+        if (actionsDiv) {
+          var evHtml = '<div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.2);border-radius:8px;padding:10px;margin-bottom:8px;">';
+          evHtml += '<div style="font-size:0.78rem;font-weight:700;color:#a855f7;margin-bottom:6px;">\\u26A0 These might be different people</div>';
+          var ev = result.evidence || [];
+          for (var ei = 0; ei < ev.length; ei++) {
+            evHtml += '<div style="font-size:0.72rem;margin-bottom:3px;"><strong>' + esc(ev[ei].attribute) + ':</strong> ' + esc(ev[ei].existing_value) + ' vs ' + esc(ev[ei].incoming_value) + '</div>';
+          }
+          evHtml += '</div>';
+          evHtml += '<button class="rq-btn-merge" onclick="resolveQueueCluster(' + "'" + esc(clusterId) + "'" + ',' + "'" + 'confirm_merge' + "'" + ')" style="margin-right:6px;">Yes, same person \\u2014 merge anyway</button>';
+          evHtml += '<button class="rq-btn-create" onclick="resolveQueueCluster(' + "'" + esc(clusterId) + "'" + ',' + "'" + 'create_new' + "'" + ')">Different person \\u2014 create new</button>';
+          actionsDiv.innerHTML = evHtml;
+        }
+        var btns = card.querySelectorAll('button'); for (var b = 0; b < btns.length; b++) btns[b].disabled = false;
+      }
+      toast('Identity conflict detected — review evidence');
+      return;
+    }
+
     // Remove the resolved card with a fade
     if (card) {
       card.style.opacity = '0.4';
       card.style.pointerEvents = 'none';
       var actionsDiv = card.querySelector('.cluster-actions');
       if (actionsDiv) {
-        if (action === 'merge') actionsDiv.innerHTML = '<span style="color:#15803d;font-weight:600;">Merged into ' + esc(result.entity_name || result.entity_id) + '</span>';
+        if (action === 'merge' || action === 'confirm_merge') actionsDiv.innerHTML = '<span style="color:#15803d;font-weight:600;">Merged into ' + esc(result.entity_name || result.entity_id) + '</span>';
         else if (action === 'create_new') actionsDiv.innerHTML = '<span style="color:#1d4ed8;font-weight:600;">Created ' + esc(result.entity_id) + '</span>';
         else if (action === 'skip') actionsDiv.innerHTML = '<span style="color:#6b21a8;font-weight:600;">Source added to ' + esc(result.entity_id) + '</span>';
         else if (action === 'hold') actionsDiv.innerHTML = '<span style="color:#92400e;font-weight:600;">Held for later</span>';
       }
     }
 
-    toast(action === 'merge' ? 'Merged into ' + (result.entity_name || result.entity_id)
+    toast(action === 'merge' || action === 'confirm_merge' ? 'Merged into ' + (result.entity_name || result.entity_id)
       : action === 'create_new' ? 'Created ' + result.entity_id
       : action === 'skip' ? 'Source added'
       : 'Held for later');
@@ -11904,6 +12036,17 @@ function resolveQueueCluster(clusterId, action) {
   }).catch(function(err) {
     toast('Resolution failed: ' + (err.message || 'Unknown error'));
     if (card) { var btns = card.querySelectorAll('button'); for (var b = 0; b < btns.length; b++) btns[b].disabled = false; }
+  });
+}
+
+function resolveEntityConflict(entityId, conflictId, resolution) {
+  api('POST', '/api/conflicts/resolve', { entity_id: entityId, conflict_id: conflictId, resolution: resolution }).then(function(result) {
+    if (result.error) { toast('Error: ' + result.error); return; }
+    toast('Conflict resolved: ' + resolution.replace('_', ' '));
+    // Reload entity detail to reflect changes
+    selectEntity(entityId);
+  }).catch(function(err) {
+    toast('Failed: ' + (err.message || 'Unknown error'));
   });
 }
 
@@ -12879,6 +13022,10 @@ function renderDetail(data) {
   h += renderHealthIndicator(health);
   h += renderDensityBadge(data);
   h += confidenceBadge(meta.extraction_confidence);
+  var conflictCount = (data.conflicts || []).length;
+  if (conflictCount > 0) {
+    h += '<span class="conflict-badge">' + conflictCount + ' conflict' + (conflictCount > 1 ? 's' : '') + '</span>';
+  }
   h += '</div>';
 
   // Actions
@@ -13035,6 +13182,41 @@ function renderDetail(data) {
       } else {
         h += '</div>'; // close wrapper
       }
+    }
+    h += '</div>';
+  }
+
+  // Conflicts section — ONLY shown when active conflicts exist
+  var activeConflicts = data.conflicts || [];
+  if (activeConflicts.length > 0) {
+    h += '<div class="conflict-section">';
+    h += '<h3>&#9888; Conflicts (' + activeConflicts.length + ')</h3>';
+    for (var ci = 0; ci < activeConflicts.length; ci++) {
+      var cf = activeConflicts[ci];
+      var cfType = (cf.conflict_type || 'FACTUAL').toLowerCase();
+      h += '<div class="conflict-card">';
+      h += '<div class="conflict-card-header">';
+      h += '<span class="conflict-attr">' + esc(cf.attribute || '') + '</span>';
+      h += '<span class="conflict-type-tag ' + cfType + '">' + esc(cf.conflict_type || '') + '</span>';
+      h += '</div>';
+      h += '<div class="conflict-values">';
+      h += '<div class="conflict-val val-a">';
+      h += '<div class="conflict-val-label">Value A (existing)</div>';
+      h += '<div class="conflict-val-text">' + esc(String(cf.value_a || '')) + '</div>';
+      h += '<div class="conflict-val-source">' + esc(String(cf.source_a || '')) + (cf.date_a ? ' &middot; ' + esc(String(cf.date_a).slice(0,10)) : '') + '</div>';
+      h += '</div>';
+      h += '<div class="conflict-val val-b">';
+      h += '<div class="conflict-val-label">Value B (incoming)</div>';
+      h += '<div class="conflict-val-text">' + esc(String(cf.value_b || '')) + '</div>';
+      h += '<div class="conflict-val-source">' + esc(String(cf.source_b || '')) + (cf.date_b ? ' &middot; ' + esc(String(cf.date_b).slice(0,10)) : '') + '</div>';
+      h += '</div>';
+      h += '</div>';
+      h += '<div class="conflict-actions">';
+      h += '<button onclick="resolveEntityConflict(' + "'" + esc(entityId) + "','" + esc(cf.conflict_id) + "','keep_a'" + ')">Keep A</button>';
+      h += '<button onclick="resolveEntityConflict(' + "'" + esc(entityId) + "','" + esc(cf.conflict_id) + "','keep_b'" + ')">Keep B</button>';
+      h += '<button class="btn-keep-both" onclick="resolveEntityConflict(' + "'" + esc(entityId) + "','" + esc(cf.conflict_id) + "','keep_both'" + ')">Keep Both (not a conflict)</button>';
+      h += '</div>';
+      h += '</div>';
     }
     h += '</div>';
   }

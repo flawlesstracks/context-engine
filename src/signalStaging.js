@@ -1038,6 +1038,231 @@ function scoreCluster(clusterId, graphDir) {
   return cluster;
 }
 
+// --- Conflict Detection Layer ---
+// Runs BEFORE merge/enrich resolution. Compares incoming cluster signals
+// against existing entity attributes to detect FACTUAL, TEMPORAL, and IDENTITY conflicts.
+
+const VOLATILE_ATTR_KEYS = new Set(['title', 'role', 'headline', 'company', 'organization', 'current_title', 'current_company']);
+
+function detectConflicts(entity, incomingCluster) {
+  const conflicts = [];
+  const entityId = entity.entity?.entity_id || null;
+  const signals = incomingCluster.signals || {};
+  const incomingSource = incomingCluster.source?.description || incomingCluster.source?.url || 'unknown';
+  const incomingDate = incomingCluster.source?.extracted_at || new Date().toISOString();
+
+  // Helper: find existing attribute value + source + date from entity attributes
+  function findExistingAttr(key) {
+    for (const attr of (entity.attributes || [])) {
+      if ((attr.key || '').toLowerCase() === key.toLowerCase()) {
+        return {
+          value: attr.value,
+          source: attr.source_attribution?.source || entity.extraction_metadata?.source_description || 'existing',
+          date: attr.time_decay?.captured_date || attr.observed_at || entity.extraction_metadata?.extracted_at || null
+        };
+      }
+    }
+    return null;
+  }
+
+  // Helper: create a conflict record
+  function makeConflict(attribute, valueA, sourceA, dateA, valueB, sourceB, dateB, conflictType) {
+    return {
+      conflict_id: 'CONF-' + crypto.randomUUID().slice(0, 8),
+      entity_id: entityId,
+      attribute,
+      value_a: valueA,
+      source_a: sourceA,
+      date_a: dateA,
+      value_b: valueB,
+      source_b: sourceB,
+      date_b: dateB,
+      conflict_type: conflictType,
+      auto_resolved: false,
+      resolution: null,
+      detected_at: new Date().toISOString()
+    };
+  }
+
+  // Helper: classify as TEMPORAL or FACTUAL based on date recency
+  function classifyByRecency(existingDate, incomingDateStr) {
+    const existingRecent = isRecent(existingDate, 2);
+    const incomingRecent = isRecent(incomingDateStr, 2);
+    if (existingRecent && incomingRecent) return 'FACTUAL';
+    return 'TEMPORAL';
+  }
+
+  // --- Check titles/roles ---
+  if (signals.titles && signals.titles.length > 0) {
+    const incomingTitle = typeof signals.titles[0] === 'object' ? signals.titles[0].value : signals.titles[0];
+    if (incomingTitle) {
+      // Check attributes first
+      const existing = findExistingAttr('title') || findExistingAttr('role') || findExistingAttr('headline');
+      if (existing && similarity(incomingTitle.toLowerCase(), existing.value.toLowerCase()) < 0.5) {
+        const type = classifyByRecency(existing.date, incomingDate);
+        conflicts.push(makeConflict('title', existing.value, existing.source, existing.date,
+          incomingTitle, incomingSource, incomingDate, type));
+      }
+      // Check career_lite headline/title if no attribute match found
+      if (!existing && entity.career_lite) {
+        const clTitle = entity.career_lite.headline || entity.career_lite.current_title;
+        if (clTitle && similarity(incomingTitle.toLowerCase(), clTitle.toLowerCase()) < 0.5) {
+          const clDate = entity.career_lite.extracted_at || entity.extraction_metadata?.extracted_at;
+          const type = classifyByRecency(clDate, incomingDate);
+          conflicts.push(makeConflict('title', clTitle, 'career_lite', clDate,
+            incomingTitle, incomingSource, incomingDate, type));
+        }
+      }
+    }
+  }
+
+  // --- Check organizations ---
+  if (signals.organizations && signals.organizations.length > 0) {
+    const incomingOrg = typeof signals.organizations[0] === 'object' ? signals.organizations[0].value : signals.organizations[0];
+    if (incomingOrg) {
+      const existing = findExistingAttr('company') || findExistingAttr('organization');
+      if (existing && similarity(incomingOrg.toLowerCase(), existing.value.toLowerCase()) < 0.3) {
+        const type = classifyByRecency(existing.date, incomingDate);
+        conflicts.push(makeConflict('organization', existing.value, existing.source, existing.date,
+          incomingOrg, incomingSource, incomingDate, type));
+      }
+      // Check career_lite company
+      if (!existing && entity.career_lite?.current_company) {
+        const clCompany = entity.career_lite.current_company;
+        if (similarity(incomingOrg.toLowerCase(), clCompany.toLowerCase()) < 0.3) {
+          const clDate = entity.career_lite.extracted_at || entity.extraction_metadata?.extracted_at;
+          const type = classifyByRecency(clDate, incomingDate);
+          conflicts.push(makeConflict('organization', clCompany, 'career_lite', clDate,
+            incomingOrg, incomingSource, incomingDate, type));
+        }
+      }
+    }
+  }
+
+  // --- Check location (IDENTITY indicator when both recent) ---
+  if (signals.locations && signals.locations.length > 0) {
+    const incomingLoc = typeof signals.locations[0] === 'object' ? signals.locations[0].value : signals.locations[0];
+    if (incomingLoc) {
+      const existing = findExistingAttr('location') || findExistingAttr('current_location');
+      const locVal = existing ? existing.value : (entity.career_lite?.location || null);
+      const locDate = existing ? existing.date : (entity.career_lite?.extracted_at || entity.extraction_metadata?.extracted_at);
+      const locSource = existing ? existing.source : 'career_lite';
+
+      if (locVal && similarity(incomingLoc.toLowerCase(), locVal.toLowerCase()) <= 0.3) {
+        const existingRecent = isRecent(locDate, 2);
+        const incomingRecent = isRecent(incomingDate, 2);
+        if (existingRecent && incomingRecent) {
+          // Both recent locations disagree → possible wrong merge
+          conflicts.push(makeConflict('location', locVal, locSource, locDate,
+            incomingLoc, incomingSource, incomingDate, 'IDENTITY'));
+        } else {
+          // Person likely moved
+          conflicts.push(makeConflict('location', locVal, locSource, locDate,
+            incomingLoc, incomingSource, incomingDate, 'TEMPORAL'));
+        }
+      }
+    }
+  }
+
+  // --- Check social handles (strong IDENTITY indicator) ---
+  const existingHandles = getEntitySocialHandles(entity);
+  if (signals.handles) {
+    for (const platform of ['linkedin', 'x', 'instagram']) {
+      if (signals.handles[platform] && existingHandles[platform] &&
+          signals.handles[platform] !== existingHandles[platform]) {
+        conflicts.push(makeConflict(
+          platform + '_handle',
+          existingHandles[platform], 'existing_entity', null,
+          signals.handles[platform], incomingSource, incomingDate,
+          'IDENTITY'
+        ));
+      }
+    }
+  }
+
+  return conflicts;
+}
+
+// Auto-resolve TEMPORAL conflicts: most recent source wins for current-state attributes.
+// Returns { autoResolved: [...], factual: [...], identity: [...] }
+function categorizeConflicts(conflicts) {
+  const autoResolved = [];
+  const factual = [];
+  const identity = [];
+  const now = new Date().toISOString();
+
+  for (const c of conflicts) {
+    if (c.conflict_type === 'TEMPORAL') {
+      // Most recent wins — determine winner
+      const dateA = c.date_a ? new Date(c.date_a).getTime() : 0;
+      const dateB = c.date_b ? new Date(c.date_b).getTime() : 0;
+      const winner = dateB >= dateA ? 'B' : 'A';
+      c.auto_resolved = true;
+      c.resolution = {
+        resolved_at: now,
+        resolved_by: 'auto_temporal',
+        winner: winner,
+        winning_value: winner === 'A' ? c.value_a : c.value_b,
+        reason: 'Most recent source wins for current-state attribute (career progression)'
+      };
+      autoResolved.push(c);
+    } else if (c.conflict_type === 'IDENTITY') {
+      identity.push(c);
+    } else {
+      // FACTUAL
+      factual.push(c);
+    }
+  }
+
+  return { autoResolved, factual, identity };
+}
+
+// Resolve a single conflict on an entity
+function resolveConflict(entityId, conflictId, resolution, graphDir) {
+  const entity = readEntity(entityId, graphDir);
+  if (!entity) return { error: 'Entity not found: ' + entityId };
+
+  const conflicts = entity.conflicts || [];
+  const idx = conflicts.findIndex(c => c.conflict_id === conflictId);
+  if (idx === -1) return { error: 'Conflict not found: ' + conflictId };
+
+  const conflict = conflicts[idx];
+  const now = new Date().toISOString();
+
+  // resolution: 'keep_a', 'keep_b', 'keep_both'
+  conflict.auto_resolved = false;
+  conflict.resolution = {
+    resolved_at: now,
+    resolved_by: 'user',
+    winner: resolution === 'keep_a' ? 'A' : resolution === 'keep_b' ? 'B' : 'BOTH',
+    winning_value: resolution === 'keep_a' ? conflict.value_a : resolution === 'keep_b' ? conflict.value_b : 'both retained',
+    reason: resolution === 'keep_both' ? 'User confirmed not a conflict' : 'User selected preferred value'
+  };
+
+  // If keep_a or keep_b, update the entity attribute to the winning value
+  if (resolution === 'keep_a' || resolution === 'keep_b') {
+    const winningValue = resolution === 'keep_a' ? conflict.value_a : conflict.value_b;
+    const attrKey = conflict.attribute.replace('_handle', '');
+    for (const attr of (entity.attributes || [])) {
+      if ((attr.key || '').toLowerCase() === attrKey.toLowerCase()) {
+        attr.value = winningValue;
+        attr.time_decay = attr.time_decay || {};
+        attr.time_decay.captured_date = now.slice(0, 10);
+        break;
+      }
+    }
+  }
+
+  // Move from active conflicts to resolved_conflicts
+  conflicts.splice(idx, 1);
+  entity.conflicts = conflicts;
+  if (!entity.resolved_conflicts) entity.resolved_conflicts = [];
+  entity.resolved_conflicts.push(conflict);
+
+  writeEntity(entityId, entity, graphDir);
+  return { success: true, conflict_id: conflictId, resolution: conflict.resolution, remaining: conflicts.length };
+}
+
 // --- Function 3: resolveCluster ---
 
 function resolveCluster(clusterId, action, graphDir, agentId) {
@@ -1102,6 +1327,48 @@ function resolveCluster(clusterId, action, graphDir, agentId) {
 
     const existing = readEntity(cluster.candidate_entity_id, graphDir);
     if (!existing) return { error: 'Candidate entity not found: ' + cluster.candidate_entity_id };
+
+    // --- CONFLICT DETECTION: run BEFORE merge ---
+    const detectedConflicts = detectConflicts(existing, cluster);
+    if (detectedConflicts.length > 0) {
+      const { autoResolved, factual, identity } = categorizeConflicts(detectedConflicts);
+
+      // IDENTITY conflicts: block the merge, return evidence to user (unless user already confirmed)
+      if (identity.length > 0 && !cluster._identity_confirmed) {
+        return {
+          action: 'conflict_blocked',
+          cluster_id: clusterId,
+          entity_id: cluster.candidate_entity_id,
+          conflict_type: 'IDENTITY',
+          conflicts: identity,
+          message: 'These might be different people. Review the evidence and confirm or cancel.',
+          evidence: identity.map(c => ({
+            attribute: c.attribute,
+            existing_value: c.value_a,
+            incoming_value: c.value_b,
+            existing_source: c.source_a,
+            incoming_source: c.source_b
+          }))
+        };
+      }
+
+      // TEMPORAL conflicts: auto-resolve, store in resolved_conflicts
+      if (autoResolved.length > 0) {
+        if (!existing.resolved_conflicts) existing.resolved_conflicts = [];
+        existing.resolved_conflicts.push(...autoResolved);
+      }
+
+      // FACTUAL conflicts: add to active conflicts array (merge still proceeds)
+      if (factual.length > 0) {
+        if (!existing.conflicts) existing.conflicts = [];
+        existing.conflicts.push(...factual);
+      }
+
+      // Write conflict state to entity before merge
+      if (autoResolved.length > 0 || factual.length > 0) {
+        writeEntity(cluster.candidate_entity_id, existing, graphDir);
+      }
+    }
 
     const entityType = entityData.entity?.entity_type;
     const source = cluster.source.description || cluster.source.url || 'signal_cluster_merge';
@@ -1305,6 +1572,38 @@ function resolveCluster(clusterId, action, graphDir, agentId) {
     };
   }
 
+  if (action === 'confirm_merge') {
+    // User overrode IDENTITY conflict block — force merge with identity conflicts stored
+    if (!cluster.candidate_entity_id || !entityData) {
+      return { error: 'No candidate entity to merge with' };
+    }
+    const existing = readEntity(cluster.candidate_entity_id, graphDir);
+    if (!existing) return { error: 'Candidate entity not found: ' + cluster.candidate_entity_id };
+
+    // Store identity conflicts as resolved (user confirmed same person)
+    const detectedConflicts = detectConflicts(existing, cluster);
+    if (detectedConflicts.length > 0) {
+      const { autoResolved, factual, identity } = categorizeConflicts(detectedConflicts);
+      if (!existing.resolved_conflicts) existing.resolved_conflicts = [];
+      if (autoResolved.length > 0) existing.resolved_conflicts.push(...autoResolved);
+      for (const ic of identity) {
+        ic.auto_resolved = false;
+        ic.resolution = { resolved_at: now, resolved_by: 'user_confirm_merge', winner: 'BOTH', winning_value: 'both retained', reason: 'User confirmed same person despite identity conflict' };
+        existing.resolved_conflicts.push(ic);
+      }
+      if (factual.length > 0) {
+        if (!existing.conflicts) existing.conflicts = [];
+        existing.conflicts.push(...factual);
+      }
+      writeEntity(cluster.candidate_entity_id, existing, graphDir);
+    }
+
+    // Set flag to skip identity block on delegated merge
+    cluster._identity_confirmed = true;
+    writeCluster(clusterId, cluster, graphDir);
+    return resolveCluster(clusterId, 'merge', graphDir, agentId);
+  }
+
   return { error: 'Unknown action: ' + action };
 }
 
@@ -1357,4 +1656,8 @@ module.exports = {
   computeAttributeConfidence,
   computeEntityConfidence,
   confidenceTier,
+  // Conflict detection
+  detectConflicts,
+  categorizeConflicts,
+  resolveConflict,
 };

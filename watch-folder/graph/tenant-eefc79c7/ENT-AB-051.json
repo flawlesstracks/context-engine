@@ -32,7 +32,7 @@
       "attribute_id": "ATTR-001",
       "key": "role",
       "value": "Founder, UX Researcher, Political Candidate",
-      "confidence": 0.6,
+      "confidence": 1,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -41,7 +41,11 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      }
+      },
+      "_source_clusters": [
+        "SIG-d47bb6ce-90f",
+        "SIG-089649d5-65d"
+      ]
     },
     {
       "attribute_id": "ATTR-001",
@@ -59,14 +63,16 @@
       },
       "_source_clusters": [
         "SIG-0cd9fa85-48f",
-        "SIG-8d3231f8-237"
+        "SIG-8d3231f8-237",
+        "SIG-d47bb6ce-90f",
+        "SIG-089649d5-65d"
       ]
     },
     {
       "attribute_id": "ATTR-003",
       "key": "personality",
       "value": "Strategic, Calm, Highly Intellectual",
-      "confidence": 0.6,
+      "confidence": 1,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -75,13 +81,17 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      }
+      },
+      "_source_clusters": [
+        "SIG-d47bb6ce-90f",
+        "SIG-089649d5-65d"
+      ]
     },
     {
       "attribute_id": "ATTR-004",
       "key": "zodiac",
       "value": "Virgo-Libra cusp (late September)",
-      "confidence": 0.6,
+      "confidence": 1,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -90,13 +100,17 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      }
+      },
+      "_source_clusters": [
+        "SIG-d47bb6ce-90f",
+        "SIG-089649d5-65d"
+      ]
     },
     {
       "attribute_id": "ATTR-005",
       "key": "nickname",
       "value": "Dre",
-      "confidence": 0.6,
+      "confidence": 1,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -105,13 +119,17 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      }
+      },
+      "_source_clusters": [
+        "SIG-d47bb6ce-90f",
+        "SIG-089649d5-65d"
+      ]
     },
     {
       "attribute_id": "ATTR-006",
       "key": "relationship_to_cj",
       "value": "MBA Homie / Business associate",
-      "confidence": 0.6,
+      "confidence": 1,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -120,13 +138,17 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      }
+      },
+      "_source_clusters": [
+        "SIG-d47bb6ce-90f",
+        "SIG-089649d5-65d"
+      ]
     },
     {
       "attribute_id": "ATTR-007",
       "key": "relationship",
       "value": "MBA Homie / Business Ally",
-      "confidence": 0.6,
+      "confidence": 1,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -135,13 +157,17 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      }
+      },
+      "_source_clusters": [
+        "SIG-d47bb6ce-90f",
+        "SIG-089649d5-65d"
+      ]
     },
     {
       "attribute_id": "ATTR-008",
       "key": "gender",
       "value": "Male",
-      "confidence": 0.6,
+      "confidence": 1,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -150,13 +176,17 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      }
+      },
+      "_source_clusters": [
+        "SIG-d47bb6ce-90f",
+        "SIG-089649d5-65d"
+      ]
     },
     {
       "attribute_id": "ATTR-009",
       "key": "birth_year",
       "value": "2023",
-      "confidence": 0.6,
+      "confidence": 1,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -165,13 +195,17 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      }
+      },
+      "_source_clusters": [
+        "SIG-d47bb6ce-90f",
+        "SIG-089649d5-65d"
+      ]
     },
     {
       "attribute_id": "ATTR-010",
       "key": "age",
       "value": "About to turn 3",
-      "confidence": 0.6,
+      "confidence": 1,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -180,13 +214,17 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      }
+      },
+      "_source_clusters": [
+        "SIG-d47bb6ce-90f",
+        "SIG-089649d5-65d"
+      ]
     },
     {
       "attribute_id": "ATTR-011",
       "key": "godparents",
       "value": "CJ Mitchell, Lola Mafe",
-      "confidence": 0.6,
+      "confidence": 1,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -195,13 +233,17 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      }
+      },
+      "_source_clusters": [
+        "SIG-d47bb6ce-90f",
+        "SIG-089649d5-65d"
+      ]
     },
     {
       "attribute_id": "ATTR-012",
       "key": "origin",
       "value": "Nigeria",
-      "confidence": 0.6,
+      "confidence": 1,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -210,13 +252,17 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      }
+      },
+      "_source_clusters": [
+        "SIG-d47bb6ce-90f",
+        "SIG-089649d5-65d"
+      ]
     },
     {
       "attribute_id": "ATTR-013",
       "key": "personality_trait",
       "value": "introvert",
-      "confidence": 0.6,
+      "confidence": 1,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -225,7 +271,11 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      }
+      },
+      "_source_clusters": [
+        "SIG-d47bb6ce-90f",
+        "SIG-089649d5-65d"
+      ]
     },
     {
       "attribute_id": "ATTR-014",
@@ -243,7 +293,9 @@
       },
       "_source_clusters": [
         "SIG-0cd9fa85-48f",
-        "SIG-8d3231f8-237"
+        "SIG-8d3231f8-237",
+        "SIG-d47bb6ce-90f",
+        "SIG-089649d5-65d"
       ]
     },
     {
@@ -262,7 +314,9 @@
       },
       "_source_clusters": [
         "SIG-0cd9fa85-48f",
-        "SIG-8d3231f8-237"
+        "SIG-8d3231f8-237",
+        "SIG-d47bb6ce-90f",
+        "SIG-089649d5-65d"
       ]
     },
     {
@@ -280,7 +334,9 @@
         "layer_label": "group"
       },
       "_source_clusters": [
-        "SIG-8d3231f8-237"
+        "SIG-8d3231f8-237",
+        "SIG-d47bb6ce-90f",
+        "SIG-089649d5-65d"
       ]
     }
   ],
@@ -620,6 +676,18 @@
         "source": "linkedin_api:https://www.linkedin.com/in/andreburgin/",
         "url": "https://www.linkedin.com/in/andreburgin/",
         "ingested_at": "2026-02-21T18:50:23.648Z"
+      },
+      {
+        "source": "linkedin_api:https://www.linkedin.com/in/andreburgin/",
+        "url": "https://www.linkedin.com/in/andreburgin/",
+        "ingested_at": "2026-02-21T20:19:35.980Z",
+        "note": "Duplicate data confirmed via signal staging Q4"
+      },
+      {
+        "source": "linkedin_api:https://www.linkedin.com/in/andreburgin/",
+        "url": "https://www.linkedin.com/in/andreburgin/",
+        "ingested_at": "2026-02-21T20:19:37.256Z",
+        "note": "Duplicate data confirmed via signal staging Q4"
       }
     ],
     "merge_history": [

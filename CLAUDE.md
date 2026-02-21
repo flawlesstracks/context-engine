@@ -63,7 +63,9 @@ You are **CeeCee**, CJ Mitchell's build agent for the Context Architecture proje
 | POST | /api/ingest/files | File upload extraction (flows through signal staging) |
 | GET | /api/review-queue | List unresolved/provisional signal clusters |
 | GET | /api/clusters/:id | Get signal cluster detail |
-| POST | /api/clusters/resolve | Resolve cluster: create_new, merge, skip, hold |
+| POST | /api/clusters/resolve | Resolve cluster: create_new, merge, skip, hold, confirm_merge |
+| POST | /api/conflicts/resolve | Resolve entity conflict: keep_a, keep_b, keep_both |
+| GET | /api/entity/{id}/conflicts | Get active and resolved conflicts for entity |
 | POST | /api/share | Generate public Career Lite share link |
 | POST | /api/dedup-relationships | Deduplicate relationships |
 | POST | /api/entities/bulk-delete | Bulk delete entities |
@@ -149,6 +151,7 @@ Cluster stores: signal_confidence, association_confidence, association_factors, 
 - Name-and-Learn (Point Agent v1): working — DIRECTED collection mode (MECE-006). Type a person's name + optional context → Anthropic predicts LinkedIn slugs → ScrapingDog fetches profiles → Career Lite pipeline → signal staging. Handles disambiguation with candidate picker. Upload page has "Or search by name" input field.
 - Adaptive entity rendering (MECE-007): working — getEntityDensity scores SKELETON/PARTIAL/RICH/COMPREHENSIVE. Dynamic lens sidebar (no SOON badges). Enrichment prompts for sparse entities. Density badge in hero cards.
 - Connection Intelligence: working — src/health-analyzer.js. Duplicate detection (exact name, fuzzy first+last initial, entity_id). Relationship tiers T1-T5 (Follow→Family) with word-boundary matching. Phantom entity detection (AI assistants: Blossom, Buttercup, Claudine, etc). Tier-grouped connections UI with collapsed Follows toggle. Health banner shows duplicate/phantom/follows counts. GET /api/entity/:id/health endpoint.
+- Conflict Detection Layer: working — detectConflicts(entity, incomingCluster) in src/signalStaging.js. Three conflict types: FACTUAL (same attr, same period, different values → flag for review), TEMPORAL (outdated vs current → auto-resolve, most recent wins), IDENTITY (location/handle mismatch suggesting wrong merge → block merge with evidence panel). Runs BEFORE merge in resolveCluster. Entity stores active conflicts in `conflicts[]`, resolved in `resolved_conflicts[]`. Entity profile shows conflicts section with Keep A / Keep B / Keep Both resolution buttons. Health score penalized -0.1 per active FACTUAL conflict. Hero card shows orange conflict count badge. API: POST /api/conflicts/resolve, GET /api/entity/:id/conflicts.
 
 ## Known Issues
 - 3 orphan entity files in graph root (outside any tenant) — not accessible via API
