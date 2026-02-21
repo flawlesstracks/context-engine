@@ -6557,6 +6557,14 @@ app.get('/wiki', (req, res) => {
   res.send(WIKI_HTML);
 });
 
+// Catch-all for SPA routes (entity detail, connections page, etc.)
+app.get('/wiki/entity/:id/connections', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.removeHeader('ETag');
+  res.send(WIKI_HTML);
+});
+
 // --- Public shared profile view (NO auth) ---
 
 function escHtml(str) {
@@ -8553,6 +8561,87 @@ const WIKI_HTML = `<!DOCTYPE html>
   .conn-intel-item.intel-info { background: rgba(59,130,246,0.1); color: #3b82f6; }
   .conn-intel-item.intel-muted { background: rgba(156,163,175,0.1); color: #9ca3af; }
 
+  /* --- Connections Grid (Facebook-style) --- */
+  .conn-grid-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 8px;
+  }
+  .conn-grid-search {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .conn-grid-search input {
+    padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border-primary);
+    background: var(--bg-secondary); color: var(--text-primary);
+    font-size: 0.72rem; width: 150px; outline: none;
+  }
+  .conn-grid-search input:focus { border-color: var(--accent); }
+  .conn-grid-summary {
+    font-size: 0.72rem; color: var(--text-muted); margin-bottom: 14px;
+    display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
+  }
+  .conn-grid-summary-item {
+    display: inline-flex; align-items: center; gap: 3px;
+  }
+  .conn-grid-summary-dot {
+    width: 8px; height: 8px; border-radius: 50%; display: inline-block;
+  }
+  .conn-tier-section { margin-bottom: 16px; }
+  .conn-tier-label {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 5px;
+    padding-bottom: 4px; border-bottom: 2px solid var(--border-subtle);
+  }
+  .conn-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  @media (max-width: 900px) { .conn-grid { grid-template-columns: repeat(2, 1fr); } }
+  .conn-grid-card {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg-card); border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    transition: all var(--transition-fast);
+  }
+  .conn-grid-card:hover { border-color: var(--accent-tertiary); box-shadow: var(--shadow-sm); }
+  .conn-grid-card.clickable { cursor: pointer; }
+  .conn-grid-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--bg-tertiary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; font-weight: 700; color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .conn-grid-avatar.in-graph { background: rgba(99,102,241,0.1); color: #6366f1; }
+  .conn-grid-info { flex: 1; min-width: 0; overflow: hidden; }
+  .conn-grid-name {
+    font-size: 0.82rem; font-weight: 600; color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .conn-grid-desc {
+    font-size: 0.68rem; color: var(--text-muted); margin-top: 1px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .conn-grid-tier {
+    font-size: 0.55rem; font-weight: 700; color: #fff;
+    padding: 1px 5px; border-radius: 6px; white-space: nowrap; flex-shrink: 0;
+  }
+  .conn-show-more {
+    display: block; text-align: center; padding: 6px;
+    font-size: 0.72rem; font-weight: 600; color: var(--accent);
+    cursor: pointer; border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+  }
+  .conn-show-more:hover { background: rgba(99,102,241,0.06); }
+  .conn-view-all-link {
+    display: block; text-align: center; padding: 10px;
+    font-size: 0.78rem; font-weight: 600; color: var(--accent);
+    cursor: pointer; margin-top: 8px;
+    border: 1px dashed var(--border-primary); border-radius: var(--radius-md);
+  }
+  .conn-view-all-link:hover { background: rgba(99,102,241,0.04); }
+
   /* --- Conflict Detection UI --- */
   .conflict-badge {
     display: inline-flex; align-items: center; gap: 3px;
@@ -10238,6 +10327,18 @@ function enterApp(user) {
     }
   }
 
+  // Check if URL has a deep-link path (e.g. /wiki/entity/:id/connections)
+  var connMatch = window.location.pathname.match(/\\/wiki\\/entity\\/([^\\/]+)\\/connections/);
+
+  function handleInitialRoute() {
+    if (connMatch) {
+      var deepEntityId = decodeURIComponent(connMatch[1]);
+      selectEntity(deepEntityId);
+      // Wait a tick for selectedData to load, then show connections
+      setTimeout(function() { if (selectedData) showConnectionsPage(deepEntityId); }, 300);
+    }
+  }
+
   // Two-phase load: fetch tenant config first, then all entities
   api('GET', '/api/tenant/config').then(function(config) {
     return api('GET', '/api/search?q=*').then(function(data) {
@@ -10249,10 +10350,11 @@ function enterApp(user) {
         return api('GET', '/api/entity/' + primaryEntityId).then(function(fullData) {
           primaryEntityData = fullData;
           renderSidebar();
-          selectView('overview');
+          if (connMatch) { handleInitialRoute(); } else { selectView('overview'); }
         });
       } else {
         renderSidebar();
+        handleInitialRoute();
       }
     });
   }).catch(function() {
@@ -10265,10 +10367,11 @@ function enterApp(user) {
         return api('GET', '/api/entity/' + primaryEntityId).then(function(fullData) {
           primaryEntityData = fullData;
           renderSidebar();
-          selectView('overview');
+          if (connMatch) { handleInitialRoute(); } else { selectView('overview'); }
         });
       } else {
         renderSidebar();
+        handleInitialRoute();
       }
     });
   });
@@ -12287,6 +12390,159 @@ function resolveEntityConflict(entityId, conflictId, resolution) {
   });
 }
 
+function filterConnections(query) {
+  var q = (query || '').toLowerCase().trim();
+  var cards = document.querySelectorAll('.conn-grid-card');
+  for (var i = 0; i < cards.length; i++) {
+    var name = cards[i].getAttribute('data-conn-name') || '';
+    if (!q || name.indexOf(q) !== -1) {
+      // Show unless it's an overflow card that hasn't been expanded
+      var overflow = cards[i].getAttribute('data-conn-overflow');
+      if (!overflow || cards[i].getAttribute('data-expanded') === 'true' || q) {
+        cards[i].style.display = '';
+      }
+    } else {
+      cards[i].style.display = 'none';
+    }
+  }
+  // Hide/show tier sections based on whether they have visible cards
+  var sections = document.querySelectorAll('.conn-tier-section');
+  for (var s = 0; s < sections.length; s++) {
+    var visibleCards = sections[s].querySelectorAll('.conn-grid-card:not([style*="display: none"])');
+    sections[s].style.display = visibleCards.length > 0 || !q ? '' : 'none';
+  }
+}
+
+function showAllTierConnections(tierId, sectionId) {
+  var section = document.getElementById(sectionId);
+  if (!section) return;
+  var hidden = section.querySelectorAll('.conn-grid-card[data-conn-overflow="' + sectionId + '"]');
+  for (var i = 0; i < hidden.length; i++) {
+    hidden[i].style.display = '';
+    hidden[i].setAttribute('data-expanded', 'true');
+  }
+  // Hide the "Show all" link
+  var showMore = document.getElementById('show-more-' + tierId);
+  if (showMore) showMore.style.display = 'none';
+}
+
+function showConnectionsPage(entityId) {
+  if (!selectedData) return;
+  var data = selectedData;
+  var rels = data.relationships || [];
+  var name = '';
+  if (data.entity && data.entity.name) {
+    name = data.entity.name.full || data.entity.name.common || data.entity.name.legal || '';
+  }
+
+  var tierDefs = {
+    5: { label: 'Family', color: '#ef4444' },
+    4: { label: 'Close Friends', color: '#22c55e' },
+    3: { label: 'Friends', color: '#3b82f6' },
+    2: { label: 'Colleagues', color: '#6b7280' },
+    1: { label: 'Following', color: '#9ca3af' }
+  };
+  var tierBuckets = { 5: [], 4: [], 3: [], 2: [], 1: [] };
+  for (var i = 0; i < rels.length; i++) {
+    var tier = classifyRelTier(rels[i]);
+    tierBuckets[tier].push(rels[i]);
+  }
+
+  // Update breadcrumbs
+  breadcrumbs = [
+    { label: name || entityId, action: 'selectEntity(\\'' + esc(entityId) + '\\')' },
+    { label: 'All Connections' }
+  ];
+
+  var h = '<div class="detail-container" style="max-width:900px;">';
+  h += '<div class="conn-grid-header" style="margin-bottom:12px;">';
+  h += '<h2 style="margin:0;">All Connections (' + rels.length + ')</h2>';
+  h += '<div class="conn-grid-search"><input type="text" placeholder="Search connections..." oninput="filterConnections(this.value)" /></div>';
+  h += '</div>';
+
+  // Summary line
+  h += '<div class="conn-grid-summary" style="margin-bottom:16px;">';
+  var tierOrder = [5, 4, 3, 2, 1];
+  for (var t = 0; t < tierOrder.length; t++) {
+    var tid = tierOrder[t];
+    var td = tierDefs[tid];
+    if (tierBuckets[tid].length === 0) continue;
+    if (t > 0 && tierBuckets[tierOrder[t-1]].length > 0) h += '<span style="color:var(--text-muted);"> &middot; </span>';
+    h += '<span class="conn-grid-summary-item"><span class="conn-grid-summary-dot" style="background:' + td.color + ';"></span> ' + tierBuckets[tid].length + ' ' + td.label + '</span>';
+  }
+  h += '</div>';
+
+  // Tier filter buttons
+  h += '<div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">';
+  h += '<button class="btn-sm" style="background:var(--accent);color:#fff;" onclick="filterConnectionsByTier(0)">All</button>';
+  for (var t = 0; t < tierOrder.length; t++) {
+    var tid = tierOrder[t];
+    if (tierBuckets[tid].length === 0) continue;
+    var td = tierDefs[tid];
+    h += '<button class="btn-sm" style="border:1px solid ' + td.color + ';color:' + td.color + ';" onclick="filterConnectionsByTier(' + tid + ')">' + td.label + ' (' + tierBuckets[tid].length + ')</button>';
+  }
+  h += '</div>';
+
+  // All tiers — NO truncation on the full connections page
+  for (var t = 0; t < tierOrder.length; t++) {
+    var tid = tierOrder[t];
+    var bucket = tierBuckets[tid];
+    if (bucket.length === 0) continue;
+    var td = tierDefs[tid];
+    var sectionId = 'conn-full-tier-' + tid;
+
+    h += '<div class="conn-tier-section" data-tier="' + tid + '" id="' + sectionId + '">';
+    h += '<div class="conn-tier-label" style="color:' + td.color + ';border-bottom-color:' + td.color + ';">' + td.label + ' (' + bucket.length + ')</div>';
+
+    h += '<div class="conn-grid">';
+    for (var j = 0; j < bucket.length; j++) {
+      var r = bucket[j];
+      var rName = r.name || '';
+      var rInit = rName.split(/\\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
+      var hasEntity = !!r.target_entity_id;
+      var existsInGraph = hasEntity;
+      if (!hasEntity) {
+        for (var k = 0; k < allEntities.length; k++) {
+          if (allEntities[k].name && allEntities[k].name.toLowerCase() === rName.toLowerCase()) {
+            existsInGraph = true;
+            r._matched_entity_id = allEntities[k].entity_id;
+            break;
+          }
+        }
+      }
+      var clickable = hasEntity || r._matched_entity_id;
+      var clickId = r.target_entity_id || r._matched_entity_id || '';
+      var desc = (r.context || r.relationship_type || '').substring(0, 60);
+
+      h += '<div class="conn-grid-card conn-item' + (clickable ? ' clickable' : '') + '"' + (clickable ? ' onclick="selectEntity(\\'' + esc(clickId) + '\\')"' : '') + ' data-conn-name="' + esc(rName.toLowerCase()) + '" data-conn-tier="' + tid + '">';
+      h += '<div class="conn-grid-avatar' + (existsInGraph ? ' in-graph' : '') + '">' + esc(rInit) + '</div>';
+      h += '<div class="conn-grid-info">';
+      h += '<div class="conn-grid-name">' + esc(rName) + '</div>';
+      if (desc) h += '<div class="conn-grid-desc">' + esc(desc) + '</div>';
+      h += '</div>';
+      h += '<span class="conn-grid-tier" style="background:' + td.color + ';">T' + tid + '</span>';
+      h += '</div>';
+    }
+    h += '</div>';
+    h += '</div>';
+  }
+  h += '</div>';
+
+  document.getElementById('detail').innerHTML = h;
+  renderBreadcrumbs();
+}
+
+function filterConnectionsByTier(tierId) {
+  var sections = document.querySelectorAll('.conn-tier-section[data-tier]');
+  for (var i = 0; i < sections.length; i++) {
+    if (tierId === 0) {
+      sections[i].style.display = '';
+    } else {
+      sections[i].style.display = sections[i].getAttribute('data-tier') == tierId ? '' : 'none';
+    }
+  }
+}
+
 function uploadComplete() {
   uploadInProgress = false;
   if (previewEntities.length > 0) {
@@ -13322,63 +13578,66 @@ function renderDetail(data) {
     h += '</div>';
   }
 
-  // Relationships grouped by tier (Connection Intelligence)
+  // Connections — Facebook-style grid layout
   var rels = data.relationships || [];
   if (rels.length > 0) {
-    // Classify each relationship into tiers
     var tierDefs = {
-      5: { label: 'Family', icon: '\\uD83D\\uDC68\\u200D\\uD83D\\uDC69\\u200D\\uD83D\\uDC66', color: '#ef4444' },
-      4: { label: 'Friends', icon: '\\uD83E\\uDD1D', color: '#f59e0b' },
-      3: { label: 'Colleagues', icon: '\\uD83D\\uDCBC', color: '#3b82f6' },
-      2: { label: 'Acquaintances', icon: '\\uD83D\\uDC65', color: '#8b5cf6' },
-      1: { label: 'Follows', icon: '\\uD83D\\uDD17', color: '#9ca3af' }
+      5: { label: 'Family', color: '#ef4444' },
+      4: { label: 'Close Friends', color: '#22c55e' },
+      3: { label: 'Friends', color: '#3b82f6' },
+      2: { label: 'Colleagues', color: '#6b7280' },
+      1: { label: 'Following', color: '#9ca3af' }
     };
     var tierBuckets = { 5: [], 4: [], 3: [], 2: [], 1: [] };
     for (var i = 0; i < rels.length; i++) {
-      var r = rels[i];
-      var tier = classifyRelTier(r);
-      tierBuckets[tier].push(r);
+      var tier = classifyRelTier(rels[i]);
+      tierBuckets[tier].push(rels[i]);
     }
 
-    h += '<div class="section"><div class="section-header"><span class="section-title"><span class="section-header-icon" style="background:rgba(59,130,246,0.08);">&#129309;</span> Connections (' + rels.length + ')</span></div>';
+    h += '<div class="section">';
 
-    // Connection Intelligence health banner
-    var intel = computeConnectionIntel(rels);
-    if (intel.duplicates.length > 0 || intel.phantoms.length > 0 || intel.followsCount > 0) {
-      h += '<div class="conn-intel-banner">';
-      if (intel.duplicates.length > 0) {
-        var dupTotal = 0;
-        for (var d = 0; d < intel.duplicates.length; d++) dupTotal += intel.duplicates[d].count - 1;
-        h += '<span class="conn-intel-item intel-warn">\\u26A0 ' + dupTotal + ' duplicate connection' + (dupTotal !== 1 ? 's' : '') + ' found</span>';
-      }
-      if (intel.phantoms.length > 0) {
-        h += '<span class="conn-intel-item intel-warn">\\uD83D\\uDC7B ' + intel.phantoms.length + ' phantom entit' + (intel.phantoms.length !== 1 ? 'ies' : 'y') + ' detected</span>';
-      }
-      if (intel.followsCount > 0) {
-        h += '<span class="conn-intel-item intel-muted">\\uD83D\\uDD17 ' + intel.followsCount + ' follow' + (intel.followsCount !== 1 ? 's' : '') + ' (consider archiving)</span>';
-      }
-      h += '</div>';
-    }
+    // Summary header with search
+    h += '<div class="conn-grid-header">';
+    h += '<span class="section-title"><span class="section-header-icon" style="background:rgba(59,130,246,0.08);">&#129309;</span> Connections (' + rels.length + ')</span>';
+    h += '<div class="conn-grid-search"><input type="text" placeholder="Search connections..." oninput="filterConnections(this.value)" /></div>';
+    h += '</div>';
 
-    // Render each tier group (5 → 1, family first)
+    // Summary line: 5 Family · 8 Close Friends · etc.
+    h += '<div class="conn-grid-summary">';
     var tierOrder = [5, 4, 3, 2, 1];
+    for (var t = 0; t < tierOrder.length; t++) {
+      var tid = tierOrder[t];
+      var td = tierDefs[tid];
+      if (tierBuckets[tid].length === 0) continue;
+      if (t > 0 && tierBuckets[tierOrder[t-1]].length > 0) h += '<span style="color:var(--text-muted);"> &middot; </span>';
+      h += '<span class="conn-grid-summary-item"><span class="conn-grid-summary-dot" style="background:' + td.color + ';"></span> ' + tierBuckets[tid].length + ' ' + td.label + '</span>';
+    }
+    h += '</div>';
+
+    // Tier sections with grid cards
+    var CARDS_PER_TIER = 6;
     for (var t = 0; t < tierOrder.length; t++) {
       var tid = tierOrder[t];
       var bucket = tierBuckets[tid];
       if (bucket.length === 0) continue;
       var td = tierDefs[tid];
+      var sectionId = 'conn-tier-' + tid;
 
-      // Follows (tier 1) collapsed by default
+      h += '<div class="conn-tier-section" id="' + sectionId + '">';
+
+      // Tier label header
       if (tid === 1) {
-        h += '<div style="margin-top:12px;">';
-        h += '<div class="conn-tier-toggle" onclick="var el=this.nextElementSibling;el.style.display=el.style.display===\\'none\\'?\\'block\\':\\'none\\';this.querySelector(\\'span\\').textContent=el.style.display===\\'none\\'?\\'\\u25B6\\':\\'\\u25BC\\'">';
-        h += '<span>\\u25B6</span> <span style="font-size:0.75rem;font-weight:600;color:' + td.color + ';">' + td.icon + ' ' + td.label + ' (' + bucket.length + ')</span>';
+        // Following collapsed by default
+        h += '<div class="conn-tier-label conn-tier-toggle" style="cursor:pointer;color:' + td.color + ';" onclick="var el=document.getElementById(\\'conn-grid-' + tid + '\\');var vis=el.style.display!==\\'none\\';el.style.display=vis?\\'none\\':\\'grid\\';this.querySelector(\\'.chevron\\').textContent=vis?\\'\\u25B6\\':\\'\\u25BC\\'">';
+        h += '<span class="chevron">\\u25B6</span> ' + td.label + ' (' + bucket.length + ')';
         h += '</div>';
-        h += '<div style="display:none;">';
       } else {
-        h += '<div style="margin-top:12px;">';
-        h += '<div style="font-size:0.75rem;font-weight:700;color:' + td.color + ';text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;display:flex;align-items:center;gap:4px;">' + td.icon + ' ' + td.label + ' (' + bucket.length + ')</div>';
+        h += '<div class="conn-tier-label" style="color:' + td.color + ';border-bottom-color:' + td.color + ';">' + td.label + ' (' + bucket.length + ')</div>';
       }
+
+      // Grid of connection cards
+      var gridDisplay = tid === 1 ? 'none' : 'grid';
+      h += '<div class="conn-grid" id="conn-grid-' + tid + '" style="display:' + gridDisplay + ';">';
 
       for (var j = 0; j < bucket.length; j++) {
         var r = bucket[j];
@@ -13387,7 +13646,6 @@ function renderDetail(data) {
         var hasEntity = !!r.target_entity_id;
         var existsInGraph = hasEntity;
         if (!hasEntity) {
-          // Check if name matches any entity in allEntities
           for (var k = 0; k < allEntities.length; k++) {
             if (allEntities[k].name && allEntities[k].name.toLowerCase() === rName.toLowerCase()) {
               existsInGraph = true;
@@ -13398,29 +13656,34 @@ function renderDetail(data) {
         }
         var clickable = hasEntity || r._matched_entity_id;
         var clickId = r.target_entity_id || r._matched_entity_id || '';
-        var avatarStyle = existsInGraph ? '' : 'opacity:0.5;border:1px dashed var(--border-primary);';
-        var nameStyle = existsInGraph ? 'color:var(--text-primary);' : 'color:var(--text-muted);';
+        var desc = (r.context || r.relationship_type || '').substring(0, 60);
 
-        h += '<div class="rel-card"' + (clickable ? ' onclick="selectEntity(' + "'" + esc(clickId) + "'" + ')" style="cursor:pointer"' : ' style="cursor:default"') + '>';
-        h += '<div class="rel-card-avatar" style="' + avatarStyle + '">' + esc(rInit) + '</div>';
-        h += '<div class="rel-card-info">';
-        h += '<div class="rel-card-name" style="' + nameStyle + '">' + esc(rName);
-        if (!existsInGraph) h += ' <span style="font-size:0.6rem;color:var(--text-muted);background:var(--bg-secondary);padding:1px 4px;border-radius:3px;">not in graph</span>';
+        // Show only first CARDS_PER_TIER, rest hidden
+        var hiddenStyle = j >= CARDS_PER_TIER ? ' style="display:none;" data-conn-overflow="' + sectionId + '"' : '';
+
+        h += '<div class="conn-grid-card conn-item' + (clickable ? ' clickable' : '') + '"' + (clickable ? ' onclick="selectEntity(' + "'" + esc(clickId) + "'" + ')"' : '') + hiddenStyle + ' data-conn-name="' + esc(rName.toLowerCase()) + '">';
+        h += '<div class="conn-grid-avatar' + (existsInGraph ? ' in-graph' : '') + '">' + esc(rInit) + '</div>';
+        h += '<div class="conn-grid-info">';
+        h += '<div class="conn-grid-name">' + esc(rName) + '</div>';
+        if (desc) h += '<div class="conn-grid-desc">' + esc(desc) + '</div>';
         h += '</div>';
-        if (r.context) h += '<div class="rel-card-context">' + esc(r.context) + '</div>';
-        h += '</div>';
-        h += '<span style="font-size:0.6rem;font-weight:700;color:#fff;background:' + td.color + ';padding:1px 6px;border-radius:8px;white-space:nowrap;">T' + tid + '</span>';
-        h += confidenceBadge(r.confidence, r.confidence_label);
+        h += '<span class="conn-grid-tier" style="background:' + td.color + ';">T' + tid + '</span>';
         h += '</div>';
       }
+      h += '</div>';
 
-      if (tid === 1) {
-        h += '</div></div>'; // close collapsed + wrapper
-      } else {
-        h += '</div>'; // close wrapper
+      // Show more link if truncated
+      if (bucket.length > CARDS_PER_TIER) {
+        h += '<div class="conn-show-more" id="show-more-' + tid + '" onclick="showAllTierConnections(' + tid + ',' + "'" + sectionId + "'" + ')">Show all ' + bucket.length + ' ' + td.label + '</div>';
       }
+
+      h += '</div>'; // conn-tier-section
     }
-    h += '</div>';
+
+    // View all connections link
+    h += '<div class="conn-view-all-link" onclick="showConnectionsPage(' + "'" + esc(entityId) + "'" + ')">View all ' + rels.length + ' connections &rarr;</div>';
+
+    h += '</div>'; // section
   }
 
   // Conflicts section — ONLY shown when active conflicts exist

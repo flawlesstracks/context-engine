@@ -421,7 +421,7 @@
     {
       "relationship_id": "REL-001",
       "name": "Mark Cuban",
-      "relationship_type": "3rd degree connection",
+      "relationship_type": "Following",
       "context": "President, 8,305,174 followers, Following",
       "sentiment": "neutral",
       "confidence": 0.6,
@@ -430,7 +430,7 @@
     {
       "relationship_id": "REL-002",
       "name": "Reid Hoffman",
-      "relationship_type": "2nd degree connection",
+      "relationship_type": "Following",
       "context": "Co-Founder, LinkedIn, Manas AI & Inflection AI. Founding Team, PayPal. Author of Superagency. Podcaster of Possible and Masters of Scale. 2,750,722 followers, Following",
       "sentiment": "neutral",
       "confidence": 0.6,
@@ -484,8 +484,8 @@
     {
       "relationship_id": "REL-008",
       "name": "London Khal Mitchell",
-      "relationship_type": "Son",
-      "context": "Born March 11, 2017. Age 8. Shared custody with ex-wife Carrie. Attends Esther Jackson Elementary in Roswell, GA. Interests include WWE wrestling, Roblox, Spider-Man.",
+      "relationship_type": "Son, son",
+      "context": "Born March 11, 2017. Age 8. Shared custody with ex-wife Carrie. Attends Esther Jackson Elementary in Roswell, GA. Interests include WWE wrestling, Roblox, Spider-Man.; shared custody with ex-wife Carrie",
       "sentiment": "neutral",
       "confidence": 0.6,
       "confidence_label": "MODERATE"
@@ -502,7 +502,7 @@
     {
       "relationship_id": "REL-010",
       "name": "Destinee Hughes",
-      "relationship_type": "Sister",
+      "relationship_type": "Sister, sister",
       "context": "Witness at wedding to Lola. Close family relationship.",
       "sentiment": "neutral",
       "confidence": 0.6,
@@ -511,7 +511,7 @@
     {
       "relationship_id": "REL-011",
       "name": "Allen Jones (Big Al)",
-      "relationship_type": "Close friend",
+      "relationship_type": "Close friend, close friend",
       "context": "Friend from Markham era.",
       "sentiment": "neutral",
       "confidence": 0.6,
@@ -527,37 +527,10 @@
       "confidence_label": "MODERATE"
     },
     {
-      "relationship_id": "REL-013",
-      "name": "Steve",
-      "relationship_type": "Professional contact",
-      "context": "Referenced as example recipient for Career Lite interface sharing demonstration",
-      "sentiment": "neutral",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE"
-    },
-    {
       "relationship_id": "REL-014",
       "name": "Rodrique Fru",
       "relationship_type": "Security Architect",
       "context": "Owner of Session 7 security audit, responsible for 90-minute focused audit of truth level enforcement, OAuth token handling, and API security",
-      "sentiment": "neutral",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE"
-    },
-    {
-      "relationship_id": "REL-015",
-      "name": "Claudine (Blossom)",
-      "relationship_type": "AI Assistant/Collaborator",
-      "context": "Co-author of Corrected Build Plan v2.1, involved in Context Interface Protocol development",
-      "sentiment": "neutral",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE"
-    },
-    {
-      "relationship_id": "REL-016",
-      "name": "Gemma (Buttercup)",
-      "relationship_type": "AI Assistant/Collaborator",
-      "context": "Co-author of Corrected Build Plan v2.1, conducted audit of Context Interface Protocol v2 resulting in three accepted corrections including Google Drive scope reduction, LinkedIn PDF limitations, and merge-on-ingest promotion",
       "sentiment": "neutral",
       "confidence": 0.6,
       "confidence_label": "MODERATE"
@@ -585,33 +558,6 @@
       "name": "Andre Burgin",
       "relationship_type": "close friend and groomsman",
       "context": "met during Clark Atlanta MBA program",
-      "sentiment": "neutral",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE"
-    },
-    {
-      "relationship_id": "REL-020",
-      "name": "London",
-      "relationship_type": "son",
-      "context": "shared custody with ex-wife Carrie",
-      "sentiment": "neutral",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE"
-    },
-    {
-      "relationship_id": "REL-021",
-      "name": "Allen Jones",
-      "relationship_type": "close friend",
-      "context": "from Markham era",
-      "sentiment": "neutral",
-      "confidence": 0.6,
-      "confidence_label": "MODERATE"
-    },
-    {
-      "relationship_id": "REL-022",
-      "name": "Destinee",
-      "relationship_type": "sister",
-      "context": "Witness at wedding",
       "sentiment": "neutral",
       "confidence": 0.6,
       "confidence_label": "MODERATE"
