@@ -301,7 +301,7 @@ Track current state. Update after every build session.
 
 | Lever | Phase | Current Score | Last Updated | Next Move |
 | :---- | :---- | :---- | :---- | :---- |
-| EXTRACT | ACQUIRE | 9.0 | 2026-02-21 | LinkedIn PDF auto-detect live, Proxycurl next |
+| EXTRACT | ACQUIRE | 9.5 | 2026-02-21 | LinkedIn URL extraction live (ScrapingDog), LinkedIn PDF auto-detect live |
 | INTEGRATE | ACQUIRE | 5 | 2026-02-18 | ChatGPT history import |
 | ELICIT | ACQUIRE | 1 | 2026-02-18 | GPT follow-up questions for thin entities |
 | OBSERVE | ACQUIRE | 0.5 | 2026-02-18 | GPT auto-observe (write-back) |

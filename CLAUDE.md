@@ -25,6 +25,7 @@ You are **CeeCee**, CJ Mitchell's build agent for the Context Architecture proje
 | `merge-engine.js` | Entity extraction, merging, dedup logic |
 | `src/signalStaging.js` | Signal Staging Layer — four-quadrant resolution + confidence scoring |
 | `src/ingest-pipeline.js` | Ingest pipeline for file-based entity creation |
+| `src/scrapingdog.js` | ScrapingDog LinkedIn API — scrapeLinkedInProfile + transformScrapingDogProfile |
 | `src/parsers/linkedin.js` | LinkedIn PDF extraction — Career Lite prompt, entity builder |
 | `src/parsers/normalize.js` | File parser + auto-detection (LinkedIn PDF, contact list, profile) |
 | `src/graph-ops.js` | Graph CRUD operations (readEntity, writeEntity, etc.) |
@@ -54,7 +55,7 @@ You are **CeeCee**, CJ Mitchell's build agent for the Context Architecture proje
 | DELETE | /api/entity/{id} | Delete entity |
 | POST | /api/observe | Add observation to entity |
 | POST | /api/extract | Extract entities from uploaded file |
-| POST | /api/extract-url | Extract entities from URL (flows through signal staging) |
+| POST | /api/extract-url | Smart URL router: LinkedIn→ScrapingDog, X/IG→meta scraper, other→generic (all through signal staging) |
 | POST | /api/extract-linkedin | Extract from LinkedIn PDF (flows through signal staging) |
 | POST | /api/ingest/files | File upload extraction (flows through signal staging) |
 | GET | /api/review-queue | List unresolved/provisional signal clusters |
@@ -130,6 +131,7 @@ Per-signal values carry: `{value, confidence, sources}` format.
 - Confidence scoring: working — three-level system with corroboration multiplier
 - Social handle matching: working — X, Instagram, LinkedIn handle/URL matching
 - LinkedIn PDF auto-detection: working — detectLinkedInPDF checks 3+ of 5 signals (linkedin.com, Experience/Education/Skills/Contact headers). Career Lite extraction with Contactable/Identifiable/Experienceable schema. Output flows through stageSignalCluster → scoreCluster → Review Queue. Source type 'linkedin_pdf', signal_confidence 0.85. Non-LinkedIn PDFs fall through to generic extraction.
+- LinkedIn URL extraction: working — smart URL router in extract-url. Paste linkedin.com/in/ URL → ScrapingDog API → Career Lite entity + org entities → signal staging. Source type 'linkedin_api', signal_confidence 0.9. Falls back to generic web extraction if ScrapingDog fails.
 
 ## Known Issues
 - 3 orphan entity files in graph root (outside any tenant) — not accessible via API

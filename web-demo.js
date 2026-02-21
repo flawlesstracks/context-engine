@@ -14,6 +14,7 @@ const { stageAndScoreExtraction, resolveCluster, getReviewQueue, readCluster } =
 const { normalizeFileToText } = require('./src/parsers/normalize');
 const { buildLinkedInPrompt, linkedInResponseToEntity, linkedInExperienceToOrgs } = require('./src/parsers/linkedin');
 const { mapContactRows } = require('./src/parsers/contacts');
+const { scrapeLinkedInProfile, transformScrapingDogProfile } = require('./src/scrapingdog');
 const auth = require('./src/auth');
 const drive = require('./src/drive');
 const helmet = require('helmet');
@@ -4092,6 +4093,56 @@ app.post('/api/extract-url', apiAuth, async (req, res) => {
   }
 
   try {
+    // --- Smart URL Router ---
+    // LinkedIn URLs → ScrapingDog API (structured data, higher confidence)
+    if (/linkedin\.com\/in\//i.test(url)) {
+      console.log(`[extract-url] LinkedIn URL detected, routing to ScrapingDog: ${url}`);
+      const rawProfile = await scrapeLinkedInProfile(url);
+
+      if (rawProfile) {
+        // ScrapingDog succeeded — transform and stage through signal staging
+        const parsed = transformScrapingDogProfile(rawProfile, url);
+        const personEntity = linkedInResponseToEntity(parsed, url, req.agentId);
+        const personName = parsed.name?.full || '';
+        const orgEntities = linkedInExperienceToOrgs(parsed, personName, url, req.agentId);
+        const allEntities = [personEntity, ...orgEntities];
+
+        // Stage with linkedin_api source type (0.9 confidence — higher than linkedin_pdf 0.85)
+        const scoredClusters = stageAndScoreExtraction(allEntities, {
+          type: 'linkedin_api',
+          url: url,
+          description: `linkedin_api:${url}`,
+        }, req.graphDir);
+
+        const previewList = allEntities.map(e => {
+          const ent = e.entity || {};
+          const type = ent.entity_type || '';
+          return {
+            entity_type: type,
+            name: type === 'person' ? (ent.name?.full || '') : (ent.name?.common || ent.name?.legal || ''),
+            summary: ent.summary?.value || '',
+            attribute_count: (e.attributes || []).length,
+            relationship_count: (e.relationships || []).length,
+            observation_count: (e.observations || []).length,
+          };
+        });
+
+        return res.json({
+          entities: allEntities,
+          preview: previewList,
+          scored_clusters: scoredClusters,
+          source_url: url,
+          source_type: 'linkedin_api',
+          entity_count: allEntities.length,
+        });
+      }
+
+      // ScrapingDog failed — fall through to generic web extraction
+      console.log(`[extract-url] ScrapingDog failed for ${url}, falling back to generic web extraction`);
+    }
+    // X/Twitter and Instagram URLs → existing social meta scraper (handled below)
+    // All other URLs → generic web extraction (handled below)
+
     // Fetch the page
     const response = await fetch(url, {
       headers: {
