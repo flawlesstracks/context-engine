@@ -10,6 +10,7 @@ const multer = require('multer');
 const cookieParser = require('cookie-parser');
 const { readEntity, writeEntity, listEntities, listEntitiesByType, getNextCounter, loadConnectedObjects, deleteEntity } = require('./src/graph-ops');
 const { ingestPipeline } = require('./src/ingest-pipeline');
+const { stageAndScoreExtraction, resolveCluster, getReviewQueue, readCluster } = require('./src/signalStaging');
 const { normalizeFileToText } = require('./src/parsers/normalize');
 const { buildLinkedInPrompt, linkedInResponseToEntity, linkedInExperienceToOrgs } = require('./src/parsers/linkedin');
 const { mapContactRows } = require('./src/parsers/contacts');
@@ -1454,6 +1455,12 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
           };
         });
         allPreviewEntities.push(...pendingEntities);
+        // Stage and score through signal staging layer
+        const fileScoredClusters = stageAndScoreExtraction(pendingEntities, {
+          type: 'file',
+          url: '',
+          description: `file_upload:${filename}`,
+        }, req.graphDir);
         sendEvent({
           type: 'file_preview',
           file: filename,
@@ -1461,6 +1468,7 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
           total_files: files.length,
           entities: previewList,
           full_entities: pendingEntities,
+          scored_clusters: fileScoredClusters,
         });
       } else {
         result = await ingestPipeline(pendingEntities, req.graphDir, req.agentId, {
@@ -1534,6 +1542,47 @@ app.post('/api/ingest/confirm', apiAuth, express.json({ limit: '10mb' }), async 
     res.json(result);
   } catch (err) {
     console.error('[ingest] Confirm error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- Signal Staging / Review Queue API ---
+
+// GET /api/review-queue — List unresolved and provisional signal clusters
+app.get('/api/review-queue', apiAuth, (req, res) => {
+  try {
+    const queue = getReviewQueue(req.graphDir);
+    res.json({ clusters: queue, count: queue.length });
+  } catch (err) {
+    console.error('[review-queue] Error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/clusters/:id — Get a single signal cluster
+app.get('/api/clusters/:id', apiAuth, (req, res) => {
+  const cluster = readCluster(req.params.id, req.graphDir);
+  if (!cluster) return res.status(404).json({ error: 'Cluster not found' });
+  res.json(cluster);
+});
+
+// POST /api/clusters/resolve — Resolve a signal cluster
+app.post('/api/clusters/resolve', apiAuth, (req, res) => {
+  const { cluster_id, action } = req.body;
+  if (!cluster_id || !action) {
+    return res.status(400).json({ error: 'Missing cluster_id or action' });
+  }
+  if (!['create_new', 'merge', 'skip', 'hold'].includes(action)) {
+    return res.status(400).json({ error: 'Action must be one of: create_new, merge, skip, hold' });
+  }
+
+  try {
+    const result = resolveCluster(cluster_id, action, req.graphDir, req.agentId);
+    if (result.error) return res.status(400).json(result);
+    console.log(`[staging] Resolved cluster ${cluster_id}: action=${action}, result=${JSON.stringify(result)}`);
+    res.json(result);
+  } catch (err) {
+    console.error('[staging] Resolve error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -4002,7 +4051,8 @@ app.post('/api/extract-url', apiAuth, async (req, res) => {
     // For social profiles with JS-heavy pages, return meta-tag entity even if body is sparse
     if (socialEntity && (!text || text.length < 200)) {
       const previewList = [{ entity_type: 'person', name: socialEntity.entity.name.full, summary: socialEntity.entity.summary?.value || '', attribute_count: socialEntity.attributes.length, relationship_count: 0, observation_count: socialEntity.observations.length }];
-      return res.json({ entities: [socialEntity], preview: previewList, source_url: url, source_type: socialPlatform, entity_count: 1 });
+      const scoredClusters = stageAndScoreExtraction([socialEntity], { type: socialPlatform, url: url, description: `${socialPlatform}_profile:${url}` }, req.graphDir);
+      return res.json({ entities: [socialEntity], preview: previewList, scored_clusters: scoredClusters, source_url: url, source_type: socialPlatform, entity_count: 1 });
     }
 
     if (!text || text.length < 50) {
@@ -4178,9 +4228,17 @@ app.post('/api/extract-url', apiAuth, async (req, res) => {
       };
     });
 
+    // Stage and score through signal staging layer
+    const scoredClusters = stageAndScoreExtraction(v2Entities, {
+      type: socialPlatform || 'web',
+      url: url,
+      description: `url_extract:${url}`,
+    }, req.graphDir);
+
     res.json({
       entities: v2Entities,
       preview: finalPreview,
+      scored_clusters: scoredClusters,
       source_url: url,
       source_type: socialPlatform || 'web',
       entity_count: v2Entities.length,
@@ -4492,7 +4550,14 @@ app.post('/api/extract-linkedin', apiAuth, async (req, res) => {
       };
     });
 
-    res.json({ entities: allEntities, preview: previewList, source_url: linkedin_url, source_type: 'linkedin', entity_count: allEntities.length });
+    // Stage and score through signal staging layer
+    const scoredClusters = stageAndScoreExtraction(allEntities, {
+      type: 'linkedin',
+      url: linkedin_url,
+      description: `linkedin_proxycurl:${linkedin_url}`,
+    }, req.graphDir);
+
+    res.json({ entities: allEntities, preview: previewList, scored_clusters: scoredClusters, source_url: linkedin_url, source_type: 'linkedin', entity_count: allEntities.length });
 
   } catch (err) {
     if (err.name === 'TimeoutError') return res.status(504).json({ error: 'Proxycurl API timed out' });
@@ -7367,6 +7432,69 @@ const WIKI_HTML = `<!DOCTYPE html>
   .sidebar-footer-actions a:hover { color: var(--accent-tertiary); }
   .sidebar-footer-separator { color: var(--text-faint); }
 
+  /* --- Review Queue Badge --- */
+  .review-queue-badge {
+    display: inline-block; background: #ef4444; color: #fff; font-size: 10px; font-weight: 700;
+    min-width: 16px; height: 16px; line-height: 16px; text-align: center;
+    border-radius: 8px; padding: 0 4px; margin-left: 3px; vertical-align: top;
+  }
+
+  /* --- Review Queue & Staging UI --- */
+  .review-queue { padding: 24px; max-width: 900px; margin: 0 auto; }
+  .review-queue h2 { font-size: 1.2rem; font-weight: 700; color: var(--text-primary); margin-bottom: 16px; }
+  .review-queue-empty { padding: 40px; text-align: center; color: var(--text-muted); font-size: 0.9rem; }
+  .cluster-card {
+    background: var(--bg-card); border: 1px solid var(--border-primary); border-radius: var(--radius-md);
+    padding: 16px; margin-bottom: 12px; transition: border-color var(--transition-fast);
+  }
+  .cluster-card:hover { border-color: var(--accent-tertiary); }
+  .cluster-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .cluster-name { font-weight: 600; color: var(--text-primary); font-size: 0.95rem; }
+  .cluster-source { font-size: 0.75rem; color: var(--text-muted); }
+  .cluster-signals { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 10px; }
+  .cluster-signals span { margin-right: 12px; }
+  .cluster-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .cluster-actions button {
+    padding: 5px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-primary);
+    font-size: 0.78rem; cursor: pointer; transition: all var(--transition-fast);
+  }
+  .btn-merge { background: #22c55e; color: #fff; border-color: #22c55e; }
+  .btn-merge:hover { background: #16a34a; }
+  .btn-create-entity { background: #6366f1; color: #fff; border-color: #6366f1; }
+  .btn-create-entity:hover { background: #4f46e5; }
+  .btn-add-source { background: #f59e0b; color: #fff; border-color: #f59e0b; }
+  .btn-add-source:hover { background: #d97706; }
+  .btn-hold { background: var(--bg-primary); color: var(--text-secondary); }
+  .btn-hold:hover { background: var(--bg-elevated); }
+
+  /* Quadrant badges */
+  .quadrant-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem;
+    font-weight: 600; letter-spacing: 0.3px;
+  }
+  .quadrant-badge.q1 { background: #dbeafe; color: #1d4ed8; }
+  .quadrant-badge.q2 { background: #dcfce7; color: #15803d; }
+  .quadrant-badge.q3 { background: #fef3c7; color: #92400e; }
+  .quadrant-badge.q4 { background: #f3e8ff; color: #6b21a8; }
+
+  /* Preview cluster overlay badges */
+  .preview-cluster-badge {
+    display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+    border-radius: var(--radius-sm); font-size: 0.72rem; font-weight: 600; margin-top: 4px;
+  }
+  .preview-cluster-badge.merge { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+  .preview-cluster-badge.review { background: #fef3c7; color: #92400e; border: 1px solid #fcd34d; }
+  .preview-cluster-badge.duplicate { background: #f3e8ff; color: #6b21a8; border: 1px solid #c084fc; }
+  .preview-cluster-badge.new-entity { background: #dbeafe; color: #1d4ed8; border: 1px solid #93c5fd; }
+  .preview-cluster-actions { display: flex; gap: 6px; margin-top: 4px; }
+  .preview-cluster-actions button {
+    padding: 2px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border-primary);
+    font-size: 0.7rem; cursor: pointer; background: var(--bg-primary); color: var(--text-secondary);
+  }
+  .preview-cluster-actions button:hover { background: var(--bg-elevated); }
+  .preview-cluster-actions button.primary { background: #22c55e; color: #fff; border-color: #22c55e; }
+  .preview-cluster-actions button.primary:hover { background: #16a34a; }
+
   /* --- Skeleton Loading --- */
   @keyframes shimmer {
     0% { background-position: -200% 0; }
@@ -7435,6 +7563,8 @@ const WIKI_HTML = `<!DOCTYPE html>
       </div>
       <div class="sidebar-footer-actions">
         <a href="#" onclick="showUploadView();return false;">Upload</a>
+        <span class="sidebar-footer-separator">&middot;</span>
+        <a href="#" onclick="showReviewQueue();return false;" id="btnReviewQueue">Review<span id="reviewQueueBadge" class="review-queue-badge" style="display:none;">0</span></a>
         <span class="sidebar-footer-separator">&middot;</span>
         <a href="#" onclick="showCleanupView();return false;">Cleanup</a>
         <span class="sidebar-footer-separator">&middot;</span>
@@ -8574,6 +8704,8 @@ function enterApp(user) {
       renderSidebar();
     }
   });
+  // Load review queue badge count
+  refreshReviewQueueBadge();
 }
 
 function logout() {
@@ -9084,6 +9216,7 @@ function extractFromURL() {
 
     // Feed into existing preview flow
     previewEntities = data.entities;
+    previewScoredClusters = data.scored_clusters || [];
     previewSource = 'url_extract:' + url;
 
     // Show summary + preview checklist
@@ -9316,12 +9449,14 @@ function renderUploadFileList() {
 }
 
 var previewEntities = [];
+var previewScoredClusters = [];
 var previewSource = '';
 
 function startUpload() {
   if (uploadFiles.length === 0 || uploadInProgress) return;
   uploadInProgress = true;
   previewEntities = [];
+  previewScoredClusters = [];
   document.getElementById('btnStartUpload').disabled = true;
 
   // Disable remove buttons
@@ -9398,6 +9533,9 @@ function handleUploadEvent(evt) {
     if (evt.full_entities) {
       for (var k = 0; k < evt.full_entities.length; k++) previewEntities.push(evt.full_entities[k]);
     }
+    if (evt.scored_clusters) {
+      for (var k = 0; k < evt.scored_clusters.length; k++) previewScoredClusters.push(evt.scored_clusters[k]);
+    }
     log.innerHTML += '<div class="log-info">' + esc(evt.file) + ' — found ' + evt.entities.length + ' entities (pending review)</div>';
   } else if (evt.type === 'preview_complete') {
     // Show preview UI
@@ -9439,12 +9577,47 @@ function handleUploadEvent(evt) {
   log.scrollTop = log.scrollHeight;
 }
 
+function getClusterForIndex(idx) {
+  if (!previewScoredClusters || !previewScoredClusters[idx]) return null;
+  return previewScoredClusters[idx];
+}
+
+function quadrantLabel(q) {
+  if (q === 1) return 'NEW';
+  if (q === 2) return 'ENRICH';
+  if (q === 3) return 'CONSOLIDATE';
+  if (q === 4) return 'DUPLICATE';
+  return '';
+}
+
+function quadrantClass(q) {
+  if (q === 1) return 'new-entity';
+  if (q === 2) return 'merge';
+  if (q === 3) return 'review';
+  if (q === 4) return 'duplicate';
+  return '';
+}
+
 function renderPreviewChecklist() {
   var html = '<div class="preview-checklist" style="margin-top:12px;">';
-  html += '<div style="display:flex;gap:8px;margin-bottom:10px;">';
+  html += '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;">';
   html += '<button class="btn-sm" onclick="toggleAllPreview(true)">Select All</button>';
   html += '<button class="btn-sm" onclick="toggleAllPreview(false)">Deselect All</button>';
   html += '<span style="color:var(--text-secondary);font-size:0.8rem;line-height:28px;">' + previewEntities.length + ' entities found</span>';
+  if (previewScoredClusters.length > 0) {
+    var autoMerge = 0, flagReview = 0, createNew = 0;
+    for (var s = 0; s < previewScoredClusters.length; s++) {
+      var sc = previewScoredClusters[s];
+      if (sc.quadrant === 2 || sc.quadrant === 4) { if (sc.confidence >= 0.8) autoMerge++; else flagReview++; }
+      else if (sc.quadrant === 3) flagReview++;
+      else createNew++;
+    }
+    html += '<span style="font-size:0.72rem;color:var(--text-muted);margin-left:auto;">';
+    if (autoMerge > 0) html += '<span style="color:#15803d;">' + autoMerge + ' merge</span> ';
+    if (flagReview > 0) html += '<span style="color:#92400e;">' + flagReview + ' review</span> ';
+    if (createNew > 0) html += '<span style="color:#1d4ed8;">' + createNew + ' new</span>';
+    html += '</span>';
+  }
   html += '</div>';
   for (var i = 0; i < previewEntities.length; i++) {
     var ent = previewEntities[i].entity || {};
@@ -9452,13 +9625,60 @@ function renderPreviewChecklist() {
     var name = type === 'person' ? (ent.name && ent.name.full || '') : (ent.name && (ent.name.common || ent.name.legal) || '');
     var summary = ent.summary && ent.summary.value || '';
     if (summary.length > 100) summary = summary.substring(0, 100) + '...';
-    html += '<label class="preview-entity-row" style="display:flex;gap:8px;padding:6px 8px;border-bottom:1px solid var(--border-subtle);cursor:pointer;align-items:flex-start;">';
+    var cluster = getClusterForIndex(i);
+
+    html += '<div class="preview-entity-row" style="display:flex;gap:8px;padding:8px;border-bottom:1px solid var(--border-subtle);align-items:flex-start;">';
     html += '<input type="checkbox" checked data-preview-idx="' + i + '" onchange="updatePreviewCount()" style="margin-top:3px;">';
     html += '<div style="flex:1;min-width:0;">';
     html += '<span style="font-weight:600;color:var(--text-primary);">' + esc(name) + '</span>';
     html += ' <span class="type-badge ' + type + '" style="font-size:0.65rem;padding:1px 6px;">' + type + '</span>';
     if (summary) html += '<div style="font-size:0.75rem;color:var(--text-secondary);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(summary) + '</div>';
-    html += '</div></label>';
+
+    // Quadrant badge and actions
+    if (cluster && cluster.quadrant) {
+      var q = cluster.quadrant;
+      var conf = cluster.confidence || 0;
+      var cid = cluster.cluster_id || '';
+      var candidateName = cluster.candidate_entity_name || '';
+      var candidateId = cluster.candidate_entity_id || '';
+
+      if (q === 2 && conf >= 0.8) {
+        // Q2 high confidence — auto merge
+        html += '<div class="preview-cluster-badge merge">MERGE: ' + esc(candidateName) + ' (' + Math.round(conf * 100) + '%)</div>';
+        html += '<div class="preview-cluster-actions">';
+        html += '<button class="primary" onclick="resolvePreviewCluster(' + i + ',' + "'" + cid + "'" + ',' + "'" + 'merge' + "'" + ')">Merge into ' + esc(candidateName) + '</button>';
+        html += '<button onclick="resolvePreviewCluster(' + i + ',' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Keep Separate</button>';
+        html += '</div>';
+      } else if (q === 2 && conf >= 0.5) {
+        // Q2 lower confidence — flag for review
+        html += '<div class="preview-cluster-badge review">POSSIBLE MATCH: ' + esc(candidateName) + ' (' + Math.round(conf * 100) + '%)</div>';
+        html += '<div class="preview-cluster-actions">';
+        html += '<button class="primary" onclick="resolvePreviewCluster(' + i + ',' + "'" + cid + "'" + ',' + "'" + 'merge' + "'" + ')">Link to ' + esc(candidateName) + '</button>';
+        html += '<button onclick="resolvePreviewCluster(' + i + ',' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Keep Separate</button>';
+        html += '<button onclick="resolvePreviewCluster(' + i + ',' + "'" + cid + "'" + ',' + "'" + 'hold' + "'" + ')">Hold</button>';
+        html += '</div>';
+      } else if (q === 4) {
+        // Q4 — duplicate data
+        html += '<div class="preview-cluster-badge duplicate">ALREADY CAPTURED: ' + esc(candidateName) + '</div>';
+        html += '<div class="preview-cluster-actions">';
+        html += '<button onclick="resolvePreviewCluster(' + i + ',' + "'" + cid + "'" + ',' + "'" + 'skip' + "'" + ')">Add Source</button>';
+        html += '<button onclick="resolvePreviewCluster(' + i + ',' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create Separate</button>';
+        html += '</div>';
+      } else if (q === 3) {
+        // Q3 — consolidate
+        var mentions = cluster.related_mentions || 0;
+        html += '<div class="preview-cluster-badge review">FOUND ' + mentions + ' EXISTING MENTIONS</div>';
+        html += '<div class="preview-cluster-actions">';
+        html += '<button class="primary" onclick="resolvePreviewCluster(' + i + ',' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create Entity & Link</button>';
+        html += '<button onclick="resolvePreviewCluster(' + i + ',' + "'" + cid + "'" + ',' + "'" + 'hold' + "'" + ')">Hold</button>';
+        html += '</div>';
+      } else {
+        // Q1 — new data, new entity
+        html += '<div class="preview-cluster-badge new-entity">NEW ENTITY</div>';
+      }
+    }
+
+    html += '</div></div>';
   }
   html += '</div>';
   html += '<button class="btn-start-upload" onclick="confirmPreview()" style="margin-top:12px;background:#22c55e;">Save ' + previewEntities.length + ' Selected Entities</button>';
@@ -9526,6 +9746,214 @@ function confirmPreview() {
     toast('Save failed: ' + err.message);
     btn.disabled = false;
     btn.textContent = 'Retry Save';
+  });
+}
+
+/* --- Signal cluster resolution from preview --- */
+function resolvePreviewCluster(idx, clusterId, action) {
+  var actionBtn = event && event.target;
+  if (actionBtn) { actionBtn.disabled = true; actionBtn.textContent = 'Resolving...'; }
+
+  api('POST', '/api/clusters/resolve', { cluster_id: clusterId, action: action }).then(function(result) {
+    if (result.error) {
+      toast('Error: ' + result.error);
+      if (actionBtn) { actionBtn.disabled = false; }
+      return;
+    }
+
+    // Update the preview row to show resolved state
+    var row = document.querySelectorAll('.preview-entity-row')[idx];
+    if (!row) { toast(action + ': ' + (result.entity_name || result.entity_id || 'done')); return; }
+
+    // Remove action buttons and badge
+    var badges = row.querySelectorAll('.preview-cluster-badge, .preview-cluster-actions');
+    for (var b = 0; b < badges.length; b++) badges[b].remove();
+
+    var innerDiv = row.querySelector('div');
+    if (action === 'merge') {
+      innerDiv.innerHTML += '<div class="preview-cluster-badge merge" style="margin-top:4px;">MERGED into ' + esc(result.entity_name || result.entity_id) + '</div>';
+      // Uncheck this entity since it was resolved via staging
+      var checkbox = row.querySelector('input[type=checkbox]');
+      if (checkbox) { checkbox.checked = false; checkbox.disabled = true; }
+      toast('Merged into ' + (result.entity_name || result.entity_id));
+    } else if (action === 'create_new') {
+      innerDiv.innerHTML += '<div class="preview-cluster-badge new-entity" style="margin-top:4px;">CREATED: ' + esc(result.entity_id) + '</div>';
+      var checkbox = row.querySelector('input[type=checkbox]');
+      if (checkbox) { checkbox.checked = false; checkbox.disabled = true; }
+      toast('Created entity ' + result.entity_id);
+    } else if (action === 'skip') {
+      innerDiv.innerHTML += '<div class="preview-cluster-badge duplicate" style="margin-top:4px;">SOURCE ADDED to ' + esc(result.entity_id) + '</div>';
+      var checkbox = row.querySelector('input[type=checkbox]');
+      if (checkbox) { checkbox.checked = false; checkbox.disabled = true; }
+      toast('Source added to ' + result.entity_id);
+    } else if (action === 'hold') {
+      innerDiv.innerHTML += '<div class="preview-cluster-badge review" style="margin-top:4px;">HELD for Review Queue</div>';
+      toast('Held for later review');
+    }
+
+    updatePreviewCount();
+    refreshReviewQueueBadge();
+
+    // Refresh sidebar
+    api('GET', '/api/search?q=*').then(function(data) {
+      allEntities = data.results || [];
+      entities = allEntities.slice();
+      renderSidebar();
+    });
+  }).catch(function(err) {
+    toast('Resolution failed: ' + (err.message || 'Unknown error'));
+    if (actionBtn) { actionBtn.disabled = false; }
+  });
+}
+
+/* --- Review Queue View --- */
+function refreshReviewQueueBadge() {
+  api('GET', '/api/review-queue').then(function(data) {
+    var badge = document.getElementById('reviewQueueBadge');
+    if (!badge) return;
+    var count = data.count || 0;
+    if (count > 0) {
+      badge.style.display = 'inline-block';
+      badge.textContent = count;
+    } else {
+      badge.style.display = 'none';
+    }
+  }).catch(function() {});
+}
+
+function showReviewQueue() {
+  selectedId = null;
+  selectedView = null;
+  document.getElementById('main').innerHTML = '<div style="padding:40px;color:var(--text-muted);text-align:center;">Loading review queue...</div>';
+
+  api('GET', '/api/review-queue').then(function(data) {
+    var clusters = data.clusters || [];
+    renderReviewQueue(clusters);
+  }).catch(function(err) {
+    document.getElementById('main').innerHTML = '<div style="padding:40px;color:#ef4444;">Error loading review queue: ' + esc(err.message) + '</div>';
+  });
+}
+
+function renderReviewQueue(clusters) {
+  var h = '<div class="review-queue">';
+  h += '<h2>Review Queue <span style="font-size:0.85rem;font-weight:400;color:var(--text-muted);">(' + clusters.length + ' clusters)</span></h2>';
+
+  if (clusters.length === 0) {
+    h += '<div class="review-queue-empty">No signal clusters pending review. Extract from a URL or upload files to see clusters here.</div>';
+    h += '</div>';
+    document.getElementById('main').innerHTML = h;
+    return;
+  }
+
+  for (var i = 0; i < clusters.length; i++) {
+    var c = clusters[i];
+    var q = c.quadrant || 1;
+    var names = (c.signals && c.signals.names) || [];
+    var displayName = names[0] || c.cluster_id;
+    var sourceType = (c.source && c.source.type) || 'unknown';
+    var sourceUrl = (c.source && c.source.url) || '';
+    var conf = c.confidence || 0;
+    var candidateName = c.candidate_entity_name || '';
+    var candidateId = c.candidate_entity_id || '';
+    var cid = c.cluster_id;
+
+    h += '<div class="cluster-card" id="cluster-' + esc(cid) + '">';
+    h += '<div class="cluster-header">';
+    h += '<span class="cluster-name">' + esc(displayName) + ' <span class="type-badge ' + (c.entity_type || '') + '" style="font-size:0.65rem;padding:1px 6px;">' + (c.entity_type || '') + '</span></span>';
+    h += '<span class="quadrant-badge q' + q + '">Q' + q + ' ' + esc(quadrantLabel(q)) + '</span>';
+    h += '</div>';
+
+    h += '<div class="cluster-source">' + esc(sourceType);
+    if (sourceUrl) h += ' — ' + esc(sourceUrl.length > 60 ? sourceUrl.substring(0, 60) + '...' : sourceUrl);
+    h += ' — ' + esc(c.state || '') + (conf > 0 ? ' (' + Math.round(conf * 100) + '% match)' : '');
+    h += '</div>';
+
+    // Signal summary
+    h += '<div class="cluster-signals">';
+    if (names.length > 0) h += '<span>Names: ' + names.map(function(n) { return esc(n); }).join(', ') + '</span>';
+    var handles = c.signals && c.signals.handles;
+    if (handles) {
+      var hs = [];
+      if (handles.x) hs.push('X: @' + handles.x);
+      if (handles.instagram) hs.push('IG: @' + handles.instagram);
+      if (handles.linkedin) hs.push('LI');
+      if (hs.length > 0) h += '<span>' + hs.join(', ') + '</span>';
+    }
+    var orgs = (c.signals && c.signals.organizations) || [];
+    if (orgs.length > 0) h += '<span>Orgs: ' + orgs.slice(0, 3).map(function(o) { return esc(o); }).join(', ') + '</span>';
+    h += '</div>';
+
+    // Actions per quadrant
+    h += '<div class="cluster-actions">';
+    if (q === 1) {
+      h += '<button class="btn-create-entity" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create New Entity</button>';
+      h += '<button class="btn-hold" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'hold' + "'" + ')">Hold</button>';
+    } else if (q === 2) {
+      h += '<button class="btn-merge" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'merge' + "'" + ')">Merge into ' + esc(candidateName) + '</button>';
+      h += '<button class="btn-create-entity" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create Separate</button>';
+      h += '<button class="btn-hold" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'hold' + "'" + ')">Hold</button>';
+    } else if (q === 3) {
+      var mentions = c.related_mentions || 0;
+      h += '<button class="btn-create-entity" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create Entity & Merge ' + mentions + ' Mentions</button>';
+      h += '<button class="btn-hold" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'hold' + "'" + ')">Hold</button>';
+    } else if (q === 4) {
+      h += '<button class="btn-add-source" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'skip' + "'" + ')">Add Source — Already Captured</button>';
+      h += '<button class="btn-create-entity" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create Separate</button>';
+    }
+    h += '</div>';
+    h += '</div>';
+  }
+
+  h += '<div style="margin-top:16px;text-align:center;">';
+  h += '<button style="padding:8px 16px;border-radius:var(--radius-sm);border:1px solid var(--border-primary);background:var(--bg-primary);color:var(--text-secondary);font-size:0.82rem;cursor:pointer;" onclick="hideUploadView()">Back</button>';
+  h += '</div>';
+  h += '</div>';
+  document.getElementById('main').innerHTML = h;
+}
+
+function resolveQueueCluster(clusterId, action) {
+  var card = document.getElementById('cluster-' + clusterId);
+  if (card) {
+    var btns = card.querySelectorAll('button');
+    for (var b = 0; b < btns.length; b++) btns[b].disabled = true;
+  }
+
+  api('POST', '/api/clusters/resolve', { cluster_id: clusterId, action: action }).then(function(result) {
+    if (result.error) {
+      toast('Error: ' + result.error);
+      if (card) { var btns = card.querySelectorAll('button'); for (var b = 0; b < btns.length; b++) btns[b].disabled = false; }
+      return;
+    }
+
+    // Remove the resolved card with a fade
+    if (card) {
+      card.style.opacity = '0.4';
+      card.style.pointerEvents = 'none';
+      var actionsDiv = card.querySelector('.cluster-actions');
+      if (actionsDiv) {
+        if (action === 'merge') actionsDiv.innerHTML = '<span style="color:#15803d;font-weight:600;">Merged into ' + esc(result.entity_name || result.entity_id) + '</span>';
+        else if (action === 'create_new') actionsDiv.innerHTML = '<span style="color:#1d4ed8;font-weight:600;">Created ' + esc(result.entity_id) + '</span>';
+        else if (action === 'skip') actionsDiv.innerHTML = '<span style="color:#6b21a8;font-weight:600;">Source added to ' + esc(result.entity_id) + '</span>';
+        else if (action === 'hold') actionsDiv.innerHTML = '<span style="color:#92400e;font-weight:600;">Held for later</span>';
+      }
+    }
+
+    toast(action === 'merge' ? 'Merged into ' + (result.entity_name || result.entity_id)
+      : action === 'create_new' ? 'Created ' + result.entity_id
+      : action === 'skip' ? 'Source added'
+      : 'Held for later');
+
+    refreshReviewQueueBadge();
+
+    // Refresh sidebar
+    api('GET', '/api/search?q=*').then(function(data) {
+      allEntities = data.results || [];
+      entities = allEntities.slice();
+      renderSidebar();
+    });
+  }).catch(function(err) {
+    toast('Resolution failed: ' + (err.message || 'Unknown error'));
+    if (card) { var btns = card.querySelectorAll('button'); for (var b = 0; b < btns.length; b++) btns[b].disabled = false; }
   });
 }
 

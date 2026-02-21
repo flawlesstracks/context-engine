@@ -720,6 +720,7 @@ function merge(base, incoming) {
 module.exports = {
   merge, entitiesMatch, similarity, normalizeRelationshipType,
   getAllNames, namesLikelyMatch, propertyOverlapCount,
+  countSharedRelationships, getEntityProperties,
 };
 
 // --- CLI ---
