@@ -153,5 +153,6 @@
     "descriptor_origin": "",
     "visual_tier": "gold"
   },
-  "descriptor": "CAU MBA peer, BDAT brother from Decatur"
+  "descriptor": "CAU MBA peer, BDAT brother from Decatur",
+  "entity_tier": "outer"
 }

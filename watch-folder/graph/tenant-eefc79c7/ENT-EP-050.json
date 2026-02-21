@@ -386,5 +386,6 @@
     "descriptor_origin": "",
     "visual_tier": "gold"
   },
-  "descriptor": "groomsman, creative partner from music years"
+  "descriptor": "groomsman, creative partner from music years",
+  "entity_tier": "outer"
 }

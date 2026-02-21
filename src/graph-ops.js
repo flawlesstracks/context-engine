@@ -32,6 +32,27 @@ function resolveGraphDir() {
   return { graphDir: LOCAL_GRAPH_DIR, persistent: false };
 }
 
+function getSelfEntityId(graphDir) {
+  const d = graphDir || LOCAL_GRAPH_DIR;
+  // Extract tenant ID from path: .../tenant-eefc79c7 → eefc79c7
+  const dirName = path.basename(d);
+  const tenantMatch = dirName.match(/^tenant-([a-f0-9]+)$/);
+  if (!tenantMatch) return null;
+  const tenantId = tenantMatch[1];
+  // Read tenants.json from parent directory
+  const tenantsPath = path.join(path.dirname(d), 'tenants.json');
+  try {
+    const tenants = JSON.parse(fs.readFileSync(tenantsPath, 'utf-8'));
+    return (tenants[tenantId] && tenants[tenantId].self_entity_id) || null;
+  } catch { return null; }
+}
+
+function isSelfEntity(entityId, graphDir) {
+  if (!entityId) return false;
+  const selfId = getSelfEntityId(graphDir);
+  return selfId !== null && entityId === selfId;
+}
+
 function readEntity(entityId, dir) {
   const d = dir || LOCAL_GRAPH_DIR;
   const filePath = path.join(d, `${entityId}.json`);
@@ -100,6 +121,7 @@ function loadConnectedObjects(entityId, dir) {
 
 function deleteEntity(entityId, dir) {
   const d = dir || LOCAL_GRAPH_DIR;
+  if (isSelfEntity(entityId, d)) return { deleted: false, error: 'self_entity_protected' };
   const filePath = path.join(d, `${entityId}.json`);
   if (!fs.existsSync(filePath)) return { deleted: false, error: 'not_found' };
 
@@ -126,4 +148,4 @@ function deleteEntity(entityId, dir) {
   return { deleted: true, entity_id: entityId, connected_deleted: deletedConnected };
 }
 
-module.exports = { readEntity, writeEntity, listEntities, listEntitiesByType, getNextCounter, resolveGraphDir, loadConnectedObjects, deleteEntity, LOCAL_GRAPH_DIR };
+module.exports = { readEntity, writeEntity, listEntities, listEntitiesByType, getNextCounter, resolveGraphDir, loadConnectedObjects, deleteEntity, getSelfEntityId, isSelfEntity, LOCAL_GRAPH_DIR };

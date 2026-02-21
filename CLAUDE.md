@@ -1,3 +1,10 @@
+## Architecture Bible — MECE.md
+Read MECE.md before every build session. It contains the AAA Loop, the 12 Levers
+scorecard, and every MECE framework that governs how this product works.
+If your build touches a domain defined there, follow the framework.
+If your build reveals a new framework, add it before committing.
+If your build changes a lever score, update the scorecard.
+
 # Context Architecture — Project Memory
 
 ## Identity

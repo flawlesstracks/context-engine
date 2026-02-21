@@ -697,5 +697,6 @@
     "descriptor_origin": "",
     "visual_tier": "gold"
   },
-  "descriptor": "son London, sacred bond always"
+  "descriptor": "son London, sacred bond always",
+  "entity_tier": "inner"
 }

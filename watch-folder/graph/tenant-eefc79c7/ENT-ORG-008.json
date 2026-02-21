@@ -79,5 +79,6 @@
     "org_dates": "unknown",
     "org_descriptor": "independent consulting practice"
   },
-  "descriptor": "independent consulting practice"
+  "descriptor": "independent consulting practice",
+  "entity_tier": "outer"
 }

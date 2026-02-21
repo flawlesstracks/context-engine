@@ -166,5 +166,6 @@
     "descriptor_origin": "",
     "visual_tier": "muted"
   },
-  "descriptor": "Tiffany's best friend since childhood"
+  "descriptor": "Tiffany's best friend since childhood",
+  "entity_tier": "outer"
 }

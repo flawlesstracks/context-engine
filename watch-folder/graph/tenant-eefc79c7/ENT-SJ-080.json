@@ -124,5 +124,6 @@
     "descriptor_origin": "",
     "visual_tier": "neutral"
   },
-  "descriptor": "TP, block matriarch, does my taxes"
+  "descriptor": "TP, block matriarch, does my taxes",
+  "entity_tier": "outer"
 }

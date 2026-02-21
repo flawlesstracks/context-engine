@@ -694,5 +694,6 @@
     "descriptor_origin": "",
     "visual_tier": "gold"
   },
-  "descriptor": "MBA homie, groomsman, trivia co-leader"
+  "descriptor": "MBA homie, groomsman, trivia co-leader",
+  "entity_tier": "inner"
 }

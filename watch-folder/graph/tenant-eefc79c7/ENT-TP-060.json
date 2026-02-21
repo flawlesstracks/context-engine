@@ -436,5 +436,6 @@
     "descriptor_origin": "",
     "visual_tier": "green"
   },
-  "descriptor": "close friend from Clark Atlanta MBA"
+  "descriptor": "close friend from Clark Atlanta MBA",
+  "entity_tier": "outer"
 }

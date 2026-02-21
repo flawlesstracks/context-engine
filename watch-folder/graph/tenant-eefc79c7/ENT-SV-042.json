@@ -235,5 +235,6 @@
     "descriptor_origin": "",
     "visual_tier": "green"
   },
-  "descriptor": "cousin Shooda, strong mutual interests"
+  "descriptor": "cousin Shooda, strong mutual interests",
+  "entity_tier": "outer"
 }

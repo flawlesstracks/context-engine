@@ -620,5 +620,6 @@
     "descriptor_origin": "",
     "visual_tier": "gold"
   },
-  "descriptor": "wife Lola, married February 2023"
+  "descriptor": "wife Lola, married February 2023",
+  "entity_tier": "inner"
 }

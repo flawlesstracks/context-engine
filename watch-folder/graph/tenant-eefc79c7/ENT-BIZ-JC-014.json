@@ -106,5 +106,6 @@
     "dates": "",
     "confidence": 0
   },
-  "descriptor": "unrelated third party organization"
+  "descriptor": "unrelated third party organization",
+  "entity_tier": "outer"
 }

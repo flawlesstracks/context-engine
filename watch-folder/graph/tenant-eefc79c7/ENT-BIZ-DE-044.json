@@ -180,5 +180,6 @@
     "org_dates": "2012-2019",
     "org_descriptor": "former employer, big data analytics in Boston"
   },
-  "descriptor": "former employer, big data analytics in Boston"
+  "descriptor": "former employer, big data analytics in Boston",
+  "entity_tier": "outer"
 }

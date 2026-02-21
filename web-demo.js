@@ -8,7 +8,7 @@ const Anthropic = require('@anthropic-ai/sdk').default;
 const { merge, normalizeRelationshipType } = require('./merge-engine');
 const multer = require('multer');
 const cookieParser = require('cookie-parser');
-const { readEntity, writeEntity, listEntities, listEntitiesByType, getNextCounter, loadConnectedObjects, deleteEntity } = require('./src/graph-ops');
+const { readEntity, writeEntity, listEntities, listEntitiesByType, getNextCounter, loadConnectedObjects, deleteEntity, getSelfEntityId, isSelfEntity } = require('./src/graph-ops');
 const { ingestPipeline } = require('./src/ingest-pipeline');
 const { stageAndScoreExtraction, resolveCluster, getReviewQueue, readCluster } = require('./src/signalStaging');
 const { normalizeFileToText } = require('./src/parsers/normalize');
@@ -766,6 +766,12 @@ function adminOnly(req, res, next) {
   }
   next();
 }
+
+// GET /api/tenant/config — Return tenant config (self_entity_id, tenant_id)
+app.get('/api/tenant/config', apiAuth, (req, res) => {
+  const selfEntityId = getSelfEntityId(req.graphDir);
+  res.json({ self_entity_id: selfEntityId, tenant_id: req.tenantId || null });
+});
 
 // POST /api/tenant — Create a new tenant (admin only)
 app.post('/api/tenant', apiAuth, adminOnly, (req, res) => {
@@ -1975,6 +1981,9 @@ app.get('/api/entity/:id/dossier', apiAuth, (req, res) => {
 
 // DELETE /api/entity/:id — Delete an entity and its connected objects
 app.delete('/api/entity/:id', apiAuth, (req, res) => {
+  if (isSelfEntity(req.params.id, req.graphDir)) {
+    return res.status(403).json({ error: 'self_entity_protected', message: 'Cannot delete the self entity' });
+  }
   const result = deleteEntity(req.params.id, req.graphDir);
   if (!result.deleted) return res.status(404).json({ error: 'Entity not found' });
   console.log(`[delete] Deleted ${req.params.id} + ${result.connected_deleted.length} connected objects`);
@@ -2030,10 +2039,14 @@ app.post('/api/dedup-relationships', apiAuth, (req, res) => {
 
 // POST /api/entities/bulk-delete — Delete multiple entities at once
 app.post('/api/entities/bulk-delete', apiAuth, (req, res) => {
-  const ids = req.body.entity_ids;
+  let ids = req.body.entity_ids;
   if (!Array.isArray(ids) || ids.length === 0) {
     return res.status(400).json({ error: 'entity_ids array is required' });
   }
+
+  // Filter out self entity — never bulk-delete the self entity
+  const selfId = getSelfEntityId(req.graphDir);
+  if (selfId) ids = ids.filter(id => id !== selfId);
 
   const results = [];
   let deleted = 0;
@@ -3529,6 +3542,17 @@ app.patch('/api/entity/:id', apiAuth, (req, res) => {
   const now = new Date().toISOString();
   const updates = req.body;
   const changes = [];
+
+  // Self entity protection: strip name.full, name.preferred, summary from PATCH
+  const isSelf = isSelfEntity(req.params.id, req.graphDir);
+  if (isSelf && updates.name) {
+    delete updates.name.full;
+    delete updates.name.preferred;
+    if (Object.keys(updates.name).length === 0) delete updates.name;
+  }
+  if (isSelf && updates.summary != null) {
+    delete updates.summary;
+  }
 
   // Merge into entity.entity (name, summary, entity_type)
   if (updates.name && entity.entity) {
@@ -8689,20 +8713,39 @@ function enterApp(user) {
     }
   }
 
-  // Two-phase load: fetch all entities, then identify primary user
-  api('GET', '/api/search?q=*').then(function(data) {
-    allEntities = data.results || [];
-    entities = allEntities.slice();
-    primaryEntityId = findPrimaryUser(allEntities, sessionUser);
-    if (primaryEntityId) {
-      return api('GET', '/api/entity/' + primaryEntityId).then(function(fullData) {
-        primaryEntityData = fullData;
+  // Two-phase load: fetch tenant config first, then all entities
+  api('GET', '/api/tenant/config').then(function(config) {
+    return api('GET', '/api/search?q=*').then(function(data) {
+      allEntities = data.results || [];
+      entities = allEntities.slice();
+      // Use self_entity_id from tenant config; fall back to name-matching
+      primaryEntityId = (config && config.self_entity_id) || findPrimaryUser(allEntities, sessionUser);
+      if (primaryEntityId) {
+        return api('GET', '/api/entity/' + primaryEntityId).then(function(fullData) {
+          primaryEntityData = fullData;
+          renderSidebar();
+          selectView('overview');
+        });
+      } else {
         renderSidebar();
-        selectView('overview');
-      });
-    } else {
-      renderSidebar();
-    }
+      }
+    });
+  }).catch(function() {
+    // Fallback if tenant/config fails
+    api('GET', '/api/search?q=*').then(function(data) {
+      allEntities = data.results || [];
+      entities = allEntities.slice();
+      primaryEntityId = findPrimaryUser(allEntities, sessionUser);
+      if (primaryEntityId) {
+        return api('GET', '/api/entity/' + primaryEntityId).then(function(fullData) {
+          primaryEntityData = fullData;
+          renderSidebar();
+          selectView('overview');
+        });
+      } else {
+        renderSidebar();
+      }
+    });
   });
   // Load review queue badge count
   refreshReviewQueueBadge();
@@ -9008,6 +9051,7 @@ function renderEntityList() { renderSidebar(); }
 
 /* --- Entity Detail --- */
 function confirmDeleteEntity(id, name) {
+  if (id === primaryEntityId) { toast('Cannot delete the self entity'); return; }
   if (!confirm('Delete "' + name + '" (' + id + ') and all connected objects? This cannot be undone.')) return;
   api('DELETE', '/api/entity/' + id).then(function(result) {
     toast('Deleted ' + id + (result.connected_deleted && result.connected_deleted.length > 0 ? ' + ' + result.connected_deleted.length + ' connected objects' : ''));
@@ -10635,7 +10679,7 @@ function renderProfileDetail(data) {
 
   h += '<div style="margin-top:8px">';
   h += '<button class="btn-share" onclick="openShareModal()">Share</button>';
-  h += '<button class="btn-delete-entity" style="margin-left:8px" onclick="confirmDeleteEntity(' + "'" + esc(entityId) + "'" + ', ' + "'" + esc(name).replace(/'/g, '') + "'" + ')" title="Delete entity">Delete</button>';
+  if (entityId !== primaryEntityId) h += '<button class="btn-delete-entity" style="margin-left:8px" onclick="confirmDeleteEntity(' + "'" + esc(entityId) + "'" + ', ' + "'" + esc(name).replace(/'/g, '') + "'" + ')" title="Delete entity">Delete</button>';
   h += '</div></div>';
 
   // 2. Summary
@@ -10883,7 +10927,7 @@ function renderDetail(data) {
   h += '<span class="type-badge ' + type + '">' + type + '</span>';
   h += '<span class="entity-id-badge">' + esc(e.entity_id || '') + '</span>';
   h += confidenceBadge(meta.extraction_confidence);
-  h += '<button class="btn-delete-entity" onclick="confirmDeleteEntity(' + "'" + esc(e.entity_id || '') + "'" + ', ' + "'" + esc(name).replace(/'/g, '') + "'" + ')" title="Delete entity">Delete</button>';
+  if ((e.entity_id || '') !== primaryEntityId) h += '<button class="btn-delete-entity" onclick="confirmDeleteEntity(' + "'" + esc(e.entity_id || '') + "'" + ', ' + "'" + esc(name).replace(/'/g, '') + "'" + ')" title="Delete entity">Delete</button>';
   h += '</div>';
 
   // Summary
@@ -11053,7 +11097,7 @@ function renderOrgDossier(data) {
   if (industry) h += '<span class="type-badge" style="background:rgba(16,185,129,0.1);color:#10b981;">' + esc(industry) + '</span>';
   if (dateRange) h += '<span style="font-size:0.78rem;color:var(--text-muted);margin-left:8px;">' + esc(dateRange) + '</span>';
   h += '<span class="entity-id-badge">' + esc(e.entity_id || '') + '</span>';
-  h += '<button class="btn-delete-entity" onclick="confirmDeleteEntity(' + "'" + esc(e.entity_id || '') + "'" + ', ' + "'" + esc(name).replace(/'/g, '') + "'" + ')" title="Delete entity">Delete</button>';
+  if ((e.entity_id || '') !== primaryEntityId) h += '<button class="btn-delete-entity" onclick="confirmDeleteEntity(' + "'" + esc(e.entity_id || '') + "'" + ', ' + "'" + esc(name).replace(/'/g, '') + "'" + ')" title="Delete entity">Delete</button>';
   h += '<button class="btn-enrich-org" id="btnEnrichOrg" onclick="enrichOrgFromWeb(' + "'" + esc(e.entity_id || '') + "'" + ', ' + "'" + esc(name).replace(/'/g, '') + "'" + ')" style="margin-left:8px;padding:4px 12px;border:1px solid #6366f1;border-radius:6px;background:transparent;color:#6366f1;font-size:0.72rem;font-weight:600;cursor:pointer;">Enrich from Web</button>';
   h += '</div>';
 

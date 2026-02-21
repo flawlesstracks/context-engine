@@ -177,5 +177,6 @@
     "descriptor_origin": "",
     "visual_tier": "neutral"
   },
-  "descriptor": "block peer, A-Tier reconnects easily"
+  "descriptor": "block peer, A-Tier reconnects easily",
+  "entity_tier": "outer"
 }

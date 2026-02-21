@@ -9,6 +9,7 @@
   "eefc79c7": {
     "tenant_id": "eefc79c7",
     "tenant_name": "Clarence Mitchell",
+    "self_entity_id": "ENT-CM-001",
     "api_key": "ctx-0b72bebef0e0aad558b954e0887b07e0",
     "created_at": "2026-02-16T17:55:24.974Z",
     "created_by": "google_oauth",
@@ -16,6 +17,6 @@
     "email": "flawlesstracks@gmail.com",
     "name": "Clarence Mitchell",
     "picture": "https://lh3.googleusercontent.com/a/ACg8ocIBg4mfDBGOPgAzX2yR_VUtOsJz1WuKkxmnvHmz5M3_C5tL57slug=s96-c",
-    "last_login": "2026-02-20T21:53:53.969Z"
+    "last_login": "2026-02-21T02:18:49.218Z"
   }
 }

@@ -111,5 +111,6 @@
     "dates": "2024",
     "confidence": 0.9
   },
-  "descriptor": "Children's swim camp facility"
+  "descriptor": "Children's swim camp facility",
+  "entity_tier": "outer"
 }

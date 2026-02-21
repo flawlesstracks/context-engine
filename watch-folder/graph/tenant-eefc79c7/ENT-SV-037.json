@@ -287,5 +287,6 @@
     "descriptor_origin": "",
     "visual_tier": "neutral"
   },
-  "descriptor": "cousin, stayed with me in Atlanta"
+  "descriptor": "cousin, stayed with me in Atlanta",
+  "entity_tier": "outer"
 }

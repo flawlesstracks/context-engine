@@ -165,5 +165,6 @@
     "descriptor_origin": "",
     "visual_tier": "neutral"
   },
-  "descriptor": "A-Tier friend from the block"
+  "descriptor": "A-Tier friend from the block",
+  "entity_tier": "outer"
 }

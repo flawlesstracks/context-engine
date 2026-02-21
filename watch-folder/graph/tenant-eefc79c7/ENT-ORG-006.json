@@ -94,5 +94,6 @@
     "org_dates": "2011-2013",
     "org_descriptor": "former employer, business technology consulting"
   },
-  "descriptor": "former employer, business technology consulting"
+  "descriptor": "former employer, business technology consulting",
+  "entity_tier": "outer"
 }

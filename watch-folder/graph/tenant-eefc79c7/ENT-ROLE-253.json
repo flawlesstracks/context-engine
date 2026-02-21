@@ -1,0 +1,48 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-21T03:20:44.999Z",
+    "source_description": "decomposed from ENT-CM-001",
+    "extraction_model": "object-decomposer",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "role",
+    "entity_id": "ENT-ROLE-253",
+    "parent_entity_id": "ENT-CM-001",
+    "name": {
+      "full": "Position at Dell EMC",
+      "aliases": []
+    },
+    "summary": {
+      "value": "Worked in Boston, MA during 18-month period.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    }
+  },
+  "role_data": {
+    "title": "Position",
+    "company": "Dell EMC",
+    "organization_id": "ENT-BIZ-DE-044",
+    "start_date": "2012-07",
+    "end_date": "2013-12",
+    "description": "Worked in Boston, MA during 18-month period."
+  },
+  "attributes": [],
+  "relationships": [],
+  "observations": [],
+  "provenance_chain": {
+    "created_at": "2026-02-21T03:20:44.999Z",
+    "created_by": "object-decomposer",
+    "source_documents": [
+      {
+        "source": "decomposed from ENT-CM-001",
+        "ingested_at": "2026-02-21T03:20:44.999Z"
+      }
+    ],
+    "merge_history": []
+  },
+  "entity_tier": "outer"
+}

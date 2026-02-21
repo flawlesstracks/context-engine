@@ -507,5 +507,6 @@
     "descriptor_origin": "",
     "visual_tier": "green"
   },
-  "descriptor": "ex-wife, London's mother, high-conflict history"
+  "descriptor": "ex-wife, London's mother, high-conflict history",
+  "entity_tier": "outer"
 }

@@ -263,5 +263,6 @@
     "descriptor_origin": "",
     "visual_tier": "neutral"
   },
-  "descriptor": "Nina's son, strained since childhood"
+  "descriptor": "Nina's son, strained since childhood",
+  "entity_tier": "outer"
 }

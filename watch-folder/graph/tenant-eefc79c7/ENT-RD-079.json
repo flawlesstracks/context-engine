@@ -135,5 +135,6 @@
     "descriptor_origin": "",
     "visual_tier": "muted"
   },
-  "descriptor": "Roger's sister from the block"
+  "descriptor": "Roger's sister from the block",
+  "entity_tier": "outer"
 }

@@ -128,5 +128,6 @@
     "org_dates": "April 2024 - July 2024",
     "org_descriptor": "legal services, custody trial and final order"
   },
-  "descriptor": "legal services, custody trial and final order"
+  "descriptor": "legal services, custody trial and final order",
+  "entity_tier": "outer"
 }

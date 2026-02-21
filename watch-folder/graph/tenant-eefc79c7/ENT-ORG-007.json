@@ -79,5 +79,6 @@
     "org_dates": "unknown",
     "org_descriptor": "personal YouTube channel"
   },
-  "descriptor": "personal YouTube channel"
+  "descriptor": "personal YouTube channel",
+  "entity_tier": "outer"
 }

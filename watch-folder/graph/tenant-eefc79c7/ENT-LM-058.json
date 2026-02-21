@@ -274,5 +274,6 @@
     "descriptor_origin": "",
     "visual_tier": "green"
   },
-  "descriptor": "Howard brother since 2002"
+  "descriptor": "Howard brother since 2002",
+  "entity_tier": "outer"
 }

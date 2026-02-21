@@ -90,5 +90,6 @@
     "descriptor_origin": "",
     "visual_tier": "muted"
   },
-  "descriptor": "Dre's partner"
+  "descriptor": "Dre's partner",
+  "entity_tier": "outer"
 }

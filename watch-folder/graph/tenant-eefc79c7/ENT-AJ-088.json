@@ -258,5 +258,6 @@
     "descriptor_origin": "",
     "visual_tier": "green"
   },
-  "descriptor": "closest big brother figure from Markham"
+  "descriptor": "closest big brother figure from Markham",
+  "entity_tier": "outer"
 }

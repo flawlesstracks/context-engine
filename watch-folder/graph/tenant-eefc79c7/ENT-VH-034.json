@@ -256,5 +256,6 @@
     "descriptor_origin": "",
     "visual_tier": "muted"
   },
-  "descriptor": "half-sister, father's side, minimal contact"
+  "descriptor": "half-sister, father's side, minimal contact",
+  "entity_tier": "outer"
 }

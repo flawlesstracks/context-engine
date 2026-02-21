@@ -117,5 +117,6 @@
     "descriptor_origin": "",
     "visual_tier": "neutral"
   },
-  "descriptor": "Raiya's daughter, smart and curious"
+  "descriptor": "Raiya's daughter, smart and curious",
+  "entity_tier": "outer"
 }

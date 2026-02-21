@@ -171,5 +171,6 @@
     "org_dates": "2010-2011",
     "org_descriptor": "former employer, consulting in data science and AI"
   },
-  "descriptor": "former employer, consulting in data science and AI"
+  "descriptor": "former employer, consulting in data science and AI",
+  "entity_tier": "outer"
 }

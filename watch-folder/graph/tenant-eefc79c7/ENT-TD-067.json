@@ -90,5 +90,6 @@
     "descriptor_origin": "",
     "visual_tier": "neutral"
   },
-  "descriptor": "Justin's wife, always cordial"
+  "descriptor": "Justin's wife, always cordial",
+  "entity_tier": "outer"
 }

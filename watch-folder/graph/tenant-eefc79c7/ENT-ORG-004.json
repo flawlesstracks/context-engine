@@ -79,5 +79,6 @@
     "org_dates": "unknown",
     "org_descriptor": "former employer, AI and data science leadership"
   },
-  "descriptor": "former employer, AI and data science leadership"
+  "descriptor": "former employer, AI and data science leadership",
+  "entity_tier": "outer"
 }

@@ -248,5 +248,6 @@
     "descriptor_origin": "",
     "visual_tier": "neutral"
   },
-  "descriptor": "Nina's daughter, named after Mom"
+  "descriptor": "Nina's daughter, named after Mom",
+  "entity_tier": "outer"
 }

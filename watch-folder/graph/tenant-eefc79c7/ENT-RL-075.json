@@ -182,5 +182,6 @@
     "descriptor_origin": "",
     "visual_tier": "green"
   },
-  "descriptor": "surrogate big brother from next door"
+  "descriptor": "surrogate big brother from next door",
+  "entity_tier": "outer"
 }

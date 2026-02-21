@@ -90,5 +90,6 @@
     "descriptor_origin": "",
     "visual_tier": "muted"
   },
-  "descriptor": "Steven's wife, met through him"
+  "descriptor": "Steven's wife, met through him",
+  "entity_tier": "outer"
 }

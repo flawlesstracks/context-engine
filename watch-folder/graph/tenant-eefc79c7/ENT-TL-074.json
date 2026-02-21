@@ -205,5 +205,6 @@
     "descriptor_origin": "",
     "visual_tier": "neutral"
   },
-  "descriptor": "older neighbor, bridged Jeff to Indianapolis"
+  "descriptor": "older neighbor, bridged Jeff to Indianapolis",
+  "entity_tier": "outer"
 }

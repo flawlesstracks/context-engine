@@ -558,7 +558,7 @@ function mergeConstraints(baseCon, incomingCon) {
 
 // --- Main merge function ---
 
-function merge(base, incoming) {
+function merge(base, incoming, options = {}) {
   if (!entitiesMatch(base, incoming)) {
     return { merged: null, error: 'Entities do not match' };
   }
@@ -566,9 +566,10 @@ function merge(base, incoming) {
   const now = new Date().toISOString();
   const mergeHistory = [];
   const result = JSON.parse(JSON.stringify(base)); // deep clone
+  const isSelf = options.isSelfEntity || false;
 
-  // Entity-level: higher confidence summary wins
-  if (incoming.entity?.summary?.confidence > (result.entity?.summary?.confidence || 0)) {
+  // Entity-level: higher confidence summary wins (skip for self entity)
+  if (!isSelf && incoming.entity?.summary?.confidence > (result.entity?.summary?.confidence || 0)) {
     result.entity.summary = incoming.entity.summary;
   }
 
@@ -580,8 +581,8 @@ function merge(base, incoming) {
     ]);
     result.entity.name.aliases = [...allAliases];
 
-    // Higher confidence name wins
-    if (incoming.entity.name.confidence > (result.entity.name.confidence || 0)) {
+    // Higher confidence name wins (skip name.full/preferred for self entity)
+    if (!isSelf && incoming.entity.name.confidence > (result.entity.name.confidence || 0)) {
       result.entity.name.full = incoming.entity.name.full || result.entity.name.full;
       result.entity.name.preferred = incoming.entity.name.preferred || result.entity.name.preferred;
       result.entity.name.confidence = incoming.entity.name.confidence;

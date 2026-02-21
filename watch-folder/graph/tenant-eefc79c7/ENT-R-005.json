@@ -352,5 +352,6 @@
     "descriptor_origin": "",
     "visual_tier": "gold"
   },
-  "descriptor": "closest female confidante and anchor"
+  "descriptor": "closest female confidante and anchor",
+  "entity_tier": "inner"
 }

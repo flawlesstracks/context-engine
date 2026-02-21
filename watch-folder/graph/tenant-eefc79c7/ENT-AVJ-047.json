@@ -591,5 +591,6 @@
     "descriptor_origin": "",
     "visual_tier": "gold"
   },
-  "descriptor": "Big Al, best friend, groomsman"
+  "descriptor": "Big Al, best friend, groomsman",
+  "entity_tier": "outer"
 }

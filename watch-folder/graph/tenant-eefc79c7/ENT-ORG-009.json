@@ -79,5 +79,6 @@
     "org_dates": "unknown",
     "org_descriptor": "graduate business school"
   },
-  "descriptor": "graduate business school"
+  "descriptor": "graduate business school",
+  "entity_tier": "outer"
 }

@@ -113,5 +113,6 @@
     "descriptor_origin": "",
     "visual_tier": "muted"
   },
-  "descriptor": "block peer from Markham"
+  "descriptor": "block peer from Markham",
+  "entity_tier": "outer"
 }

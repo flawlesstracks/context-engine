@@ -1,6 +1,6 @@
 'use strict';
 
-const { readEntity, writeEntity, listEntities, getNextCounter } = require('./graph-ops');
+const { readEntity, writeEntity, listEntities, getNextCounter, isSelfEntity } = require('./graph-ops');
 const { merge, similarity, entitiesMatch } = require('../merge-engine');
 const { decomposePersonEntity } = require('./object-decomposer');
 
@@ -95,8 +95,9 @@ async function ingestPipeline(entities, graphDir, agentId, options = {}) {
         incoming.structured_attributes = entityData.structured_attributes;
       }
 
-      // Merge structured data
-      const { merged } = merge(matchedData, incoming);
+      // Merge structured data (protect self entity name/summary)
+      const isSelf = isSelfEntity(matchedId, graphDir);
+      const { merged } = merge(matchedData, incoming, { isSelfEntity: isSelf });
       const result = merged || matchedData;
 
       // Merge career_lite: incoming wins if it has experience data

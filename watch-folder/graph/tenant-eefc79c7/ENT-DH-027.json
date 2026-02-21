@@ -256,5 +256,6 @@
     "descriptor_origin": "",
     "visual_tier": "green"
   },
-  "descriptor": "biological mother, formative but low trust"
+  "descriptor": "biological mother, formative but low trust",
+  "entity_tier": "outer"
 }

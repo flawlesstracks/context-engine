@@ -120,5 +120,6 @@
     "descriptor_origin": "",
     "visual_tier": "muted"
   },
-  "descriptor": "block peer through Rusty"
+  "descriptor": "block peer through Rusty",
+  "entity_tier": "outer"
 }

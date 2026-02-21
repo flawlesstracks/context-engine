@@ -187,5 +187,6 @@
     "descriptor_origin": "",
     "visual_tier": "green"
   },
-  "descriptor": "close friend from the block, travel buddy"
+  "descriptor": "close friend from the block, travel buddy",
+  "entity_tier": "outer"
 }

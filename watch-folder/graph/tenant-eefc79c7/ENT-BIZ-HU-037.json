@@ -685,5 +685,6 @@
     "org_dates": "2002-2006",
     "org_descriptor": "undergraduate alma mater, BBA International Business"
   },
-  "descriptor": "undergraduate alma mater, BBA International Business"
+  "descriptor": "undergraduate alma mater, BBA International Business",
+  "entity_tier": "outer"
 }

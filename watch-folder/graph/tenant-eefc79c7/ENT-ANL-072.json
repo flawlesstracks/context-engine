@@ -187,5 +187,6 @@
     "descriptor_origin": "",
     "visual_tier": "green"
   },
-  "descriptor": "Nell, surrogate mother from next door"
+  "descriptor": "Nell, surrogate mother from next door",
+  "entity_tier": "outer"
 }

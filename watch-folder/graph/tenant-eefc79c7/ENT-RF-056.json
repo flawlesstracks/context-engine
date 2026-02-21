@@ -277,5 +277,6 @@
     "descriptor_origin": "",
     "visual_tier": "green"
   },
-  "descriptor": "longtime friend and tech co-founder"
+  "descriptor": "longtime friend and tech co-founder",
+  "entity_tier": "inner"
 }

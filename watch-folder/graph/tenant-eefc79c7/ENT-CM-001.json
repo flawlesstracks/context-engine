@@ -6,13 +6,13 @@
     "updated_at": "2026-02-16T18:56:18.113Z",
     "source_description": "linkedin_import:(26) Clarence Mitchell _ LinkedIn.pdf",
     "extraction_model": "claude-sonnet-4-5-20250929",
-    "extraction_confidence": 0.7,
+    "extraction_confidence": 0.6,
     "schema_version": "2.0"
   },
   "entity": {
     "entity_type": "person",
     "name": {
-      "full": "putchuon",
+      "full": "Clarence James Mitchell",
       "preferred": "CJ",
       "aliases": [
         "CJ Mitchell",
@@ -23,7 +23,7 @@
         "CLARENCE J. MITCHELL",
         "@putchuon"
       ],
-      "confidence": 0.7,
+      "confidence": 0.6,
       "facts_layer": 2
     },
     "summary": {
@@ -151,7 +151,7 @@
       "attribute_id": "ATTR-001",
       "key": "headline",
       "value": "Principal Product Manager (L6-7) with 13+ years driving AI/ML product strategy at scale",
-      "confidence": 0.8999999999999999,
+      "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -160,16 +160,13 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      },
-      "_source_clusters": [
-        "SIG-a4aa9b6e-578"
-      ]
+      }
     },
     {
       "attribute_id": "ATTR-002",
       "key": "location",
       "value": "1524 Drew Dr NW, Atlanta, GA 30318",
-      "confidence": 0.8999999999999999,
+      "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -178,16 +175,13 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      },
-      "_source_clusters": [
-        "SIG-a4aa9b6e-578"
-      ]
+      }
     },
     {
       "attribute_id": "ATTR-001",
       "key": "role",
       "value": "Principal Product Manager",
-      "confidence": 0.8999999999999999,
+      "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -196,16 +190,13 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      },
-      "_source_clusters": [
-        "SIG-a4aa9b6e-578"
-      ]
+      }
     },
     {
       "attribute_id": "ATTR-003",
       "key": "company",
       "value": "Amazon",
-      "confidence": 0.8999999999999999,
+      "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "semi_stable",
@@ -214,16 +205,13 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      },
-      "_source_clusters": [
-        "SIG-a4aa9b6e-578"
-      ]
+      }
     },
     {
       "attribute_id": "ATTR-005",
       "key": "skills",
       "value": "AI/ML Product Leadership, ML Model Productionization, AI Strategy, Technical Roadmapping, Cross-functional Leadership, Stakeholder Management, Canonical Entity Data Models, Ontology Design, Knowledge Graphs, Neo4j, JSON Schema, Vector Databases, Semantic Search, Transformers, BERT, CNNs, RNNs, NLP, RLHF, TensorFlow, PyTorch, AWS SageMaker, LightGBM, Distributional Forecasting, Time-Series, Feature Engineering, Context Architecture, GraphRAG, Model Context Protocol, LLM Integration, Personal AI Systems, Agentic Workflows, SQL, Hadoop, Spark, Apache Airflow, Hugging Face, spaCy, NLTK, AWS, GCP, Azure, Tableau, PowerBI, Salesforce",
-      "confidence": 0.8999999999999999,
+      "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -232,16 +220,13 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      },
-      "_source_clusters": [
-        "SIG-a4aa9b6e-578"
-      ]
+      }
     },
     {
       "attribute_id": "ATTR-006",
       "key": "email",
       "value": "clarencejmitchell@gmail.com",
-      "confidence": 0.8999999999999999,
+      "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -250,16 +235,13 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      },
-      "_source_clusters": [
-        "SIG-a4aa9b6e-578"
-      ]
+      }
     },
     {
       "attribute_id": "ATTR-007",
       "key": "phone",
       "value": "708-288-2394",
-      "confidence": 0.8999999999999999,
+      "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -268,16 +250,13 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      },
-      "_source_clusters": [
-        "SIG-a4aa9b6e-578"
-      ]
+      }
     },
     {
       "attribute_id": "ATTR-008",
       "key": "experience",
       "value": "13+ years",
-      "confidence": 0.8999999999999999,
+      "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -286,16 +265,13 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      },
-      "_source_clusters": [
-        "SIG-a4aa9b6e-578"
-      ]
+      }
     },
     {
       "attribute_id": "ATTR-003",
       "key": "personality",
       "value": "ENTP - The Debater - strategic, extroverted, witty, adaptable",
-      "confidence": 0.8999999999999999,
+      "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -304,16 +280,13 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      },
-      "_source_clusters": [
-        "SIG-a4aa9b6e-578"
-      ]
+      }
     },
     {
       "attribute_id": "ATTR-009",
       "key": "birth_year",
       "value": "1983",
-      "confidence": 0.8999999999999999,
+      "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -322,16 +295,13 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      },
-      "_source_clusters": [
-        "SIG-a4aa9b6e-578"
-      ]
+      }
     },
     {
       "attribute_id": "ATTR-010",
       "key": "employer",
       "value": "Amazon",
-      "confidence": 0.8999999999999999,
+      "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -340,16 +310,13 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      },
-      "_source_clusters": [
-        "SIG-a4aa9b6e-578"
-      ]
+      }
     },
     {
       "attribute_id": "ATTR-011",
       "key": "date_of_birth",
       "value": "June 8, 1983",
-      "confidence": 0.8999999999999999,
+      "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -358,16 +325,13 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      },
-      "_source_clusters": [
-        "SIG-a4aa9b6e-578"
-      ]
+      }
     },
     {
       "attribute_id": "ATTR-012",
       "key": "education",
       "value": "MBA (Clark Atlanta), BBA (Howard University)",
-      "confidence": 0.8999999999999999,
+      "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -376,16 +340,13 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      },
-      "_source_clusters": [
-        "SIG-a4aa9b6e-578"
-      ]
+      }
     },
     {
       "attribute_id": "ATTR-013",
       "key": "birth_date",
       "value": "1983-06-08",
-      "confidence": 0.8999999999999999,
+      "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -394,16 +355,13 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      },
-      "_source_clusters": [
-        "SIG-a4aa9b6e-578"
-      ]
+      }
     },
     {
       "attribute_id": "ATTR-014",
       "key": "age",
       "value": "41",
-      "confidence": 0.8999999999999999,
+      "confidence": 0.6,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "stable",
@@ -412,10 +370,7 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      },
-      "_source_clusters": [
-        "SIG-a4aa9b6e-578"
-      ]
+      }
     },
     {
       "attribute_id": "ATTR-015",
@@ -1236,19 +1191,6 @@
       "observed_by": "Clarence Mitchell",
       "truth_level": "INFERRED",
       "observation_id": "OBS-ENT-CM-001-20260219172717-030"
-    },
-    {
-      "observation": "Social profile imported from https://x.com/putchuon",
-      "observed_at": "2026-02-21T03:19:54.817Z",
-      "source": "x_profile",
-      "source_url": "https://x.com/putchuon",
-      "confidence": 1,
-      "confidence_label": "VERIFIED",
-      "truth_level": "STRONG",
-      "facts_layer": "L1_SELF",
-      "layer_number": 1,
-      "observed_by": "Clarence Mitchell",
-      "observation_id": "OBS-ENT-CM-001-20260221031954-031"
     }
   ],
   "provenance_chain": {
@@ -1701,18 +1643,18 @@
   "translations": [],
   "connected_objects": [
     {
-      "entity_id": "ENT-ORG-012",
+      "entity_id": "ENT-ORG-001",
       "entity_type": "organization",
       "label": "Amazon (Relay)"
     },
     {
-      "entity_id": "ENT-BIZ-F-031",
-      "entity_type": "business",
+      "entity_id": "ENT-ORG-002",
+      "entity_type": "organization",
       "label": "Fandom"
     },
     {
-      "entity_id": "ENT-BIZ-W-032",
-      "entity_type": "business",
+      "entity_id": "ENT-ORG-003",
+      "entity_type": "organization",
       "label": "Wayfair"
     },
     {
@@ -1721,8 +1663,8 @@
       "label": "Walmart"
     },
     {
-      "entity_id": "ENT-BIZ-DE-044",
-      "entity_type": "business",
+      "entity_id": "ENT-ORG-005",
+      "entity_type": "organization",
       "label": "Dell EMC"
     },
     {
@@ -1756,57 +1698,57 @@
       "label": "Howard University"
     },
     {
-      "entity_id": "ENT-ROLE-249",
+      "entity_id": "ENT-ROLE-089",
       "entity_type": "role",
       "label": "Principal Product Manager at Amazon (Relay)"
     },
     {
-      "entity_id": "ENT-ROLE-250",
+      "entity_id": "ENT-ROLE-090",
       "entity_type": "role",
       "label": "AI/DS Lead at Fandom"
     },
     {
-      "entity_id": "ENT-ROLE-251",
+      "entity_id": "ENT-ROLE-091",
       "entity_type": "role",
       "label": "AI/DS Lead at Wayfair"
     },
     {
-      "entity_id": "ENT-ROLE-252",
+      "entity_id": "ENT-ROLE-092",
       "entity_type": "role",
       "label": "AI/DS Lead at Walmart"
     },
     {
-      "entity_id": "ENT-ROLE-253",
+      "entity_id": "ENT-ROLE-093",
       "entity_type": "role",
       "label": "Position at Dell EMC"
     },
     {
-      "entity_id": "ENT-ROLE-254",
+      "entity_id": "ENT-ROLE-094",
       "entity_type": "role",
       "label": "Position at Deloitte"
     },
     {
-      "entity_id": "ENT-ROLE-255",
+      "entity_id": "ENT-ROLE-095",
       "entity_type": "role",
       "label": "YouTube Creator at Putchuon Channel"
     },
     {
-      "entity_id": "ENT-ROLE-256",
+      "entity_id": "ENT-ROLE-096",
       "entity_type": "role",
       "label": "Context Architecture Consultant at Self-employed"
     },
     {
-      "entity_id": "ENT-CRED-094",
+      "entity_id": "ENT-CRED-034",
       "entity_type": "credential",
       "label": "Master of Business Administration - MBA Entrepreneurship/Entrepreneurial Studies, Harvard University"
     },
     {
-      "entity_id": "ENT-CRED-095",
+      "entity_id": "ENT-CRED-035",
       "entity_type": "credential",
       "label": "MBA, Clark Atlanta University"
     },
     {
-      "entity_id": "ENT-CRED-096",
+      "entity_id": "ENT-CRED-036",
       "entity_type": "credential",
       "label": "BBA, Howard University"
     },
@@ -1894,6 +1836,12 @@
       "entity_id": "ENT-SKILL-017",
       "entity_type": "skill",
       "label": "AI Infrastructure Analysis"
+    },
+    {
+      "entity_id": "ENT-HO-100",
+      "entity_type": "person",
+      "label": "Harrison Osuorji"
     }
-  ]
+  ],
+  "entity_tier": "self"
 }

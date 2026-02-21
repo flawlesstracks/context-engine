@@ -408,5 +408,6 @@
     "org_dates": "2012",
     "org_descriptor": "alma mater, MBA in Finance & Product Management"
   },
-  "descriptor": "alma mater, MBA in Finance & Product Management"
+  "descriptor": "alma mater, MBA in Finance & Product Management",
+  "entity_tier": "outer"
 }

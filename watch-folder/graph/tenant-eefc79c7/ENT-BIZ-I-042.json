@@ -122,5 +122,6 @@
     "org_dates": "2013-2016",
     "org_descriptor": "entrepreneurial venture, technology startup"
   },
-  "descriptor": "entrepreneurial venture, technology startup"
+  "descriptor": "entrepreneurial venture, technology startup",
+  "entity_tier": "outer"
 }

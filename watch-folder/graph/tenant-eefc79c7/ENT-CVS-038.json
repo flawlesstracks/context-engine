@@ -350,5 +350,6 @@
     "descriptor_origin": "",
     "visual_tier": "neutral"
   },
-  "descriptor": "Stevana's daughter, London's close friend"
+  "descriptor": "Stevana's daughter, London's close friend",
+  "entity_tier": "outer"
 }

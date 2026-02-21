@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { readEntity, listEntities, writeEntity, getNextCounter } = require('./graph-ops');
+const { readEntity, listEntities, writeEntity, getNextCounter, getSelfEntityId, isSelfEntity } = require('./graph-ops');
 const { similarity, getAllNames, namesLikelyMatch, propertyOverlapCount, countSharedRelationships, getEntityProperties, merge } = require('../merge-engine');
 const { decomposePersonEntity } = require('./object-decomposer');
 
@@ -506,7 +506,11 @@ function scoreCluster(clusterId, graphDir) {
     const existingEntity = readEntity(bestMatch.entityId, graphDir);
     const signalOverlap = existingEntity ? computeSignalOverlap(signals, existingEntity) : 0;
 
-    if (signalOverlap > 0.6) {
+    // Self entity: always force Q2 (enrich, never Q4 skip) — user always reviews
+    if (isSelfEntity(bestMatch.entityId, graphDir)) {
+      quadrant = 2;
+      state = 'provisional';
+    } else if (signalOverlap > 0.6) {
       // Most signals already exist on entity → Q4 (Duplicate Data + Existing Entity)
       quadrant = 4;
       state = 'provisional';
@@ -678,8 +682,9 @@ function resolveCluster(clusterId, action, graphDir, agentId) {
     if (entityData.career_lite) incoming.career_lite = entityData.career_lite;
     if (entityData.structured_attributes) incoming.structured_attributes = entityData.structured_attributes;
 
-    // Merge structured data
-    const { merged } = merge(existing, incoming);
+    // Merge structured data (protect self entity name/summary)
+    const isSelf = isSelfEntity(cluster.candidate_entity_id, graphDir);
+    const { merged } = merge(existing, incoming, { isSelfEntity: isSelf });
     const result = merged || existing;
 
     // Career lite: incoming wins if it has experience data
