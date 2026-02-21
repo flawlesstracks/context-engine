@@ -7765,6 +7765,16 @@ const WIKI_HTML = `<!DOCTYPE html>
   }
   .sidebar-section-body { overflow: hidden; }
   .sidebar-section-body.collapsed { display: none; }
+  .sidebar-my-profile {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px; margin: 8px 8px 4px; cursor: pointer;
+    border-radius: 8px; transition: background 0.15s;
+  }
+  .sidebar-my-profile:hover { background: var(--bg-hover); }
+  .sidebar-my-profile.active {
+    background: #f5f0ff; border-left: 3px solid #6366f1;
+    padding-left: 13px;
+  }
   .sidebar-profile-header {
     display: flex; align-items: center; gap: 10px;
     padding: 8px 20px 4px;
@@ -9797,37 +9807,20 @@ function buildSidebarData() {
 function selectView(viewId) {
   if (!primaryEntityId) return;
   selectedId = primaryEntityId;
-  selectedView = viewId;
+  selectedView = null;
   selectedCategory = null;
-  window._liActiveTab = 'overview';
+  // Map sidebar lens IDs to tab bar IDs
+  var tabMap = { 'overview': 'overview', 'career-lite': 'career', 'network-map': 'network', 'intelligence-brief': 'intel-brief', 'org-brief': 'org-brief', 'source-provenance': 'sources' };
+  window._liActiveTab = tabMap[viewId] || 'overview';
   var mainEl = document.getElementById('main');
   if (mainEl) mainEl.className = '';
-  var viewLabels = { 'overview': 'Overview', 'career-lite': 'Career Lite', 'network-map': 'Network Map', 'intelligence-brief': 'Intelligence Brief', 'org-brief': 'Org Brief', 'source-provenance': 'Source Provenance' };
-  breadcrumbs = [
-    { label: 'My Profiles', action: '' },
-    { label: viewLabels[viewId] || viewId }
-  ];
-  renderBreadcrumbs();
+  breadcrumbs = [{ label: 'My Profile' }];
   var empty = document.getElementById('emptyState');
   if (empty) empty.style.display = 'none';
 
   var renderWithData = function(data) {
-    if (viewId === 'career-lite') {
-      renderCareerLite(data);
-    } else if (viewId === 'overview') {
-      renderProfileOverview(data);
-    } else if (viewId === 'source-provenance') {
-      renderSourceProvenance(data);
-    } else if (viewId === 'network-map') {
-      renderNetworkMapPlaceholder(data);
-    } else if (viewId === 'intelligence-brief') {
-      renderIntelligenceBriefPlaceholder(data);
-    } else if (viewId === 'org-brief') {
-      renderOrgDossier(data);
-    } else {
-      var label = viewId.replace(/-/g, ' ').replace(/\\b\\w/g, function(c) { return c.toUpperCase(); });
-      document.getElementById('main').innerHTML = '<div class="empty-state"><div style="font-size:1.1rem;font-weight:600;color:var(--text-primary);margin-bottom:8px;">' + esc(label) + '</div><div style="color:var(--text-muted);">View not yet implemented</div></div>';
-    }
+    selectedData = data;
+    renderDetail(data);
   };
 
   if (primaryEntityData) {
@@ -9835,7 +9828,6 @@ function selectView(viewId) {
   } else {
     api('GET', '/api/entity/' + primaryEntityId).then(function(data) {
       primaryEntityData = data;
-      selectedData = data;
       renderWithData(data);
     });
   }
@@ -10859,50 +10851,32 @@ function renderSidebar() {
   var html = '';
   var totalCount = 0;
 
-  // Section 1: My Profiles
+  // Section 1: My Profile — single link to self-entity with LinkedIn card layout
   if (data.you) {
-    html += renderSidebarSection('you', '\uD83D\uDC64', 'My Profiles', null, function() {
-      var h = '';
-      // Profile card with avatar + name + headline + health indicator
-      var headline = '';
-      var pAttrs = (primaryEntityData && primaryEntityData.attributes) || [];
-      for (var a = 0; a < pAttrs.length; a++) {
-        if (pAttrs[a].key === 'headline') { headline = String(pAttrs[a].value || ''); break; }
-      }
-      // Compute health for primary entity
-      var myHealth = primaryEntityData ? computeEntityHealth(primaryEntityData) : { level: 'thin', label: 'Thin' };
-      h += '<div class="sidebar-profile-header">';
-      h += '<div class="sidebar-profile-avatar">';
-      if (sessionUser && sessionUser.picture) {
-        h += '<img src="' + esc(sessionUser.picture) + '" alt="" />';
-      } else {
-        var n = data.you.name || (sessionUser && sessionUser.name) || '';
-        var init = n.split(/\\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
-        h += init;
-      }
-      h += '</div>';
-      h += '<div style="overflow:hidden;flex:1;">';
-      h += '<div class="sidebar-profile-name">' + esc(data.you.name || '') + '<span class="sidebar-health-dot health-' + myHealth.level + '" title="Entity health: ' + myHealth.label + '"></span></div>';
-      if (headline) h += '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(headline) + '</div>';
-      h += '</div>';
-      h += '</div>';
-      // Dynamic lenses based on entity data (MECE-007)
-      var views = primaryEntityData ? getAvailableLenses(primaryEntityData) : [
-        { id: 'overview', icon: '\uD83D\uDCCB', label: 'Overview' },
-        { id: 'source-provenance', icon: '\uD83D\uDD0D', label: 'Source Provenance' }
-      ];
-      for (var i = 0; i < views.length; i++) {
-        var v = views[i];
-        var active = (selectedId === primaryEntityId && selectedView === v.id);
-        var cls = 'sidebar-view-item' + (active ? ' active' : '');
-        h += '<div class="' + cls + '" onclick="selectView(' + "'" + v.id + "'" + ')">';
-        h += '<span class="view-icon">' + v.icon + '</span>';
-        h += '<span>' + esc(v.label) + '</span>';
-        h += '</div>';
-      }
-      totalCount++;
-      return h;
-    }, false);
+    var isMyProfileActive = (selectedId === primaryEntityId);
+    var headline = '';
+    var pAttrs = (primaryEntityData && primaryEntityData.attributes) || [];
+    for (var a = 0; a < pAttrs.length; a++) {
+      if (pAttrs[a].key === 'headline') { headline = String(pAttrs[a].value || ''); break; }
+    }
+    var myHealth = primaryEntityData ? computeEntityHealth(primaryEntityData) : { level: 'thin', label: 'Thin' };
+    html += '<div class="sidebar-my-profile' + (isMyProfileActive ? ' active' : '') + '" onclick="selectView(\'overview\')">';
+    html += '<div class="sidebar-profile-avatar">';
+    if (sessionUser && sessionUser.picture) {
+      html += '<img src="' + esc(sessionUser.picture) + '" alt="" />';
+    } else {
+      var n = data.you.name || (sessionUser && sessionUser.name) || '';
+      var init = n.split(/\\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
+      html += init;
+    }
+    html += '</div>';
+    html += '<div style="overflow:hidden;flex:1;">';
+    html += '<div class="sidebar-profile-name">My Profile<span class="sidebar-health-dot health-' + myHealth.level + '" title="Entity health: ' + myHealth.label + '"></span></div>';
+    html += '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(data.you.name || '') + '</div>';
+    if (headline) html += '<div style="font-size:10px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(headline) + '</div>';
+    html += '</div>';
+    html += '</div>';
+    totalCount++;
   }
 
   // Section 2: People
