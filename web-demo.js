@@ -7899,6 +7899,28 @@ const WIKI_HTML = `<!DOCTYPE html>
   .quadrant-badge.q3 { background: #fef3c7; color: #92400e; }
   .quadrant-badge.q4 { background: #f3e8ff; color: #6b21a8; }
 
+  /* Ambiguous cluster styling */
+  .rq-card.ambiguous { border-color: #f59e0b; border-width: 2px; background: linear-gradient(135deg, var(--bg-card) 97%, rgba(245,158,11,0.08) 100%); }
+  .rq-evidence-panel {
+    background: var(--bg-secondary); border-radius: var(--radius-sm);
+    padding: 10px 12px; margin: 8px 0; font-size: 0.78rem;
+  }
+  .rq-evidence-panel .ev-title {
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em;
+    color: #f59e0b; margin-bottom: 6px;
+  }
+  .rq-evidence-item {
+    display: flex; align-items: center; gap: 6px; padding: 2px 0; color: var(--text-secondary);
+  }
+  .rq-evidence-item .ev-icon { font-size: 0.85rem; width: 18px; text-align: center; flex-shrink: 0; }
+  .rq-evidence-item .ev-factor { font-weight: 600; color: var(--text-primary); min-width: 70px; }
+  .rq-evidence-item .ev-note { font-size: 0.72rem; color: var(--text-muted); font-style: italic; }
+  .rq-ambiguous-label {
+    display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px;
+    border-radius: 10px; font-size: 0.65rem; font-weight: 700;
+    background: rgba(245,158,11,0.15); color: #d97706; margin-left: 6px;
+  }
+
   /* Preview cluster overlay badges */
   .preview-cluster-badge {
     display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
@@ -11720,13 +11742,16 @@ function renderReviewQueue(clusters) {
     var entityType = c.entity_type || 'person';
     var entityIcon = entityType === 'person' ? '&#128100;' : entityType === 'organization' || entityType === 'business' ? '&#127970;' : '&#128196;';
 
-    var ch = '<div class="rq-card" id="cluster-' + esc(cid) + '">';
+    var isAmbiguous = !!c.ambiguous;
+    var ch = '<div class="rq-card' + (isAmbiguous ? ' ambiguous' : '') + '" id="cluster-' + esc(cid) + '">';
 
     // Card header with icon, name, quadrant badge
     ch += '<div class="rq-card-header">';
     ch += '<div class="rq-entity-icon ' + esc(entityType) + '">' + entityIcon + '</div>';
     ch += '<div class="rq-card-title">';
-    ch += '<div class="rq-card-name">' + esc(displayName) + ' <span class="type-badge ' + esc(entityType) + '" style="font-size:0.6rem;padding:1px 6px;">' + esc(entityType) + '</span></div>';
+    ch += '<div class="rq-card-name">' + esc(displayName) + ' <span class="type-badge ' + esc(entityType) + '" style="font-size:0.6rem;padding:1px 6px;">' + esc(entityType) + '</span>';
+    if (isAmbiguous) ch += '<span class="rq-ambiguous-label">\\u26A0 AMBIGUOUS</span>';
+    ch += '</div>';
     ch += '<div class="rq-card-source">' + esc(getSourceLabel(sourceType));
     if (sourceUrl) ch += ' &mdash; ' + esc(sourceUrl.length > 50 ? sourceUrl.substring(0, 50) + '...' : sourceUrl);
     ch += '</div>';
@@ -11759,9 +11784,36 @@ function renderReviewQueue(clusters) {
     if (orgs.length > 0) ch += '<span class="rq-signal-item"><strong>Orgs:</strong> ' + orgs.slice(0, 3).map(function(o) { return esc(o); }).join(', ') + '</span>';
     ch += '</div>';
 
+    // Evidence panel for ambiguous clusters
+    if (isAmbiguous && c.evidence && c.evidence.length > 0) {
+      ch += '<div class="rq-evidence-panel">';
+      ch += '<div class="ev-title">\\u26A0 Evidence — Is this the same entity as ' + esc(candidateName) + '?</div>';
+      for (var ei = 0; ei < c.evidence.length; ei++) {
+        var ev = c.evidence[ei];
+        var evIcon = ev.status === 'match' ? '\\u2705' : ev.status === 'conflict' ? '\\u274C' : '\\u26A0\\uFE0F';
+        ch += '<div class="rq-evidence-item">';
+        ch += '<span class="ev-icon">' + evIcon + '</span>';
+        ch += '<span class="ev-factor">' + esc(ev.factor) + ':</span>';
+        ch += '<span>' + esc(ev.value || '') + ' ';
+        if (ev.status === 'match') ch += '<span style="color:#22c55e;">matches</span>';
+        else if (ev.status === 'conflict') ch += '<span style="color:#ef4444;">conflicts</span>';
+        else if (ev.status === 'partial') ch += '<span style="color:#f59e0b;">partial match</span>';
+        else ch += '<span style="color:#9ca3af;">no match</span>';
+        ch += '</span>';
+        if (ev.note) ch += ' <span class="ev-note">(' + esc(ev.note) + ')</span>';
+        ch += '</div>';
+      }
+      ch += '</div>';
+    }
+
     // Action buttons
     ch += '<div class="rq-actions">';
-    if (q === 1) {
+    if (isAmbiguous && candidateName) {
+      // Ambiguous: show both explicit options
+      ch += '<button class="rq-btn-merge" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'merge' + "'" + ')">Yes, same person \\u2014 merge into ' + esc(candidateName) + '</button>';
+      ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Different person \\u2014 create new</button>';
+      ch += '<button class="rq-btn-hold" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'hold' + "'" + ')">Hold</button>';
+    } else if (q === 1) {
       ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create New Entity</button>';
       ch += '<button class="rq-btn-hold" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'hold' + "'" + ')">Hold</button>';
     } else if (q === 2) {

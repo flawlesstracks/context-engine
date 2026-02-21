@@ -331,6 +331,190 @@ const ASSOCIATION_WEIGHTS = {
   bio: 0.05,
 };
 
+// --- FIX 2: Name Rarity — common names need stronger evidence ---
+
+const COMMON_FIRST_NAMES = new Set([
+  'james','robert','john','michael','david','william','richard','joseph','thomas','charles',
+  'christopher','daniel','matthew','anthony','mark','donald','steven','andrew','paul','joshua',
+  'kenneth','kevin','brian','george','timothy','ronald','edward','jason','jeffrey','ryan',
+  'jacob','gary','nicholas','eric','jonathan','stephen','larry','justin','scott','brandon',
+  'benjamin','samuel','raymond','gregory','frank','alexander','patrick','jack','dennis','jerry',
+  'tyler','aaron','jose','nathan','henry','peter','douglas','zachary','adam','harold',
+  'kyle','albert','arthur','gerald','carl','roger','keith','lawrence','terry','sean',
+  'austin','jesse','christian','ralph','eugene','bruce','randy','russell','harry','philip',
+  'mary','patricia','jennifer','linda','barbara','elizabeth','susan','jessica','sarah','karen',
+  'lisa','nancy','betty','margaret','sandra','ashley','dorothy','kimberly','emily','donna',
+  'michelle','carol','amanda','melissa','deborah','stephanie','rebecca','sharon','laura','cynthia',
+  'kathleen','amy','angela','shirley','anna','brenda','pamela','emma','nicole','helen',
+  'samantha','katherine','christine','debra','rachel','carolyn','janet','catherine','maria','heather',
+  'diane','ruth','julie','olivia','joyce','virginia','victoria','kelly','lauren','christina',
+  'joan','evelyn','judith','megan','andrea','cheryl','hannah','jacqueline','martha','gloria',
+  'teresa','ann','sara','madison','frances','kathryn','janice','jean','abigail','alice',
+  'judy','sophia','grace','denise','amber','doris','marilyn','danielle','beverly','isabella',
+  'theresa','diana','natalie','brittany','charlotte','marie','kayla','alexis','lori',
+  'steve','mike','chris','dan','matt','tony','tom','bob','bill','joe','jim','tim','dave',
+  'nick','ben','jeff','greg','frank','ray','sam','ed','ted','al','cj','aj','dj','tj',
+]);
+
+const COMMON_LAST_NAMES = new Set([
+  'smith','johnson','williams','brown','jones','garcia','miller','davis','rodriguez','martinez',
+  'hernandez','lopez','gonzalez','wilson','anderson','thomas','taylor','moore','jackson','martin',
+  'lee','perez','thompson','white','harris','sanchez','clark','ramirez','lewis','robinson',
+  'walker','young','allen','king','wright','scott','torres','nguyen','hill','flores',
+  'green','adams','nelson','baker','hall','rivera','campbell','mitchell','carter','roberts',
+  'gomez','phillips','evans','turner','diaz','parker','cruz','edwards','collins','reyes',
+  'stewart','morris','morales','murphy','cook','rogers','gutierrez','ortiz','morgan','cooper',
+  'peterson','bailey','reed','kelly','howard','ramos','kim','cox','ward','richardson',
+  'watson','brooks','chavez','wood','james','bennett','gray','mendoza','ruiz','hughes',
+  'price','alvarez','castillo','sanders','patel','myers','long','ross','foster','jimenez','powell',
+]);
+
+function assessNameRarity(name) {
+  if (!name) return { rarity: 'standard', threshold: 0.3 };
+  const parts = name.toLowerCase().trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { rarity: 'standard', threshold: 0.3 };
+
+  const firstName = parts[0];
+  const lastName = parts.length > 1 ? parts[parts.length - 1] : '';
+
+  const firstCommon = COMMON_FIRST_NAMES.has(firstName);
+  const lastCommon = lastName ? COMMON_LAST_NAMES.has(lastName) : false;
+
+  if (firstCommon && lastCommon) return { rarity: 'very_common', threshold: 0.45 };
+  if (firstCommon || lastCommon) return { rarity: 'common', threshold: 0.35 };
+  // Check if it's a single short name (like "CJ" or "Andre") — less unique
+  if (parts.length === 1 && parts[0].length <= 3) return { rarity: 'common', threshold: 0.35 };
+  return { rarity: 'standard', threshold: 0.3 };
+}
+
+// --- FIX 1: Contradiction Penalty (with temporal awareness) ---
+
+function getAttributeDate(entity, attrKey) {
+  // Find the most recent date for a given attribute type
+  for (const attr of (entity.attributes || [])) {
+    if ((attr.key || '').toLowerCase() === attrKey.toLowerCase()) {
+      return attr.observed_at || attr.extracted_at || null;
+    }
+  }
+  // Check provenance for last update date
+  const merges = entity.provenance_chain?.merge_history || [];
+  if (merges.length > 0) return merges[merges.length - 1].merged_at;
+  return entity.provenance_chain?.created_at || null;
+}
+
+function isRecent(dateStr, yearsThreshold) {
+  if (!dateStr) return false; // No date = assume stale
+  const d = new Date(dateStr);
+  const now = new Date();
+  const years = (now - d) / (1000 * 60 * 60 * 24 * 365.25);
+  return years <= yearsThreshold;
+}
+
+function computeContradictionPenalty(signals, entity, factors) {
+  let totalPenalty = 0;
+  const contradictions = [];
+
+  const existingHandles = getEntitySocialHandles(entity);
+
+  // --- Handle contradiction: both have LinkedIn but different URLs ---
+  if (signals.handles.linkedin && existingHandles.linkedin &&
+      signals.handles.linkedin !== existingHandles.linkedin) {
+    totalPenalty += 0.2;
+    contradictions.push({ factor: 'handle', type: 'linkedin_url', penalty: -0.2,
+      incoming: signals.handles.linkedin, existing: existingHandles.linkedin,
+      note: 'Different LinkedIn URLs — strong identity conflict' });
+  }
+  if (signals.handles.x && existingHandles.x && signals.handles.x !== existingHandles.x) {
+    totalPenalty += 0.2;
+    contradictions.push({ factor: 'handle', type: 'x_handle', penalty: -0.2,
+      incoming: signals.handles.x, existing: existingHandles.x,
+      note: 'Different X handles' });
+  }
+  if (signals.handles.instagram && existingHandles.instagram &&
+      signals.handles.instagram !== existingHandles.instagram) {
+    totalPenalty += 0.2;
+    contradictions.push({ factor: 'handle', type: 'instagram_handle', penalty: -0.2,
+      incoming: signals.handles.instagram, existing: existingHandles.instagram,
+      note: 'Different Instagram handles' });
+  }
+
+  // --- Name contradiction: clearly different names (low Dice AND not nickname match) ---
+  if (factors.name > 0 && factors.name < 0.4) {
+    // Names are present but score very low — likely different people
+    const existingPrimary = entity.entity?.name?.full || entity.entity?.name?.common || '';
+    const incomingPrimary = signals.names[0] || '';
+    if (existingPrimary && incomingPrimary) {
+      // Only penalize if namesLikelyMatch also fails (rules out nicknames)
+      const existingNames = getAllNames(entity);
+      if (!namesLikelyMatch(signals.names, existingNames)) {
+        totalPenalty += 0.15;
+        contradictions.push({ factor: 'name', penalty: -0.15,
+          incoming: incomingPrimary, existing: existingPrimary,
+          note: 'Names are different and not nickname variants' });
+      }
+    }
+  }
+
+  // --- Org contradiction: different current companies ---
+  const existingProps = getEntityProperties(entity);
+  if (signals.organizations.length > 0 && existingProps.company) {
+    const incomingOrg = signals.organizations[0].toLowerCase();
+    const existingOrg = existingProps.company.toLowerCase();
+    if (incomingOrg && existingOrg && similarity(incomingOrg, existingOrg) < 0.3) {
+      totalPenalty += 0.05;
+      contradictions.push({ factor: 'org', penalty: -0.05,
+        incoming: signals.organizations[0], existing: existingProps.company,
+        note: 'Different companies (weak — people change jobs)' });
+    }
+  }
+
+  // --- Location contradiction: temporal awareness ---
+  if (signals.locations.length > 0) {
+    const incomingLoc = signals.locations[0].toLowerCase();
+    let existingLoc = '';
+    let existingLocDate = null;
+
+    // Get existing location and its date
+    for (const attr of (entity.attributes || [])) {
+      if (['location', 'current_location'].includes((attr.key || '').toLowerCase()) && attr.value) {
+        existingLoc = attr.value.toLowerCase();
+        existingLocDate = attr.observed_at || attr.extracted_at || null;
+        break;
+      }
+    }
+    if (!existingLoc && entity.career_lite?.location) {
+      existingLoc = entity.career_lite.location.toLowerCase();
+      existingLocDate = getAttributeDate(entity, 'location');
+    }
+
+    if (existingLoc && incomingLoc && similarity(incomingLoc, existingLoc) < 0.3) {
+      // Locations clearly disagree — check temporal context
+      const incomingDate = signals._extracted_at || null;
+      const incomingRecent = isRecent(incomingDate, 2);
+      const existingRecent = isRecent(existingLocDate, 2);
+
+      if (incomingRecent && existingRecent) {
+        // Both recent: strong contradiction
+        totalPenalty += 0.15;
+        contradictions.push({ factor: 'location', penalty: -0.15,
+          incoming: signals.locations[0], existing: existingLoc,
+          note: 'Different locations, both recent — likely different people' });
+      } else {
+        // One or both stale: weak contradiction (person may have moved)
+        totalPenalty += 0.05;
+        const reason = !incomingDate && !existingLocDate
+          ? 'no date metadata — assume stale'
+          : 'data age differs — person may have moved';
+        contradictions.push({ factor: 'location', penalty: -0.05,
+          incoming: signals.locations[0], existing: existingLoc,
+          note: 'Different locations (' + reason + ')' });
+      }
+    }
+  }
+
+  return { totalPenalty, contradictions };
+}
+
 function computeAssociationScore(signals, entityType, entity) {
   const existingType = entity.entity?.entity_type;
   if (!existingType) return { score: 0, factors: {}, matchType: null };
@@ -495,11 +679,17 @@ function computeAssociationScore(signals, entityType, entity) {
   }
 
   // --- Weighted composite score ---
-  const score = (ASSOCIATION_WEIGHTS.name * nameScore) +
-                (ASSOCIATION_WEIGHTS.handle * handleScore) +
-                (ASSOCIATION_WEIGHTS.org_title * orgTitleScore) +
-                (ASSOCIATION_WEIGHTS.location * locationScore) +
-                (ASSOCIATION_WEIGHTS.bio * bioScore);
+  const rawScore = (ASSOCIATION_WEIGHTS.name * nameScore) +
+                   (ASSOCIATION_WEIGHTS.handle * handleScore) +
+                   (ASSOCIATION_WEIGHTS.org_title * orgTitleScore) +
+                   (ASSOCIATION_WEIGHTS.location * locationScore) +
+                   (ASSOCIATION_WEIGHTS.bio * bioScore);
+
+  const factors = { name: nameScore, handle: handleScore, org_title: orgTitleScore, location: locationScore, bio: bioScore };
+
+  // --- FIX 1: Apply contradiction penalty ---
+  const { totalPenalty, contradictions } = computeContradictionPenalty(signals, entity, factors);
+  const score = Math.max(0, rawScore - totalPenalty);
 
   // Determine primary match type from strongest factor
   let matchType = null;
@@ -509,7 +699,7 @@ function computeAssociationScore(signals, entityType, entity) {
   else if (nameScore > 0.5 && orgTitleScore > 0) matchType = 'name_org_title';
   else if (nameScore > 0) matchType = nameMethod || 'name_partial';
 
-  return { score, factors: { name: nameScore, handle: handleScore, org_title: orgTitleScore, location: locationScore, bio: bioScore }, matchType };
+  return { score, rawScore, factors, contradictions, contradictionPenalty: totalPenalty, matchType };
 }
 
 // --- STEP 3: Data Novelty Check ---
@@ -681,22 +871,36 @@ function scoreCluster(clusterId, graphDir) {
 
   // ═══ STEP 2: ASSOCIATION CONFIDENCE (5-factor weighted matching) ═══
   const existingEntities = listEntities(graphDir);
-  let bestMatch = { score: 0, entityId: null, entityName: null, matchType: null, factors: {} };
+  let bestMatch = { score: 0, rawScore: 0, entityId: null, entityName: null, matchType: null, factors: {}, contradictions: [], contradictionPenalty: 0 };
 
   for (const { file, data } of existingEntities) {
-    const { score, matchType, factors } = computeAssociationScore(signals, entityType, data);
-    if (score > bestMatch.score) {
+    const result = computeAssociationScore(signals, entityType, data);
+    if (result.score > bestMatch.score) {
       const eid = data.entity?.entity_id || file.replace('.json', '');
       const existingType = data.entity?.entity_type;
       const ename = existingType === 'person'
         ? (data.entity?.name?.full || '')
         : (data.entity?.name?.common || data.entity?.name?.legal || '');
-      bestMatch = { score, entityId: eid, entityName: ename, matchType, factors };
+      bestMatch = { score: result.score, rawScore: result.rawScore, entityId: eid, entityName: ename, matchType: result.matchType, factors: result.factors, contradictions: result.contradictions, contradictionPenalty: result.contradictionPenalty };
     }
   }
 
+  // ═══ FIX 2: Name Rarity Threshold ═══
+  const primaryName = signals.names[0] || '';
+  const { rarity, threshold: rarityThreshold } = assessNameRarity(primaryName);
+
+  // ═══ FIX 3: Three-Zone Classification ═══
+  let matchZone;
+  if (bestMatch.score > 0.6) {
+    matchZone = 'HIGH_CONFIDENCE_MATCH';
+  } else if (bestMatch.score > rarityThreshold) {
+    matchZone = 'AMBIGUOUS_MATCH';
+  } else {
+    matchZone = 'NO_MATCH';
+  }
+
   // ═══ STEP 3: DATA NOVELTY CHECK ═══
-  const isExistingEntity = bestMatch.score > 0.3; // Spec threshold: 0.3
+  const isExistingEntity = matchZone !== 'NO_MATCH'; // Either HIGH or AMBIGUOUS
   let novelty = { ratio: 1.0, newSignals: 0, duplicateSignals: 0, details: [] };
   let candidateEntity = null;
 
@@ -707,10 +911,32 @@ function scoreCluster(clusterId, graphDir) {
     }
   }
 
-  // ═══ STEP 4: QUADRANT ASSIGNMENT ═══
-  // Two binary dimensions: entity existence (score > 0.3) × data novelty (>50% new)
+  // ═══ STEP 4: QUADRANT ASSIGNMENT (with three-zone awareness) ═══
   const isNewData = novelty.ratio > 0.5;
   let quadrant, quadrantLabel, state;
+  const isAmbiguous = matchZone === 'AMBIGUOUS_MATCH';
+
+  // Build evidence panel for ambiguous matches
+  let evidence = null;
+  if (isAmbiguous && candidateEntity) {
+    evidence = [];
+    // Name evidence
+    if (bestMatch.factors.name > 0.7) evidence.push({ factor: 'Name', value: primaryName, status: 'match', icon: 'check' });
+    else if (bestMatch.factors.name > 0.4) evidence.push({ factor: 'Name', value: primaryName, status: 'partial', icon: 'warn' });
+    else if (bestMatch.factors.name > 0) evidence.push({ factor: 'Name', value: primaryName, status: 'weak', icon: 'warn' });
+    // Handle evidence
+    if (bestMatch.factors.handle > 0) evidence.push({ factor: 'Handle', value: 'social handle', status: 'match', icon: 'check' });
+    // Org evidence
+    if (bestMatch.factors.org_title > 0.5) evidence.push({ factor: 'Org+Title', value: signals.organizations[0] || '', status: 'match', icon: 'check' });
+    else if (signals.organizations.length > 0) evidence.push({ factor: 'Org', value: signals.organizations[0], status: 'no_match', icon: 'warn' });
+    // Location evidence
+    if (bestMatch.factors.location > 0.5) evidence.push({ factor: 'Location', value: signals.locations[0] || '', status: 'match', icon: 'check' });
+    else if (signals.locations.length > 0) evidence.push({ factor: 'Location', value: signals.locations[0], status: 'no_match', icon: 'warn' });
+    // Contradictions
+    for (const c of (bestMatch.contradictions || [])) {
+      evidence.push({ factor: c.factor, value: c.incoming + ' vs ' + c.existing, status: 'conflict', icon: 'conflict', note: c.note });
+    }
+  }
 
   if (isExistingEntity) {
     cluster.candidate_entity_id = bestMatch.entityId;
@@ -787,8 +1013,16 @@ function scoreCluster(clusterId, graphDir) {
   // ═══ STORE RESULTS ═══
   cluster.confidence = bestMatch.score;
   cluster.association_confidence = bestMatch.score;
+  cluster.association_raw_score = bestMatch.rawScore;
   cluster.association_factors = bestMatch.factors;
+  cluster.contradiction_penalty = bestMatch.contradictionPenalty;
+  cluster.contradictions = bestMatch.contradictions;
   cluster.match_type = bestMatch.matchType;
+  cluster.match_zone = matchZone;
+  cluster.name_rarity = rarity;
+  cluster.rarity_threshold = rarityThreshold;
+  cluster.ambiguous = isAmbiguous;
+  cluster.evidence = evidence;
   cluster.quadrant = quadrant;
   cluster.quadrant_label = quadrantLabel;
   cluster.state = state;

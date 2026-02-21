@@ -157,5 +157,20 @@
     "new_signals": 0,
     "duplicate_signals": 0,
     "details": []
-  }
+  },
+  "association_raw_score": 0.4,
+  "contradiction_penalty": 0,
+  "contradictions": [],
+  "match_zone": "AMBIGUOUS_MATCH",
+  "name_rarity": "standard",
+  "rarity_threshold": 0.3,
+  "ambiguous": true,
+  "evidence": [
+    {
+      "factor": "Name",
+      "value": "Friends of FAM, Inc.",
+      "status": "match",
+      "icon": "check"
+    }
+  ]
 }

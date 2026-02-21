@@ -9,12 +9,12 @@
     "weight": 0.9
   },
   "state": "provisional",
-  "confidence": 0.08522727272727273,
+  "confidence": 0,
   "signal_confidence": 0.9,
   "candidate_entity_id": null,
   "candidate_entity_name": null,
   "quadrant": 3,
-  "match_type": "org_name_normalized",
+  "match_type": null,
   "signals": {
     "names": [
       "Microsoft"
@@ -144,14 +144,8 @@
   "resolved_at": null,
   "related_mentions": 0,
   "related_clusters": 1,
-  "association_confidence": 0.08522727272727273,
-  "association_factors": {
-    "name": 0.18181818181818182,
-    "handle": 0,
-    "org_title": 0,
-    "location": 0,
-    "bio": 0.25
-  },
+  "association_confidence": 0,
+  "association_factors": {},
   "quadrant_label": "Q3_CONSOLIDATE",
   "data_novelty_ratio": 1,
   "data_novelty": {
@@ -159,5 +153,13 @@
     "new_signals": 0,
     "duplicate_signals": 0,
     "details": []
-  }
+  },
+  "association_raw_score": 0,
+  "contradiction_penalty": 0,
+  "contradictions": [],
+  "match_zone": "NO_MATCH",
+  "name_rarity": "standard",
+  "rarity_threshold": 0.3,
+  "ambiguous": false,
+  "evidence": null
 }

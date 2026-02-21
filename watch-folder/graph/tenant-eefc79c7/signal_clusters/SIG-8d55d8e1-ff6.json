@@ -9,7 +9,7 @@
     "weight": 0.9
   },
   "state": "provisional",
-  "confidence": 0.22857142857142856,
+  "confidence": 0.17857142857142855,
   "signal_confidence": 0.9,
   "candidate_entity_id": null,
   "candidate_entity_name": null,
@@ -402,7 +402,7 @@
   "resolved_at": null,
   "related_mentions": 0,
   "related_clusters": 1,
-  "association_confidence": 0.22857142857142856,
+  "association_confidence": 0.17857142857142855,
   "association_factors": {
     "name": 0.5714285714285714,
     "handle": 0,
@@ -417,5 +417,21 @@
     "new_signals": 0,
     "duplicate_signals": 0,
     "details": []
-  }
+  },
+  "association_raw_score": 0.22857142857142856,
+  "contradiction_penalty": 0.05,
+  "contradictions": [
+    {
+      "factor": "location",
+      "penalty": -0.05,
+      "incoming": "Seattle, Washington, United States",
+      "existing": "gary, indiana",
+      "note": "Different locations (no date metadata — assume stale)"
+    }
+  ],
+  "match_zone": "NO_MATCH",
+  "name_rarity": "common",
+  "rarity_threshold": 0.35,
+  "ambiguous": false,
+  "evidence": null
 }

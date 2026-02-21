@@ -105,9 +105,12 @@ All extraction paths (URL paste, LinkedIn, X/IG, file upload) flow through signa
    - org_title_match: 0.15 weight (company + title fuzzy match)
    - location_match: 0.1 weight (city/state token overlap)
    - bio_similarity: 0.05 weight (keyword overlap on summary/bio)
-   - Entity with highest score > 0.3 threshold = candidate_entity_id
+   - Contradiction penalty (FIX 1): handle mismatch -0.2, name mismatch -0.15, org mismatch -0.05, location VARIABLE (-0.15 if both recent, -0.05 if stale/no date)
+   - Name rarity (FIX 2): very_common (both first+last top 100) = 0.45 threshold, common = 0.35, standard = 0.3
+   - Three-zone (FIX 3): HIGH_CONFIDENCE_MATCH (>0.6), AMBIGUOUS_MATCH (threshold-0.6), NO_MATCH (<threshold)
+   - Ambiguous clusters get evidence panel + both merge/create options in Review Queue
 3. **STEP 3: Data Novelty** — per-signal check against candidate entity. >50% new = NEW DATA, >50% duplicate = DUPLICATE DATA. Stored as data_novelty_ratio.
-4. **STEP 4: Quadrant Assignment** — entity existence (score > 0.3) × data novelty (>50% new):
+4. **STEP 4: Quadrant Assignment** — entity existence (HIGH or AMBIGUOUS match) × data novelty (>50% new):
    - Q1_CREATE: New Data + New Entity
    - Q2_ENRICH: New Data + Existing Entity
    - Q3_CONSOLIDATE: Duplicate Data + New Entity

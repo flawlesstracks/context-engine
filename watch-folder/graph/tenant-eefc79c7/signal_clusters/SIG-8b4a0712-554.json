@@ -8,12 +8,12 @@
     "description": "linkedin_api:https://www.linkedin.com/in/steve-hughes/",
     "weight": 0.9
   },
-  "state": "provisional",
-  "confidence": 0.328,
+  "state": "unresolved",
+  "confidence": 0.278,
   "signal_confidence": 0.9,
   "candidate_entity_id": "ENT-SH-052",
   "candidate_entity_name": "Steve Hughes",
-  "quadrant": 2,
+  "quadrant": 1,
   "match_type": "name_alias",
   "signals": {
     "names": [
@@ -52,7 +52,7 @@
         "sources": [
           "SIG-8b4a0712-554"
         ],
-        "projected_confidence": 1
+        "projected_confidence": 0.9
       },
       {
         "value": "Steven",
@@ -60,7 +60,7 @@
         "sources": [
           "SIG-8b4a0712-554"
         ],
-        "projected_confidence": 1
+        "projected_confidence": 0.9
       }
     ],
     "handles": {
@@ -72,7 +72,7 @@
         "sources": [
           "SIG-8b4a0712-554"
         ],
-        "projected_confidence": 1
+        "projected_confidence": 0.9
       }
     },
     "titles": [
@@ -82,7 +82,7 @@
         "sources": [
           "SIG-8b4a0712-554"
         ],
-        "projected_confidence": 1
+        "projected_confidence": 0.9
       }
     ],
     "organizations": [
@@ -92,7 +92,7 @@
         "sources": [
           "SIG-8b4a0712-554"
         ],
-        "projected_confidence": 1
+        "projected_confidence": 0.9
       },
       {
         "value": "American Water Resources Association - Washington Section",
@@ -100,7 +100,7 @@
         "sources": [
           "SIG-8b4a0712-554"
         ],
-        "projected_confidence": 1
+        "projected_confidence": 0.9
       }
     ],
     "locations": [
@@ -110,7 +110,7 @@
         "sources": [
           "SIG-8b4a0712-554"
         ],
-        "projected_confidence": 1
+        "projected_confidence": 0.9
       }
     ],
     "bios": [
@@ -120,7 +120,7 @@
         "sources": [
           "SIG-8b4a0712-554"
         ],
-        "projected_confidence": 1
+        "projected_confidence": 0.9
       }
     ],
     "skills": [],
@@ -131,7 +131,7 @@
         "sources": [
           "SIG-8b4a0712-554"
         ],
-        "projected_confidence": 1
+        "projected_confidence": 0.9
       }
     ],
     "raw_text": "LinkedIn profile imported from https://www.linkedin.com/in/steve-hughes/"
@@ -323,7 +323,7 @@
   },
   "created_at": "2026-02-21T19:21:49.666Z",
   "resolved_at": null,
-  "association_confidence": 0.328,
+  "association_confidence": 0.278,
   "association_factors": {
     "name": 0.82,
     "handle": 0,
@@ -331,42 +331,28 @@
     "location": 0,
     "bio": 0
   },
-  "quadrant_label": "Q2_ENRICH",
+  "quadrant_label": "Q1_CREATE",
   "data_novelty_ratio": 1,
   "data_novelty": {
     "ratio": 1,
-    "new_signals": 6,
+    "new_signals": 0,
     "duplicate_signals": 0,
-    "details": [
-      {
-        "key": "linkedin_url",
-        "status": "new"
-      },
-      {
-        "key": "title",
-        "value": "Board Member (Volunteer)",
-        "status": "new"
-      },
-      {
-        "key": "organization",
-        "value": "Evergreen Goodwill Industries",
-        "status": "new"
-      },
-      {
-        "key": "organization",
-        "value": "American Water Resources Association - Washington Section",
-        "status": "new"
-      },
-      {
-        "key": "location",
-        "value": "Greater Seattle Area",
-        "status": "new"
-      },
-      {
-        "key": "education",
-        "value": "University of Wisconsin-Milwaukee",
-        "status": "new"
-      }
-    ]
-  }
+    "details": []
+  },
+  "association_raw_score": 0.328,
+  "contradiction_penalty": 0.05,
+  "contradictions": [
+    {
+      "factor": "location",
+      "penalty": -0.05,
+      "incoming": "Greater Seattle Area",
+      "existing": "atlanta, ga",
+      "note": "Different locations (no date metadata — assume stale)"
+    }
+  ],
+  "match_zone": "NO_MATCH",
+  "name_rarity": "very_common",
+  "rarity_threshold": 0.45,
+  "ambiguous": false,
+  "evidence": null
 }
