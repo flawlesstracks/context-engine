@@ -8045,6 +8045,122 @@ const WIKI_HTML = `<!DOCTYPE html>
     font-size: 0.85rem; margin-right: 8px; flex-shrink: 0;
   }
 
+  /* ========================================
+     OVERVIEW DASHBOARD
+     ======================================== */
+  .ov-section { margin-bottom: 24px; }
+  .ov-section-title {
+    font-size: 0.72rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--text-muted);
+    margin-bottom: 12px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .ov-coverage-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .ov-coverage-cat {
+    background: var(--bg-card); border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md); padding: 14px 16px;
+  }
+  .ov-coverage-cat-title {
+    font-size: 0.78rem; font-weight: 700; color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+  .ov-coverage-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.78rem; color: var(--text-secondary);
+    padding: 3px 0;
+  }
+  .ov-coverage-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .ov-coverage-dot.filled { background: #22c55e; }
+  .ov-coverage-dot.empty { background: var(--bg-tertiary); border: 1.5px solid var(--text-muted); }
+  .ov-stat-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .ov-stat-card {
+    background: var(--bg-card); border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md); padding: 14px 12px; text-align: center;
+  }
+  .ov-stat-value {
+    font-size: 1.5rem; font-weight: 800; color: #6366f1;
+    line-height: 1;
+  }
+  .ov-stat-label {
+    font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase;
+    letter-spacing: 0.04em; margin-top: 4px;
+  }
+  .ov-activity-item {
+    display: flex; gap: 12px; padding: 10px 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .ov-activity-item:last-child { border-bottom: none; }
+  .ov-activity-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: #6366f1;
+    flex-shrink: 0; margin-top: 6px;
+  }
+  .ov-activity-text {
+    font-size: 0.82rem; color: var(--text-primary); line-height: 1.4;
+  }
+  .ov-activity-meta {
+    font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+  }
+  .ov-conn-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .ov-conn-card {
+    display: flex; align-items: center; gap: 10px;
+    background: var(--bg-card); border: 1px solid var(--border-primary);
+    border-radius: var(--radius-md); padding: 12px 14px;
+    transition: all var(--transition-fast);
+  }
+  .ov-conn-card:hover { border-color: #6366f1; transform: translateY(-1px); }
+  .ov-conn-avatar {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 700; color: var(--text-muted); flex-shrink: 0;
+  }
+  .ov-conn-info { flex: 1; min-width: 0; }
+  .ov-conn-name {
+    font-size: 0.82rem; font-weight: 600; color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .ov-conn-type {
+    font-size: 0.68rem; color: var(--text-muted); margin-top: 1px;
+  }
+  .ov-source-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; background: var(--bg-card);
+    border: 1px solid var(--border-primary); border-radius: var(--radius-sm);
+    margin-bottom: 6px;
+  }
+  .ov-source-name {
+    font-size: 0.82rem; font-weight: 500; color: var(--text-primary);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .ov-source-count {
+    font-size: 0.75rem; font-weight: 700; color: #6366f1;
+    background: rgba(99,102,241,0.1); padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .ov-tier-bar {
+    display: flex; height: 8px; border-radius: 4px; overflow: hidden;
+    background: var(--border-primary); margin-top: 12px;
+  }
+  .ov-tier-legend {
+    display: flex; justify-content: space-between;
+    font-size: 0.68rem; color: var(--text-muted); margin-top: 4px;
+  }
+  .ov-tier-dot {
+    display: inline-block; width: 8px; height: 8px;
+    border-radius: 2px; margin-right: 4px; vertical-align: middle;
+  }
+
 </style>
 </head>
 <body>
@@ -8907,6 +9023,7 @@ function renderOrgCategoryPage(category, orgs) {
 
 function renderProfileOverview(data) {
   var e = data.entity || {};
+  var cl = data.career_lite || {};
   var name = (e.name && (e.name.full || e.name.preferred || e.name.common)) || '';
   var summary = (e.summary && e.summary.value) || '';
   var attrs = data.attributes || [];
@@ -8915,13 +9032,15 @@ function renderProfileOverview(data) {
     return new Date(b.observed_at || 0) - new Date(a.observed_at || 0);
   });
   var rels = data.relationships || [];
+  var prov = data.provenance_chain || {};
 
-  // Extract key attributes
-  var headline = '', location = '';
+  // Build attribute map
+  var attrMap = {};
   for (var i = 0; i < attrs.length; i++) {
-    if (attrs[i].key === 'headline') headline = String(attrs[i].value || '');
-    if (attrs[i].key === 'location') location = String(attrs[i].value || '');
+    attrMap[attrs[i].key] = String(attrs[i].value || '');
   }
+  var headline = attrMap['headline'] || '';
+  var location = attrMap['location'] || cl.location || '';
 
   // Count connected objects by type
   var connCounts = {};
@@ -8932,77 +9051,237 @@ function renderProfileOverview(data) {
 
   var h = '';
 
-  // Profile header with large avatar
-  h += '<div style="display:flex;align-items:center;gap:20px;padding:24px 0 16px;">';
-  h += '<div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;color:white;flex-shrink:0;overflow:hidden;">';
+  // ===== 1. HERO CARD =====
+  h += '<div class="hero-card"><div class="hero-top">';
+  h += '<div class="hero-avatar">';
   if (sessionUser && sessionUser.picture) {
-    h += '<img src="' + esc(sessionUser.picture) + '" alt="" style="width:100%;height:100%;object-fit:cover;" />';
+    h += '<img src="' + esc(sessionUser.picture) + '" alt="" />';
   } else {
-    var initials = name.split(/\\s+/).map(function(w) { return w[0]; }).join('').toUpperCase().slice(0, 2);
+    var initials = name.split(/\\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
     h += initials;
   }
   h += '</div>';
-  h += '<div>';
-  h += '<h2 style="font-size:1.4rem;font-weight:700;color:var(--text-primary);margin:0 0 4px;">' + esc(name) + '</h2>';
-  if (headline) h += '<div style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:4px;">' + esc(headline) + '</div>';
-  if (location) h += '<div style="font-size:0.82rem;color:var(--text-muted);display:flex;align-items:center;gap:4px;">&#128205; ' + esc(location) + '</div>';
+  h += '<div class="hero-info">';
+  h += '<div class="hero-name-row"><span class="hero-name">' + esc(name) + '</span>' + renderTierBadge(e.entity_id) + '</div>';
+  if (headline) h += '<div class="hero-headline">' + esc(headline) + '</div>';
+  if (cl.current_role && cl.current_company) {
+    h += '<div class="hero-current">' + esc(cl.current_role) + ' at ' + esc(cl.current_company) + '</div>';
+  }
+  if (location) h += '<div class="hero-location"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> ' + esc(location) + '</div>';
+  // Contact row
+  var contactItems = [];
+  if (attrMap['email']) contactItems.push('<span class="hero-contact-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg> ' + esc(attrMap['email']) + '</span>');
+  if (attrMap['phone']) contactItems.push('<span class="hero-contact-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"></path></svg> ' + esc(attrMap['phone']) + '</span>');
+  if (attrMap['x_handle']) contactItems.push('<span class="hero-contact-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"></path></svg> ' + esc(attrMap['x_handle']) + '</span>');
+  if (contactItems.length > 0) {
+    h += '<div class="hero-contact-row">' + contactItems.join('') + '</div>';
+  }
+  h += '</div></div></div>';
+
+  // ===== 2. DATA COVERAGE DASHBOARD =====
+  var hasWorkHistory = cl.experience && cl.experience.length > 0;
+  var hasSkills = (cl.skills && cl.skills.length > 0) || !!attrMap['skills'];
+  var hasEducation = cl.education && cl.education.length > 0;
+  var hasLinkedIn = !!cl.linkedin_url || !!attrMap['linkedin_url'];
+  if (!hasLinkedIn && prov.source_documents) {
+    for (var i = 0; i < prov.source_documents.length; i++) {
+      if ((prov.source_documents[i].source || '').indexOf('linkedin') !== -1) { hasLinkedIn = true; break; }
+    }
+  }
+  var hasXHandle = !!attrMap['x_handle'] || !!attrMap['x_url'];
+  var hasInstagram = !!attrMap['instagram_handle'] || !!attrMap['instagram_url'];
+  var hasYouTube = false;
+  if (cl.experience) {
+    for (var i = 0; i < cl.experience.length; i++) {
+      if ((cl.experience[i].company || '').toLowerCase().indexOf('youtube') !== -1 ||
+          (cl.experience[i].title || '').toLowerCase().indexOf('youtube') !== -1 ||
+          (cl.experience[i].company || '').toLowerCase().indexOf('putchuon') !== -1) {
+        hasYouTube = true; break;
+      }
+    }
+  }
+  var hasLocation = !!location;
+  var hasFamilyConns = false;
+  var hasFriendConns = false;
+  var famTypes = ['spouse', 'son', 'daughter', 'sister', 'brother', 'parent', 'mother', 'father', 'ex-spouse'];
+  for (var i = 0; i < rels.length; i++) {
+    var rt = (rels[i].relationship_type || '').toLowerCase();
+    for (var f = 0; f < famTypes.length; f++) {
+      if (rt.indexOf(famTypes[f]) !== -1) { hasFamilyConns = true; break; }
+    }
+    if (rt.indexOf('friend') !== -1) hasFriendConns = true;
+  }
+  var hasObservations = obs.length > 0;
+  var hasPersonality = !!attrMap['personality'];
+  var hasValues = data.values && data.values.length > 0;
+
+  // Count filled vs total for coverage percentage
+  var allChecks = [hasWorkHistory, hasSkills, hasEducation, hasLinkedIn, hasXHandle, hasInstagram, hasYouTube, hasLocation, hasFamilyConns, hasFriendConns, hasObservations, hasPersonality, hasValues];
+  var filledCount = 0;
+  for (var i = 0; i < allChecks.length; i++) { if (allChecks[i]) filledCount++; }
+  var coveragePct = Math.round(filledCount / allChecks.length * 100);
+
+  function covItem(has, label) {
+    return '<div class="ov-coverage-item"><div class="ov-coverage-dot ' + (has ? 'filled' : 'empty') + '"></div>' + esc(label) + '</div>';
+  }
+
+  h += '<div class="ov-section">';
+  h += '<div class="ov-section-title">Data Coverage <span style="float:right;color:#6366f1;font-weight:800;">' + coveragePct + '%</span></div>';
+  h += '<div class="ov-coverage-grid">';
+  h += '<div class="ov-coverage-cat"><div class="ov-coverage-cat-title">Professional</div>';
+  h += covItem(hasWorkHistory, 'Work History');
+  h += covItem(hasSkills, 'Skills');
+  h += covItem(hasEducation, 'Education');
+  h += covItem(hasLinkedIn, 'LinkedIn');
+  h += '</div>';
+  h += '<div class="ov-coverage-cat"><div class="ov-coverage-cat-title">Social</div>';
+  h += covItem(hasXHandle, 'X / Twitter');
+  h += covItem(hasInstagram, 'Instagram');
+  h += covItem(hasYouTube, 'YouTube');
+  h += '</div>';
+  h += '<div class="ov-coverage-cat"><div class="ov-coverage-cat-title">Personal</div>';
+  h += covItem(hasLocation, 'Location');
+  h += covItem(hasFamilyConns, 'Family');
+  h += covItem(hasFriendConns, 'Friends');
+  h += '</div>';
+  h += '<div class="ov-coverage-cat"><div class="ov-coverage-cat-title">Intelligence</div>';
+  h += covItem(hasObservations, 'Observations (' + obs.length + ')');
+  h += covItem(hasPersonality, 'Personality');
+  h += covItem(hasValues, 'Values');
+  h += '</div>';
   h += '</div></div>';
 
-  // Key stats card
-  var roleCount = connCounts['role'] || 0;
-  var skillCount = connCounts['skill'] || 0;
-  var relCount = rels.length;
-  h += '<div style="display:flex;gap:16px;margin-bottom:20px;">';
-  var stats = [
-    { n: roleCount, l: 'Roles' },
-    { n: skillCount, l: 'Skills' },
-    { n: relCount, l: 'Connections' }
+  // ===== 3. RECENT ACTIVITY =====
+  if (obs.length > 0) {
+    var recentObs = obs.slice(0, 10);
+    h += '<div class="ov-section">';
+    h += '<div class="ov-section-title">Recent Activity <span style="float:right;font-weight:400;text-transform:none;letter-spacing:0;">showing ' + recentObs.length + ' of ' + obs.length + '</span></div>';
+    for (var i = 0; i < recentObs.length; i++) {
+      var o = recentObs[i];
+      var decay = calcDecay(o.observed_at);
+      h += '<div class="ov-activity-item" style="opacity:' + Math.max(0.55, decay).toFixed(2) + '">';
+      h += '<div class="ov-activity-dot"></div>';
+      h += '<div style="flex:1;min-width:0;">';
+      h += '<div class="ov-activity-text">' + esc(o.observation) + '</div>';
+      h += '<div class="ov-activity-meta">';
+      h += '<span>' + esc((o.observed_at || '').slice(0, 10)) + '</span>';
+      if (o.source) h += '<span>' + esc(o.source) + '</span>';
+      h += confidenceBadge(o.confidence, o.confidence_label);
+      h += '</div></div></div>';
+    }
+    h += '</div>';
+  }
+
+  // ===== 4. ENTITY STATS =====
+  var totalEntities = allEntities.length;
+  var peopleCount = 0, orgCount = 0;
+  for (var i = 0; i < allEntities.length; i++) {
+    var et = allEntities[i].entity_type || '';
+    if (et === 'person') peopleCount++;
+    else if (et === 'organization' || et === 'business' || et === 'institution') orgCount++;
+  }
+  // Tier breakdown
+  var innerIds = {};
+  for (var i = 0; i < rels.length; i++) {
+    var rName = (rels[i].name || '').toLowerCase();
+    for (var j = 0; j < allEntities.length; j++) {
+      if ((allEntities[j].name || '').toLowerCase() === rName) {
+        innerIds[allEntities[j].entity_id] = true;
+      }
+    }
+  }
+  for (var i = 0; i < connected.length; i++) {
+    if (connected[i].entity_id) innerIds[connected[i].entity_id] = true;
+  }
+  var selfCount = 1;
+  var innerCount = Object.keys(innerIds).length;
+  var outerCount = Math.max(0, totalEntities - selfCount - innerCount);
+
+  h += '<div class="ov-section">';
+  h += '<div class="ov-section-title">Entity Stats</div>';
+  h += '<div class="ov-stat-grid">';
+  var statCards = [
+    { v: totalEntities, l: 'Total' },
+    { v: peopleCount, l: 'People' },
+    { v: orgCount, l: 'Orgs' },
+    { v: rels.length, l: 'Connections' }
   ];
-  for (var i = 0; i < stats.length; i++) {
-    h += '<div style="flex:1;background:var(--bg-card);border:1px solid var(--border-primary);border-radius:var(--radius-md);padding:12px 16px;text-align:center;">';
-    h += '<div style="font-size:1.3rem;font-weight:700;color:#6366f1;">' + stats[i].n + '</div>';
-    h += '<div style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;">' + stats[i].l + '</div>';
+  for (var i = 0; i < statCards.length; i++) {
+    h += '<div class="ov-stat-card"><div class="ov-stat-value">' + statCards[i].v + '</div><div class="ov-stat-label">' + statCards[i].l + '</div></div>';
+  }
+  h += '</div>';
+  // Tier breakdown bar
+  var tierTotal = selfCount + innerCount + outerCount;
+  if (tierTotal > 0) {
+    var selfPct = Math.round(selfCount / tierTotal * 100);
+    var innerPct = Math.round(innerCount / tierTotal * 100);
+    var outerPct = Math.max(0, 100 - selfPct - innerPct);
+    h += '<div class="ov-tier-bar">';
+    if (selfPct > 0) h += '<div style="width:' + selfPct + '%;background:#8b5cf6;" title="Self: ' + selfCount + '"></div>';
+    if (innerPct > 0) h += '<div style="width:' + innerPct + '%;background:#6366f1;" title="Inner: ' + innerCount + '"></div>';
+    if (outerPct > 0) h += '<div style="width:' + outerPct + '%;background:var(--bg-tertiary);" title="Outer: ' + outerCount + '"></div>';
+    h += '</div>';
+    h += '<div class="ov-tier-legend">';
+    h += '<span><span class="ov-tier-dot" style="background:#8b5cf6;"></span>Self (' + selfCount + ')</span>';
+    h += '<span><span class="ov-tier-dot" style="background:#6366f1;"></span>Inner (' + innerCount + ')</span>';
+    h += '<span><span class="ov-tier-dot" style="background:var(--bg-tertiary);border:1px solid var(--border-primary);"></span>Outer (' + outerCount + ')</span>';
     h += '</div>';
   }
   h += '</div>';
 
-  // Summary
-  if (summary) {
-    h += '<div class="section"><div class="section-title section-title-only">Summary</div>';
-    h += '<div class="summary-text">' + esc(summary) + '</div></div>';
-  }
-
-  // Top 3 recent observations
-  if (obs.length > 0) {
-    var topObs = obs.slice(0, 3);
-    h += '<div class="section"><div class="section-title section-title-only">Recent Observations</div>';
-    for (var i = 0; i < topObs.length; i++) {
-      var o = topObs[i];
-      var decay = calcDecay(o.observed_at);
-      h += '<div class="obs-card" style="opacity:' + Math.max(0.5, decay).toFixed(2) + '">';
-      h += '<div class="obs-text">' + esc(o.observation) + '</div>';
-      h += '<div class="obs-meta">';
-      h += '<span class="obs-date">' + esc((o.observed_at || '').slice(0, 10)) + '</span>';
-      h += confidenceBadge(o.confidence, o.confidence_label);
-      h += '</div></div>';
-    }
-    h += '</div>';
-  }
-
-  // Connected objects summary
-  var connKeys = Object.keys(connCounts);
-  if (connKeys.length > 0) {
-    h += '<div class="section"><div class="section-title section-title-only">Connected Objects</div>';
-    h += '<div style="display:flex;flex-wrap:wrap;gap:10px;">';
-    var connLabels = { role: 'Roles', organization: 'Organizations', institution: 'Institutions', credential: 'Credentials', skill: 'Skills' };
-    for (var i = 0; i < connKeys.length; i++) {
-      var ck = connKeys[i];
-      var cl = connLabels[ck] || (ck.charAt(0).toUpperCase() + ck.slice(1) + 's');
-      h += '<div style="background:var(--bg-card);border:1px solid var(--border-primary);border-radius:var(--radius-md);padding:8px 14px;font-size:0.82rem;">';
-      h += '<span style="font-weight:600;color:#6366f1;">' + connCounts[ck] + '</span> ' + esc(cl);
+  // ===== 5. CONNECTED ENTITIES PREVIEW =====
+  var sortedRels = rels.slice().sort(function(a, b) {
+    var ca = (a.confidence || 0), cb = (b.confidence || 0);
+    if (cb !== ca) return cb - ca;
+    return (b.context || '').length - (a.context || '').length;
+  });
+  var topRels = sortedRels.slice(0, 5);
+  if (topRels.length > 0) {
+    h += '<div class="ov-section">';
+    h += '<div class="ov-section-title">Strongest Connections</div>';
+    h += '<div class="ov-conn-grid">';
+    for (var i = 0; i < topRels.length; i++) {
+      var r = topRels[i];
+      var rInit = (r.name || '').split(/\\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
+      h += '<div class="ov-conn-card">';
+      h += '<div class="ov-conn-avatar">' + rInit + '</div>';
+      h += '<div class="ov-conn-info">';
+      h += '<div class="ov-conn-name">' + esc(r.name) + '</div>';
+      h += '<div class="ov-conn-type">' + esc(r.relationship_type || '') + '</div>';
+      h += '</div>';
+      if (r.confidence) h += confidenceBadge(r.confidence, r.confidence_label);
       h += '</div>';
     }
     h += '</div></div>';
+  }
+
+  // ===== 6. EXTRACTION SOURCES =====
+  var sourceCounts = {};
+  for (var i = 0; i < obs.length; i++) {
+    var src = obs[i].source || 'unknown';
+    var srcKey = src.split(':')[0];
+    sourceCounts[srcKey] = (sourceCounts[srcKey] || 0) + 1;
+  }
+  if (prov.source_documents) {
+    for (var i = 0; i < prov.source_documents.length; i++) {
+      var ps = prov.source_documents[i].source || '';
+      var psKey = ps.split(':')[0];
+      if (psKey && !sourceCounts[psKey]) sourceCounts[psKey] = 0;
+    }
+  }
+  var sourceKeys = Object.keys(sourceCounts);
+  if (sourceKeys.length > 0) {
+    sourceKeys.sort(function(a, b) { return sourceCounts[b] - sourceCounts[a]; });
+    h += '<div class="ov-section">';
+    h += '<div class="ov-section-title">Extraction Sources</div>';
+    for (var i = 0; i < sourceKeys.length; i++) {
+      var sk = sourceKeys[i];
+      h += '<div class="ov-source-row">';
+      h += '<div class="ov-source-name">' + getSourceIcon(sk) + ' ' + esc(getSourceLabel(sk)) + '</div>';
+      h += '<div class="ov-source-count">' + sourceCounts[sk] + ' obs</div>';
+      h += '</div>';
+    }
+    h += '</div>';
   }
 
   document.getElementById('main').innerHTML = h;
