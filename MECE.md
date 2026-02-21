@@ -254,7 +254,7 @@ Every incoming signal falls into one of four quadrants:
 * Levels 8-10 \= moats  
 * Every level feeds through the Data Lifecycle (MECE-001) staging layer  
 * Every extraction produces signal clusters, not finished entities  
-* Current level: 5 (URL extraction live), approaching 6 (social profiles)
+* Current level: 6 (LinkedIn PDF auto-detect live, social profiles active)
 
 |  |
 | :---- |
@@ -301,7 +301,7 @@ Track current state. Update after every build session.
 
 | Lever | Phase | Current Score | Last Updated | Next Move |
 | :---- | :---- | :---- | :---- | :---- |
-| EXTRACT | ACQUIRE | 8.5 | 2026-02-20 | LinkedIn PDF auto-detect, Proxycurl |
+| EXTRACT | ACQUIRE | 9.0 | 2026-02-21 | LinkedIn PDF auto-detect live, Proxycurl next |
 | INTEGRATE | ACQUIRE | 5 | 2026-02-18 | ChatGPT history import |
 | ELICIT | ACQUIRE | 1 | 2026-02-18 | GPT follow-up questions for thin entities |
 | OBSERVE | ACQUIRE | 0.5 | 2026-02-18 | GPT auto-observe (write-back) |

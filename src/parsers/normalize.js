@@ -61,6 +61,22 @@ function detectLinkedIn(text) {
   return pdfHits >= 5;
 }
 
+/**
+ * Detect if a PDF is a LinkedIn export by checking for 3+ of 5 canonical signals.
+ * Signals: 'linkedin.com', 'Experience' header, 'Education' header, 'Skills' header, 'Contact' header.
+ * @param {string} text - Extracted PDF text
+ * @returns {boolean}
+ */
+function detectLinkedInPDF(text) {
+  let hits = 0;
+  if (/linkedin\.com/i.test(text)) hits++;
+  if (/\bExperience\s*\n/m.test(text)) hits++;
+  if (/\bEducation\s*\n/m.test(text)) hits++;
+  if (/\bSkills\s*\n/m.test(text)) hits++;
+  if (/\bContact\s*\n/m.test(text)) hits++;
+  return hits >= 3;
+}
+
 function detectProfile(text) {
   const lower = text.toLowerCase();
   let hits = 0;
@@ -88,9 +104,15 @@ async function normalizeFileToText(buffer, filename) {
       const parser = new PDFParse({ data: new Uint8Array(buffer), verbosity: 0 });
       const result = await parser.getText();
       const text = result.text || '';
+      const isLinkedInPDF = detectLinkedInPDF(text);
       return {
         text,
-        metadata: { isLinkedIn: detectLinkedIn(text), isContactList: false, isProfile: detectProfile(text) },
+        metadata: {
+          isLinkedIn: isLinkedInPDF || detectLinkedIn(text),
+          isLinkedInPDF,
+          isContactList: false,
+          isProfile: detectProfile(text),
+        },
       };
     }
 
@@ -190,4 +212,4 @@ async function normalizeFileToText(buffer, filename) {
   }
 }
 
-module.exports = { normalizeFileToText, detectContactColumns, detectLinkedIn, detectProfile };
+module.exports = { normalizeFileToText, detectContactColumns, detectLinkedIn, detectLinkedInPDF, detectProfile };

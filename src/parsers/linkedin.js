@@ -1,22 +1,30 @@
 'use strict';
 
 function buildLinkedInPrompt(text, sourceFilename) {
-  return `You are a structured data extraction engine. Analyze this LinkedIn profile export and extract the person's professional information.
+  return `You are a structured data extraction engine. Analyze this LinkedIn profile export and extract the person's professional information mapped to the Career Lite schema.
 
 Output ONLY valid JSON, no markdown fences, no commentary.
+
+The Career Lite schema has three interfaces:
+- Contactable: name, email, location, linkedin_url, phone
+- Identifiable: headline, summary, current_title, current_company
+- Experienceable: work_history, education, skills
 
 JSON schema:
 {
   "name": { "full": "", "preferred": "", "aliases": [] },
+  "email": "",
+  "phone": "",
   "headline": "",
   "location": "",
-  "current_role": "",
-  "current_company": "",
+  "linkedin_url": "",
   "summary": "2-3 sentence professional summary",
-  "experience": [
+  "current_title": "",
+  "current_company": "",
+  "work_history": [
     {
-      "title": "",
       "company": "",
+      "title": "",
       "start_date": "",
       "end_date": "",
       "description": ""
@@ -27,12 +35,10 @@ JSON schema:
       "institution": "",
       "degree": "",
       "field": "",
-      "start_year": "",
-      "end_year": ""
+      "year": ""
     }
   ],
   "skills": [],
-  "linkedin_url": "",
   "connections": [
     { "name": "", "relationship": "", "context": "" }
   ]
@@ -40,9 +46,12 @@ JSON schema:
 
 Important:
 - linkedin_url: extract any linkedin.com/in/... URL found in the text
-- Extract ALL experience entries with dates when available
-- Extract ALL education entries
-- Skills should be an array of skill strings
+- email: extract if present in Contact section
+- phone: extract if present in Contact section
+- current_title and current_company: the most recent/current role
+- work_history: extract ALL experience entries with dates when available
+- education: extract ALL education entries, use year for graduation/end year
+- skills: array of skill strings
 - connections: only include specifically named people mentioned in the profile
 - If information is not present, use empty strings or empty arrays
 
@@ -57,6 +66,11 @@ function linkedInResponseToEntity(parsed, sourceFilename, agentId) {
   const now = new Date().toISOString();
   const name = parsed.name || {};
 
+  // Normalize: support both old schema (experience/current_role) and new Career Lite (work_history/current_title)
+  const workHistory = parsed.work_history || parsed.experience || [];
+  const currentTitle = parsed.current_title || parsed.current_role || '';
+  const currentCompany = parsed.current_company || '';
+
   // Build attributes
   const attributes = [];
   let attrSeq = 1;
@@ -65,7 +79,7 @@ function linkedInResponseToEntity(parsed, sourceFilename, agentId) {
     attributes.push({
       attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`,
       key: 'headline', value: parsed.headline,
-      confidence: 0.6, confidence_label: 'MODERATE',
+      confidence: 0.85, confidence_label: 'HIGH',
       time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
       source_attribution: { facts_layer: 2, layer_label: 'group' },
     });
@@ -75,28 +89,58 @@ function linkedInResponseToEntity(parsed, sourceFilename, agentId) {
     attributes.push({
       attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`,
       key: 'location', value: parsed.location,
-      confidence: 0.6, confidence_label: 'MODERATE',
+      confidence: 0.85, confidence_label: 'HIGH',
       time_decay: { stability: 'semi_stable', captured_date: now.slice(0, 10) },
       source_attribution: { facts_layer: 2, layer_label: 'group' },
     });
   }
 
-  if (parsed.current_role) {
+  if (currentTitle) {
     attributes.push({
       attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`,
-      key: 'role', value: parsed.current_role,
-      confidence: 0.6, confidence_label: 'MODERATE',
+      key: 'role', value: currentTitle,
+      confidence: 0.85, confidence_label: 'HIGH',
       time_decay: { stability: 'semi_stable', captured_date: now.slice(0, 10) },
       source_attribution: { facts_layer: 2, layer_label: 'group' },
     });
   }
 
-  if (parsed.current_company) {
+  if (currentCompany) {
     attributes.push({
       attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`,
-      key: 'company', value: parsed.current_company,
-      confidence: 0.6, confidence_label: 'MODERATE',
+      key: 'company', value: currentCompany,
+      confidence: 0.85, confidence_label: 'HIGH',
       time_decay: { stability: 'semi_stable', captured_date: now.slice(0, 10) },
+      source_attribution: { facts_layer: 2, layer_label: 'group' },
+    });
+  }
+
+  if (parsed.email) {
+    attributes.push({
+      attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`,
+      key: 'email', value: parsed.email,
+      confidence: 0.85, confidence_label: 'HIGH',
+      time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+      source_attribution: { facts_layer: 2, layer_label: 'group' },
+    });
+  }
+
+  if (parsed.phone) {
+    attributes.push({
+      attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`,
+      key: 'phone', value: parsed.phone,
+      confidence: 0.85, confidence_label: 'HIGH',
+      time_decay: { stability: 'semi_stable', captured_date: now.slice(0, 10) },
+      source_attribution: { facts_layer: 2, layer_label: 'group' },
+    });
+  }
+
+  if (parsed.linkedin_url) {
+    attributes.push({
+      attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`,
+      key: 'linkedin_url', value: parsed.linkedin_url,
+      confidence: 0.85, confidence_label: 'HIGH',
+      time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
       source_attribution: { facts_layer: 2, layer_label: 'group' },
     });
   }
@@ -105,44 +149,42 @@ function linkedInResponseToEntity(parsed, sourceFilename, agentId) {
     attributes.push({
       attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`,
       key: 'skills', value: parsed.skills.join(', '),
-      confidence: 0.6, confidence_label: 'MODERATE',
+      confidence: 0.85, confidence_label: 'HIGH',
       time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
       source_attribution: { facts_layer: 2, layer_label: 'group' },
     });
   }
 
-  // Build key_facts from experience and education
+  // Build key_facts from work_history and education
   const keyFacts = [];
   let factSeq = 1;
 
-  if (Array.isArray(parsed.experience)) {
-    for (const exp of parsed.experience) {
-      const dateRange = [exp.start_date, exp.end_date].filter(Boolean).join(' - ') || '';
-      const fact = [exp.title, exp.company, dateRange].filter(Boolean).join(' at ');
-      if (fact) {
-        keyFacts.push({
-          fact_id: `FACT-${String(factSeq++).padStart(3, '0')}`,
-          fact,
-          confidence: 0.6,
-          confidence_label: 'MODERATE',
-          source: sourceFilename,
-        });
-      }
+  for (const exp of workHistory) {
+    const dateRange = [exp.start_date, exp.end_date].filter(Boolean).join(' - ') || '';
+    const fact = [exp.title, exp.company, dateRange].filter(Boolean).join(' at ');
+    if (fact) {
+      keyFacts.push({
+        fact_id: `FACT-${String(factSeq++).padStart(3, '0')}`,
+        fact,
+        confidence: 0.85,
+        confidence_label: 'HIGH',
+        source: sourceFilename,
+      });
     }
   }
 
   if (Array.isArray(parsed.education)) {
     for (const edu of parsed.education) {
       const parts = [edu.degree, edu.field, edu.institution].filter(Boolean);
-      const yearRange = [edu.start_year, edu.end_year].filter(Boolean).join('-');
-      if (yearRange) parts.push(`(${yearRange})`);
+      const year = edu.year || [edu.start_year, edu.end_year].filter(Boolean).join('-');
+      if (year) parts.push(`(${year})`);
       const fact = parts.join(', ');
       if (fact) {
         keyFacts.push({
           fact_id: `FACT-${String(factSeq++).padStart(3, '0')}`,
           fact,
-          confidence: 0.6,
-          confidence_label: 'MODERATE',
+          confidence: 0.85,
+          confidence_label: 'HIGH',
           source: sourceFilename,
         });
       }
@@ -184,12 +226,28 @@ function linkedInResponseToEntity(parsed, sourceFilename, agentId) {
   const careerLite = {
     interface: 'career-lite',
     implements: ['Contactable', 'Identifiable', 'Experienceable'],
-    headline: parsed.headline || '',
+    // Contactable
+    name: name.full || '',
+    email: parsed.email || '',
     location: parsed.location || '',
-    current_role: parsed.current_role || '',
-    current_company: parsed.current_company || '',
     linkedin_url: parsed.linkedin_url || '',
-    experience: (parsed.experience || []).map(exp => ({
+    phone: parsed.phone || '',
+    // Identifiable
+    headline: parsed.headline || '',
+    summary: parsed.summary || '',
+    current_title: currentTitle,
+    current_company: currentCompany,
+    // Legacy aliases
+    current_role: currentTitle,
+    // Experienceable
+    work_history: workHistory.map(exp => ({
+      company: exp.company || '',
+      title: exp.title || '',
+      start_date: exp.start_date || '',
+      end_date: exp.end_date || '',
+      description: exp.description || '',
+    })),
+    experience: workHistory.map(exp => ({
       title: exp.title || '',
       company: exp.company || '',
       start_date: exp.start_date || '',
@@ -200,6 +258,7 @@ function linkedInResponseToEntity(parsed, sourceFilename, agentId) {
       institution: edu.institution || '',
       degree: edu.degree || '',
       field: edu.field || '',
+      year: edu.year || edu.end_year || '',
       start_year: edu.start_year || '',
       end_year: edu.end_year || '',
     })),
@@ -255,7 +314,7 @@ function linkedInExperienceToOrgs(parsed, personName, sourceFilename, agentId) {
   const seen = new Set();
   const orgs = [];
 
-  for (const exp of (parsed.experience || [])) {
+  for (const exp of (parsed.work_history || parsed.experience || [])) {
     const company = (exp.company || '').trim();
     if (!company || seen.has(company.toLowerCase())) continue;
     seen.add(company.toLowerCase());

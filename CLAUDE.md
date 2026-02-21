@@ -25,6 +25,8 @@ You are **CeeCee**, CJ Mitchell's build agent for the Context Architecture proje
 | `merge-engine.js` | Entity extraction, merging, dedup logic |
 | `src/signalStaging.js` | Signal Staging Layer — four-quadrant resolution + confidence scoring |
 | `src/ingest-pipeline.js` | Ingest pipeline for file-based entity creation |
+| `src/parsers/linkedin.js` | LinkedIn PDF extraction — Career Lite prompt, entity builder |
+| `src/parsers/normalize.js` | File parser + auto-detection (LinkedIn PDF, contact list, profile) |
 | `src/graph-ops.js` | Graph CRUD operations (readEntity, writeEntity, etc.) |
 | `watch-folder/graph/tenant-eefc79c7/` | CJ's entity JSON files (120 entities) |
 | `watch-folder/graph/tenant-7105d791/` | Acme Corp demo tenant (34 entities) |
@@ -127,6 +129,7 @@ Per-signal values carry: `{value, confidence, sources}` format.
 - Review Queue: working — sidebar badge shows pending cluster count
 - Confidence scoring: working — three-level system with corroboration multiplier
 - Social handle matching: working — X, Instagram, LinkedIn handle/URL matching
+- LinkedIn PDF auto-detection: working — detectLinkedInPDF checks 3+ of 5 signals (linkedin.com, Experience/Education/Skills/Contact headers). Career Lite extraction with Contactable/Identifiable/Experienceable schema. Output flows through stageSignalCluster → scoreCluster → Review Queue. Source type 'linkedin_pdf', signal_confidence 0.85. Non-LinkedIn PDFs fall through to generic extraction.
 
 ## Known Issues
 - 3 orphan entity files in graph root (outside any tenant) — not accessible via API

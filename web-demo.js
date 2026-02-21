@@ -1201,7 +1201,8 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
         pendingTruth = 'STRONG';
 
       } else if (metadata.isLinkedIn) {
-        // LinkedIn extraction via Claude
+        // LinkedIn PDF auto-detected — Career Lite extraction via signal staging
+        console.log(`[ingest] LinkedIn PDF detected: ${filename}`);
         const prompt = buildLinkedInPrompt(text, filename);
         const message = await client.messages.create({
           model: 'claude-sonnet-4-5-20250929',
@@ -1214,7 +1215,32 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
         const personEntity = linkedInResponseToEntity(parsed, filename, req.agentId);
         const personName = parsed.name?.full || '';
         const orgEntities = linkedInExperienceToOrgs(parsed, personName, filename, req.agentId);
-        pendingEntities = [personEntity, ...orgEntities];
+        const linkedInEntities = [personEntity, ...orgEntities];
+
+        // Always flow through signal staging — no direct entity creation
+        // Source type 'linkedin_pdf' with signal_confidence 0.85
+        const scoredClusters = stageAndScoreExtraction(linkedInEntities, {
+          type: 'linkedin_pdf',
+          url: '',
+          description: `linkedin_pdf:${filename}`,
+        }, req.graphDir);
+
+        sendEvent({
+          type: 'file_progress',
+          file: filename,
+          file_index: fi + 1,
+          total_files: files.length,
+          linkedin_detected: true,
+          staged_count: scoredClusters.length,
+          scored_clusters: scoredClusters.map(c => ({
+            cluster_id: c.cluster_id,
+            entity_name: (c.signals?.names || [])[0] || '',
+            quadrant: c.quadrant,
+            confidence: c.confidence,
+            state: c.state,
+          })),
+        });
+        continue; // Skip the pendingEntities flow — already staged
 
       } else if (metadata.isProfile) {
         // Profile mode — deep structured extraction
@@ -1743,6 +1769,8 @@ app.post('/api/drive/ingest', apiAuth, async (req, res) => {
           truthLevel: 'STRONG',
         });
       } else if (metadata.isLinkedIn) {
+        // LinkedIn PDF auto-detected — Career Lite extraction via signal staging
+        console.log(`[ingest] LinkedIn PDF detected (Drive): ${filename}`);
         const prompt = buildLinkedInPrompt(text, filename);
         const message = await client.messages.create({
           model: 'claude-sonnet-4-5-20250929',
@@ -1755,10 +1783,12 @@ app.post('/api/drive/ingest', apiAuth, async (req, res) => {
         const entity = linkedInResponseToEntity(parsed, filename, req.agentId);
         const personName = parsed.name?.full || '';
         const orgEntities = linkedInExperienceToOrgs(parsed, personName, filename, req.agentId);
-        result = await ingestPipeline([entity, ...orgEntities], req.graphDir, req.agentId, {
-          source: `drive:${filename}`,
-          truthLevel: 'INFERRED',
-        });
+        const scoredClusters = stageAndScoreExtraction([entity, ...orgEntities], {
+          type: 'linkedin_pdf',
+          url: '',
+          description: `linkedin_pdf:drive:${filename}`,
+        }, req.graphDir);
+        result = { created: 0, updated: 0, observationsAdded: 0, staged: scoredClusters.length };
       } else {
         const chunks = chunkText(text);
         console.log('INGEST_DEBUG: drive generic text path for', filename, '— text length:', text.length, '— chunks:', chunks.length);
