@@ -8161,6 +8161,55 @@ const WIKI_HTML = `<!DOCTYPE html>
     border-radius: 2px; margin-right: 4px; vertical-align: middle;
   }
 
+  /* ========================================
+     DENSITY BADGES & ENRICHMENT PROMPTS
+     ======================================== */
+  .density-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 0.65rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em; padding: 2px 8px; border-radius: 10px;
+  }
+  .density-badge.density-skeleton {
+    background: rgba(156,163,175,0.15); color: #9ca3af;
+  }
+  .density-badge.density-partial {
+    background: rgba(249,115,22,0.12); color: #f97316;
+  }
+  .density-badge.density-rich {
+    background: rgba(59,130,246,0.12); color: #3b82f6;
+  }
+  .density-badge.density-comprehensive {
+    background: rgba(16,185,129,0.12); color: #10b981;
+  }
+  .density-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+  .density-skeleton .density-dot { background: #9ca3af; }
+  .density-partial .density-dot { background: #f97316; }
+  .density-rich .density-dot { background: #3b82f6; }
+  .density-comprehensive .density-dot { background: #10b981; }
+
+  .enrich-prompt {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 16px; margin: 8px 0;
+    background: var(--bg-card); border: 1px dashed var(--border-primary);
+    border-radius: var(--radius-sm); color: var(--text-muted);
+    font-size: 0.8rem; line-height: 1.4;
+  }
+  .enrich-prompt-icon {
+    font-size: 1.1rem; flex-shrink: 0;
+  }
+  .enrich-prompt-text { flex: 1; }
+  .enrich-prompt-action {
+    font-size: 0.72rem; font-weight: 600; color: #6366f1;
+    white-space: nowrap; cursor: pointer;
+    padding: 4px 10px; border: 1px solid #6366f1;
+    border-radius: var(--radius-sm); background: transparent;
+  }
+  .enrich-prompt-action:hover {
+    background: rgba(99,102,241,0.08);
+  }
+
 </style>
 </head>
 <body>
@@ -8747,7 +8796,7 @@ function selectView(viewId) {
   selectedId = primaryEntityId;
   selectedView = viewId;
   selectedCategory = null;
-  var viewLabels = { 'overview': 'Overview', 'career-lite': 'Career Lite', 'executive-brief': 'Executive Brief', 'creator-profile': 'Creator Profile', 'values-identity': 'Values & Identity' };
+  var viewLabels = { 'overview': 'Overview', 'career-lite': 'Career Lite', 'network-map': 'Network Map', 'intelligence-brief': 'Intelligence Brief', 'org-brief': 'Org Brief', 'source-provenance': 'Source Provenance' };
   breadcrumbs = [
     { label: 'My Profiles', action: '' },
     { label: viewLabels[viewId] || viewId }
@@ -8756,37 +8805,138 @@ function selectView(viewId) {
   var empty = document.getElementById('emptyState');
   if (empty) empty.style.display = 'none';
 
-  if (viewId === 'career-lite') {
-    if (primaryEntityData) {
-      renderCareerLite(primaryEntityData);
+  var renderWithData = function(data) {
+    if (viewId === 'career-lite') {
+      renderCareerLite(data);
+    } else if (viewId === 'overview') {
+      renderProfileOverview(data);
+    } else if (viewId === 'source-provenance') {
+      renderSourceProvenance(data);
+    } else if (viewId === 'network-map') {
+      renderNetworkMapPlaceholder(data);
+    } else if (viewId === 'intelligence-brief') {
+      renderIntelligenceBriefPlaceholder(data);
+    } else if (viewId === 'org-brief') {
+      renderOrgDossier(data);
     } else {
-      api('GET', '/api/entity/' + primaryEntityId).then(function(data) {
-        primaryEntityData = data;
-        selectedData = data;
-        renderCareerLite(data);
-      });
+      var label = viewId.replace(/-/g, ' ').replace(/\\b\\w/g, function(c) { return c.toUpperCase(); });
+      document.getElementById('main').innerHTML = '<div class="empty-state"><div style="font-size:1.1rem;font-weight:600;color:var(--text-primary);margin-bottom:8px;">' + esc(label) + '</div><div style="color:var(--text-muted);">View not yet implemented</div></div>';
     }
-  } else if (viewId === 'overview') {
-    if (primaryEntityData) {
-      renderProfileOverview(primaryEntityData);
-    } else {
-      api('GET', '/api/entity/' + primaryEntityId).then(function(data) {
-        primaryEntityData = data;
-        selectedData = data;
-        renderProfileOverview(data);
-      });
-    }
-  } else if (viewId === 'executive-brief') {
-    document.getElementById('main').innerHTML = '<div class="empty-state"><div style="font-size:1.1rem;font-weight:600;color:var(--text-primary);margin-bottom:8px;">Executive Brief</div><div style="color:var(--text-muted);">Coming soon &mdash; Achievement-led professional profile</div></div>';
-  } else if (viewId === 'creator-profile') {
-    document.getElementById('main').innerHTML = '<div class="empty-state"><div style="font-size:1.1rem;font-weight:600;color:var(--text-primary);margin-bottom:8px;">Creator Profile</div><div style="color:var(--text-muted);">Coming soon &mdash; Projects, content, and ventures</div></div>';
-  } else if (viewId === 'values-identity') {
-    document.getElementById('main').innerHTML = '<div class="empty-state"><div style="font-size:1.1rem;font-weight:600;color:var(--text-primary);margin-bottom:8px;">Values &amp; Identity</div><div style="color:var(--text-muted);">Coming soon &mdash; Core values, interests, and personality</div></div>';
+  };
+
+  if (primaryEntityData) {
+    renderWithData(primaryEntityData);
   } else {
-    var label = viewId.replace(/-/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
-    document.getElementById('main').innerHTML = '<div class="empty-state"><div style="font-size:1.1rem;font-weight:600;color:var(--text-primary);margin-bottom:8px;">' + esc(label) + '</div><div style="color:var(--text-muted);">Coming soon</div></div>';
+    api('GET', '/api/entity/' + primaryEntityId).then(function(data) {
+      primaryEntityData = data;
+      selectedData = data;
+      renderWithData(data);
+    });
   }
   renderSidebar();
+}
+
+function renderSourceProvenance(data) {
+  var obs = (data.observations || []).slice().sort(function(a, b) {
+    return new Date(b.observed_at || 0) - new Date(a.observed_at || 0);
+  });
+  var prov = data.provenance_chain || {};
+  var docs = prov.source_documents || [];
+  var e = data.entity || {};
+  var name = (e.name && (e.name.full || e.name.common || e.name.legal)) || '';
+  var h = '';
+  h += '<div style="padding:24px;max-width:800px;">';
+  h += '<h2 style="font-size:1.1rem;font-weight:700;margin-bottom:16px;">Source Provenance &mdash; ' + esc(name) + '</h2>';
+  // Source documents
+  if (docs.length > 0) {
+    h += '<div class="section"><div class="section-title section-title-only">Source Documents (' + docs.length + ')</div>';
+    for (var i = 0; i < docs.length; i++) {
+      var d = docs[i];
+      h += '<div class="ov-source-row">';
+      h += '<span class="ov-source-name">' + getSourceIcon(d.source || '') + ' ' + esc(d.source || 'Unknown') + '</span>';
+      h += '<span style="font-size:0.72rem;color:var(--text-muted);">' + esc(d.ingested_at ? new Date(d.ingested_at).toLocaleDateString() : '') + '</span>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+  // Observations by source
+  var bySrc = {};
+  for (var i = 0; i < obs.length; i++) {
+    var src = obs[i].source || 'unknown';
+    if (!bySrc[src]) bySrc[src] = [];
+    bySrc[src].push(obs[i]);
+  }
+  var srcKeys = Object.keys(bySrc);
+  if (srcKeys.length > 0) {
+    h += '<div class="section"><div class="section-title section-title-only">Observations by Source</div>';
+    for (var s = 0; s < srcKeys.length; s++) {
+      var sk = srcKeys[s];
+      var items = bySrc[sk];
+      h += '<div style="margin-bottom:12px;">';
+      h += '<div style="font-size:0.78rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">' + getSourceIcon(sk) + ' ' + esc(sk) + ' <span style="color:var(--text-muted);font-weight:400;">(' + items.length + ')</span></div>';
+      for (var j = 0; j < items.length; j++) {
+        var o = items[j];
+        h += '<div style="font-size:0.78rem;color:var(--text-secondary);padding:4px 0 4px 16px;border-left:2px solid var(--border-primary);">';
+        h += esc(o.observation || '');
+        if (o.confidence) h += ' <span style="color:var(--text-muted);font-size:0.7rem;">(' + Math.round(o.confidence * 100) + '%)</span>';
+        h += '</div>';
+      }
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+  // Merge history
+  var merges = (prov.merge_history || []);
+  if (merges.length > 0) {
+    h += '<div class="section"><div class="section-title section-title-only">Merge History</div>';
+    for (var i = 0; i < merges.length; i++) {
+      var m = merges[i];
+      h += '<div style="font-size:0.78rem;color:var(--text-secondary);padding:4px 0;">' + esc(JSON.stringify(m)) + '</div>';
+    }
+    h += '</div>';
+  }
+  h += '</div>';
+  document.getElementById('main').innerHTML = h;
+}
+
+function renderNetworkMapPlaceholder(data) {
+  var rels = data.relationships || [];
+  var e = data.entity || {};
+  var name = (e.name && (e.name.full || e.name.common || e.name.legal)) || '';
+  var h = '<div style="padding:24px;max-width:800px;">';
+  h += '<h2 style="font-size:1.1rem;font-weight:700;margin-bottom:16px;">Network Map &mdash; ' + esc(name) + '</h2>';
+  h += '<div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px;">' + rels.length + ' connections mapped</div>';
+  for (var i = 0; i < rels.length; i++) {
+    var r = rels[i];
+    h += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border-subtle);">';
+    h += '<span style="font-size:0.82rem;font-weight:500;color:var(--text-primary);">' + esc(r.name || r.target_entity_id || '') + '</span>';
+    h += '<span class="type-badge" style="font-size:0.65rem;">' + esc(r.relationship_type || '') + '</span>';
+    if (r.confidence) h += '<span style="font-size:0.68rem;color:var(--text-muted);">' + Math.round(r.confidence * 100) + '%</span>';
+    h += '</div>';
+  }
+  h += '</div>';
+  document.getElementById('main').innerHTML = h;
+}
+
+function renderIntelligenceBriefPlaceholder(data) {
+  var obs = (data.observations || []).slice().sort(function(a, b) {
+    return new Date(b.observed_at || 0) - new Date(a.observed_at || 0);
+  });
+  var e = data.entity || {};
+  var name = (e.name && (e.name.full || e.name.common)) || '';
+  var h = '<div style="padding:24px;max-width:800px;">';
+  h += '<h2 style="font-size:1.1rem;font-weight:700;margin-bottom:16px;">Intelligence Brief &mdash; ' + esc(name) + '</h2>';
+  h += '<div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px;">' + obs.length + ' observations from multiple sources</div>';
+  // Key observations grouped by theme
+  for (var i = 0; i < Math.min(obs.length, 15); i++) {
+    var o = obs[i];
+    h += '<div style="padding:8px 12px;margin-bottom:6px;background:var(--bg-card);border:1px solid var(--border-primary);border-radius:var(--radius-sm);">';
+    h += '<div style="font-size:0.82rem;color:var(--text-primary);">' + esc(o.observation || '') + '</div>';
+    h += '<div style="font-size:0.68rem;color:var(--text-muted);margin-top:2px;">' + esc(o.source || '') + ' &middot; ' + esc(o.observed_at ? new Date(o.observed_at).toLocaleDateString() : '') + '</div>';
+    h += '</div>';
+  }
+  h += '</div>';
+  document.getElementById('main').innerHTML = h;
 }
 
 function selectCategoryPage(category) {
@@ -9062,7 +9212,7 @@ function renderProfileOverview(data) {
   }
   h += '</div>';
   h += '<div class="hero-info">';
-  h += '<div class="hero-name-row"><span class="hero-name">' + esc(name) + '</span>' + renderTierBadge(e.entity_id) + '</div>';
+  h += '<div class="hero-name-row"><span class="hero-name">' + esc(name) + '</span>' + renderTierBadge(e.entity_id) + renderDensityBadge(data) + '</div>';
   if (headline) h += '<div class="hero-headline">' + esc(headline) + '</div>';
   if (cl.current_role && cl.current_company) {
     h += '<div class="hero-current">' + esc(cl.current_role) + ' at ' + esc(cl.current_company) + '</div>';
@@ -9716,26 +9866,18 @@ function renderSidebar() {
       if (headline) h += '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(headline) + '</div>';
       h += '</div>';
       h += '</div>';
-      // Interface sub-items
-      var views = [
+      // Dynamic lenses based on entity data (MECE-007)
+      var views = primaryEntityData ? getAvailableLenses(primaryEntityData) : [
         { id: 'overview', icon: '\uD83D\uDCCB', label: 'Overview' },
-        { id: 'career-lite', icon: '\uD83D\uDCBC', label: 'Career Lite' },
-        { id: 'executive-brief', icon: '\uD83D\uDCC4', label: 'Executive Brief', soon: true },
-        { id: 'creator-profile', icon: '\uD83C\uDFA8', label: 'Creator Profile', soon: true },
-        { id: 'values-identity', icon: '\uD83E\uDDED', label: 'Values & Identity', soon: true }
+        { id: 'source-provenance', icon: '\uD83D\uDD0D', label: 'Source Provenance' }
       ];
       for (var i = 0; i < views.length; i++) {
         var v = views[i];
         var active = (selectedId === primaryEntityId && selectedView === v.id);
-        var cls = 'sidebar-view-item' + (active ? ' active' : '') + (v.soon ? ' placeholder' : '');
-        if (v.soon) {
-          h += '<div class="' + cls + '">';
-        } else {
-          h += '<div class="' + cls + '" onclick="selectView(' + "'" + v.id + "'" + ')">';
-        }
+        var cls = 'sidebar-view-item' + (active ? ' active' : '');
+        h += '<div class="' + cls + '" onclick="selectView(' + "'" + v.id + "'" + ')">';
         h += '<span class="view-icon">' + v.icon + '</span>';
         h += '<span>' + esc(v.label) + '</span>';
-        if (v.soon) h += ' <span class="coming-soon-badge">Soon</span>';
         h += '</div>';
       }
       totalCount++;
@@ -9833,9 +9975,9 @@ function renderSidebar() {
     return h;
   }, true);
 
-  // Section 5: Timeline placeholder
+  // Section 5: Timeline
   html += renderSidebarSection('timeline', '\uD83D\uDCC5', 'Timeline', null, function() {
-    return '<div class="sidebar-view-item placeholder"><span class="view-icon">\uD83D\uDCC5</span><span>Coming soon</span> <span class="coming-soon-badge">Soon</span></div>';
+    return '<div class="sidebar-view-item" onclick="selectView(' + "'" + 'overview' + "'" + ')"><span class="view-icon">\uD83D\uDCC5</span><span>Timeline</span></div>';
   }, true);
 
   document.getElementById('entityList').innerHTML = html || '<div style="padding:16px;color:#3a3a4a;font-size:0.82rem;">No entities found</div>';
@@ -10005,6 +10147,148 @@ function renderHealthIndicator(health) {
 function renderTierBadge(entityId) {
   var tier = computeEntityTier(entityId);
   return '<span class="tier-badge tier-' + tier + '">' + tier.toUpperCase() + '</span>';
+}
+
+function getEntityDensity(data) {
+  // Count filled attributes
+  var attrCount = 0;
+  var attrs = data.attributes || [];
+  attrCount += attrs.length;
+  // Count career_lite fields as attributes
+  var cl = data.career_lite || {};
+  if (cl.headline) attrCount++;
+  if (cl.location) attrCount++;
+  if (cl.current_title || cl.current_role) attrCount++;
+  if (cl.current_company) attrCount++;
+  if (cl.linkedin_url) attrCount++;
+  if (cl.email) attrCount++;
+  if (cl.phone) attrCount++;
+  if (cl.summary) attrCount++;
+  if (cl.work_history && cl.work_history.length > 0) attrCount += Math.min(cl.work_history.length, 3);
+  if (cl.education && cl.education.length > 0) attrCount += Math.min(cl.education.length, 2);
+  if (cl.skills && cl.skills.length > 0) attrCount++;
+  // Count entity-level fields
+  var e = data.entity || {};
+  if (e.summary && e.summary.value) attrCount++;
+  // Count relationships as partial attributes
+  var rels = data.relationships || [];
+  if (rels.length > 0) attrCount += Math.min(rels.length, 3);
+
+  // Count distinct sources
+  var sourceSet = {};
+  var obs = data.observations || [];
+  for (var i = 0; i < obs.length; i++) {
+    var src = obs[i].source || '';
+    if (src) sourceSet[src] = true;
+  }
+  var prov = data.provenance_chain || {};
+  var docs = prov.source_documents || [];
+  for (var i = 0; i < docs.length; i++) {
+    var src = (docs[i].source || '').split(':')[0];
+    if (src) sourceSet[src] = true;
+  }
+  var sourceCount = Object.keys(sourceSet).length;
+
+  // Calculate average confidence
+  var totalConf = 0;
+  var confCount = 0;
+  for (var i = 0; i < attrs.length; i++) {
+    if (attrs[i].confidence) { totalConf += attrs[i].confidence; confCount++; }
+  }
+  for (var i = 0; i < obs.length; i++) {
+    if (obs[i].confidence) { totalConf += obs[i].confidence; confCount++; }
+  }
+  var avgConf = confCount > 0 ? totalConf / confCount : 0;
+
+  // Apply MECE-007 thresholds
+  if (attrCount >= 12 && sourceCount >= 3 && avgConf > 0.7) {
+    return { level: 'comprehensive', label: 'Comprehensive', attrCount: attrCount, sourceCount: sourceCount, avgConf: avgConf };
+  }
+  if (attrCount >= 8 && sourceCount >= 2) {
+    return { level: 'rich', label: 'Rich', attrCount: attrCount, sourceCount: sourceCount, avgConf: avgConf };
+  }
+  if (attrCount >= 3) {
+    return { level: 'partial', label: 'Partial', attrCount: attrCount, sourceCount: sourceCount, avgConf: avgConf };
+  }
+  return { level: 'skeleton', label: 'Skeleton', attrCount: attrCount, sourceCount: sourceCount, avgConf: avgConf };
+}
+
+function renderDensityBadge(data) {
+  var d = getEntityDensity(data);
+  return '<span class="density-badge density-' + d.level + '"><span class="density-dot"></span>' + d.label + '</span>';
+}
+
+function getAvailableLenses(data) {
+  var lenses = [];
+  var e = data.entity || {};
+  var type = e.entity_type || '';
+  var cl = data.career_lite || {};
+  var obs = data.observations || [];
+  var rels = data.relationships || [];
+  var attrs = data.attributes || [];
+  var connected = data.connected_objects || [];
+
+  // Overview — always available
+  lenses.push({ id: 'overview', icon: '\\uD83D\\uDCCB', label: 'Overview' });
+
+  // Career Lite — person with work_history 1+ entry
+  if (type === 'person') {
+    var hasWork = (cl.work_history && cl.work_history.length > 0) ||
+                  (cl.experience && cl.experience.length > 0);
+    if (hasWork) {
+      lenses.push({ id: 'career-lite', icon: '\\uD83D\\uDCBC', label: 'Career Lite' });
+    }
+  }
+
+  // Network Map — 3+ connections (rels + connected objects)
+  var connCount = rels.length + connected.length;
+  if (connCount >= 3) {
+    lenses.push({ id: 'network-map', icon: '\\uD83D\\uDD78\\uFE0F', label: 'Network Map' });
+  }
+
+  // Intelligence Brief — person with 5+ observations from 2+ sources
+  if (type === 'person' && obs.length >= 5) {
+    var obsSources = {};
+    for (var i = 0; i < obs.length; i++) {
+      var src = obs[i].source || '';
+      if (src) obsSources[src] = true;
+    }
+    if (Object.keys(obsSources).length >= 2) {
+      lenses.push({ id: 'intelligence-brief', icon: '\\uD83D\\uDCC4', label: 'Intelligence Brief' });
+    }
+  }
+
+  // Org Brief — organization with 3+ attributes and connected people
+  if (['organization', 'business', 'institution'].indexOf(type) !== -1) {
+    var hasPeople = false;
+    for (var i = 0; i < rels.length; i++) {
+      if (rels[i].relationship_type === 'employed' || rels[i].relationship_type === 'member') { hasPeople = true; break; }
+    }
+    if (!hasPeople) {
+      for (var i = 0; i < connected.length; i++) {
+        if (connected[i].entity_type === 'person') { hasPeople = true; break; }
+      }
+    }
+    if (attrs.length >= 3 && hasPeople) {
+      lenses.push({ id: 'org-brief', icon: '\\uD83C\\uDFE2', label: 'Org Brief' });
+    }
+  }
+
+  // Source Provenance — always available
+  lenses.push({ id: 'source-provenance', icon: '\\uD83D\\uDD0D', label: 'Source Provenance' });
+
+  return lenses;
+}
+
+function renderEnrichPrompt(icon, text, actionLabel, actionOnclick) {
+  var h = '<div class="enrich-prompt">';
+  h += '<span class="enrich-prompt-icon">' + icon + '</span>';
+  h += '<span class="enrich-prompt-text">' + text + '</span>';
+  if (actionLabel && actionOnclick) {
+    h += '<button class="enrich-prompt-action" onclick="' + actionOnclick + '">' + actionLabel + '</button>';
+  }
+  h += '</div>';
+  return h;
 }
 
 function getSourceIcon(sourceType) {
@@ -11414,6 +11698,7 @@ function renderCareerLite(data) {
   h += '<div class="hero-badges">';
   h += renderTierBadge(entityId);
   h += renderHealthIndicator(health);
+  h += renderDensityBadge(data);
   h += '<span class="cl-interface-badge">Career Lite</span>';
   h += '</div>';
 
@@ -11982,6 +12267,7 @@ function renderDetail(data) {
   h += '<div class="hero-badges">';
   h += renderTierBadge(entityId);
   h += renderHealthIndicator(health);
+  h += renderDensityBadge(data);
   h += confidenceBadge(meta.extraction_confidence);
   h += '</div>';
 
@@ -11991,6 +12277,32 @@ function renderDetail(data) {
   h += '</div>';
 
   h += '</div></div></div>';
+
+  // Enrichment prompts for skeleton/partial entities
+  var density = getEntityDensity(data);
+  if (density.level === 'skeleton' || density.level === 'partial') {
+    h += '<div class="section" style="margin-top:0;">';
+    if (!linkedinUrl && type === 'person') {
+      h += renderEnrichPrompt('\\uD83D\\uDD17', 'Add a LinkedIn URL to populate career history, education, and skills.', 'Paste URL', 'document.getElementById(' + "'" + 'obsText' + "'" + ').focus()');
+    }
+    if (type === 'person' && (!data.career_lite || !data.career_lite.work_history || data.career_lite.work_history.length === 0)) {
+      h += renderEnrichPrompt('\\uD83D\\uDCBC', 'No career history found. Upload a LinkedIn PDF or paste a profile URL to enrich.', '', '');
+    }
+    if (attrs.length < 3) {
+      h += renderEnrichPrompt('\\uD83D\\uDCCB', 'This entity has very few attributes. Add observations or import from external sources to build a richer profile.', '', '');
+    }
+    if (!headline && type === 'person') {
+      h += renderEnrichPrompt('\\uD83D\\uDC64', 'No headline or role detected. Add context about what this person does.', '', '');
+    }
+    var hasHandles = false;
+    for (var i = 0; i < attrs.length; i++) {
+      if (attrs[i].key === 'x_handle' || attrs[i].key === 'instagram_handle' || attrs[i].key === 'x_url' || attrs[i].key === 'instagram_url') { hasHandles = true; break; }
+    }
+    if (!hasHandles && !linkedinUrl && type === 'person') {
+      h += renderEnrichPrompt('\\uD83D\\uDCF1', 'No social profiles linked. Paste a profile URL to connect social accounts.', '', '');
+    }
+    h += '</div>';
+  }
 
   // Summary
   h += '<div class="section">';
@@ -12174,9 +12486,26 @@ function renderOrgDossier(data) {
   if (industry) h += '<span class="type-badge" style="background:rgba(16,185,129,0.1);color:#10b981;">' + esc(industry) + '</span>';
   if (dateRange) h += '<span style="font-size:0.78rem;color:var(--text-muted);margin-left:8px;">' + esc(dateRange) + '</span>';
   h += '<span class="entity-id-badge">' + esc(e.entity_id || '') + '</span>';
+  h += renderDensityBadge(data);
   if ((e.entity_id || '') !== primaryEntityId) h += '<button class="btn-delete-entity" onclick="confirmDeleteEntity(' + "'" + esc(e.entity_id || '') + "'" + ', ' + "'" + esc(name).replace(/'/g, '') + "'" + ')" title="Delete entity">Delete</button>';
   h += '<button class="btn-enrich-org" id="btnEnrichOrg" onclick="enrichOrgFromWeb(' + "'" + esc(e.entity_id || '') + "'" + ', ' + "'" + esc(name).replace(/'/g, '') + "'" + ')" style="margin-left:8px;padding:4px 12px;border:1px solid #6366f1;border-radius:6px;background:transparent;color:#6366f1;font-size:0.72rem;font-weight:600;cursor:pointer;">Enrich from Web</button>';
   h += '</div>';
+
+  // Enrichment prompts for skeleton/partial orgs
+  var orgDensity = getEntityDensity(data);
+  if (orgDensity.level === 'skeleton' || orgDensity.level === 'partial') {
+    h += '<div class="section" style="margin-top:0;">';
+    if (roles.length === 0) {
+      h += renderEnrichPrompt('\\uD83D\\uDCBC', 'No roles recorded for this organization. Add observations about your involvement.', '', '');
+    }
+    if (attributes.length < 3) {
+      h += renderEnrichPrompt('\\uD83C\\uDFE2', 'Limited information about this organization. Use "Enrich from Web" to pull industry, description, and more.', 'Enrich', 'document.getElementById(' + "'" + 'btnEnrichOrg' + "'" + ').click()');
+    }
+    if (observations.length < 2) {
+      h += renderEnrichPrompt('\\uD83D\\uDCDD', 'Few observations recorded. Add notes about your experience with this organization.', '', '');
+    }
+    h += '</div>';
+  }
 
   // Section: Your Roles Here
   if (roles.length > 0) {
