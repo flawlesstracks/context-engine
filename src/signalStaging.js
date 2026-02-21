@@ -1636,12 +1636,192 @@ function getReviewQueue(graphDir) {
     .sort((a, b) => (a.confidence || 0) - (b.confidence || 0)); // Lowest confidence first
 }
 
+// --- Bundled Review Queue: group clusters into extraction event bundles ---
+
+function getBundledReviewQueue(graphDir) {
+  const clusters = getReviewQueue(graphDir);
+  const allEntities = listEntities(graphDir);
+
+  // Group by source URL
+  const byUrl = {};
+  const standalone = [];
+  for (const c of clusters) {
+    const url = c.source?.url || '';
+    if (url) {
+      if (!byUrl[url]) byUrl[url] = [];
+      byUrl[url].push(c);
+    } else {
+      standalone.push(c);
+    }
+  }
+
+  const bundles = [];
+
+  for (const [url, group] of Object.entries(byUrl)) {
+    if (group.length === 1) {
+      // Single cluster — render standalone
+      standalone.push(group[0]);
+      continue;
+    }
+
+    // Deduplicate: clusters with same name + type from same source
+    const dedupMap = {};
+    for (const c of group) {
+      const name = (c.signals?.names?.[0] || c.cluster_id).toLowerCase().trim();
+      const type = c.entity_type || 'unknown';
+      const key = name + '|' + type;
+      if (!dedupMap[key]) {
+        dedupMap[key] = { primary: c, duplicates: [] };
+      } else {
+        dedupMap[key].duplicates.push(c);
+      }
+    }
+
+    // Identify primary entity (person type preferred) and related entities
+    let primaryKey = null;
+    let primaryCluster = null;
+    const related = [];
+
+    for (const [key, entry] of Object.entries(dedupMap)) {
+      const c = entry.primary;
+      if (c.entity_type === 'person' && !primaryKey) {
+        primaryKey = key;
+        primaryCluster = c;
+        primaryCluster._duplicate_ids = entry.duplicates.map(d => d.cluster_id);
+      }
+    }
+
+    // If no person found, use first cluster as primary
+    if (!primaryCluster) {
+      const firstKey = Object.keys(dedupMap)[0];
+      primaryKey = firstKey;
+      primaryCluster = dedupMap[firstKey].primary;
+      primaryCluster._duplicate_ids = dedupMap[firstKey].duplicates.map(d => d.cluster_id);
+    }
+
+    // Build related entities (everything except primary)
+    for (const [key, entry] of Object.entries(dedupMap)) {
+      if (key === primaryKey) continue;
+      const c = entry.primary;
+      const allIds = [c.cluster_id, ...entry.duplicates.map(d => d.cluster_id)];
+
+      // Extract relationship from org_dimensions or relationships
+      let relationship = '';
+      const orgDims = c._entity_data?.org_dimensions;
+      if (orgDims) {
+        const role = orgDims.primary_user_role || '';
+        const status = orgDims.org_status || '';
+        if (role) {
+          relationship = role + (status === 'former' ? ' (former)' : status === 'current' ? ' (current)' : '');
+        }
+      }
+      if (!relationship) {
+        const rels = c._entity_data?.relationships || [];
+        if (rels.length > 0) relationship = rels[0].relationship_type + (rels[0].context ? ': ' + rels[0].context : '');
+      }
+
+      // Check if entity already exists in graph
+      const name = c.signals?.names?.[0] || '';
+      let existsInGraph = false;
+      let existingEntityId = null;
+      if (c.candidate_entity_id) {
+        existsInGraph = true;
+        existingEntityId = c.candidate_entity_id;
+      } else {
+        // Quick name match check
+        for (const e of allEntities) {
+          const eName = e.entity?.name?.common || e.entity?.name?.legal || e.entity?.name?.full || '';
+          if (eName.toLowerCase() === name.toLowerCase()) {
+            existsInGraph = true;
+            existingEntityId = e.entity?.entity_id || null;
+            break;
+          }
+        }
+      }
+
+      related.push({
+        cluster_id: c.cluster_id,
+        all_cluster_ids: allIds,
+        name: name,
+        entity_type: c.entity_type || 'business',
+        relationship: relationship,
+        quadrant: c.quadrant,
+        quadrant_label: c.quadrant_label || 'Q' + c.quadrant,
+        exists_in_graph: existsInGraph,
+        existing_entity_id: existingEntityId,
+        candidate_entity_name: c.candidate_entity_name || null,
+        confidence: c.confidence || 0,
+      });
+    }
+
+    // Determine source label from URL
+    let sourceLabel = 'Extraction';
+    if (url.includes('linkedin.com')) sourceLabel = 'LinkedIn';
+    else if (url.includes('x.com') || url.includes('twitter.com')) sourceLabel = 'X';
+    else if (url.includes('instagram.com')) sourceLabel = 'Instagram';
+
+    let primaryName = primaryCluster.signals?.names?.[0] || primaryCluster.cluster_id;
+
+    // For bundles with no person cluster, try to extract person name from context
+    const personCount = Object.values(dedupMap).filter(e => e.primary.entity_type === 'person').length;
+    const orgCount = Object.values(dedupMap).filter(e => e.primary.entity_type !== 'person').length;
+    let contextPersonName = null;
+    if (personCount === 0) {
+      // Try extracting from org cluster relationships
+      for (const entry of Object.values(dedupMap)) {
+        const rels = entry.primary._entity_data?.relationships || [];
+        if (rels.length > 0 && rels[0].name) { contextPersonName = rels[0].name; break; }
+      }
+      // Try extracting from LinkedIn URL slug
+      if (!contextPersonName && url.includes('linkedin.com/in/')) {
+        const slug = url.split('linkedin.com/in/')[1]?.replace(/\/$/, '');
+        if (slug) contextPersonName = slug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+      }
+    }
+
+    bundles.push({
+      bundle_type: 'extraction_event',
+      source_url: url,
+      source_label: sourceLabel,
+      primary: {
+        cluster_id: primaryCluster.cluster_id,
+        all_cluster_ids: [primaryCluster.cluster_id, ...(primaryCluster._duplicate_ids || [])],
+        name: primaryName,
+        entity_type: primaryCluster.entity_type,
+        signals: primaryCluster.signals,
+        confidence: primaryCluster.confidence || 0,
+        quadrant: primaryCluster.quadrant,
+        quadrant_label: primaryCluster.quadrant_label || 'Q' + primaryCluster.quadrant,
+        candidate_entity_id: primaryCluster.candidate_entity_id || null,
+        candidate_entity_name: primaryCluster.candidate_entity_name || null,
+        ambiguous: primaryCluster.ambiguous || false,
+        evidence: primaryCluster.evidence || null,
+      },
+      related: related,
+      context_person_name: contextPersonName,
+      summary: sourceLabel + ': ' + (contextPersonName || primaryName) + ' — ' + personCount + ' person' + (personCount !== 1 ? 's' : '') + ', ' + orgCount + ' organization' + (orgCount !== 1 ? 's' : ''),
+      total_clusters: group.length,
+      person_count: personCount,
+      org_count: orgCount,
+    });
+  }
+
+  // Standalone clusters (no URL or single clusters)
+  const standaloneItems = standalone.map(c => ({
+    bundle_type: 'standalone',
+    cluster: c,
+  }));
+
+  return { bundles, standalone: standaloneItems, total: clusters.length };
+}
+
 module.exports = {
   stageSignalCluster,
   scoreCluster,
   resolveCluster,
   stageAndScoreExtraction,
   getReviewQueue,
+  getBundledReviewQueue,
   listClusters,
   readCluster,
   writeCluster,

@@ -10,7 +10,7 @@ const multer = require('multer');
 const cookieParser = require('cookie-parser');
 const { readEntity, writeEntity, listEntities, listEntitiesByType, getNextCounter, loadConnectedObjects, deleteEntity, getSelfEntityId, isSelfEntity } = require('./src/graph-ops');
 const { ingestPipeline } = require('./src/ingest-pipeline');
-const { stageAndScoreExtraction, resolveCluster, getReviewQueue, readCluster, resolveConflict } = require('./src/signalStaging');
+const { stageAndScoreExtraction, resolveCluster, getReviewQueue, getBundledReviewQueue, readCluster, resolveConflict } = require('./src/signalStaging');
 const { normalizeFileToText } = require('./src/parsers/normalize');
 const { buildLinkedInPrompt, linkedInResponseToEntity, linkedInExperienceToOrgs } = require('./src/parsers/linkedin');
 const { mapContactRows } = require('./src/parsers/contacts');
@@ -1613,15 +1613,66 @@ app.post('/api/ingest/confirm', apiAuth, express.json({ limit: '10mb' }), async 
 
 // --- Signal Staging / Review Queue API ---
 
-// GET /api/review-queue — List unresolved and provisional signal clusters
+// GET /api/review-queue — List unresolved and provisional signal clusters (bundled)
 app.get('/api/review-queue', apiAuth, (req, res) => {
   try {
+    const bundled = getBundledReviewQueue(req.graphDir);
+    // Also include flat clusters for backward compat
     const queue = getReviewQueue(req.graphDir);
-    res.json({ clusters: queue, count: queue.length });
+    res.json({ clusters: queue, count: queue.length, bundles: bundled.bundles, standalone: bundled.standalone });
   } catch (err) {
     console.error('[review-queue] Error:', err.message);
     res.status(500).json({ error: err.message });
   }
+});
+
+// POST /api/resolve-bundle — Resolve an extraction event bundle
+app.post('/api/resolve-bundle', apiAuth, (req, res) => {
+  const { cluster_ids, action, excluded_cluster_ids } = req.body;
+  if (!cluster_ids || !Array.isArray(cluster_ids) || !action) {
+    return res.status(400).json({ error: 'Missing cluster_ids array or action' });
+  }
+  if (!['add_to_graph', 'dismiss'].includes(action)) {
+    return res.status(400).json({ error: 'Action must be add_to_graph or dismiss' });
+  }
+
+  const excluded = new Set(excluded_cluster_ids || []);
+  const results = [];
+  const errors = [];
+
+  // Sort: person clusters first (primary), then orgs
+  const orderedIds = cluster_ids.filter(id => !excluded.has(id));
+
+  for (const cid of orderedIds) {
+    try {
+      const cluster = readCluster(cid, req.graphDir);
+      if (!cluster) { errors.push({ cluster_id: cid, error: 'Not found' }); continue; }
+
+      let clusterAction;
+      if (action === 'dismiss') {
+        clusterAction = 'skip';
+      } else {
+        // add_to_graph: use appropriate action based on quadrant
+        if (cluster.candidate_entity_id && (cluster.quadrant === 2 || cluster.quadrant === 4)) {
+          clusterAction = 'merge';
+        } else {
+          clusterAction = 'create_new';
+        }
+      }
+
+      const result = resolveCluster(cid, clusterAction, req.graphDir, req.agentId);
+      if (result.error) {
+        errors.push({ cluster_id: cid, error: result.error });
+      } else {
+        results.push(result);
+      }
+    } catch (err) {
+      errors.push({ cluster_id: cid, error: err.message });
+    }
+  }
+
+  console.log(`[bundle] Resolved ${results.length} clusters (${errors.length} errors) action=${action}`);
+  res.json({ action, resolved: results, errors, excluded: [...excluded] });
 });
 
 // GET /api/clusters/:id — Get a single signal cluster
@@ -8349,6 +8400,107 @@ const WIKI_HTML = `<!DOCTYPE html>
   .rq-quadrant.q3 { background: #fef3c7; color: #92400e; }
   .rq-quadrant.q4 { background: #f3e8ff; color: #6b21a8; }
 
+  /* --- Bundle Cards (Extraction Event Grouping) --- */
+  .rq-bundle {
+    background: var(--bg-card);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--radius-lg);
+    margin-bottom: 14px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    transition: all var(--transition-fast);
+  }
+  .rq-bundle:hover { border-color: var(--accent-tertiary); box-shadow: var(--shadow-md); }
+  .rq-bundle-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px 20px; cursor: pointer;
+    background: linear-gradient(135deg, var(--bg-card) 80%, rgba(99,102,241,0.04) 100%);
+  }
+  .rq-bundle-header:hover { background: var(--bg-hover); }
+  .rq-bundle-icon {
+    width: 40px; height: 40px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; flex-shrink: 0; background: rgba(99,102,241,0.08);
+  }
+  .rq-bundle-info { flex: 1; min-width: 0; }
+  .rq-bundle-title {
+    font-size: 1rem; font-weight: 700; color: var(--text-primary);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .rq-bundle-summary {
+    font-size: 0.72rem; color: var(--text-muted); margin-top: 2px;
+  }
+  .rq-bundle-meta {
+    display: flex; gap: 6px; align-items: center;
+  }
+  .rq-bundle-count {
+    font-size: 0.68rem; font-weight: 700; padding: 2px 8px;
+    border-radius: 10px; background: rgba(99,102,241,0.1); color: #6366f1;
+  }
+  .rq-bundle-chevron {
+    font-size: 0.9rem; color: var(--text-muted); transition: transform 0.2s;
+  }
+  .rq-bundle.expanded .rq-bundle-chevron { transform: rotate(90deg); }
+  .rq-bundle-body {
+    display: none; padding: 0 20px 16px; border-top: 1px solid var(--border-subtle);
+  }
+  .rq-bundle.expanded .rq-bundle-body { display: block; }
+  .rq-bundle-primary {
+    padding: 14px 0; border-bottom: 1px solid var(--border-subtle);
+  }
+  .rq-bundle-primary-label {
+    font-size: 0.62rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: #6366f1; margin-bottom: 6px;
+  }
+  .rq-bundle-related {
+    padding: 12px 0;
+  }
+  .rq-bundle-related-label {
+    font-size: 0.62rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--text-muted); margin-bottom: 8px;
+  }
+  .rq-related-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; margin-bottom: 4px;
+    border-radius: var(--radius-md); background: var(--bg-secondary);
+    transition: background 0.15s;
+  }
+  .rq-related-item:hover { background: var(--bg-tertiary); }
+  .rq-related-check {
+    width: 16px; height: 16px; cursor: pointer; accent-color: #6366f1;
+  }
+  .rq-related-icon {
+    width: 28px; height: 28px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem; flex-shrink: 0; background: rgba(14,165,233,0.08);
+  }
+  .rq-related-info { flex: 1; min-width: 0; }
+  .rq-related-name { font-size: 0.82rem; font-weight: 600; color: var(--text-primary); }
+  .rq-related-role { font-size: 0.68rem; color: var(--text-muted); }
+  .rq-exists-badge {
+    font-size: 0.6rem; font-weight: 700; padding: 1px 6px;
+    border-radius: 6px; background: rgba(34,197,94,0.12); color: #15803d;
+  }
+  .rq-bundle-actions {
+    display: flex; gap: 8px; padding: 12px 0 0;
+    border-top: 1px solid var(--border-subtle); margin-top: 4px;
+  }
+  .rq-btn-add-graph {
+    padding: 8px 20px; border-radius: var(--radius-md);
+    font-size: 0.82rem; font-weight: 700; cursor: pointer;
+    background: #22c55e; color: #fff; border: none;
+    transition: all var(--transition-fast);
+  }
+  .rq-btn-add-graph:hover { background: #16a34a; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(34,197,94,0.3); }
+  .rq-btn-dismiss {
+    padding: 8px 20px; border-radius: var(--radius-md);
+    font-size: 0.82rem; font-weight: 600; cursor: pointer;
+    background: var(--bg-tertiary); color: var(--text-secondary);
+    border: 1px solid var(--border-primary);
+    transition: all var(--transition-fast);
+  }
+  .rq-btn-dismiss:hover { background: var(--bg-hover); }
+
   /* --- Sidebar Upgrades --- */
   .sidebar-health-dot {
     display: inline-block; width: 8px; height: 8px;
@@ -11791,176 +11943,189 @@ function showReviewQueue() {
   document.getElementById('main').innerHTML = '<div style="padding:40px;color:var(--text-muted);text-align:center;">Loading review queue...</div>';
 
   api('GET', '/api/review-queue').then(function(data) {
-    var clusters = data.clusters || [];
-    renderReviewQueue(clusters);
+    renderReviewQueue(data);
   }).catch(function(err) {
     document.getElementById('main').innerHTML = '<div style="padding:40px;color:#ef4444;">Error loading review queue: ' + esc(err.message) + '</div>';
   });
 }
 
-function renderReviewQueue(clusters) {
+function renderReviewQueue(data) {
+  var clusters = data.clusters || [];
+  var bundles = data.bundles || [];
+  var standalone = data.standalone || [];
   var h = '<div class="review-queue">';
 
   // Count by state
-  var unresolved = 0, provisional = 0, ready = 0;
+  var unresolved = 0, provisional = 0;
   for (var i = 0; i < clusters.length; i++) {
     var state = (clusters[i].state || '').toLowerCase();
     if (state === 'unresolved') unresolved++;
     else if (state === 'provisional') provisional++;
-    else ready++;
   }
 
   // Header with stats
   h += '<div class="rq-header">';
   h += '<h2><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg> Review Queue</h2>';
   h += '<div class="rq-stats">';
-  h += '<div class="rq-stat"><span class="rq-stat-num unresolved">' + unresolved + '</span><span class="rq-stat-label">Unresolved</span></div>';
-  h += '<div class="rq-stat"><span class="rq-stat-num provisional">' + provisional + '</span><span class="rq-stat-label">Provisional</span></div>';
-  h += '<div class="rq-stat"><span class="rq-stat-num ready">' + ready + '</span><span class="rq-stat-label">Ready</span></div>';
+  h += '<div class="rq-stat"><span class="rq-stat-num unresolved">' + bundles.length + '</span><span class="rq-stat-label">Bundles</span></div>';
+  h += '<div class="rq-stat"><span class="rq-stat-num provisional">' + standalone.length + '</span><span class="rq-stat-label">Individual</span></div>';
+  h += '<div class="rq-stat"><span class="rq-stat-num ready">' + (data.count || 0) + '</span><span class="rq-stat-label">Total Clusters</span></div>';
   h += '</div></div>';
 
-  if (clusters.length === 0) {
+  if ((data.count || 0) === 0) {
     h += '<div class="review-queue-empty"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.2" style="margin-bottom:12px"><circle cx="12" cy="12" r="10"/><path d="M9 12l2 2 4-4"/></svg><br/>No signal clusters pending review.<br/>Extract from a URL or upload files to see clusters here.</div>';
     h += '</div>';
     document.getElementById('main').innerHTML = h;
     return;
   }
 
-  // Group by source URL
-  var groups = {};
-  var ungrouped = [];
-  for (var i = 0; i < clusters.length; i++) {
-    var c = clusters[i];
-    var sourceUrl = (c.source && c.source.url) || '';
-    if (sourceUrl) {
-      if (!groups[sourceUrl]) groups[sourceUrl] = [];
-      groups[sourceUrl].push(c);
-    } else {
-      ungrouped.push(c);
+  // --- Render extraction event bundles ---
+  for (var bi = 0; bi < bundles.length; bi++) {
+    var b = bundles[bi];
+    var bundleId = 'bundle-' + bi;
+    var sourceIcon = b.source_label === 'LinkedIn' ? '\\uD83D\\uDD17' : b.source_label === 'X' ? '\\uD835\\uDD4F' : '\\uD83D\\uDCE5';
+    var displayName = b.context_person_name || b.primary.name;
+
+    h += '<div class="rq-bundle expanded" id="' + bundleId + '">';
+
+    // Bundle header — clickable to expand/collapse
+    h += '<div class="rq-bundle-header" onclick="toggleBundle(' + "'" + bundleId + "'" + ')">';
+    h += '<div class="rq-bundle-icon">' + sourceIcon + '</div>';
+    h += '<div class="rq-bundle-info">';
+    h += '<div class="rq-bundle-title">' + esc(b.source_label) + ': ' + esc(displayName) + '</div>';
+    h += '<div class="rq-bundle-summary">' + b.person_count + ' person' + (b.person_count !== 1 ? 's' : '') + ', ' + b.org_count + ' organization' + (b.org_count !== 1 ? 's' : '') + ' &mdash; ' + b.total_clusters + ' clusters</div>';
+    h += '</div>';
+    h += '<div class="rq-bundle-meta">';
+    h += '<span class="rq-bundle-count">' + b.total_clusters + ' clusters</span>';
+    h += '<span class="rq-bundle-chevron">\\u25B6</span>';
+    h += '</div>';
+    h += '</div>';
+
+    // Bundle body
+    h += '<div class="rq-bundle-body">';
+
+    // Primary entity section
+    if (b.person_count > 0) {
+      h += '<div class="rq-bundle-primary">';
+      h += '<div class="rq-bundle-primary-label">Primary Entity</div>';
+      var p = b.primary;
+      var pIcon = p.entity_type === 'person' ? '\\uD83D\\uDC64' : '\\uD83C\\uDFE2';
+      h += '<div style="display:flex;align-items:center;gap:10px;">';
+      h += '<div class="rq-entity-icon ' + esc(p.entity_type) + '">' + pIcon + '</div>';
+      h += '<div style="flex:1;">';
+      h += '<div style="font-size:0.95rem;font-weight:700;color:var(--text-primary);">' + esc(p.name) + ' <span class="type-badge ' + esc(p.entity_type) + '" style="font-size:0.6rem;padding:1px 6px;">' + esc(p.entity_type) + '</span></div>';
+      // Show signal summary
+      var pSignals = p.signals || {};
+      var pHandles = pSignals.handles || {};
+      var signalBits = [];
+      if (pHandles.linkedin) signalBits.push('LinkedIn');
+      if (pHandles.x) signalBits.push('X: @' + pHandles.x);
+      var pOrgs = pSignals.organizations || [];
+      if (pOrgs.length > 0) signalBits.push(pOrgs.slice(0, 3).join(', '));
+      if (signalBits.length > 0) h += '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">' + esc(signalBits.join(' \\u2022 ')) + '</div>';
+      if (p.candidate_entity_name) {
+        h += '<div style="font-size:0.72rem;color:#6366f1;margin-top:2px;">\\u2192 Match: ' + esc(p.candidate_entity_name) + ' (' + Math.round((p.confidence || 0) * 100) + '% confidence)</div>';
+      }
+      h += '</div>';
+      h += '<span class="rq-quadrant q' + p.quadrant + '">' + esc(p.quadrant_label) + '</span>';
+      h += '</div>';
+      h += '</div>';
     }
+
+    // Related entities section
+    if (b.related.length > 0) {
+      h += '<div class="rq-bundle-related">';
+      h += '<div class="rq-bundle-related-label">Related Organizations (' + b.related.length + ')</div>';
+      for (var ri = 0; ri < b.related.length; ri++) {
+        var r = b.related[ri];
+        var relId = bundleId + '-rel-' + ri;
+        h += '<div class="rq-related-item" id="' + relId + '">';
+        h += '<input type="checkbox" class="rq-related-check" data-cluster-ids="' + esc(r.all_cluster_ids.join(',')) + '" checked />';
+        h += '<div class="rq-related-icon">\\uD83C\\uDFE2</div>';
+        h += '<div class="rq-related-info">';
+        h += '<div class="rq-related-name">' + esc(r.name);
+        if (r.exists_in_graph) h += ' <span class="rq-exists-badge">EXISTS</span>';
+        h += '</div>';
+        if (r.relationship) {
+          h += '<div class="rq-related-role">' + esc(displayName) + ' \\u2192 ' + esc(r.relationship) + '</div>';
+        }
+        h += '</div>';
+        h += '<span class="rq-quadrant q' + r.quadrant + '" style="font-size:0.55rem;">' + esc(r.quadrant_label) + '</span>';
+        h += '</div>';
+      }
+      h += '</div>';
+    }
+
+    // Bundle action buttons
+    h += '<div class="rq-bundle-actions" id="' + bundleId + '-actions">';
+    // Collect all cluster IDs for bundle resolution
+    var allBundleIds = b.primary.all_cluster_ids.slice();
+    for (var ri = 0; ri < b.related.length; ri++) {
+      for (var ci = 0; ci < b.related[ri].all_cluster_ids.length; ci++) {
+        allBundleIds.push(b.related[ri].all_cluster_ids[ci]);
+      }
+    }
+    h += '<button class="rq-btn-add-graph" onclick="resolveBundleAction(' + "'" + bundleId + "'" + ',' + "'" + 'add_to_graph' + "'" + ',' + "'" + allBundleIds.join(',') + "'" + ')">\\u2705 Add to Graph</button>';
+    h += '<button class="rq-btn-dismiss" onclick="resolveBundleAction(' + "'" + bundleId + "'" + ',' + "'" + 'dismiss' + "'" + ',' + "'" + allBundleIds.join(',') + "'" + ')">Dismiss</button>';
+    h += '</div>';
+
+    h += '</div>'; // bundle body
+    h += '</div>'; // bundle
   }
 
-  function renderClusterCard(c) {
-    var q = c.quadrant || 1;
-    var names = (c.signals && c.signals.names) || [];
-    var displayName = names[0] || c.cluster_id;
-    var sourceType = (c.source && c.source.type) || 'unknown';
-    var sourceUrl = (c.source && c.source.url) || '';
-    var conf = c.confidence || 0;
-    var candidateName = c.candidate_entity_name || '';
-    var cid = c.cluster_id;
-    var entityType = c.entity_type || 'person';
-    var entityIcon = entityType === 'person' ? '&#128100;' : entityType === 'organization' || entityType === 'business' ? '&#127970;' : '&#128196;';
+  // --- Render standalone clusters (single clusters that arrived alone) ---
+  if (standalone.length > 0) {
+    if (bundles.length > 0) {
+      h += '<div class="rq-group-header" style="margin-top:16px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Individual Clusters <span style="color:var(--text-muted);">(' + standalone.length + ')</span></div>';
+    }
+    for (var si = 0; si < standalone.length; si++) {
+      var c = standalone[si].cluster;
+      if (!c) continue;
+      var q = c.quadrant || 1;
+      var names = (c.signals && c.signals.names) || [];
+      var displayNameC = names[0] || c.cluster_id;
+      var sourceType = (c.source && c.source.type) || 'unknown';
+      var sourceUrl = (c.source && c.source.url) || '';
+      var conf = c.confidence || 0;
+      var candidateName = c.candidate_entity_name || '';
+      var cid = c.cluster_id;
+      var entityType = c.entity_type || 'person';
+      var entityIcon = entityType === 'person' ? '&#128100;' : '&#127970;';
 
-    var isAmbiguous = !!c.ambiguous;
-    var ch = '<div class="rq-card' + (isAmbiguous ? ' ambiguous' : '') + '" id="cluster-' + esc(cid) + '">';
-
-    // Card header with icon, name, quadrant badge
-    ch += '<div class="rq-card-header">';
-    ch += '<div class="rq-entity-icon ' + esc(entityType) + '">' + entityIcon + '</div>';
-    ch += '<div class="rq-card-title">';
-    ch += '<div class="rq-card-name">' + esc(displayName) + ' <span class="type-badge ' + esc(entityType) + '" style="font-size:0.6rem;padding:1px 6px;">' + esc(entityType) + '</span>';
-    if (isAmbiguous) ch += '<span class="rq-ambiguous-label">\\u26A0 AMBIGUOUS</span>';
-    ch += '</div>';
-    ch += '<div class="rq-card-source">' + esc(getSourceLabel(sourceType));
-    if (sourceUrl) ch += ' &mdash; ' + esc(sourceUrl.length > 50 ? sourceUrl.substring(0, 50) + '...' : sourceUrl);
-    ch += '</div>';
-    ch += '</div>';
-    ch += '<span class="rq-quadrant q' + q + '">Q' + q + ' ' + esc(quadrantLabel(q)) + '</span>';
-    ch += '</div>';
-
-    // Confidence progress bar
-    if (conf > 0) {
-      var confPct = Math.round(conf * 100);
-      var confCls = conf > 0.7 ? 'high' : conf >= 0.4 ? 'mid' : 'low';
-      ch += '<div class="rq-conf-bar">';
-      ch += '<div class="rq-conf-track"><div class="rq-conf-fill ' + confCls + '" style="width:' + confPct + '%"></div></div>';
-      ch += '<span class="rq-conf-label">' + confPct + '%</span>';
+      var ch = '<div class="rq-card" id="cluster-' + esc(cid) + '">';
+      ch += '<div class="rq-card-header">';
+      ch += '<div class="rq-entity-icon ' + esc(entityType) + '">' + entityIcon + '</div>';
+      ch += '<div class="rq-card-title">';
+      ch += '<div class="rq-card-name">' + esc(displayNameC) + ' <span class="type-badge ' + esc(entityType) + '" style="font-size:0.6rem;padding:1px 6px;">' + esc(entityType) + '</span></div>';
+      ch += '<div class="rq-card-source">' + esc(getSourceLabel(sourceType));
+      if (sourceUrl) ch += ' &mdash; ' + esc(sourceUrl.length > 50 ? sourceUrl.substring(0, 50) + '...' : sourceUrl);
+      ch += '</div></div>';
+      ch += '<span class="rq-quadrant q' + q + '">Q' + q + ' ' + esc(quadrantLabel(q)) + '</span>';
       ch += '</div>';
-    }
 
-    // Signal summary
-    ch += '<div class="rq-signals">';
-    if (names.length > 0) ch += '<span class="rq-signal-item"><strong>Names:</strong> ' + names.map(function(n) { return esc(n); }).join(', ') + '</span>';
-    var handles = c.signals && c.signals.handles;
-    if (handles) {
-      var hs = [];
-      if (handles.x) hs.push('X: @' + handles.x);
-      if (handles.instagram) hs.push('IG: @' + handles.instagram);
-      if (handles.linkedin) hs.push('LI');
-      if (hs.length > 0) ch += '<span class="rq-signal-item"><strong>Handles:</strong> ' + hs.join(', ') + '</span>';
-    }
-    var orgs = (c.signals && c.signals.organizations) || [];
-    if (orgs.length > 0) ch += '<span class="rq-signal-item"><strong>Orgs:</strong> ' + orgs.slice(0, 3).map(function(o) { return esc(o); }).join(', ') + '</span>';
-    ch += '</div>';
+      if (conf > 0) {
+        var confPct = Math.round(conf * 100);
+        var confCls = conf > 0.7 ? 'high' : conf >= 0.4 ? 'mid' : 'low';
+        ch += '<div class="rq-conf-bar"><div class="rq-conf-track"><div class="rq-conf-fill ' + confCls + '" style="width:' + confPct + '%"></div></div>';
+        ch += '<span class="rq-conf-label">' + confPct + '%</span></div>';
+      }
 
-    // Evidence panel for ambiguous clusters
-    if (isAmbiguous && c.evidence && c.evidence.length > 0) {
-      ch += '<div class="rq-evidence-panel">';
-      ch += '<div class="ev-title">\\u26A0 Evidence — Is this the same entity as ' + esc(candidateName) + '?</div>';
-      for (var ei = 0; ei < c.evidence.length; ei++) {
-        var ev = c.evidence[ei];
-        var evIcon = ev.status === 'match' ? '\\u2705' : ev.status === 'conflict' ? '\\u274C' : '\\u26A0\\uFE0F';
-        ch += '<div class="rq-evidence-item">';
-        ch += '<span class="ev-icon">' + evIcon + '</span>';
-        ch += '<span class="ev-factor">' + esc(ev.factor) + ':</span>';
-        ch += '<span>' + esc(ev.value || '') + ' ';
-        if (ev.status === 'match') ch += '<span style="color:#22c55e;">matches</span>';
-        else if (ev.status === 'conflict') ch += '<span style="color:#ef4444;">conflicts</span>';
-        else if (ev.status === 'partial') ch += '<span style="color:#f59e0b;">partial match</span>';
-        else ch += '<span style="color:#9ca3af;">no match</span>';
-        ch += '</span>';
-        if (ev.note) ch += ' <span class="ev-note">(' + esc(ev.note) + ')</span>';
-        ch += '</div>';
+      ch += '<div class="rq-actions cluster-actions">';
+      if (q === 1) {
+        ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create New Entity</button>';
+        ch += '<button class="rq-btn-hold" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'hold' + "'" + ')">Hold</button>';
+      } else if (q === 2) {
+        ch += '<button class="rq-btn-merge" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'merge' + "'" + ')">Merge into ' + esc(candidateName) + '</button>';
+        ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create Separate</button>';
+      } else if (q === 4) {
+        ch += '<button class="rq-btn-source" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'skip' + "'" + ')">Add Source &mdash; Already Captured</button>';
+      } else {
+        ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create Entity</button>';
+        ch += '<button class="rq-btn-hold" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'hold' + "'" + ')">Hold</button>';
       }
       ch += '</div>';
-    }
-
-    // Action buttons
-    ch += '<div class="rq-actions">';
-    if (isAmbiguous && candidateName) {
-      // Ambiguous: show both explicit options
-      ch += '<button class="rq-btn-merge" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'merge' + "'" + ')">Yes, same person \\u2014 merge into ' + esc(candidateName) + '</button>';
-      ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Different person \\u2014 create new</button>';
-      ch += '<button class="rq-btn-hold" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'hold' + "'" + ')">Hold</button>';
-    } else if (q === 1) {
-      ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create New Entity</button>';
-      ch += '<button class="rq-btn-hold" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'hold' + "'" + ')">Hold</button>';
-    } else if (q === 2) {
-      ch += '<button class="rq-btn-merge" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'merge' + "'" + ')">Merge into ' + esc(candidateName) + '</button>';
-      ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create Separate</button>';
-      ch += '<button class="rq-btn-hold" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'hold' + "'" + ')">Hold</button>';
-    } else if (q === 3) {
-      var mentions = c.related_mentions || 0;
-      ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create Entity' + (mentions > 0 ? ' & Merge ' + mentions + ' Mentions' : '') + '</button>';
-      ch += '<button class="rq-btn-hold" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'hold' + "'" + ')">Hold</button>';
-    } else if (q === 4) {
-      ch += '<button class="rq-btn-source" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'skip' + "'" + ')">Add Source &mdash; Already Captured</button>';
-      ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create Separate</button>';
-    }
-    ch += '</div>';
-    ch += '</div>';
-    return ch;
-  }
-
-  // Render grouped clusters
-  var groupKeys = Object.keys(groups);
-  for (var g = 0; g < groupKeys.length; g++) {
-    var url = groupKeys[g];
-    var grpClusters = groups[url];
-    h += '<div class="rq-group-header"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg> ' + esc(url.length > 70 ? url.substring(0, 70) + '...' : url) + ' <span style="color:var(--text-muted);">(' + grpClusters.length + ')</span></div>';
-    for (var i = 0; i < grpClusters.length; i++) {
-      h += renderClusterCard(grpClusters[i]);
-    }
-  }
-
-  // Render ungrouped clusters
-  if (ungrouped.length > 0) {
-    if (groupKeys.length > 0) {
-      h += '<div class="rq-group-header"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg> Other Sources <span style="color:var(--text-muted);">(' + ungrouped.length + ')</span></div>';
-    }
-    for (var i = 0; i < ungrouped.length; i++) {
-      h += renderClusterCard(ungrouped[i]);
+      ch += '</div>';
+      h += ch;
     }
   }
 
@@ -11969,6 +12134,78 @@ function renderReviewQueue(clusters) {
   h += '</div>';
   h += '</div>';
   document.getElementById('main').innerHTML = h;
+}
+
+function toggleBundle(bundleId) {
+  var el = document.getElementById(bundleId);
+  if (el) el.classList.toggle('expanded');
+}
+
+function resolveBundleAction(bundleId, action, allIdsStr) {
+  var bundleEl = document.getElementById(bundleId);
+  var actionsEl = document.getElementById(bundleId + '-actions');
+
+  // Disable buttons
+  if (actionsEl) {
+    var btns = actionsEl.querySelectorAll('button');
+    for (var b = 0; b < btns.length; b++) btns[b].disabled = true;
+  }
+
+  // Collect all cluster IDs
+  var allIds = allIdsStr.split(',').filter(function(id) { return id.length > 0; });
+
+  // Find excluded IDs (unchecked related entities)
+  var excludedIds = [];
+  if (bundleEl && action === 'add_to_graph') {
+    var checkboxes = bundleEl.querySelectorAll('.rq-related-check');
+    for (var ci = 0; ci < checkboxes.length; ci++) {
+      if (!checkboxes[ci].checked) {
+        var ids = (checkboxes[ci].getAttribute('data-cluster-ids') || '').split(',');
+        for (var ei = 0; ei < ids.length; ei++) {
+          if (ids[ei]) excludedIds.push(ids[ei]);
+        }
+      }
+    }
+  }
+
+  api('POST', '/api/resolve-bundle', {
+    cluster_ids: allIds,
+    action: action,
+    excluded_cluster_ids: excludedIds
+  }).then(function(result) {
+    if (result.errors && result.errors.length > 0) {
+      toast('Bundle resolved with ' + result.errors.length + ' error(s)');
+    } else {
+      toast(action === 'add_to_graph' ? 'Added to graph (' + result.resolved.length + ' entities)' : 'Bundle dismissed');
+    }
+
+    // Fade out the bundle
+    if (bundleEl) {
+      bundleEl.style.opacity = '0.3';
+      bundleEl.style.pointerEvents = 'none';
+      if (actionsEl) {
+        if (action === 'add_to_graph') {
+          var names = result.resolved.map(function(r) { return r.entity_name || r.entity_id; }).join(', ');
+          actionsEl.innerHTML = '<span style="color:#15803d;font-weight:600;">\\u2705 Added to graph: ' + esc(names) + '</span>';
+        } else {
+          actionsEl.innerHTML = '<span style="color:var(--text-muted);font-weight:600;">Dismissed</span>';
+        }
+      }
+    }
+
+    refreshReviewQueueBadge();
+    api('GET', '/api/search?q=*').then(function(data) {
+      allEntities = data.results || [];
+      entities = allEntities.slice();
+      renderSidebar();
+    });
+  }).catch(function(err) {
+    toast('Bundle resolution failed: ' + (err.message || 'Unknown error'));
+    if (actionsEl) {
+      var btns = actionsEl.querySelectorAll('button');
+      for (var b = 0; b < btns.length; b++) btns[b].disabled = false;
+    }
+  });
 }
 
 function resolveQueueCluster(clusterId, action) {

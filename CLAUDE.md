@@ -61,7 +61,8 @@ You are **CeeCee**, CJ Mitchell's build agent for the Context Architecture proje
 | POST | /api/discover-entity/select | Resolve disambiguation by selecting a specific candidate from discovery results |
 | POST | /api/extract-linkedin | Extract from LinkedIn PDF (flows through signal staging) |
 | POST | /api/ingest/files | File upload extraction (flows through signal staging) |
-| GET | /api/review-queue | List unresolved/provisional signal clusters |
+| GET | /api/review-queue | List unresolved/provisional signal clusters (bundled by extraction event) |
+| POST | /api/resolve-bundle | Bundle resolution: { cluster_ids, action: add_to_graph/dismiss, excluded_cluster_ids } |
 | GET | /api/clusters/:id | Get signal cluster detail |
 | POST | /api/clusters/resolve | Resolve cluster: create_new, merge, skip, hold, confirm_merge |
 | POST | /api/conflicts/resolve | Resolve entity conflict: keep_a, keep_b, keep_both |
@@ -143,7 +144,7 @@ Cluster stores: signal_confidence, association_confidence, association_factors, 
 - Overview page: working (ENT-CM-001 restored)
 - OpenAPI spec: served at /openai-actions-spec.yaml
 - Signal Staging Layer: working — all extraction paths gated through staging
-- Review Queue: working — sidebar badge shows pending cluster count
+- Review Queue: working — extraction event bundles with relationship-aware resolution. getBundledReviewQueue() groups clusters by source URL, consolidates duplicates (same name+type), identifies primary entity (person) + related orgs. Bundle cards show primary + related entities with checkboxes, relationship labels (e.g., "Co-founder (former)"), EXISTS badges for orgs already in graph. "Add to Graph" resolves entire bundle in one click (primary first, then checked related entities). "Dismiss" skips all. POST /api/resolve-bundle endpoint. Single clusters still render as individual cards.
 - Confidence scoring: working — three-level system with corroboration multiplier
 - Social handle matching: working — X, Instagram, LinkedIn handle/URL matching
 - LinkedIn PDF auto-detection: working — detectLinkedInPDF checks 3+ of 5 signals (linkedin.com, Experience/Education/Skills/Contact headers). Career Lite extraction with Contactable/Identifiable/Experienceable schema. Output flows through stageSignalCluster → scoreCluster → Review Queue. Source type 'linkedin_pdf', signal_confidence 0.85. Non-LinkedIn PDFs fall through to generic extraction.
