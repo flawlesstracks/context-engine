@@ -8883,25 +8883,49 @@ const WIKI_HTML = `<!DOCTYPE html>
   /* ========================================
      LINKEDIN-INSPIRED PROFILE CARDS (MAYA)
      ======================================== */
-  #main.li-profile-bg { background: #f4f2ee; }
-  .li-profile { max-width: 750px; margin: 0 auto; padding: 16px 0 40px; }
+  #main.li-profile-bg {
+    background: #f4f2ee; padding: 0 24px 40px;
+  }
+  .li-profile {
+    width: 100%; max-width: 900px; margin: 0 auto; padding: 0 0 40px;
+  }
+  @media (max-width: 1200px) {
+    .li-profile { max-width: 100%; }
+  }
 
-  /* Horizontal tab bar */
+  /* Integrated breadcrumbs */
+  .li-breadcrumbs {
+    display: flex; align-items: center; gap: 0; padding: 14px 0 8px;
+    font-size: 13px; color: #666;
+  }
+  .li-breadcrumbs a {
+    color: #666; text-decoration: none; cursor: pointer;
+  }
+  .li-breadcrumbs a:hover { color: #0a66c2; }
+  .li-breadcrumbs .li-bc-sep {
+    margin: 0 6px; color: #bbb; font-size: 11px;
+  }
+  .li-breadcrumbs .li-bc-current {
+    color: #191919; font-weight: 600;
+  }
+
+  /* Horizontal tab bar — sticky */
   .li-tab-bar {
-    display: flex; gap: 0; background: #fff; border: 1px solid #e0e0e0;
-    border-radius: 8px; margin-bottom: 8px; overflow: hidden;
+    display: flex; gap: 0; background: #fff; border-bottom: 1px solid #e0e0e0;
+    border-radius: 0; margin-bottom: 8px;
+    position: sticky; top: 0; z-index: 10;
   }
   .li-tab {
-    flex: 1; padding: 12px 8px; text-align: center; font-size: 13px;
+    flex: 1; padding: 14px 8px; text-align: center; font-size: 13px;
     font-weight: 600; color: #666; cursor: pointer; border: none;
     background: transparent; font-family: inherit; position: relative;
     transition: color 0.15s;
   }
-  .li-tab:hover { color: #191919; background: #f8f8f8; }
-  .li-tab.active { color: #0a66c2; }
+  .li-tab:hover { color: #191919; background: rgba(0,0,0,0.02); }
+  .li-tab.active { color: #0a66c2; font-weight: 700; }
   .li-tab.active::after {
-    content: ''; position: absolute; bottom: 0; left: 16px; right: 16px;
-    height: 2px; background: #0a66c2; border-radius: 2px 2px 0 0;
+    content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+    height: 2px; background: #0a66c2;
   }
 
   /* Card base */
@@ -8915,17 +8939,20 @@ const WIKI_HTML = `<!DOCTYPE html>
     margin-bottom: 16px;
   }
   .li-card-title {
-    font-size: 20px; font-weight: 600; color: #191919; margin: 0;
+    font-size: 18px; font-weight: 600; color: #191919; margin: 0;
   }
   .li-card-subtitle {
     font-size: 14px; color: #666; margin-top: 2px;
   }
   .li-edit-btn {
     background: none; border: none; cursor: pointer; padding: 6px;
-    border-radius: 50%; color: #666; transition: all 0.15s;
+    border-radius: 50%; color: #999; transition: all 0.15s;
     display: flex; align-items: center; justify-content: center;
   }
-  .li-edit-btn:hover { background: #f0f0f0; color: #191919; }
+  .li-edit-btn:hover {
+    background: #f0f0f0; color: #191919;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  }
 
   /* Hero card specifics */
   .li-hero { padding: 24px; }
@@ -8972,7 +8999,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   .li-hero-social-link:hover { text-decoration: underline; }
   .li-hero-right {
     display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
-    flex-shrink: 0;
+    flex-shrink: 0; align-self: center;
   }
 
   /* Health score circle */
@@ -14044,7 +14071,29 @@ function renderDetail(data) {
   var mainEl = document.getElementById('main');
   mainEl.className = 'li-profile-bg';
 
+  // Hide external breadcrumbs — we render our own inside the profile
+  var extBc = document.getElementById('breadcrumbs');
+  if (extBc) extBc.innerHTML = '';
+
   var h = '<div class="li-profile" data-entity-id="' + esc(entityId) + '">';
+
+  // --- Integrated Breadcrumbs ---
+  h += '<div class="li-breadcrumbs">';
+  if (breadcrumbs && breadcrumbs.length > 0) {
+    for (var bi = 0; bi < breadcrumbs.length; bi++) {
+      if (bi > 0) h += '<span class="li-bc-sep">&#8250;</span>';
+      if (bi < breadcrumbs.length - 1 && breadcrumbs[bi].action) {
+        h += '<a onclick="' + breadcrumbs[bi].action + '">' + esc(breadcrumbs[bi].label) + '</a>';
+      } else {
+        h += '<span class="li-bc-current">' + esc(breadcrumbs[bi].label) + '</span>';
+      }
+    }
+  } else {
+    h += '<a onclick="selectView(\\'overview\\')">Home</a>';
+    h += '<span class="li-bc-sep">&#8250;</span>';
+    h += '<span class="li-bc-current">' + esc(name) + '</span>';
+  }
+  h += '</div>';
 
   // --- Tab Bar ---
   h += '<div class="li-tab-bar">';
