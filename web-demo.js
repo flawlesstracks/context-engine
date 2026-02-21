@@ -4486,14 +4486,58 @@ Return ONLY a JSON array of strings, no explanation. Example: ["john-doe", "john
       });
     }
 
-    // Step 3: Check for disambiguation
-    if (candidates.length > 1) {
-      // Multiple candidates found — return them for user selection
-      steps.push({ step: 'disambiguation', message: `Found ${candidates.length} possible matches` });
+    // Step 3: Context-aware candidate ranking (MECE-006 Signal Filter: Relevance)
+    // Score each candidate against user's context hints
+    const contextTokens = hints ? hints.toLowerCase().split(/[\s,;]+/).filter(t => t.length > 1) : [];
+
+    function scoreContextMatch(candidate) {
+      if (contextTokens.length === 0) return { score: 0, matches: {} };
+      const fields = {
+        location: (candidate.location || '').toLowerCase(),
+        company: (candidate.company || '').toLowerCase(),
+        headline: (candidate.headline || '').toLowerCase(),
+        name: (candidate.name || '').toLowerCase(),
+      };
+      let score = 0;
+      const matches = {};
+      for (const token of contextTokens) {
+        if (fields.location.indexOf(token) !== -1) { score += 3; matches.location = true; }
+        if (fields.company.indexOf(token) !== -1) { score += 3; matches.company = true; }
+        if (fields.headline.indexOf(token) !== -1) { score += 2; matches.headline = true; }
+      }
+      return { score, matches };
+    }
+
+    // Score and sort all candidates
+    for (const c of candidates) {
+      const result = scoreContextMatch(c);
+      c.context_score = result.score;
+      c.context_matches = result.matches;
+    }
+    candidates.sort((a, b) => b.context_score - a.context_score);
+
+    console.log(`[discover] Candidate context scores:`, candidates.map(c => `${c.name}: ${c.context_score} (${JSON.stringify(c.context_matches)})`));
+
+    // Determine: auto-select, disambiguate, or warn
+    const topScore = candidates[0].context_score;
+    const secondScore = candidates.length > 1 ? candidates[1].context_score : -1;
+    const hasContext = contextTokens.length > 0;
+    const noContextMatch = hasContext && topScore === 0;
+
+    // Auto-select only if: clear winner with context match AND significant gap over second
+    const autoSelect = hasContext && topScore >= 3 && (candidates.length === 1 || topScore > secondScore);
+
+    if (!autoSelect) {
+      // Show disambiguation — either multiple candidates, no context, or no clear winner
+      const warningMsg = noContextMatch
+        ? `Found ${candidates.length} profile(s) but none match your context "${hints}". Try adding more details or paste the LinkedIn URL directly.`
+        : `Found ${candidates.length} possible matches. Please select the correct person.`;
+      steps.push({ step: 'disambiguation', message: warningMsg });
       return res.json({
         status: 'disambiguation',
         name: personName,
         context: hints,
+        context_warning: noContextMatch,
         candidates: candidates.map(c => ({
           slug: c.slug,
           linkedin_url: c.linkedin_url,
@@ -4501,15 +4545,17 @@ Return ONLY a JSON array of strings, no explanation. Example: ["john-doe", "john
           headline: c.headline,
           location: c.location,
           company: c.company,
+          context_score: c.context_score,
+          context_matches: c.context_matches,
         })),
         steps: steps,
-        message: `Found ${candidates.length} possible matches. Please select the correct person.`,
+        message: warningMsg,
       });
     }
 
-    // Step 4: Single match — extract career data through pipeline
+    // Auto-select: clear context-matched winner
     const match = candidates[0];
-    steps.push({ step: 'extracting', message: `Found ${match.name} — extracting career data...` });
+    steps.push({ step: 'extracting', message: `Found ${match.name} (context match: ${Object.keys(match.context_matches).join(', ')}) — extracting career data...` });
 
     const personEntity = linkedInResponseToEntity(match.parsed, match.linkedin_url, req.agentId);
     const pName = match.parsed.name?.full || '';
@@ -10784,19 +10830,40 @@ function discoverEntity() {
     }
 
     if (data.status === 'disambiguation') {
-      // Multiple candidates — show picker
-      statusEl.innerHTML = '<div style="color:#6366f1;font-size:0.82rem;font-weight:600;">' + esc(data.message) + '</div>';
+      // Multiple candidates — show picker with context highlighting
+      var msgColor = data.context_warning ? 'var(--warning,#d97706)' : '#6366f1';
+      statusEl.innerHTML = '<div style="color:' + msgColor + ';font-size:0.82rem;font-weight:600;">' + esc(data.message) + '</div>';
       candidatesEl.style.display = 'block';
       var ch = '';
       for (var i = 0; i < data.candidates.length; i++) {
         var c = data.candidates[i];
-        ch += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;margin-bottom:6px;background:var(--bg-card);border:1px solid var(--border-primary);border-radius:8px;cursor:pointer;" onclick="selectDiscoverCandidate(' + "'" + esc(c.slug) + "'" + ', ' + "'" + esc(c.linkedin_url) + "'" + ')">';
-        ch += '<div>';
-        ch += '<div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);">' + esc(c.name) + '</div>';
-        if (c.headline) ch += '<div style="font-size:0.75rem;color:var(--text-muted);margin-top:1px;">' + esc(c.headline) + '</div>';
-        if (c.location || c.company) ch += '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:1px;">' + esc([c.company, c.location].filter(Boolean).join(' — ')) + '</div>';
+        var cm = c.context_matches || {};
+        var hasMatch = c.context_score > 0;
+        var borderColor = hasMatch ? '#10b981' : 'var(--border-primary)';
+        ch += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;margin-bottom:6px;background:var(--bg-card);border:1px solid ' + borderColor + ';border-radius:8px;cursor:pointer;" onclick="selectDiscoverCandidate(' + "'" + esc(c.slug) + "'" + ', ' + "'" + esc(c.linkedin_url) + "'" + ')">';
+        ch += '<div style="flex:1;overflow:hidden;">';
+        ch += '<div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);">' + esc(c.name);
+        if (hasMatch) ch += ' <span style="font-size:0.65rem;background:rgba(16,185,129,0.12);color:#10b981;padding:1px 6px;border-radius:8px;font-weight:700;">MATCH</span>';
         ch += '</div>';
-        ch += '<button style="padding:4px 12px;border:1px solid #10b981;border-radius:6px;background:transparent;color:#10b981;font-size:0.72rem;font-weight:600;cursor:pointer;white-space:nowrap;">Select</button>';
+        if (c.headline) {
+          var hlColor = cm.headline ? '#10b981' : 'var(--text-muted)';
+          var hlWeight = cm.headline ? '600' : '400';
+          ch += '<div style="font-size:0.75rem;color:' + hlColor + ';font-weight:' + hlWeight + ';margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(c.headline) + '</div>';
+        }
+        var metaParts = [];
+        if (c.company) {
+          var coColor = cm.company ? '#10b981' : 'var(--text-muted)';
+          var coWeight = cm.company ? '600' : '400';
+          metaParts.push('<span style="color:' + coColor + ';font-weight:' + coWeight + ';">' + esc(c.company) + '</span>');
+        }
+        if (c.location) {
+          var locColor = cm.location ? '#10b981' : 'var(--text-muted)';
+          var locWeight = cm.location ? '600' : '400';
+          metaParts.push('<span style="color:' + locColor + ';font-weight:' + locWeight + ';">' + esc(c.location) + '</span>');
+        }
+        if (metaParts.length > 0) ch += '<div style="font-size:0.72rem;margin-top:1px;">' + metaParts.join(' &mdash; ') + '</div>';
+        ch += '</div>';
+        ch += '<button style="padding:4px 12px;border:1px solid #10b981;border-radius:6px;background:' + (hasMatch ? '#10b981' : 'transparent') + ';color:' + (hasMatch ? '#fff' : '#10b981') + ';font-size:0.72rem;font-weight:600;cursor:pointer;white-space:nowrap;margin-left:8px;">Select</button>';
         ch += '</div>';
       }
       candidatesEl.innerHTML = ch;
