@@ -9234,6 +9234,11 @@ function extractFromURL() {
     btn.textContent = 'Extract';
     statusEl.textContent = 'Error: ' + (err.message || 'Failed to extract from URL');
     statusEl.style.color = 'var(--error, #ef4444)';
+    // Bug fix: clear stale preview data so user can't accidentally save old entities
+    previewEntities = [];
+    previewScoredClusters = [];
+    var sumEl = document.getElementById('uploadSummary');
+    if (sumEl) { sumEl.style.display = 'none'; sumEl.innerHTML = ''; }
   });
 }
 
@@ -9703,30 +9708,46 @@ function updatePreviewCount() {
 }
 
 function confirmPreview() {
+  // Collect selected entities that haven't been individually resolved yet
   var boxes = document.querySelectorAll('[data-preview-idx]');
-  var selected = [];
+  var toResolve = [];
   for (var i = 0; i < boxes.length; i++) {
-    if (boxes[i].checked) {
+    if (boxes[i].checked && !boxes[i].disabled) {
       var idx = parseInt(boxes[i].getAttribute('data-preview-idx'));
-      selected.push(previewEntities[idx]);
+      var cluster = getClusterForIndex(idx);
+      if (cluster && cluster.cluster_id) {
+        // Determine default action based on quadrant
+        var action = 'create_new';
+        if (cluster.quadrant === 4) action = 'skip';
+        else if (cluster.quadrant === 2 && cluster.confidence >= 0.8) action = 'merge';
+        toResolve.push({ idx: idx, cluster_id: cluster.cluster_id, action: action, quadrant: cluster.quadrant });
+      }
     }
   }
-  if (selected.length === 0) {
-    toast('No entities selected');
+  if (toResolve.length === 0) {
+    toast('No entities to resolve');
     return;
   }
 
   var btn = document.querySelector('.btn-start-upload');
   btn.disabled = true;
-  btn.textContent = 'Saving...';
+  btn.textContent = 'Resolving ' + toResolve.length + ' clusters...';
 
-  api('POST', '/api/ingest/confirm', { entities: selected, source: previewSource }).then(function(result) {
-    toast('Saved: ' + result.created + ' created, ' + result.updated + ' merged');
+  var created = 0, merged = 0, skipped = 0, failed = 0;
+  var pending = toResolve.length;
+
+  function onAllDone() {
     var sumEl = document.getElementById('uploadSummary');
     sumEl.innerHTML = '<div class="upload-summary">' +
-      '<div class="upload-summary-stat"><div class="upload-summary-num">' + result.created + '</div><div class="upload-summary-label">Created</div></div>' +
-      '<div class="upload-summary-stat"><div class="upload-summary-num">' + result.updated + '</div><div class="upload-summary-label">Merged</div></div>' +
+      '<div class="upload-summary-stat"><div class="upload-summary-num">' + created + '</div><div class="upload-summary-label">Created</div></div>' +
+      '<div class="upload-summary-stat"><div class="upload-summary-num">' + merged + '</div><div class="upload-summary-label">Merged</div></div>' +
+      (skipped > 0 ? '<div class="upload-summary-stat"><div class="upload-summary-num">' + skipped + '</div><div class="upload-summary-label">Sources Added</div></div>' : '') +
       '</div>';
+    var msg = [];
+    if (created > 0) msg.push(created + ' created');
+    if (merged > 0) msg.push(merged + ' merged');
+    if (skipped > 0) msg.push(skipped + ' sources added');
+    toast('Resolved: ' + msg.join(', '));
     btn.textContent = 'Done — View Entities';
     btn.disabled = false;
     btn.onclick = function() {
@@ -9737,16 +9758,33 @@ function confirmPreview() {
         renderSidebar();
       });
     };
+    // Refresh sidebar
     api('GET', '/api/search?q=*').then(function(data) {
       allEntities = data.results || [];
       entities = allEntities.slice();
       renderSidebar();
     });
-  }).catch(function(err) {
-    toast('Save failed: ' + err.message);
-    btn.disabled = false;
-    btn.textContent = 'Retry Save';
-  });
+    refreshReviewQueueBadge();
+  }
+
+  for (var r = 0; r < toResolve.length; r++) {
+    (function(item) {
+      api('POST', '/api/clusters/resolve', { cluster_id: item.cluster_id, action: item.action }).then(function(result) {
+        if (result.action === 'create_new') created++;
+        else if (result.action === 'merge') merged++;
+        else if (result.action === 'skip') skipped++;
+        // Disable the checkbox
+        var boxes = document.querySelectorAll('[data-preview-idx="' + item.idx + '"]');
+        for (var b = 0; b < boxes.length; b++) { boxes[b].checked = false; boxes[b].disabled = true; }
+        pending--;
+        if (pending <= 0) onAllDone();
+      }).catch(function(err) {
+        failed++;
+        pending--;
+        if (pending <= 0) onAllDone();
+      });
+    })(toResolve[r]);
+  }
 }
 
 /* --- Signal cluster resolution from preview --- */
