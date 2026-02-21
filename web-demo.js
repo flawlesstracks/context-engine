@@ -213,12 +213,38 @@ if (IS_PRODUCTION) {
         console.log(`  Seeded ${seedFiles.length} entity file(s) to ${candidate}`);
       }
 
-      // Always sync tenants.json from repo if missing on persistent disk
+      // Merge repo tenants into persistent disk (repo is source of truth for api_keys)
       const persistentTenants = path.join(candidate, 'tenants.json');
       const localTenants = path.join(LOCAL_GRAPH_DIR, 'tenants.json');
-      if (!fs.existsSync(persistentTenants) && fs.existsSync(localTenants)) {
-        fs.copyFileSync(localTenants, persistentTenants);
-        console.log('  Synced tenants.json from repo to persistent disk');
+      if (fs.existsSync(localTenants)) {
+        const repoTenants = JSON.parse(fs.readFileSync(localTenants, 'utf-8'));
+        let diskTenants = {};
+        if (fs.existsSync(persistentTenants)) {
+          try { diskTenants = JSON.parse(fs.readFileSync(persistentTenants, 'utf-8')); } catch {}
+        }
+        let updated = 0;
+        for (const [id, tenant] of Object.entries(repoTenants)) {
+          if (!diskTenants[id]) {
+            diskTenants[id] = tenant;
+            updated++;
+          } else {
+            // Merge: repo fields fill in gaps, disk preserves runtime tokens
+            for (const [key, val] of Object.entries(tenant)) {
+              if (!diskTenants[id][key]) {
+                diskTenants[id][key] = val;
+              }
+            }
+            // API key from repo always wins (so external consumers like GPTs can use known keys)
+            if (tenant.api_key && diskTenants[id].api_key !== tenant.api_key) {
+              diskTenants[id].api_key = tenant.api_key;
+              updated++;
+            }
+          }
+        }
+        if (updated > 0 || !fs.existsSync(persistentTenants)) {
+          fs.writeFileSync(persistentTenants, JSON.stringify(diskTenants, null, 2) + '\n');
+          console.log(`  Merged tenants.json: ${updated} tenant(s) updated from repo`);
+        }
       }
 
       // Sync tenant directories from repo if missing on persistent disk
