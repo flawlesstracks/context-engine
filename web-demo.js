@@ -8887,10 +8887,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     background: #f4f2ee; padding: 0 24px 40px;
   }
   .li-profile {
-    width: 100%; max-width: 900px; margin: 0 auto; padding: 0 0 40px;
-  }
-  @media (max-width: 1200px) {
-    .li-profile { max-width: 100%; }
+    width: 100%; padding: 0 0 40px;
   }
 
   /* Integrated breadcrumbs */
@@ -9854,7 +9851,7 @@ function renderSourceProvenance(data) {
   var e = data.entity || {};
   var name = (e.name && (e.name.full || e.name.common || e.name.legal)) || '';
   var h = '';
-  h += '<div style="padding:24px;max-width:800px;">';
+  h += '<div style="padding:24px;">';
   h += '<h2 style="font-size:1.1rem;font-weight:700;margin-bottom:16px;">Source Provenance &mdash; ' + esc(name) + '</h2>';
   // Source documents
   if (docs.length > 0) {
@@ -9912,7 +9909,7 @@ function renderNetworkMapPlaceholder(data) {
   var rels = data.relationships || [];
   var e = data.entity || {};
   var name = (e.name && (e.name.full || e.name.common || e.name.legal)) || '';
-  var h = '<div style="padding:24px;max-width:800px;">';
+  var h = '<div style="padding:24px;">';
   h += '<h2 style="font-size:1.1rem;font-weight:700;margin-bottom:16px;">Network Map &mdash; ' + esc(name) + '</h2>';
   h += '<div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px;">' + rels.length + ' connections mapped</div>';
   for (var i = 0; i < rels.length; i++) {
@@ -9933,7 +9930,7 @@ function renderIntelligenceBriefPlaceholder(data) {
   });
   var e = data.entity || {};
   var name = (e.name && (e.name.full || e.name.common)) || '';
-  var h = '<div style="padding:24px;max-width:800px;">';
+  var h = '<div style="padding:24px;">';
   h += '<h2 style="font-size:1.1rem;font-weight:700;margin-bottom:16px;">Intelligence Brief &mdash; ' + esc(name) + '</h2>';
   h += '<div style="font-size:0.85rem;color:var(--text-muted);margin-bottom:16px;">' + obs.length + ' observations from multiple sources</div>';
   // Key observations grouped by theme
@@ -14102,36 +14099,25 @@ function renderDetail(data) {
   }
   h += '</div>';
 
-  // For non-overview tabs, dispatch to existing renderers
-  if (activeTab === 'career') {
-    h += '</div>';
-    mainEl.innerHTML = h;
-    window._liActiveTab = 'career';
-    return renderCareerLite(data);
-  }
-  if (activeTab === 'network') {
-    h += '</div>';
-    mainEl.innerHTML = h;
-    window._liActiveTab = 'network';
-    return renderNetworkMapPlaceholder(data);
-  }
-  if (activeTab === 'intel-brief') {
-    h += '</div>';
-    mainEl.innerHTML = h;
-    window._liActiveTab = 'intel-brief';
-    return renderIntelligenceBriefPlaceholder(data);
-  }
-  if (activeTab === 'org-brief' && isOrg) {
-    h += '</div>';
-    mainEl.innerHTML = h;
-    window._liActiveTab = 'org-brief';
-    return renderOrgDossier(data);
-  }
-  if (activeTab === 'sources') {
-    h += '</div>';
-    mainEl.innerHTML = h;
-    window._liActiveTab = 'sources';
-    return renderSourceProvenance(data);
+  // For non-overview tabs, dispatch to existing renderers then wrap with persistent header
+  // Save the header HTML (breadcrumbs + tab bar) built so far
+  var headerHtml = h;
+
+  var nonOverviewRenderer = null;
+  if (activeTab === 'career') { nonOverviewRenderer = function() { renderCareerLite(data); }; window._liActiveTab = 'career'; }
+  else if (activeTab === 'network') { nonOverviewRenderer = function() { renderNetworkMapPlaceholder(data); }; window._liActiveTab = 'network'; }
+  else if (activeTab === 'intel-brief') { nonOverviewRenderer = function() { renderIntelligenceBriefPlaceholder(data); }; window._liActiveTab = 'intel-brief'; }
+  else if (activeTab === 'org-brief' && isOrg) { nonOverviewRenderer = function() { renderOrgDossier(data); }; window._liActiveTab = 'org-brief'; }
+  else if (activeTab === 'sources') { nonOverviewRenderer = function() { renderSourceProvenance(data); }; window._liActiveTab = 'sources'; }
+
+  if (nonOverviewRenderer) {
+    // Let the renderer set mainEl.innerHTML with its content
+    nonOverviewRenderer();
+    // Now wrap: persistent header (breadcrumbs + tab bar) above, renderer content below
+    var renderedContent = mainEl.innerHTML;
+    mainEl.className = 'li-profile-bg';
+    mainEl.innerHTML = headerHtml + '<div class="li-tab-content">' + renderedContent + '</div></div>';
+    return;
   }
 
   // --- CARD 1: HERO ---
