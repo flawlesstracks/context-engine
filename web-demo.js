@@ -9428,7 +9428,7 @@ function renderSidebar() {
         h += '<img src="' + esc(sessionUser.picture) + '" alt="" />';
       } else {
         var n = data.you.name || (sessionUser && sessionUser.name) || '';
-        var init = n.split(/\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
+        var init = n.split(/\\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
         h += init;
       }
       h += '</div>';
@@ -10641,19 +10641,19 @@ function renderReviewQueue(clusters) {
     // Action buttons
     ch += '<div class="rq-actions">';
     if (q === 1) {
-      ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(\'' + cid + '\',\'create_new\')">Create New Entity</button>';
-      ch += '<button class="rq-btn-hold" onclick="resolveQueueCluster(\'' + cid + '\',\'hold\')">Hold</button>';
+      ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create New Entity</button>';
+      ch += '<button class="rq-btn-hold" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'hold' + "'" + ')">Hold</button>';
     } else if (q === 2) {
-      ch += '<button class="rq-btn-merge" onclick="resolveQueueCluster(\'' + cid + '\',\'merge\')">Merge into ' + esc(candidateName) + '</button>';
-      ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(\'' + cid + '\',\'create_new\')">Create Separate</button>';
-      ch += '<button class="rq-btn-hold" onclick="resolveQueueCluster(\'' + cid + '\',\'hold\')">Hold</button>';
+      ch += '<button class="rq-btn-merge" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'merge' + "'" + ')">Merge into ' + esc(candidateName) + '</button>';
+      ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create Separate</button>';
+      ch += '<button class="rq-btn-hold" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'hold' + "'" + ')">Hold</button>';
     } else if (q === 3) {
       var mentions = c.related_mentions || 0;
-      ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(\'' + cid + '\',\'create_new\')">Create Entity' + (mentions > 0 ? ' & Merge ' + mentions + ' Mentions' : '') + '</button>';
-      ch += '<button class="rq-btn-hold" onclick="resolveQueueCluster(\'' + cid + '\',\'hold\')">Hold</button>';
+      ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create Entity' + (mentions > 0 ? ' & Merge ' + mentions + ' Mentions' : '') + '</button>';
+      ch += '<button class="rq-btn-hold" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'hold' + "'" + ')">Hold</button>';
     } else if (q === 4) {
-      ch += '<button class="rq-btn-source" onclick="resolveQueueCluster(\'' + cid + '\',\'skip\')">Add Source &mdash; Already Captured</button>';
-      ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(\'' + cid + '\',\'create_new\')">Create Separate</button>';
+      ch += '<button class="rq-btn-source" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'skip' + "'" + ')">Add Source &mdash; Already Captured</button>';
+      ch += '<button class="rq-btn-create" onclick="resolveQueueCluster(' + "'" + cid + "'" + ',' + "'" + 'create_new' + "'" + ')">Create Separate</button>';
     }
     ch += '</div>';
     ch += '</div>';
@@ -11091,7 +11091,7 @@ function renderCareerLite(data) {
   var e = data.entity || {};
   var cl = data.career_lite || {};
   var name = e.name?.full || '';
-  var initials = name.split(/\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
+  var initials = name.split(/\\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
   var entityId = e.entity_id || '';
   var health = computeEntityHealth(data);
   var h = '';
@@ -11141,7 +11141,7 @@ function renderCareerLite(data) {
   // Actions
   h += '<div class="hero-actions">';
   h += '<button class="btn-share" onclick="openShareModal()">Share</button>';
-  if (entityId !== primaryEntityId) h += '<button class="btn-delete-entity" onclick="confirmDeleteEntity(\'' + esc(entityId) + '\', \'' + esc(name).replace(/'/g, '') + '\')" title="Delete entity">Delete</button>';
+  if (entityId !== primaryEntityId) h += '<button class="btn-delete-entity" onclick="confirmDeleteEntity(' + "'" + esc(entityId) + "'" + ', ' + "'" + esc(name).replace(/'/g, '') + "'" + ')" title="Delete entity">Delete</button>';
   h += '</div>';
 
   h += '</div></div></div>';
@@ -11215,14 +11215,14 @@ function renderCareerLite(data) {
     for (var i = 0; i < rels.length; i++) {
       var r = rels[i];
       var rName = r.name || '';
-      var rInit = rName.split(/\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
+      var rInit = rName.split(/\\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
       var rType = (r.relationship_type || '').toLowerCase();
       var typeCls = 'default';
       if (rType.indexOf('friend') !== -1) typeCls = 'friend';
       else if (rType.indexOf('colleague') !== -1 || rType.indexOf('professional') !== -1 || rType.indexOf('coworker') !== -1) typeCls = 'colleague';
       else if (rType.indexOf('family') !== -1 || rType.indexOf('parent') !== -1 || rType.indexOf('sibling') !== -1 || rType.indexOf('spouse') !== -1 || rType.indexOf('child') !== -1) typeCls = 'family';
       else if (rType.indexOf('mentor') !== -1) typeCls = 'mentor';
-      h += '<div class="rel-card"' + (r.target_entity_id ? ' onclick="selectEntity(\'' + esc(r.target_entity_id) + '\')" style="cursor:pointer"' : '') + '>';
+      h += '<div class="rel-card"' + (r.target_entity_id ? ' onclick="selectEntity(' + "'" + esc(r.target_entity_id) + "'" + ')" style="cursor:pointer"' : '') + '>';
       h += '<div class="rel-card-avatar">' + esc(rInit) + '</div>';
       h += '<div class="rel-card-info">';
       h += '<div class="rel-card-name">' + esc(rName) + '</div>';
@@ -11669,7 +11669,7 @@ function renderDetail(data) {
   var meta = data.extraction_metadata || {};
   var entityId = e.entity_id || '';
   var health = computeEntityHealth(data);
-  var initials = name.split(/\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
+  var initials = name.split(/\\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
   var h = '';
 
   // Hero Card
@@ -11708,7 +11708,7 @@ function renderDetail(data) {
 
   // Actions
   h += '<div class="hero-actions">';
-  if (entityId !== primaryEntityId) h += '<button class="btn-delete-entity" onclick="confirmDeleteEntity(\'' + esc(entityId) + '\', \'' + esc(name).replace(/'/g, '') + '\')" title="Delete entity">Delete</button>';
+  if (entityId !== primaryEntityId) h += '<button class="btn-delete-entity" onclick="confirmDeleteEntity(' + "'" + esc(entityId) + "'" + ', ' + "'" + esc(name).replace(/'/g, '') + "'" + ')" title="Delete entity">Delete</button>';
   h += '</div>';
 
   h += '</div></div></div>';
@@ -11744,14 +11744,14 @@ function renderDetail(data) {
     for (var i = 0; i < rels.length; i++) {
       var r = rels[i];
       var rName = r.name || '';
-      var rInit = rName.split(/\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
+      var rInit = rName.split(/\\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
       var rType = (r.relationship_type || '').toLowerCase();
       var typeCls = 'default';
       if (rType.indexOf('friend') !== -1) typeCls = 'friend';
       else if (rType.indexOf('colleague') !== -1 || rType.indexOf('professional') !== -1) typeCls = 'colleague';
       else if (rType.indexOf('family') !== -1 || rType.indexOf('parent') !== -1 || rType.indexOf('spouse') !== -1 || rType.indexOf('child') !== -1 || rType.indexOf('sibling') !== -1) typeCls = 'family';
       else if (rType.indexOf('mentor') !== -1) typeCls = 'mentor';
-      h += '<div class="rel-card"' + (r.target_entity_id ? ' onclick="selectEntity(\'' + esc(r.target_entity_id) + '\')" style="cursor:pointer"' : '') + '>';
+      h += '<div class="rel-card"' + (r.target_entity_id ? ' onclick="selectEntity(' + "'" + esc(r.target_entity_id) + "'" + ')" style="cursor:pointer"' : '') + '>';
       h += '<div class="rel-card-avatar">' + esc(rInit) + '</div>';
       h += '<div class="rel-card-info">';
       h += '<div class="rel-card-name">' + esc(rName) + '</div>';
@@ -11819,7 +11819,7 @@ function renderDetail(data) {
       if (items.length === 0) continue;
       h += '<div style="margin-bottom:12px;"><div style="font-size:0.75rem;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">' + groupLabels[gk] + '</div>';
       for (var j = 0; j < items.length; j++) {
-        h += '<div class="rel-card" style="cursor:pointer;" onclick="selectEntity(\'' + esc(items[j].entity_id) + '\')">';
+        h += '<div class="rel-card" style="cursor:pointer;" onclick="selectEntity(' + "'" + esc(items[j].entity_id) + "'" + ')">';
         h += '<div class="rel-card-avatar" style="border-radius:var(--radius-sm);font-size:0.7rem;">' + esc(items[j].entity_type.slice(0, 2).toUpperCase()) + '</div>';
         h += '<div class="rel-card-info"><div class="rel-card-name">' + esc(items[j].label) + '</div></div>';
         h += '<span class="type-badge ' + esc(items[j].entity_type) + '">' + esc(items[j].entity_type) + '</span>';
