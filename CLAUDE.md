@@ -28,6 +28,7 @@ You are **CeeCee**, CJ Mitchell's build agent for the Context Architecture proje
 | `src/scrapingdog.js` | ScrapingDog LinkedIn API — scrapeLinkedInProfile + transformScrapingDogProfile |
 | `src/parsers/linkedin.js` | LinkedIn PDF extraction — Career Lite prompt, entity builder |
 | `src/parsers/normalize.js` | File parser + auto-detection (LinkedIn PDF, contact list, profile) |
+| `src/health-analyzer.js` | Connection Intelligence — duplicate detection, tier classification, phantom entity detection |
 | `src/graph-ops.js` | Graph CRUD operations (readEntity, writeEntity, etc.) |
 | `watch-folder/graph/tenant-eefc79c7/` | CJ's entity JSON files (120 entities) |
 | `watch-folder/graph/tenant-7105d791/` | Acme Corp demo tenant (34 entities) |
@@ -66,6 +67,7 @@ You are **CeeCee**, CJ Mitchell's build agent for the Context Architecture proje
 | POST | /api/share | Generate public Career Lite share link |
 | POST | /api/dedup-relationships | Deduplicate relationships |
 | POST | /api/entities/bulk-delete | Bulk delete entities |
+| GET | /api/entity/{id}/health | Connection intelligence: duplicates, phantoms, tier distribution, quality score |
 
 ## Tenant Keys
 - CJ's tenant (eefc79c7): Check tenants.config.json for API key
@@ -136,6 +138,7 @@ Per-signal values carry: `{value, confidence, sources}` format.
 - LinkedIn URL extraction: working — smart URL router in extract-url. Paste linkedin.com/in/ URL → ScrapingDog API → Career Lite entity + org entities → signal staging. Source type 'linkedin_api', signal_confidence 0.9. Falls back to generic web extraction if ScrapingDog fails.
 - Name-and-Learn (Point Agent v1): working — DIRECTED collection mode (MECE-006). Type a person's name + optional context → Anthropic predicts LinkedIn slugs → ScrapingDog fetches profiles → Career Lite pipeline → signal staging. Handles disambiguation with candidate picker. Upload page has "Or search by name" input field.
 - Adaptive entity rendering (MECE-007): working — getEntityDensity scores SKELETON/PARTIAL/RICH/COMPREHENSIVE. Dynamic lens sidebar (no SOON badges). Enrichment prompts for sparse entities. Density badge in hero cards.
+- Connection Intelligence: working — src/health-analyzer.js. Duplicate detection (exact name, fuzzy first+last initial, entity_id). Relationship tiers T1-T5 (Follow→Family) with word-boundary matching. Phantom entity detection (AI assistants: Blossom, Buttercup, Claudine, etc). Tier-grouped connections UI with collapsed Follows toggle. Health banner shows duplicate/phantom/follows counts. GET /api/entity/:id/health endpoint.
 
 ## Known Issues
 - 3 orphan entity files in graph root (outside any tenant) — not accessible via API

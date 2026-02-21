@@ -15,6 +15,7 @@ const { normalizeFileToText } = require('./src/parsers/normalize');
 const { buildLinkedInPrompt, linkedInResponseToEntity, linkedInExperienceToOrgs } = require('./src/parsers/linkedin');
 const { mapContactRows } = require('./src/parsers/contacts');
 const { scrapeLinkedInProfile, transformScrapingDogProfile } = require('./src/scrapingdog');
+const { analyzeEntityHealth, getRelationshipTier, getTierInfo } = require('./src/health-analyzer');
 const auth = require('./src/auth');
 const drive = require('./src/drive');
 const helmet = require('helmet');
@@ -2050,6 +2051,14 @@ app.delete('/api/entity/:id', apiAuth, (req, res) => {
   if (!result.deleted) return res.status(404).json({ error: 'Entity not found' });
   console.log(`[delete] Deleted ${req.params.id} + ${result.connected_deleted.length} connected objects`);
   res.json(result);
+});
+
+// GET /api/entity/:id/health — Connection intelligence health report
+app.get('/api/entity/:id/health', apiAuth, (req, res) => {
+  const entity = readEntity(req.params.id, req.graphDir);
+  if (!entity) return res.status(404).json({ error: 'Entity not found' });
+  const health = analyzeEntityHealth(entity);
+  res.json({ entity_id: req.params.id, ...health });
 });
 
 // POST /api/dedup-relationships — Retroactively deduplicate relationships across all entities
@@ -8310,6 +8319,30 @@ const WIKI_HTML = `<!DOCTYPE html>
     box-shadow: 0 2px 8px rgba(239,68,68,0.4);
   }
 
+  /* --- Connection Tier Toggle --- */
+  .conn-tier-toggle {
+    cursor: pointer; display: flex; align-items: center; gap: 6px;
+    padding: 4px 8px; border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+    user-select: none;
+  }
+  .conn-tier-toggle:hover { background: var(--bg-secondary); }
+
+  /* --- Connection Intel Banner --- */
+  .conn-intel-banner {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    padding: 10px 14px; border-radius: var(--radius-md);
+    background: var(--bg-secondary); border: 1px solid var(--border-subtle);
+    margin-bottom: 12px; font-size: 0.78rem;
+  }
+  .conn-intel-item {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 10px; font-weight: 600;
+  }
+  .conn-intel-item.intel-warn { background: rgba(239,68,68,0.1); color: #ef4444; }
+  .conn-intel-item.intel-info { background: rgba(59,130,246,0.1); color: #3b82f6; }
+  .conn-intel-item.intel-muted { background: rgba(156,163,175,0.1); color: #9ca3af; }
+
   /* --- Section Headers (upgraded) --- */
   .section-header-icon {
     display: inline-flex; align-items: center; justify-content: center;
@@ -10435,6 +10468,79 @@ function renderHealthIndicator(health) {
 function renderTierBadge(entityId) {
   var tier = computeEntityTier(entityId);
   return '<span class="tier-badge tier-' + tier + '">' + tier.toUpperCase() + '</span>';
+}
+
+function classifyRelTier(r) {
+  var type = (r.relationship_type || '').toLowerCase();
+  var context = (r.context || '').toLowerCase();
+  var combined = ' ' + type + ' ' + context + ' ';
+  var tiers = {
+    5: ['spouse','wife','husband','son','daughter','sister','brother',
+      'mother','father','parent','child','ex-spouse','ex-wife','ex-husband',
+      'godparent','godmother','godfather','godson','goddaughter','sibling',
+      'uncle','aunt','cousin','nephew','niece','family','in-law'],
+    4: ['friend','close friend','best friend','groomsman','bridesmaid',
+      'homie','mba homie','buddy','confidant','collaborator','trivia'],
+    3: ['colleague','coworker','professional contact','professional',
+      'architect','engineer','manager','director','works at','same company',
+      'employer','employed','team','peer','mba peer','business'],
+    2: ['school','from your school','met during','acquaintance',
+      'classmate','alumni','met at','introduced','generic'],
+    1: ['following','follow','3rd degree','2nd degree','1st degree',
+      'connection','follower','linkedin']
+  };
+  var order = [5, 4, 3, 2, 1];
+  for (var t = 0; t < order.length; t++) {
+    var tid = order[t];
+    var kws = tiers[tid];
+    for (var k = 0; k < kws.length; k++) {
+      var kw = kws[k];
+      if (kw.indexOf(' ') !== -1) {
+        if (combined.indexOf(kw) !== -1) return tid;
+      } else {
+        var re = new RegExp('\\\\b' + kw + '\\\\b');
+        if (re.test(combined)) return tid;
+      }
+    }
+  }
+  return 2;
+}
+
+function computeConnectionIntel(rels) {
+  var result = { duplicates: [], phantoms: [], followsCount: 0 };
+  if (!rels || rels.length === 0) return result;
+  var phantomNames = ['blossom','buttercup','claudine','gemma ai','chatgpt','claude ai'];
+  var phantomTypes = ['ai assistant','ai collaborator','ai assistant/collaborator'];
+  var phantomContext = ['ai assistant','ai collaborator','ai agent','language model'];
+  // Duplicates: group by normalized name
+  var nameGroups = {};
+  for (var i = 0; i < rels.length; i++) {
+    var rn = (rels[i].name || '').toLowerCase().replace(/[^a-z\\s]/g, '').replace(/\\s+/g, ' ').trim();
+    if (!rn) continue;
+    if (!nameGroups[rn]) nameGroups[rn] = [];
+    nameGroups[rn].push(rels[i]);
+  }
+  for (var n in nameGroups) {
+    if (nameGroups[n].length >= 2) {
+      result.duplicates.push({ name: nameGroups[n][0].name, count: nameGroups[n].length });
+    }
+  }
+  // Phantoms
+  for (var i = 0; i < rels.length; i++) {
+    var rname = (rels[i].name || '').toLowerCase();
+    var rtype = (rels[i].relationship_type || '').toLowerCase();
+    var rctx = (rels[i].context || '').toLowerCase();
+    var isPhantom = false;
+    for (var p = 0; p < phantomNames.length; p++) { if (rname.indexOf(phantomNames[p]) !== -1) { isPhantom = true; break; } }
+    if (!isPhantom) { for (var p = 0; p < phantomTypes.length; p++) { if (rtype.indexOf(phantomTypes[p]) !== -1) { isPhantom = true; break; } } }
+    if (!isPhantom) { for (var p = 0; p < phantomContext.length; p++) { if (rctx.indexOf(phantomContext[p]) !== -1) { isPhantom = true; break; } } }
+    if (isPhantom) result.phantoms.push(rels[i].name);
+  }
+  // Follows count
+  for (var i = 0; i < rels.length; i++) {
+    if (classifyRelTier(rels[i]) === 1) result.followsCount++;
+  }
+  return result;
 }
 
 function getEntityDensity(data) {
@@ -12780,30 +12886,103 @@ function renderDetail(data) {
     h += '</div>';
   }
 
-  // Relationships as cards
+  // Relationships grouped by tier (Connection Intelligence)
   var rels = data.relationships || [];
   if (rels.length > 0) {
-    h += '<div class="section"><div class="section-header"><span class="section-title"><span class="section-header-icon" style="background:rgba(59,130,246,0.08);">&#129309;</span> Connections (' + rels.length + ')</span></div>';
+    // Classify each relationship into tiers
+    var tierDefs = {
+      5: { label: 'Family', icon: '\\uD83D\\uDC68\\u200D\\uD83D\\uDC69\\u200D\\uD83D\\uDC66', color: '#ef4444' },
+      4: { label: 'Friends', icon: '\\uD83E\\uDD1D', color: '#f59e0b' },
+      3: { label: 'Colleagues', icon: '\\uD83D\\uDCBC', color: '#3b82f6' },
+      2: { label: 'Acquaintances', icon: '\\uD83D\\uDC65', color: '#8b5cf6' },
+      1: { label: 'Follows', icon: '\\uD83D\\uDD17', color: '#9ca3af' }
+    };
+    var tierBuckets = { 5: [], 4: [], 3: [], 2: [], 1: [] };
     for (var i = 0; i < rels.length; i++) {
       var r = rels[i];
-      var rName = r.name || '';
-      var rInit = rName.split(/\\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
-      var rType = (r.relationship_type || '').toLowerCase();
-      var typeCls = 'default';
-      if (rType.indexOf('friend') !== -1) typeCls = 'friend';
-      else if (rType.indexOf('colleague') !== -1 || rType.indexOf('professional') !== -1) typeCls = 'colleague';
-      else if (rType.indexOf('family') !== -1 || rType.indexOf('parent') !== -1 || rType.indexOf('spouse') !== -1 || rType.indexOf('child') !== -1 || rType.indexOf('sibling') !== -1) typeCls = 'family';
-      else if (rType.indexOf('mentor') !== -1) typeCls = 'mentor';
-      h += '<div class="rel-card"' + (r.target_entity_id ? ' onclick="selectEntity(' + "'" + esc(r.target_entity_id) + "'" + ')" style="cursor:pointer"' : '') + '>';
-      h += '<div class="rel-card-avatar">' + esc(rInit) + '</div>';
-      h += '<div class="rel-card-info">';
-      h += '<div class="rel-card-name">' + esc(rName) + '</div>';
-      if (r.context) h += '<div class="rel-card-context">' + esc(r.context) + '</div>';
+      var tier = classifyRelTier(r);
+      tierBuckets[tier].push(r);
+    }
+
+    h += '<div class="section"><div class="section-header"><span class="section-title"><span class="section-header-icon" style="background:rgba(59,130,246,0.08);">&#129309;</span> Connections (' + rels.length + ')</span></div>';
+
+    // Connection Intelligence health banner
+    var intel = computeConnectionIntel(rels);
+    if (intel.duplicates.length > 0 || intel.phantoms.length > 0 || intel.followsCount > 0) {
+      h += '<div class="conn-intel-banner">';
+      if (intel.duplicates.length > 0) {
+        var dupTotal = 0;
+        for (var d = 0; d < intel.duplicates.length; d++) dupTotal += intel.duplicates[d].count - 1;
+        h += '<span class="conn-intel-item intel-warn">\\u26A0 ' + dupTotal + ' duplicate connection' + (dupTotal !== 1 ? 's' : '') + ' found</span>';
+      }
+      if (intel.phantoms.length > 0) {
+        h += '<span class="conn-intel-item intel-warn">\\uD83D\\uDC7B ' + intel.phantoms.length + ' phantom entit' + (intel.phantoms.length !== 1 ? 'ies' : 'y') + ' detected</span>';
+      }
+      if (intel.followsCount > 0) {
+        h += '<span class="conn-intel-item intel-muted">\\uD83D\\uDD17 ' + intel.followsCount + ' follow' + (intel.followsCount !== 1 ? 's' : '') + ' (consider archiving)</span>';
+      }
       h += '</div>';
-      h += '<span class="rel-type-badge ' + typeCls + '">' + esc(r.relationship_type || 'Connection') + '</span>';
-      h += sentimentBadge(r.sentiment);
-      h += confidenceBadge(r.confidence, r.confidence_label);
-      h += '</div>';
+    }
+
+    // Render each tier group (5 → 1, family first)
+    var tierOrder = [5, 4, 3, 2, 1];
+    for (var t = 0; t < tierOrder.length; t++) {
+      var tid = tierOrder[t];
+      var bucket = tierBuckets[tid];
+      if (bucket.length === 0) continue;
+      var td = tierDefs[tid];
+
+      // Follows (tier 1) collapsed by default
+      if (tid === 1) {
+        h += '<div style="margin-top:12px;">';
+        h += '<div class="conn-tier-toggle" onclick="var el=this.nextElementSibling;el.style.display=el.style.display===\\'none\\'?\\'block\\':\\'none\\';this.querySelector(\\'span\\').textContent=el.style.display===\\'none\\'?\\'\\u25B6\\':\\'\\u25BC\\'">';
+        h += '<span>\\u25B6</span> <span style="font-size:0.75rem;font-weight:600;color:' + td.color + ';">' + td.icon + ' ' + td.label + ' (' + bucket.length + ')</span>';
+        h += '</div>';
+        h += '<div style="display:none;">';
+      } else {
+        h += '<div style="margin-top:12px;">';
+        h += '<div style="font-size:0.75rem;font-weight:700;color:' + td.color + ';text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;display:flex;align-items:center;gap:4px;">' + td.icon + ' ' + td.label + ' (' + bucket.length + ')</div>';
+      }
+
+      for (var j = 0; j < bucket.length; j++) {
+        var r = bucket[j];
+        var rName = r.name || '';
+        var rInit = rName.split(/\\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
+        var hasEntity = !!r.target_entity_id;
+        var existsInGraph = hasEntity;
+        if (!hasEntity) {
+          // Check if name matches any entity in allEntities
+          for (var k = 0; k < allEntities.length; k++) {
+            if (allEntities[k].name && allEntities[k].name.toLowerCase() === rName.toLowerCase()) {
+              existsInGraph = true;
+              r._matched_entity_id = allEntities[k].entity_id;
+              break;
+            }
+          }
+        }
+        var clickable = hasEntity || r._matched_entity_id;
+        var clickId = r.target_entity_id || r._matched_entity_id || '';
+        var avatarStyle = existsInGraph ? '' : 'opacity:0.5;border:1px dashed var(--border-primary);';
+        var nameStyle = existsInGraph ? 'color:var(--text-primary);' : 'color:var(--text-muted);';
+
+        h += '<div class="rel-card"' + (clickable ? ' onclick="selectEntity(' + "'" + esc(clickId) + "'" + ')" style="cursor:pointer"' : ' style="cursor:default"') + '>';
+        h += '<div class="rel-card-avatar" style="' + avatarStyle + '">' + esc(rInit) + '</div>';
+        h += '<div class="rel-card-info">';
+        h += '<div class="rel-card-name" style="' + nameStyle + '">' + esc(rName);
+        if (!existsInGraph) h += ' <span style="font-size:0.6rem;color:var(--text-muted);background:var(--bg-secondary);padding:1px 4px;border-radius:3px;">not in graph</span>';
+        h += '</div>';
+        if (r.context) h += '<div class="rel-card-context">' + esc(r.context) + '</div>';
+        h += '</div>';
+        h += '<span style="font-size:0.6rem;font-weight:700;color:#fff;background:' + td.color + ';padding:1px 6px;border-radius:8px;white-space:nowrap;">T' + tid + '</span>';
+        h += confidenceBadge(r.confidence, r.confidence_label);
+        h += '</div>';
+      }
+
+      if (tid === 1) {
+        h += '</div></div>'; // close collapsed + wrapper
+      } else {
+        h += '</div>'; // close wrapper
+      }
     }
     h += '</div>';
   }
