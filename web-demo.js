@@ -4195,6 +4195,158 @@ app.post('/api/extract-url', apiAuth, async (req, res) => {
   }
 });
 
+// POST /api/enrich-org — Enrich an organization entity from web data
+app.post('/api/enrich-org', apiAuth, async (req, res) => {
+  const { entity_id } = req.body;
+  if (!entity_id) return res.status(400).json({ error: 'Missing entity_id' });
+
+  const entity = readEntity(entity_id, req.graphDir);
+  if (!entity) return res.status(404).json({ error: 'Entity not found' });
+
+  const entityType = entity.entity?.entity_type;
+  if (!['business', 'organization', 'institution'].includes(entityType)) {
+    return res.status(400).json({ error: 'Entity is not an organization' });
+  }
+
+  const orgName = entity.entity?.name?.common || entity.entity?.name?.legal || '';
+  if (!orgName) return res.status(400).json({ error: 'Organization has no name' });
+
+  try {
+    const now = new Date().toISOString();
+
+    // Strategy 1: Try to find and fetch the company website
+    // Construct likely URL from name (e.g., "Google" → "google.com")
+    const cleanName = orgName.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const guessUrls = [
+      `https://www.${cleanName}.com`,
+      `https://${cleanName}.com`,
+    ];
+
+    let webText = '';
+    let fetchedUrl = '';
+    for (const tryUrl of guessUrls) {
+      try {
+        const resp = await fetch(tryUrl + '/about', {
+          headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+          redirect: 'follow', signal: AbortSignal.timeout(10000),
+        });
+        if (resp.ok) {
+          const html = await resp.text();
+          webText = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+          fetchedUrl = tryUrl + '/about';
+          break;
+        }
+        // Try root page
+        const resp2 = await fetch(tryUrl, {
+          headers: { 'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' },
+          redirect: 'follow', signal: AbortSignal.timeout(10000),
+        });
+        if (resp2.ok) {
+          const html = await resp2.text();
+          webText = html.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '').replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '').replace(/<[^>]+>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+          fetchedUrl = tryUrl;
+          break;
+        }
+      } catch { /* next guess */ }
+    }
+
+    if (!webText || webText.length < 100) {
+      return res.json({ enriched: false, message: `Could not find website for "${orgName}". Try providing a direct URL.` });
+    }
+
+    // Truncate
+    if (webText.length > 20000) webText = webText.substring(0, 20000);
+
+    // Use Claude to extract org-specific data
+    const client = new Anthropic();
+    const prompt = `You are extracting structured information about the organization "${orgName}" from their website.
+
+Output ONLY valid JSON with this structure:
+{
+  "description": "2-3 sentence description of what this organization does",
+  "industry": "primary industry or sector",
+  "headquarters": "city, state/country",
+  "website": "${fetchedUrl}",
+  "employee_count": "approximate number or range, or empty string",
+  "founded_year": "year or empty string",
+  "specialties": ["specialty1", "specialty2"],
+  "key_people": [{ "name": "", "title": "" }],
+  "mission": "mission statement or core purpose, 1-2 sentences"
+}
+
+Website text:
+---
+${webText}
+---`;
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 4096,
+      messages: [{ role: 'user', content: prompt }],
+    });
+    const rawResp = message.content[0].text;
+    const cleaned = rawResp.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+    let enrichment;
+    try { enrichment = JSON.parse(cleaned); } catch { return res.json({ enriched: false, message: 'Could not parse enrichment data' }); }
+
+    // Merge enrichment into entity
+    if (!entity.structured_attributes) entity.structured_attributes = {};
+    const sa = entity.structured_attributes;
+    if (enrichment.industry && !sa.industry) sa.industry = enrichment.industry;
+    if (enrichment.headquarters && !sa.headquarters) sa.headquarters = enrichment.headquarters;
+    if (enrichment.website && !sa.website) sa.website = enrichment.website || fetchedUrl;
+    if (enrichment.employee_count && !sa.employee_count) sa.employee_count = enrichment.employee_count;
+    if (enrichment.founded_year && !sa.founded_year) sa.founded_year = enrichment.founded_year;
+    if (enrichment.specialties?.length && !sa.specialties) sa.specialties = enrichment.specialties;
+    if (enrichment.mission && !sa.mission) sa.mission = enrichment.mission;
+
+    // Update summary if we got a better description
+    if (enrichment.description && (!entity.entity.summary?.value || entity.entity.summary.value.includes('employer of'))) {
+      entity.entity.summary = { value: enrichment.description, confidence: 0.7, facts_layer: 2 };
+    }
+
+    // Add enrichment attributes
+    const existingKeys = new Set((entity.attributes || []).map(a => a.key));
+    const newAttrs = [];
+    let attrSeq = (entity.attributes || []).length + 1;
+    if (enrichment.industry && !existingKeys.has('industry')) newAttrs.push({ attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`, key: 'industry', value: enrichment.industry, confidence: 0.7, confidence_label: 'MODERATE', time_decay: { stability: 'stable', captured_date: now.slice(0, 10) }, source_attribution: { type: 'web', url: fetchedUrl, facts_layer: 2, layer_label: 'group' } });
+    if (enrichment.headquarters && !existingKeys.has('headquarters')) newAttrs.push({ attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`, key: 'headquarters', value: enrichment.headquarters, confidence: 0.7, confidence_label: 'MODERATE', time_decay: { stability: 'semi_stable', captured_date: now.slice(0, 10) }, source_attribution: { type: 'web', url: fetchedUrl, facts_layer: 2, layer_label: 'group' } });
+    if (enrichment.website && !existingKeys.has('website')) newAttrs.push({ attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`, key: 'website', value: enrichment.website || fetchedUrl, confidence: 0.9, confidence_label: 'HIGH', time_decay: { stability: 'stable', captured_date: now.slice(0, 10) }, source_attribution: { type: 'web', url: fetchedUrl, facts_layer: 1, layer_label: 'self' } });
+    if (enrichment.employee_count && !existingKeys.has('employee_count')) newAttrs.push({ attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`, key: 'employee_count', value: enrichment.employee_count, confidence: 0.6, confidence_label: 'MODERATE', time_decay: { stability: 'volatile', captured_date: now.slice(0, 10) }, source_attribution: { type: 'web', url: fetchedUrl, facts_layer: 2, layer_label: 'group' } });
+    entity.attributes = [...(entity.attributes || []), ...newAttrs];
+
+    // Add observation
+    if (!entity.observations) entity.observations = [];
+    entity.observations.push({
+      observation: `Organization enriched from website: ${enrichment.description || 'Web data fetched'}`,
+      observed_at: now, source: 'web_enrichment', source_url: fetchedUrl,
+      confidence: 0.7, confidence_label: 'MODERATE', truth_level: 'INFERRED',
+      facts_layer: 'L2_GROUP', layer_number: 2, observed_by: req.agentId,
+    });
+
+    // Save
+    writeEntity(entity_id, entity, req.graphDir);
+
+    res.json({
+      enriched: true,
+      entity_id,
+      source_url: fetchedUrl,
+      enrichment: {
+        description: enrichment.description,
+        industry: enrichment.industry,
+        headquarters: enrichment.headquarters,
+        website: enrichment.website || fetchedUrl,
+        employee_count: enrichment.employee_count,
+        new_attributes: newAttrs.length,
+      },
+    });
+
+  } catch (err) {
+    console.error('[enrich-org] Error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/extract-linkedin — Extract person entity from LinkedIn profile via Proxycurl
 app.post('/api/extract-linkedin', apiAuth, async (req, res) => {
   const { linkedin_url } = req.body;
@@ -8952,6 +9104,38 @@ function extractFromURL() {
   });
 }
 
+/* --- Org Enrichment --- */
+function enrichOrgFromWeb(entityId, orgName) {
+  var btn = document.getElementById('btnEnrichOrg');
+  if (!btn) return;
+  btn.disabled = true;
+  btn.textContent = 'Enriching...';
+  btn.style.color = 'var(--text-muted)';
+
+  api('POST', '/api/enrich-org', { entity_id: entityId }).then(function(data) {
+    if (data.enriched) {
+      toast('Enriched ' + orgName + ': ' + (data.enrichment.industry || 'web data') + ', ' + data.enrichment.new_attributes + ' new attributes');
+      btn.textContent = 'Enriched';
+      btn.style.color = 'var(--success, #22c55e)';
+      btn.style.borderColor = 'var(--success, #22c55e)';
+      // Reload entity to show new data
+      setTimeout(function() { selectEntity(entityId); }, 500);
+    } else {
+      toast(data.message || 'Could not enrich this organization');
+      btn.textContent = 'Not Found';
+      btn.style.color = 'var(--warning, #d97706)';
+      btn.disabled = false;
+      setTimeout(function() { btn.textContent = 'Enrich from Web'; btn.style.color = '#6366f1'; }, 3000);
+    }
+  }).catch(function(err) {
+    toast('Enrichment error: ' + (err.message || 'Unknown error'));
+    btn.disabled = false;
+    btn.textContent = 'Retry';
+    btn.style.color = 'var(--error, #ef4444)';
+    setTimeout(function() { btn.textContent = 'Enrich from Web'; btn.style.color = '#6366f1'; }, 3000);
+  });
+}
+
 /* --- Cleanup View --- */
 var cleanupEntities = [];
 var cleanupSelected = {};
@@ -10404,6 +10588,7 @@ function renderOrgDossier(data) {
   if (dateRange) h += '<span style="font-size:0.78rem;color:var(--text-muted);margin-left:8px;">' + esc(dateRange) + '</span>';
   h += '<span class="entity-id-badge">' + esc(e.entity_id || '') + '</span>';
   h += '<button class="btn-delete-entity" onclick="confirmDeleteEntity(' + "'" + esc(e.entity_id || '') + "'" + ', ' + "'" + esc(name).replace(/'/g, '') + "'" + ')" title="Delete entity">Delete</button>';
+  h += '<button class="btn-enrich-org" id="btnEnrichOrg" onclick="enrichOrgFromWeb(' + "'" + esc(e.entity_id || '') + "'" + ', ' + "'" + esc(name).replace(/'/g, '') + "'" + ')" style="margin-left:8px;padding:4px 12px;border:1px solid #6366f1;border-radius:6px;background:transparent;color:#6366f1;font-size:0.72rem;font-weight:600;cursor:pointer;">Enrich from Web</button>';
   h += '</div>';
 
   // Section: Your Roles Here
