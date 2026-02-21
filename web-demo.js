@@ -4209,6 +4209,11 @@ fetchCounts();
 </html>`);
 });
 
+app.get('/openai-actions-spec.yaml', (req, res) => {
+  res.setHeader('Content-Type', 'text/yaml');
+  res.sendFile(path.join(__dirname, 'openai-actions-spec.yaml'));
+});
+
 app.get('/', (req, res) => {
   res.send(HTML);
 });
