@@ -10860,7 +10860,7 @@ function renderSidebar() {
       if (pAttrs[a].key === 'headline') { headline = String(pAttrs[a].value || ''); break; }
     }
     var myHealth = primaryEntityData ? computeEntityHealth(primaryEntityData) : { level: 'thin', label: 'Thin' };
-    html += '<div class="sidebar-my-profile' + (isMyProfileActive ? ' active' : '') + '" onclick="selectView(\'overview\')">';
+    html += '<div class="sidebar-my-profile' + (isMyProfileActive ? ' active' : '') + '" onclick="selectView(' + "'" + 'overview' + "'" + ')">';
     html += '<div class="sidebar-profile-avatar">';
     if (sessionUser && sessionUser.picture) {
       html += '<img src="' + esc(sessionUser.picture) + '" alt="" />';
