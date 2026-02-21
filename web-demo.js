@@ -9348,13 +9348,13 @@ function extractFromURL() {
   statusEl.style.display = 'block';
   statusEl.style.color = 'var(--text-muted)';
 
-  // Smart URL routing: LinkedIn → Proxycurl, everything else → generic (incl. X/Instagram)
+  // Smart URL routing: all URLs go through /api/extract-url (server-side ScrapingDog for LinkedIn)
   var isLinkedIn = url.indexOf('linkedin.com/in/') !== -1;
   var isX = url.indexOf('x.com/') !== -1 || url.indexOf('twitter.com/') !== -1;
   var isIG = url.indexOf('instagram.com/') !== -1;
-  var endpoint = isLinkedIn ? '/api/extract-linkedin' : '/api/extract-url';
-  var body = isLinkedIn ? { linkedin_url: url } : { url: url };
-  var label = isLinkedIn ? 'Looking up LinkedIn profile...'
+  var endpoint = '/api/extract-url';
+  var body = { url: url };
+  var label = isLinkedIn ? 'Looking up LinkedIn profile via ScrapingDog...'
     : isX ? 'Extracting X profile...'
     : isIG ? 'Extracting Instagram profile...'
     : 'Fetching and analyzing ' + url + '...';
