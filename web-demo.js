@@ -3865,6 +3865,88 @@ app.post('/api/extract', apiAuth, async (req, res) => {
   }
 });
 
+// --- Social profile URL parsing helpers ---
+function detectSocialPlatform(url) {
+  if (/x\.com\/\w+|twitter\.com\/\w+/i.test(url)) return 'x';
+  if (/instagram\.com\/\w+/i.test(url)) return 'instagram';
+  return null;
+}
+
+function parseSocialMeta(html, url, platform) {
+  const ogTitle = html.match(/<meta\s+(?:property|name)="og:title"\s+content="([^"]*?)"/i)?.[1]
+    || html.match(/<meta\s+content="([^"]*?)"\s+(?:property|name)="og:title"/i)?.[1] || '';
+  const ogDesc = html.match(/<meta\s+(?:property|name)="og:description"\s+content="([^"]*?)"/i)?.[1]
+    || html.match(/<meta\s+content="([^"]*?)"\s+(?:property|name)="og:description"/i)?.[1] || '';
+  const ogImage = html.match(/<meta\s+(?:property|name)="og:image"\s+content="([^"]*?)"/i)?.[1]
+    || html.match(/<meta\s+content="([^"]*?)"\s+(?:property|name)="og:image"/i)?.[1] || '';
+  const title = html.match(/<title>([^<]*?)<\/title>/i)?.[1] || '';
+
+  let handle = '';
+  if (platform === 'x') {
+    handle = url.match(/(?:x\.com|twitter\.com)\/(@?\w+)/i)?.[1] || '';
+    if (handle && !handle.startsWith('@')) handle = '@' + handle;
+  } else if (platform === 'instagram') {
+    handle = url.match(/instagram\.com\/(@?\w+)/i)?.[1] || '';
+    if (handle && !handle.startsWith('@')) handle = '@' + handle;
+  }
+
+  // Extract follower count from description (common pattern: "X Followers")
+  let followerCount = null;
+  const followerMatch = ogDesc.match(/([\d,.]+[KMB]?)\s*(?:Followers|followers)/i);
+  if (followerMatch) {
+    let raw = followerMatch[1].replace(/,/g, '');
+    if (/K$/i.test(raw)) followerCount = Math.round(parseFloat(raw) * 1000);
+    else if (/M$/i.test(raw)) followerCount = Math.round(parseFloat(raw) * 1000000);
+    else if (/B$/i.test(raw)) followerCount = Math.round(parseFloat(raw) * 1000000000);
+    else followerCount = parseInt(raw, 10);
+  }
+
+  // Clean name from og:title (remove trailing " on X" or " (@handle)" etc.)
+  let name = ogTitle
+    .replace(/\s*\(@?\w+\)\s*/g, '')
+    .replace(/\s*on\s+(?:X|Twitter|Instagram)\s*$/i, '')
+    .replace(/\s*\|\s*.*$/, '')
+    .replace(/\s*[-–]\s*.*$/, '')
+    .trim();
+
+  // Bio: og:description minus the follower/following stats prefix
+  let bio = ogDesc
+    .replace(/^[\d,.]+[KMB]?\s*Followers?,?\s*[\d,.]+[KMB]?\s*Following,?\s*[\d,.]+[KMB]?\s*Posts?\s*[-–]?\s*/i, '')
+    .trim();
+
+  return { name, bio, handle, followerCount, profileImage: ogImage, platform, title };
+}
+
+function socialMetaToEntity(meta, url, agentId) {
+  if (!meta.name && !meta.handle) return null;
+  const now = new Date().toISOString();
+  const displayName = meta.name || meta.handle.replace(/^@/, '');
+  const sourceAttribution = { type: meta.platform, url: url, extracted_at: now };
+
+  const attributes = [];
+  let attrSeq = 1;
+  if (meta.handle) attributes.push({ attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`, key: `${meta.platform}_handle`, value: meta.handle, confidence: 1.0, confidence_label: 'VERIFIED', time_decay: { stability: 'stable', captured_date: now.slice(0, 10) }, source_attribution: { ...sourceAttribution, facts_layer: 1, layer_label: 'self' } });
+  if (meta.bio) attributes.push({ attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`, key: `${meta.platform}_bio`, value: meta.bio, confidence: 0.8, confidence_label: 'HIGH', time_decay: { stability: 'volatile', captured_date: now.slice(0, 10) }, source_attribution: { ...sourceAttribution, facts_layer: 2, layer_label: 'group' } });
+  if (meta.followerCount) attributes.push({ attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`, key: `${meta.platform}_followers`, value: String(meta.followerCount), confidence: 0.7, confidence_label: 'MODERATE', time_decay: { stability: 'volatile', captured_date: now.slice(0, 10) }, source_attribution: { ...sourceAttribution, facts_layer: 2, layer_label: 'group' } });
+  attributes.push({ attribute_id: `ATTR-${String(attrSeq++).padStart(3, '0')}`, key: `${meta.platform}_url`, value: url, confidence: 1.0, confidence_label: 'VERIFIED', time_decay: { stability: 'stable', captured_date: now.slice(0, 10) }, source_attribution: { ...sourceAttribution, facts_layer: 1, layer_label: 'self' } });
+
+  const observations = [];
+  if (meta.bio) observations.push({ observation: `${meta.platform === 'x' ? 'X (Twitter)' : 'Instagram'} bio: ${meta.bio}`, observed_at: now, source: `${meta.platform}_profile`, source_url: url, confidence: 0.8, confidence_label: 'HIGH', truth_level: 'STRONG', facts_layer: 'L2_GROUP', layer_number: 2, observed_by: agentId });
+  observations.push({ observation: `Social profile imported from ${url}`, observed_at: now, source: `${meta.platform}_profile`, source_url: url, confidence: 1.0, confidence_label: 'VERIFIED', truth_level: 'STRONG', facts_layer: 'L1_SELF', layer_number: 1, observed_by: agentId });
+
+  return {
+    schema_version: '2.0', schema_type: 'context_architecture_entity',
+    extraction_metadata: { extracted_at: now, updated_at: now, source_description: `${meta.platform}_profile:${url}`, extraction_model: 'meta-tag-parser', extraction_confidence: 0.7, schema_version: '2.0' },
+    entity: {
+      entity_type: 'person',
+      name: { full: displayName, preferred: '', aliases: meta.handle ? [meta.handle] : [], confidence: 0.7, facts_layer: 2 },
+      summary: meta.bio ? { value: meta.bio, confidence: 0.7, facts_layer: 2 } : { value: '', confidence: 0, facts_layer: 2 },
+    },
+    attributes, relationships: [], values: [], key_facts: [], constraints: [], observations,
+    provenance_chain: { created_at: now, created_by: agentId, source_documents: [{ source: `${meta.platform}_profile:${url}`, url, ingested_at: now }], merge_history: [] },
+  };
+}
+
 // POST /api/extract-url — Extract entities from any public URL
 app.post('/api/extract-url', apiAuth, async (req, res) => {
   const { url } = req.body;
@@ -3892,6 +3974,14 @@ app.post('/api/extract-url', apiAuth, async (req, res) => {
 
     const html = await response.text();
 
+    // Social profile detection — parse meta tags before stripping HTML
+    const socialPlatform = detectSocialPlatform(url);
+    let socialEntity = null;
+    if (socialPlatform) {
+      const meta = parseSocialMeta(html, url, socialPlatform);
+      socialEntity = socialMetaToEntity(meta, url, req.agentId);
+    }
+
     // Strip HTML to clean text
     let text = html
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
@@ -3908,6 +3998,12 @@ app.post('/api/extract-url', apiAuth, async (req, res) => {
       .replace(/&#39;/g, "'")
       .replace(/\s+/g, ' ')
       .trim();
+
+    // For social profiles with JS-heavy pages, return meta-tag entity even if body is sparse
+    if (socialEntity && (!text || text.length < 200)) {
+      const previewList = [{ entity_type: 'person', name: socialEntity.entity.name.full, summary: socialEntity.entity.summary?.value || '', attribute_count: socialEntity.attributes.length, relationship_count: 0, observation_count: socialEntity.observations.length }];
+      return res.json({ entities: [socialEntity], preview: previewList, source_url: url, source_type: socialPlatform, entity_count: 1 });
+    }
 
     if (!text || text.length < 50) {
       return res.status(422).json({ error: 'Could not extract meaningful text from this URL. The page may require JavaScript or be empty.' });
@@ -4049,11 +4145,44 @@ app.post('/api/extract-url', apiAuth, async (req, res) => {
       };
     });
 
+    // If we have a social entity from meta tags, prepend it (or merge if LLM found the same person)
+    if (socialEntity) {
+      const socialName = (socialEntity.entity.name.full || '').toLowerCase();
+      const matchIdx = v2Entities.findIndex(e => {
+        const n = (e.entity?.name?.full || '').toLowerCase();
+        return n && socialName && (n === socialName || n.includes(socialName) || socialName.includes(n));
+      });
+      if (matchIdx >= 0) {
+        // Merge social attributes into the LLM-found entity
+        v2Entities[matchIdx].attributes = [...(v2Entities[matchIdx].attributes || []), ...socialEntity.attributes];
+        v2Entities[matchIdx].observations = [...(v2Entities[matchIdx].observations || []), ...socialEntity.observations];
+        if (socialEntity.entity.name.aliases?.length) {
+          v2Entities[matchIdx].entity.name.aliases = [...(v2Entities[matchIdx].entity.name.aliases || []), ...socialEntity.entity.name.aliases];
+        }
+      } else {
+        v2Entities.unshift(socialEntity);
+      }
+    }
+
+    // Refresh preview after potential social merge
+    const finalPreview = v2Entities.map(e => {
+      const ent = e.entity || {};
+      const type = ent.entity_type || '';
+      return {
+        entity_type: type,
+        name: type === 'person' ? (ent.name?.full || '') : (ent.name?.common || ent.name?.legal || ''),
+        summary: ent.summary?.value || '',
+        attribute_count: (e.attributes || []).length,
+        relationship_count: (e.relationships || []).length,
+        observation_count: (e.observations || []).length,
+      };
+    });
+
     res.json({
       entities: v2Entities,
-      preview: previewList,
+      preview: finalPreview,
       source_url: url,
-      source_type: 'web',
+      source_type: socialPlatform || 'web',
       entity_count: v2Entities.length,
     });
 
@@ -8775,11 +8904,17 @@ function extractFromURL() {
   statusEl.style.display = 'block';
   statusEl.style.color = 'var(--text-muted)';
 
-  // Smart URL routing: LinkedIn → Proxycurl, everything else → generic
+  // Smart URL routing: LinkedIn → Proxycurl, everything else → generic (incl. X/Instagram)
   var isLinkedIn = url.indexOf('linkedin.com/in/') !== -1;
+  var isX = url.indexOf('x.com/') !== -1 || url.indexOf('twitter.com/') !== -1;
+  var isIG = url.indexOf('instagram.com/') !== -1;
   var endpoint = isLinkedIn ? '/api/extract-linkedin' : '/api/extract-url';
   var body = isLinkedIn ? { linkedin_url: url } : { url: url };
-  statusEl.textContent = isLinkedIn ? 'Looking up LinkedIn profile...' : 'Fetching and analyzing ' + url + '...';
+  var label = isLinkedIn ? 'Looking up LinkedIn profile...'
+    : isX ? 'Extracting X profile...'
+    : isIG ? 'Extracting Instagram profile...'
+    : 'Fetching and analyzing ' + url + '...';
+  statusEl.textContent = label;
 
   api('POST', endpoint, body).then(function(data) {
     urlExtractInProgress = false;
