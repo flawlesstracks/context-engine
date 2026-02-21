@@ -122,6 +122,8 @@ connects to the product.
 | MECE-003 | Entity Hierarchy | STRUCTURE | 3 tiers | 2026-02-20 |
 | MECE-004 | EXTRACT Levels | EXTRACT | 10 levels | 2026-02-19 |
 | MECE-005 | Agent Architecture | EXTRACT, INTEGRATE | 3 agents, 4 quadrants | 2026-02-21 |
+| MECE-006 | Collection Intelligence | EXTRACT | 4 modes, 4 source types, 4 filters | 2026-02-21 |
+| MECE-007 | Entity Rendering | DELIVER | 4 types, 4 densities, 6 lenses | 2026-02-21 |
 
 |  |
 | :---- |
@@ -408,6 +410,85 @@ Not all entities enrich the same way:
 | Private individual | Inside-out: ELICIT (ask user) → relationship signals | No public presence to scrape |
 | Organization | Outside-in: website → news → SEC → job boards | Public by nature |
 | Project/concept | Inside-out: documents → conversations → related entities | Exists in user's context, not public web |
+
+|  |
+| :---- |
+
+## MECE-007: Entity Rendering
+
+**Primary Lever:** DELIVER
+**Domain:** How entities display in the wiki based on type, data density, and user perspective.
+**Parent in fractal:** AAA Loop → APPLY → DELIVER → Entity Card
+
+### Rendering Formula
+```
+Entity Type → determines WHICH sections are possible
+Data Density → determines HOW MUCH renders
+Profile Lens → determines WHAT perspective the user sees
+```
+
+All three dimensions are MECE. Every entity resolves to exactly one Type, one Density level, and one active Lens.
+
+### Dimension 1: Entity Type
+
+Each type defines a different card layout because they represent fundamentally different things.
+
+| Type | Core Card Fields | Available Sections |
+|------|-----------------|-------------------|
+| PERSON | Name, headline, photo/initials, location, social links | Career, Education, Skills, Connections, Observations, Sources |
+| ORGANIZATION | Name, type, industry, website, logo | People, Description, Roles, Connected Orgs, Observations |
+| PROJECT | Name, status, description | Team, Timeline, Connected Entities, Observations |
+| INSTITUTION | Name, type, location | Alumni/Members, Programs, Connected People, Observations |
+
+### Dimension 2: Data Density
+
+Determined by attribute coverage and source count. Thresholds:
+
+| Density | Definition | Threshold | Rendering Strategy |
+|---------|-----------|-----------|-------------------|
+| SKELETON | Name + type only | <3 attributes filled | Minimal card. Prominent "Enrich" CTA. Show what's MISSING. |
+| PARTIAL | Some attributes, gaps visible | 3-8 attributes, 1 source | Show what exists, gray out missing sections. Suggest next enrichment. |
+| RICH | Most attributes, multiple sources | 8+ attributes, 2+ sources | Full card with all sections. Confidence indicators per section. |
+| COMPREHENSIVE | Corroborated across sources, high confidence | 12+ attributes, 3+ sources, avg confidence >0.7 | Full card + provenance + confidence breakdown + change history |
+
+### Dimension 3: Profile Lenses
+
+Lenses are perspectives on the same underlying data. A lens ONLY appears in the sidebar when sufficient data exists to support it. No "SOON" badges — either the data supports it or the lens doesn't render.
+
+| Lens | Shows | Minimum Data Required | Applies To |
+|------|-------|----------------------|-----------|
+| Overview | Dashboard — stats, coverage gaps, recent activity, sources | Always available (shows gaps for Skeleton) | All types |
+| Career Lite | Professional timeline, education, skills | work_history array has 1+ entries | PERSON |
+| Network Map | Visual connections to other entities | 3+ connections | All types |
+| Intelligence Brief | Pre-meeting card — personality, communication, key context | 5+ observations from 2+ sources | PERSON |
+| Org Brief | Company intelligence — size, industry, key people, news | 3+ attributes + 1+ connected person | ORGANIZATION |
+| Source Provenance | Where every data point came from, when, confidence level | Always available (shows extraction history) | All types |
+
+### Adaptive Rendering Rules
+
+1. Sidebar lenses appear/disappear dynamically based on data density
+2. Empty sections show "missing data" prompts with specific enrichment suggestions, not blank space
+3. Confidence badges render on every section that has source attribution
+4. Entity type determines the card template; density determines how much fills in
+5. The Overview lens is always first and always available — it's the "what do we know and what's missing" view
+
+### Entity Type → Density → Lens Examples
+
+**Andre Burgin (PERSON, PARTIAL, Career Lite)**
+- Has: name, headline, company, location, LinkedIn URL, 1 source
+- Missing: work_history array, education details, skills list, social handles
+- Career Lite shows: current company only, with prompt "Enrich from LinkedIn for full history"
+- Overview shows: data coverage grid with Professional partially filled, Social/Personal empty
+
+**Amazon (ORGANIZATION, RICH, Org Brief)**  
+- Has: name, type, industry, website, 5 connected people, multiple sources
+- Org Brief shows: full company card with people who work there, industry context
+- Network Map shows: connections to CJ, Andre, other employees in graph
+
+**Steven W. Hughes (PERSON, SKELETON, Overview only)**
+- Has: name, relationship to Andre (son)
+- Overview shows: minimal card, "Enrich" button, most sections empty with suggestions
+- No other lenses available — insufficient data
 
 ## Adding a New MECE Framework
 
