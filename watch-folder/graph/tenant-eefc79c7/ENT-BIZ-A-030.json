@@ -114,6 +114,40 @@
         "facts_layer": 1,
         "layer_label": "cleanup-orgs"
       }
+    },
+    {
+      "attribute_id": "ATTR-007",
+      "key": "headquarters",
+      "value": "Seattle, Washington, USA",
+      "confidence": 0.7,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-21"
+      },
+      "source_attribution": {
+        "type": "web",
+        "url": "https://www.amazon.com/about",
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-008",
+      "key": "website",
+      "value": "https://www.amazon.com/about",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-21"
+      },
+      "source_attribution": {
+        "type": "web",
+        "url": "https://www.amazon.com/about",
+        "facts_layer": 1,
+        "layer_label": "self"
+      }
     }
   ],
   "relationships": [
@@ -232,6 +266,18 @@
       "observed_by": "test-relationships-2",
       "truth_level": "INFERRED",
       "observation_id": "OBS-ENT-BIZ-AWS-018-20260218182913-001"
+    },
+    {
+      "observation": "Organization enriched from website: Amazon is a global technology and e-commerce company that operates online retail, cloud computing services (AWS), digital streaming, artificial intelligence, and consumer electronics. The company focuses on innovation across retail, logistics, entertainment, and enterprise technology solutions.",
+      "observed_at": "2026-02-21T02:06:41.656Z",
+      "source": "web_enrichment",
+      "source_url": "https://www.amazon.com/about",
+      "confidence": 0.7,
+      "confidence_label": "MODERATE",
+      "truth_level": "INFERRED",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell"
     }
   ],
   "provenance_chain": {
@@ -294,5 +340,22 @@
     "org_dates": "2020-present",
     "org_descriptor": "current employer, AI forecasting and knowledge graphs"
   },
-  "descriptor": "current employer, AI forecasting and knowledge graphs"
+  "descriptor": "current employer, AI forecasting and knowledge graphs",
+  "structured_attributes": {
+    "industry": "Technology & E-commerce",
+    "headquarters": "Seattle, Washington, USA",
+    "website": "https://www.amazon.com/about",
+    "founded_year": "1996",
+    "specialties": [
+      "E-commerce",
+      "Cloud Computing (AWS)",
+      "Artificial Intelligence",
+      "Consumer Electronics",
+      "Digital Streaming",
+      "Logistics and Delivery",
+      "Prime Membership Services",
+      "Sustainability Initiatives"
+    ],
+    "mission": "Amazon aims to be Earth's most customer-centric company, leveraging innovation and technology to build stronger communities through infrastructure investment, education, and sustainability initiatives. The company focuses on delivering fast, reliable services while advancing AI capabilities and meeting ambitious environmental goals."
+  }
 }

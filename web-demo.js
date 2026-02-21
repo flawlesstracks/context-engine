@@ -9048,7 +9048,7 @@ function extractFromURL() {
   if (!urlInput || urlExtractInProgress) return;
   var url = urlInput.value.trim();
   if (!url) { toast('Please enter a URL'); return; }
-  if (!/^https?:\/\//i.test(url)) { toast('URL must start with http:// or https://'); return; }
+  if (url.indexOf('http://') !== 0 && url.indexOf('https://') !== 0) { toast('URL must start with http:// or https://'); return; }
 
   urlExtractInProgress = true;
   btn.disabled = true;
