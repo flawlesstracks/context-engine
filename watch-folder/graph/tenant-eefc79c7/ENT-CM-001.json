@@ -1,0 +1,1776 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-16T18:56:18.113Z",
+    "updated_at": "2026-02-16T18:56:18.113Z",
+    "source_description": "linkedin_import:(26) Clarence Mitchell _ LinkedIn.pdf",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Clarence James Mitchell",
+      "preferred": "CJ",
+      "aliases": [
+        "CJ Mitchell",
+        "Clarence Mitchell",
+        "CJ",
+        "Clarence (CJ) Mitchell",
+        "Clarence J Mitchell",
+        "CLARENCE J. MITCHELL"
+      ],
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "Principal Product Manager focusing on eCommerce, Machine Learning, Artificial Intelligence, Media and UGC Products. Led cross-functional teams of data scientists, engineers, and designers. Currently leading AI model training and knowledge graphs, orchestrating workloads with Containers and HPC services at Amazon.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-CM-001"
+  },
+  "career_lite": {
+    "interface": "career-lite",
+    "implements": [
+      "Contactable",
+      "Identifiable",
+      "Experienceable"
+    ],
+    "headline": "Principal Product Manager at Amazon - AI Forecasting, Logistics | YouTube Creator (65k+ subscribers) | Context Architecture Consultant",
+    "location": "Atlanta, GA",
+    "current_role": "Principal Product Manager",
+    "current_company": "Amazon (Relay)",
+    "linkedin_url": "",
+    "experience": [
+      {
+        "title": "Principal Product Manager",
+        "company": "Amazon (Relay)",
+        "start_date": "",
+        "end_date": "Present",
+        "description": "Oversees 'Expected Costs' forecasting product for Middle Mile logistics. Manages five AI models delivering $55 million in validated savings. Specializes in AI/ML deployment, forecast accuracy (MAPE), and transformers implementation."
+      },
+      {
+        "title": "AI/DS Lead",
+        "company": "Fandom",
+        "start_date": "",
+        "end_date": "",
+        "description": "Led AI and data science initiatives focusing on SEO generative AI and dynamic user personalization."
+      },
+      {
+        "title": "AI/DS Lead",
+        "company": "Wayfair",
+        "start_date": "",
+        "end_date": "",
+        "description": "Managed AI and data science projects."
+      },
+      {
+        "title": "AI/DS Lead",
+        "company": "Walmart",
+        "start_date": "",
+        "end_date": "",
+        "description": "Led AI and data science efforts."
+      },
+      {
+        "title": "Position",
+        "company": "Dell EMC",
+        "start_date": "2012-07",
+        "end_date": "2013-12",
+        "description": "Worked in Boston, MA during 18-month period."
+      },
+      {
+        "title": "Position",
+        "company": "Deloitte",
+        "start_date": "",
+        "end_date": "",
+        "description": "Professional services experience."
+      },
+      {
+        "title": "YouTube Creator",
+        "company": "Putchuon Channel",
+        "start_date": "",
+        "end_date": "Present",
+        "description": "AI education content creator with 65k+ subscribers. Produces 'AI cinema' approach videos using narrative storytelling and cinematic hooks, targeting 4-6 hour production cycles."
+      },
+      {
+        "title": "Context Architecture Consultant",
+        "company": "Self-employed",
+        "start_date": "",
+        "end_date": "Present",
+        "description": "Building Context Architecture as scalable business - positioning as 'Wix for custom AIs' helping individuals and small businesses create structured personal knowledge systems."
+      }
+    ],
+    "education": [
+      {
+        "institution": "Harvard University",
+        "degree": "Master of Business Administration - MBA",
+        "field": "Entrepreneurship/Entrepreneurial Studies",
+        "start_year": "2012",
+        "end_year": "2013"
+      },
+      {
+        "institution": "Clark Atlanta University",
+        "degree": "MBA",
+        "field": "",
+        "start_year": "",
+        "end_year": ""
+      },
+      {
+        "institution": "Howard University",
+        "degree": "BBA",
+        "field": "",
+        "start_year": "",
+        "end_year": ""
+      }
+    ],
+    "skills": [
+      "AI/ML",
+      "Transformers (BERT)",
+      "CNNs",
+      "RLHF",
+      "NLP",
+      "TensorFlow",
+      "PyTorch",
+      "Forecasting",
+      "Product Management",
+      "SEO Generative AI",
+      "Strategic Planning",
+      "Content Creation",
+      "Knowledge Graph Architecture",
+      "Neo4j",
+      "Investment Analysis",
+      "YouTube Production",
+      "AI Infrastructure Analysis"
+    ]
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "headline",
+      "value": "Principal Product Manager (L6-7) with 13+ years driving AI/ML product strategy at scale",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-17"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "location",
+      "value": "1524 Drew Dr NW, Atlanta, GA 30318",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "Principal Product Manager",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "company",
+      "value": "Amazon",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-16"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "skills",
+      "value": "AI/ML Product Leadership, ML Model Productionization, AI Strategy, Technical Roadmapping, Cross-functional Leadership, Stakeholder Management, Canonical Entity Data Models, Ontology Design, Knowledge Graphs, Neo4j, JSON Schema, Vector Databases, Semantic Search, Transformers, BERT, CNNs, RNNs, NLP, RLHF, TensorFlow, PyTorch, AWS SageMaker, LightGBM, Distributional Forecasting, Time-Series, Feature Engineering, Context Architecture, GraphRAG, Model Context Protocol, LLM Integration, Personal AI Systems, Agentic Workflows, SQL, Hadoop, Spark, Apache Airflow, Hugging Face, spaCy, NLTK, AWS, GCP, Azure, Tableau, PowerBI, Salesforce",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-18"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "email",
+      "value": "clarencejmitchell@gmail.com",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-18"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-007",
+      "key": "phone",
+      "value": "708-288-2394",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-18"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-008",
+      "key": "experience",
+      "value": "13+ years",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-18"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "personality",
+      "value": "ENTP - The Debater - strategic, extroverted, witty, adaptable",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-009",
+      "key": "birth_year",
+      "value": "1983",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-010",
+      "key": "employer",
+      "value": "Amazon",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-011",
+      "key": "date_of_birth",
+      "value": "June 8, 1983",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-012",
+      "key": "education",
+      "value": "MBA (Clark Atlanta), BBA (Howard University)",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-013",
+      "key": "birth_date",
+      "value": "1983-06-08",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    },
+    {
+      "attribute_id": "ATTR-014",
+      "key": "age",
+      "value": "41",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-19"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "Mark Cuban",
+      "relationship_type": "3rd degree connection",
+      "context": "President, 8,305,174 followers, Following",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-002",
+      "name": "Reid Hoffman",
+      "relationship_type": "2nd degree connection",
+      "context": "Co-Founder, LinkedIn, Manas AI & Inflection AI. Founding Team, PayPal. Author of Superagency. Podcaster of Possible and Masters of Scale. 2,750,722 followers, Following",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-003",
+      "name": "Chelsea Zamora",
+      "relationship_type": "From your school",
+      "context": "Principal Executive Recruiter, Executive Search at Airbnb",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-004",
+      "name": "Patricia Bothwell",
+      "relationship_type": "From your school",
+      "context": "VP Product Management, Taxbit | B2B SaaS | Strategy, Execution, Analytics, M&A, P&L | ex-BCG, ex-PayPal | Stanford MBA",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-005",
+      "name": "Reshmita Kutti",
+      "relationship_type": "From your school",
+      "context": "Software Developer at Logicsoft International Pvt. Ltd.",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-006",
+      "name": "David Bledin",
+      "relationship_type": "From your school",
+      "context": "Sr Director of Trust & Safety and Responsible AI at Google",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-007",
+      "name": "Lola Mafe",
+      "relationship_type": "Spouse",
+      "context": "Married February 14, 2023. ISFJ personality. Lives two blocks away on Drew Drive, Atlanta. Nigerian heritage. Works together on family planning through IVF journey.",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-008",
+      "name": "London Khal Mitchell",
+      "relationship_type": "Son",
+      "context": "Born March 11, 2017. Age 8. Shared custody with ex-wife Carrie. Attends Esther Jackson Elementary in Roswell, GA. Interests include WWE wrestling, Roblox, Spider-Man.",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-009",
+      "name": "Carrie Mitchell",
+      "relationship_type": "Ex-spouse",
+      "context": "Former wife (married 2014-2020). Mother of London. Primary physical custodian. ENTJ personality.",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-010",
+      "name": "Destinee Hughes",
+      "relationship_type": "Sister",
+      "context": "Witness at wedding to Lola. Close family relationship.",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-011",
+      "name": "Allen Jones (Big Al)",
+      "relationship_type": "Close friend",
+      "context": "Friend from Markham era.",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-012",
+      "name": "Steven Hughes",
+      "relationship_type": "Close friend",
+      "context": "Friend from Howard University.",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-013",
+      "name": "Steve",
+      "relationship_type": "Professional contact",
+      "context": "Referenced as example recipient for Career Lite interface sharing demonstration",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-014",
+      "name": "Rodrique Fru",
+      "relationship_type": "Security Architect",
+      "context": "Owner of Session 7 security audit, responsible for 90-minute focused audit of truth level enforcement, OAuth token handling, and API security",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-015",
+      "name": "Claudine (Blossom)",
+      "relationship_type": "AI Assistant/Collaborator",
+      "context": "Co-author of Corrected Build Plan v2.1, involved in Context Interface Protocol development",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-016",
+      "name": "Gemma (Buttercup)",
+      "relationship_type": "AI Assistant/Collaborator",
+      "context": "Co-author of Corrected Build Plan v2.1, conducted audit of Context Interface Protocol v2 resulting in three accepted corrections including Google Drive scope reduction, LinkedIn PDF limitations, and merge-on-ingest promotion",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-017",
+      "name": "Raiya",
+      "relationship_type": "close friend and collaborator",
+      "context": "Created detailed creator profile based on years of friendship and collaboration",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-018",
+      "name": "Tiffany N. Pringle",
+      "relationship_type": "very close friend",
+      "context": "met during MBA at Clark Atlanta University in August 2009",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-019",
+      "name": "Andre Burgin",
+      "relationship_type": "close friend and groomsman",
+      "context": "met during Clark Atlanta MBA program",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-020",
+      "name": "London",
+      "relationship_type": "son",
+      "context": "shared custody with ex-wife Carrie",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-021",
+      "name": "Allen Jones",
+      "relationship_type": "close friend",
+      "context": "from Markham era",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-022",
+      "name": "Destinee",
+      "relationship_type": "sister",
+      "context": "Witness at wedding",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "relationship_id": "REL-023",
+      "name": "Amazon",
+      "relationship_type": "employer",
+      "context": "Works as Principal Product Manager at Amazon (Relay)",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    },
+    {
+      "name": "Harrison Osuorji",
+      "relationship_type": "friend",
+      "context": "CAU MBA classmate, trivia crew, BDAT brotherhood"
+    }
+  ],
+  "values": [],
+  "key_facts": [
+    {
+      "fact_id": "FACT-001",
+      "fact": "Principal Product Manager at Amazon at Oct 2022 - Present",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "(26) Clarence Mitchell _ LinkedIn.pdf"
+    },
+    {
+      "fact_id": "FACT-002",
+      "fact": "Principal Product Manager at Fandom at Sep 2022 - Jan 2024",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "(26) Clarence Mitchell _ LinkedIn.pdf"
+    },
+    {
+      "fact_id": "FACT-003",
+      "fact": "Senior Product Manager at Wayfair at Feb 2020 - Sep 2022",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "(26) Clarence Mitchell _ LinkedIn.pdf"
+    },
+    {
+      "fact_id": "FACT-004",
+      "fact": "Principal Product Manager at Narrativ at Jan 2022 - Jun 2022",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "(26) Clarence Mitchell _ LinkedIn.pdf"
+    },
+    {
+      "fact_id": "FACT-005",
+      "fact": "Principal Product Manager at Walmart at Mar 2019 - Mar 2020",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "(26) Clarence Mitchell _ LinkedIn.pdf"
+    },
+    {
+      "fact_id": "FACT-006",
+      "fact": "Master of Business Administration - MBA, Entrepreneurship/Entrepreneurial Studies, Harvard University, (2012-2013)",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "(26) Clarence Mitchell _ LinkedIn.pdf"
+    },
+    {
+      "fact_id": "FACT-007",
+      "fact": "Master of Business Administration (MBA), Finance, Clark Atlanta University, (2009-2012)",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "(26) Clarence Mitchell _ LinkedIn.pdf"
+    },
+    {
+      "fact_id": "FACT-008",
+      "fact": "Principal Product Manager at Amazon (Relay) at Present",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_LOLA_RELATIONSHIP_TIMELINE.txt"
+    },
+    {
+      "fact_id": "FACT-009",
+      "fact": "AI/DS Lead at Fandom",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_LOLA_RELATIONSHIP_TIMELINE.txt"
+    },
+    {
+      "fact_id": "FACT-010",
+      "fact": "AI/DS Lead at Wayfair",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_LOLA_RELATIONSHIP_TIMELINE.txt"
+    },
+    {
+      "fact_id": "FACT-011",
+      "fact": "AI/DS Lead at Walmart",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_LOLA_RELATIONSHIP_TIMELINE.txt"
+    },
+    {
+      "fact_id": "FACT-012",
+      "fact": "Position at Dell EMC at 2012-07 - 2013-12",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_LOLA_RELATIONSHIP_TIMELINE.txt"
+    },
+    {
+      "fact_id": "FACT-013",
+      "fact": "Position at Deloitte",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_LOLA_RELATIONSHIP_TIMELINE.txt"
+    },
+    {
+      "fact_id": "FACT-014",
+      "fact": "YouTube Creator at Putchuon Channel at Present",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_LOLA_RELATIONSHIP_TIMELINE.txt"
+    },
+    {
+      "fact_id": "FACT-015",
+      "fact": "Context Architecture Consultant at Self-employed at Present",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_LOLA_RELATIONSHIP_TIMELINE.txt"
+    },
+    {
+      "fact_id": "FACT-016",
+      "fact": "MBA, Clark Atlanta University",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_LOLA_RELATIONSHIP_TIMELINE.txt"
+    },
+    {
+      "fact_id": "FACT-017",
+      "fact": "BBA, Howard University",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_LOLA_RELATIONSHIP_TIMELINE.txt"
+    },
+    {
+      "fact_id": "FACT-018",
+      "fact": "Context Architecture",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CA_Corrected_Build_Plan_v2_1.docx"
+    },
+    {
+      "fact_id": "FACT-019",
+      "fact": "Principal Product Manager at Amazon",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "test-cj-reingest.txt"
+    },
+    {
+      "fact_id": "FACT-020",
+      "fact": "Fandom",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "test-cj-reingest.txt"
+    },
+    {
+      "fact_id": "FACT-021",
+      "fact": "Wayfair",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "test-cj-reingest.txt"
+    },
+    {
+      "fact_id": "FACT-022",
+      "fact": "Principal Product Manager – AI Forecasting at Amazon at 2024-01",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_Mitchell_Resume_2026.docx (1).pdf"
+    },
+    {
+      "fact_id": "FACT-023",
+      "fact": "Senior Product Manager – AI/ML & Entity Data Systems at Fandom at 2022 - 2024",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_Mitchell_Resume_2026.docx (1).pdf"
+    },
+    {
+      "fact_id": "FACT-024",
+      "fact": "Associate Director of Product Management – E-Commerce & AI at Wayfair at 2020-01 - 2022-09",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_Mitchell_Resume_2026.docx (1).pdf"
+    },
+    {
+      "fact_id": "FACT-025",
+      "fact": "Senior Product Manager – Big Data Analytics at EMC Corporation at 2012-07 - 2019-10",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_Mitchell_Resume_2026.docx (1).pdf"
+    },
+    {
+      "fact_id": "FACT-026",
+      "fact": "Senior Consultant – Data Science & AI at Deloitte Consulting LLP at 2010-05 - 2011-08",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_Mitchell_Resume_2026.docx (1).pdf"
+    },
+    {
+      "fact_id": "FACT-027",
+      "fact": "Master of Business Administration, Finance & Product Management, Clark Atlanta University",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_Mitchell_Resume_2026.docx (1).pdf"
+    },
+    {
+      "fact_id": "FACT-028",
+      "fact": "Bachelor of Business Administration, International Business, Howard University",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "source": "CJ_Mitchell_Resume_2026.docx (1).pdf"
+    }
+  ],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "LinkedIn profile imported from (26) Clarence Mitchell _ LinkedIn.pdf",
+      "observed_at": "2026-02-16T18:56:18.113Z",
+      "source": "linkedin_import",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "truth_level": "INFERRED",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "observation_id": "OBS-ENT-CM-001-20260216185618-001"
+    },
+    {
+      "observation": "LinkedIn profile imported from CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "observed_at": "2026-02-16T20:32:55.898Z",
+      "source": "linkedin_import",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "truth_level": "INFERRED",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "observation_id": "OBS-ENT-CJM-002-20260216203255-001"
+    },
+    {
+      "observation": "LinkedIn profile imported from CA_Corrected_Build_Plan_v2_1.docx",
+      "observed_at": "2026-02-16T21:03:11.667Z",
+      "source": "linkedin_import",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "truth_level": "INFERRED",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "observation_id": "OBS-ENT-CM-003-20260216210311-001"
+    },
+    {
+      "observation": "LinkedIn profile imported from test-cj-reingest.txt",
+      "observed_at": "2026-02-16T21:21:54.051Z",
+      "source": "linkedin_import",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "truth_level": "INFERRED",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "observation_id": "OBS-ENT-CM-001-20260216212154-004"
+    },
+    {
+      "observation": "Listed as primary source for Raiya's profile with source relationship described as close friend and collaborator",
+      "observed_at": "2026-02-17T23:29:10.693Z",
+      "source": "file_import:AUTHOR_PROFILE_RAIYA.json",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260217232910-005"
+    },
+    {
+      "observation": "All personality assessments and behavioral observations about Raiya are inferred by CJ based on years of friendship and collaboration",
+      "observed_at": "2026-02-17T23:29:10.693Z",
+      "source": "file_import:AUTHOR_PROFILE_RAIYA.json",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260217232910-006"
+    },
+    {
+      "observation": "LinkedIn profile imported from CJ_Mitchell_Resume_2026.docx (1).pdf",
+      "observed_at": "2026-02-17T23:56:36.843Z",
+      "source": "linkedin_import",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "truth_level": "INFERRED",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "observation_id": "OBS-ENT-CM-001-20260217235636-007"
+    },
+    {
+      "observation": "Principal Product Manager (L6-7) with 13+ years driving AI/ML product strategy at scale",
+      "observed_at": "2026-02-18T23:23:11.164Z",
+      "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260218232311-008"
+    },
+    {
+      "observation": "Expert in Canonical Entity Data Modeling, Knowledge Graph Architecture, and AI Forecasting systems",
+      "observed_at": "2026-02-18T23:23:11.164Z",
+      "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260218232311-009"
+    },
+    {
+      "observation": "Known for bridging complex AI capabilities with business outcomes",
+      "observed_at": "2026-02-18T23:23:11.164Z",
+      "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260218232311-010"
+    },
+    {
+      "observation": "Email: clarencejmitchell@gmail.com | 708-288-2394 | Atlanta, GA",
+      "observed_at": "2026-02-18T23:23:11.164Z",
+      "source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260218232311-011"
+    },
+    {
+      "observation": "CJ and Tiffany first met in August 2009 while pursuing their MBA at Clark Atlanta University.",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219032025-012"
+    },
+    {
+      "observation": "CJ rerouted his trip so he could join Tiffany, Ty, and others for the celebration at the Ritz-Carlton in Krabi",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219032025-013"
+    },
+    {
+      "observation": "CJ showed up to the wedding wearing Adidas sweatpants and a fitted Adidas long sleeve shirt",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219032025-014"
+    },
+    {
+      "observation": "Tiffany is part of an Afrotech investment group chat with CJ",
+      "observed_at": "2026-02-19T03:20:25.830Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219032025-015"
+    },
+    {
+      "observation": "CJ showed up to the wedding wearing Adidas sweatpants and a fitted Adidas long sleeve shirt — pure athletic wear — while everyone else was dressed in full formal attire",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219031917-016"
+    },
+    {
+      "observation": "Dre is part of CJ's Groomsmen Circle — the most emotionally trusted and battle-tested brotherhood",
+      "observed_at": "2026-02-19T03:19:17.564Z",
+      "source": "file_import:MEM-RELATIONSHIPS_7_29_2025.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219031917-017"
+    },
+    {
+      "observation": "Central narrator and anchor for all Markham-era relationships.",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172537-018"
+    },
+    {
+      "observation": "Core childhood neighborhood on 165th & Marshfield in Markham, Illinois from 1983 to 2001",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172537-019"
+    },
+    {
+      "observation": "Backyard served as primary basketball court and social hub for neighborhood kids.",
+      "observed_at": "2026-02-19T17:25:37.497Z",
+      "source": "drive_import:CJ_Relationships_Markham_Era.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172537-020"
+    },
+    {
+      "observation": "CJ Mitchell is building 'The Context Journey' - a comprehensive digital continuation system designed to preserve his thinking, values, and voice for his son London.",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172717-021"
+    },
+    {
+      "observation": "CJ operates as a Principal Product Manager at Amazon in AI Forecasting and Logistics, managing five AI models that have delivered $55 million in validated savings.",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172717-022"
+    },
+    {
+      "observation": "He runs the 'Putchuon' YouTube channel (65k+ subscribers) focused on AI education",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172717-023"
+    },
+    {
+      "observation": "His ENTP personality drives systematic documentation of personal knowledge, relationships, and decision-making frameworks",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172717-024"
+    },
+    {
+      "observation": "full_name: Clarence James Mitchell, preferred_name: CJ, birth_date: 1983-06-08, birth_place: Northridge, California, age: 41",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172717-025"
+    },
+    {
+      "observation": "current_occupation: Principal Product Manager, company: Amazon (Relay), focus: AI Forecasting, Logistics",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172717-026"
+    },
+    {
+      "observation": "degrees: MBA from Clark Atlanta University, BBA from Howard University",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172717-027"
+    },
+    {
+      "observation": "Chess enthusiast, Master level, 2100+ rating",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172717-028"
+    },
+    {
+      "observation": "marriage_date to Lola Mafe: 2023-02-14",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172717-029"
+    },
+    {
+      "observation": "divorce_date from Carrie Mitchell: 2020-12-23",
+      "observed_at": "2026-02-19T17:27:17.384Z",
+      "source": "drive_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "truth_level": "INFERRED",
+      "observation_id": "OBS-ENT-CM-001-20260219172717-030"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-16T18:56:18.113Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "linkedin_import:(26) Clarence Mitchell _ LinkedIn.pdf",
+        "ingested_at": "2026-02-16T18:56:18.113Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-16T21:12:41.914Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "linkedin_import:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "headline",
+            "old_value": "Product @ Amazon | Technical Design, ML Frameworks, Data Infrastructure, Knowledge Graphs, Gen AI",
+            "new_value": "Principal Product Manager at Amazon - AI Forecasting, Logistics | YouTube Creator (65k+ subscribers) | Context Architecture Consultant",
+            "confidence": 0.6,
+            "timestamp": "2026-02-16T21:12:41.915Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-002",
+            "key": "location",
+            "old_value": "Atlanta, Georgia, United States",
+            "new_value": "Atlanta, GA",
+            "confidence": 0.6,
+            "timestamp": "2026-02-16T21:12:41.915Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-004",
+            "key": "company",
+            "old_value": "Amazon",
+            "new_value": "Amazon (Relay)",
+            "confidence": 0.6,
+            "timestamp": "2026-02-16T21:12:41.915Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-005",
+            "key": "skills",
+            "old_value": "Data Modeling, Artificial Intelligence (AI), Search Engine Optimization (SEO), User Generated Content, Data Science, Business Consulting, Educational Consulting, Project Management, Search Engine Marketing (SEM), Big Data Analytics, E-Commerce, Social Media, User Experience (UX)",
+            "new_value": "AI/ML, Transformers (BERT), CNNs, RLHF, NLP, TensorFlow, PyTorch, Forecasting, Product Management, SEO Generative AI, Strategic Planning, Content Creation, Knowledge Graph Architecture, Neo4j, Investment Analysis, YouTube Production, AI Infrastructure Analysis",
+            "confidence": 0.6,
+            "timestamp": "2026-02-16T21:12:41.915Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-16T21:12:41.917Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "linkedin_import:CA_Corrected_Build_Plan_v2_1.docx",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-004",
+            "key": "company",
+            "old_value": "Amazon (Relay)",
+            "new_value": "Context Architecture",
+            "confidence": 0.6,
+            "timestamp": "2026-02-16T21:12:41.917Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-005",
+            "key": "skills",
+            "old_value": "AI/ML, Transformers (BERT), CNNs, RLHF, NLP, TensorFlow, PyTorch, Forecasting, Product Management, SEO Generative AI, Strategic Planning, Content Creation, Knowledge Graph Architecture, Neo4j, Investment Analysis, YouTube Production, AI Infrastructure Analysis",
+            "new_value": "Context Architecture, API Integration, OAuth Implementation, PDF Parsing, Data Extraction, Entity Deduplication, Google Drive API, LinkedIn Data Processing, Interface Design, System Orchestration, Security Audit, UX Design, Protocol Development",
+            "confidence": 0.6,
+            "timestamp": "2026-02-16T21:12:41.917Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-16T21:21:54.052Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "test-cj-reingest.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "headline",
+            "old_value": "Principal Product Manager at Amazon - AI Forecasting, Logistics | YouTube Creator (65k+ subscribers) | Context Architecture Consultant",
+            "new_value": "Principal Product Manager at Amazon",
+            "confidence": 0.6,
+            "timestamp": "2026-02-16T21:21:54.052Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "company",
+            "old_value": "Context Architecture",
+            "new_value": "Amazon",
+            "confidence": 0.6,
+            "timestamp": "2026-02-16T21:21:54.052Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-002",
+            "key": "skills",
+            "old_value": "Context Architecture, API Integration, OAuth Implementation, PDF Parsing, Data Extraction, Entity Deduplication, Google Drive API, LinkedIn Data Processing, Interface Design, System Orchestration, Security Audit, UX Design, Protocol Development",
+            "new_value": "AI/ML, Product Management, Forecasting",
+            "confidence": 0.6,
+            "timestamp": "2026-02-16T21:21:54.052Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-16T21:21:54.052Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "test-cj-reingest.txt: merged data and 1 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-17T23:29:10.704Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "AUTHOR_PROFILE_RAIYA.json",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-003",
+            "key": "role",
+            "old_value": "Principal Product Manager",
+            "new_value": "profile creator",
+            "confidence": 0.6,
+            "timestamp": "2026-02-17T23:29:10.705Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-17T23:29:10.704Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "AUTHOR_PROFILE_RAIYA.json: merged data and 2 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-17T23:56:36.849Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "CJ_Mitchell_Resume_2026.docx (1).pdf",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "headline",
+            "old_value": "Principal Product Manager at Amazon",
+            "new_value": "Principal Product Manager (L6-7) with 13+ years driving AI/ML product strategy at scale",
+            "confidence": 0.6,
+            "timestamp": "2026-02-17T23:56:36.849Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "profile creator",
+            "new_value": "Principal Product Manager – AI Forecasting",
+            "confidence": 0.6,
+            "timestamp": "2026-02-17T23:56:36.849Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-004",
+            "key": "skills",
+            "old_value": "AI/ML, Product Management, Forecasting",
+            "new_value": "AI/ML Product Leadership, ML Model Productionization, AI Strategy, Technical Roadmapping, Cross-functional Leadership, Stakeholder Management, Canonical Entity Data Models, Ontology Design, Knowledge Graphs, Neo4j, JSON Schema, Vector Databases, Semantic Search, Transformers, BERT, CNNs, RNNs, NLP, RLHF, TensorFlow, PyTorch, AWS SageMaker, Cost Forecasting Models, Context Architecture, GraphRAG, Model Context Protocol, LLM Integration, Personal AI Systems, Agentic Workflows, LightGBM, Distributional Forecasting, Time-Series, Feature Engineering, SQL, Hadoop, Spark, Apache Airflow, Hugging Face, spaCy, NLTK, AWS, GCP, Azure, Tableau, PowerBI, Salesforce",
+            "confidence": 0.6,
+            "timestamp": "2026-02-17T23:56:36.849Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-17T23:56:36.849Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "CJ_Mitchell_Resume_2026.docx (1).pdf: merged data and 1 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-18T00:09:19.052Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "CJ_Mitchell_Resume_2026.docx (1).pdf",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-005",
+            "key": "skills",
+            "old_value": "AI/ML Product Leadership, ML Model Productionization, AI Strategy, Technical Roadmapping, Cross-functional Leadership, Stakeholder Management, Canonical Entity Data Models, Ontology Design, Knowledge Graphs, Neo4j, JSON Schema, Vector Databases, Semantic Search, Transformers, BERT, CNNs, RNNs, NLP, RLHF, TensorFlow, PyTorch, AWS SageMaker, Cost Forecasting Models, Context Architecture, GraphRAG, Model Context Protocol, LLM Integration, Personal AI Systems, Agentic Workflows, LightGBM, Distributional Forecasting, Time-Series, Feature Engineering, SQL, Hadoop, Spark, Apache Airflow, Hugging Face, spaCy, NLTK, AWS, GCP, Azure, Tableau, PowerBI, Salesforce",
+            "new_value": "AI/ML Product Leadership, ML Model Productionization, AI Strategy, Technical Roadmapping, Cross-functional Leadership, Stakeholder Management, Canonical Entity Data Models, Ontology Design, Knowledge Graphs, Neo4j, JSON Schema, Vector Databases, Semantic Search, Transformers, BERT, CNNs, RNNs, NLP, RLHF, TensorFlow, PyTorch, AWS SageMaker, LightGBM, Distributional Forecasting, Time-Series, Feature Engineering, Context Architecture, GraphRAG, Model Context Protocol, LLM Integration, Personal AI Systems, Agentic Workflows, SQL, Hadoop, Spark, Apache Airflow, Hugging Face, spaCy, NLTK, AWS, GCP, Azure, Tableau, PowerBI, Salesforce",
+            "confidence": 0.6,
+            "timestamp": "2026-02-18T00:09:19.052Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-18T00:09:19.052Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "CJ_Mitchell_Resume_2026.docx (1).pdf: merged data and 1 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-18T23:24:54.780Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-003",
+            "key": "role",
+            "old_value": "Principal Product Manager – AI Forecasting",
+            "new_value": "Principal Product Manager",
+            "confidence": 0.6,
+            "timestamp": "2026-02-18T23:24:54.780Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-18T23:24:54.780Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "file_import:CJ_Mitchell_Resume_2026.docx (1).pdf: merged data and 4 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:20:25.969Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-004",
+            "key": "role",
+            "old_value": "Principal Product Manager",
+            "new_value": "MBA graduate, friend, groomsman",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:20:25.969Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-002",
+            "key": "location",
+            "old_value": "Atlanta, GA",
+            "new_value": "Atlanta area",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:20:25.969Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:20:25.969Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 4 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:21:21.056Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "MBA graduate, friend, groomsman",
+            "new_value": "Friend, MBA classmate",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:21:21.056Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-002",
+            "key": "location",
+            "old_value": "Atlanta area",
+            "new_value": "Atlanta area (implied)",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:21:21.056Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-009",
+            "key": "personality",
+            "old_value": "socially connected, values deep friendships",
+            "new_value": "Trusted, socially connected",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T03:21:21.056Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T03:21:21.056Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "MEM-RELATIONSHIPS_7_29_2025.txt: merged data and 4 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:25:37.505Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_Relationships_Markham_Era.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "Friend, MBA classmate",
+            "new_value": "primary_perspective",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:25:37.505Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-002",
+            "key": "location",
+            "old_value": "Atlanta area (implied)",
+            "new_value": "Markham, IL",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:25:37.505Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:25:37.505Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_Relationships_Markham_Era.txt: merged data and 3 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.403Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "primary_perspective",
+            "new_value": "Principal Product Manager",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:27:17.403Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-003",
+            "key": "location",
+            "old_value": "Markham, IL",
+            "new_value": "Atlanta, GA",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:27:17.403Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-003",
+            "key": "personality",
+            "old_value": "Trusted, socially connected",
+            "new_value": "ENTP",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:27:17.403Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.403Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt: merged data and 4 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.561Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-003",
+            "key": "location",
+            "old_value": "Atlanta, GA",
+            "new_value": "1524 Drew Dr NW, Atlanta, GA 30318",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:27:17.561Z"
+          },
+          {
+            "type": "attribute_replaced_same_confidence",
+            "attribute_id": "ATTR-005",
+            "key": "personality",
+            "old_value": "ENTP",
+            "new_value": "ENTP - The Debater - strategic, extroverted, witty, adaptable",
+            "confidence": 0.6,
+            "timestamp": "2026-02-19T17:27:17.561Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-19T17:27:17.561Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "drive:CJ_LOLA_RELATIONSHIP_TIMELINE.txt: merged data and 6 observations"
+        ]
+      }
+    ]
+  },
+  "active_projects": [],
+  "translations": [],
+  "connected_objects": [
+    {
+      "entity_id": "ENT-ORG-001",
+      "entity_type": "organization",
+      "label": "Amazon (Relay)"
+    },
+    {
+      "entity_id": "ENT-ORG-002",
+      "entity_type": "organization",
+      "label": "Fandom"
+    },
+    {
+      "entity_id": "ENT-ORG-003",
+      "entity_type": "organization",
+      "label": "Wayfair"
+    },
+    {
+      "entity_id": "ENT-ORG-004",
+      "entity_type": "organization",
+      "label": "Walmart"
+    },
+    {
+      "entity_id": "ENT-ORG-005",
+      "entity_type": "organization",
+      "label": "Dell EMC"
+    },
+    {
+      "entity_id": "ENT-ORG-006",
+      "entity_type": "organization",
+      "label": "Deloitte"
+    },
+    {
+      "entity_id": "ENT-ORG-007",
+      "entity_type": "organization",
+      "label": "Putchuon Channel"
+    },
+    {
+      "entity_id": "ENT-ORG-008",
+      "entity_type": "organization",
+      "label": "Self-employed"
+    },
+    {
+      "entity_id": "ENT-ORG-009",
+      "entity_type": "institution",
+      "label": "Harvard University"
+    },
+    {
+      "entity_id": "ENT-BIZ-CAU-036",
+      "entity_type": "institution",
+      "label": "Clark Atlanta University"
+    },
+    {
+      "entity_id": "ENT-BIZ-HU-037",
+      "entity_type": "institution",
+      "label": "Howard University"
+    },
+    {
+      "entity_id": "ENT-ROLE-089",
+      "entity_type": "role",
+      "label": "Principal Product Manager at Amazon (Relay)"
+    },
+    {
+      "entity_id": "ENT-ROLE-090",
+      "entity_type": "role",
+      "label": "AI/DS Lead at Fandom"
+    },
+    {
+      "entity_id": "ENT-ROLE-091",
+      "entity_type": "role",
+      "label": "AI/DS Lead at Wayfair"
+    },
+    {
+      "entity_id": "ENT-ROLE-092",
+      "entity_type": "role",
+      "label": "AI/DS Lead at Walmart"
+    },
+    {
+      "entity_id": "ENT-ROLE-093",
+      "entity_type": "role",
+      "label": "Position at Dell EMC"
+    },
+    {
+      "entity_id": "ENT-ROLE-094",
+      "entity_type": "role",
+      "label": "Position at Deloitte"
+    },
+    {
+      "entity_id": "ENT-ROLE-095",
+      "entity_type": "role",
+      "label": "YouTube Creator at Putchuon Channel"
+    },
+    {
+      "entity_id": "ENT-ROLE-096",
+      "entity_type": "role",
+      "label": "Context Architecture Consultant at Self-employed"
+    },
+    {
+      "entity_id": "ENT-CRED-034",
+      "entity_type": "credential",
+      "label": "Master of Business Administration - MBA Entrepreneurship/Entrepreneurial Studies, Harvard University"
+    },
+    {
+      "entity_id": "ENT-CRED-035",
+      "entity_type": "credential",
+      "label": "MBA, Clark Atlanta University"
+    },
+    {
+      "entity_id": "ENT-CRED-036",
+      "entity_type": "credential",
+      "label": "BBA, Howard University"
+    },
+    {
+      "entity_id": "ENT-SKILL-001",
+      "entity_type": "skill",
+      "label": "AI/ML"
+    },
+    {
+      "entity_id": "ENT-SKILL-002",
+      "entity_type": "skill",
+      "label": "Transformers (BERT)"
+    },
+    {
+      "entity_id": "ENT-SKILL-003",
+      "entity_type": "skill",
+      "label": "CNNs"
+    },
+    {
+      "entity_id": "ENT-SKILL-004",
+      "entity_type": "skill",
+      "label": "RLHF"
+    },
+    {
+      "entity_id": "ENT-SKILL-005",
+      "entity_type": "skill",
+      "label": "NLP"
+    },
+    {
+      "entity_id": "ENT-SKILL-006",
+      "entity_type": "skill",
+      "label": "TensorFlow"
+    },
+    {
+      "entity_id": "ENT-SKILL-007",
+      "entity_type": "skill",
+      "label": "PyTorch"
+    },
+    {
+      "entity_id": "ENT-SKILL-008",
+      "entity_type": "skill",
+      "label": "Forecasting"
+    },
+    {
+      "entity_id": "ENT-SKILL-009",
+      "entity_type": "skill",
+      "label": "Product Management"
+    },
+    {
+      "entity_id": "ENT-SKILL-010",
+      "entity_type": "skill",
+      "label": "SEO Generative AI"
+    },
+    {
+      "entity_id": "ENT-SKILL-011",
+      "entity_type": "skill",
+      "label": "Strategic Planning"
+    },
+    {
+      "entity_id": "ENT-SKILL-012",
+      "entity_type": "skill",
+      "label": "Content Creation"
+    },
+    {
+      "entity_id": "ENT-SKILL-013",
+      "entity_type": "skill",
+      "label": "Knowledge Graph Architecture"
+    },
+    {
+      "entity_id": "ENT-SKILL-014",
+      "entity_type": "skill",
+      "label": "Neo4j"
+    },
+    {
+      "entity_id": "ENT-SKILL-015",
+      "entity_type": "skill",
+      "label": "Investment Analysis"
+    },
+    {
+      "entity_id": "ENT-SKILL-016",
+      "entity_type": "skill",
+      "label": "YouTube Production"
+    },
+    {
+      "entity_id": "ENT-SKILL-017",
+      "entity_type": "skill",
+      "label": "AI Infrastructure Analysis"
+    },
+    {
+      "entity_id": "ENT-HO-100",
+      "entity_type": "person",
+      "label": "Harrison Osuorji"
+    }
+  ]
+}

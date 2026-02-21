@@ -25,5 +25,18 @@
     ],
     "createdAt": "2026-02-17T23:33:10.844Z",
     "expiresAt": "2026-05-18T23:33:10.844Z"
+  },
+  {
+    "shareId": "lTqupVKoXMXg",
+    "tenantId": "eefc79c7",
+    "entityId": "ENT-CM-001",
+    "sections": [
+      "summary",
+      "experience",
+      "education",
+      "skills"
+    ],
+    "createdAt": "2026-02-21T00:27:09.889Z",
+    "expiresAt": "2026-03-23T00:27:09.889Z"
   }
 ]
