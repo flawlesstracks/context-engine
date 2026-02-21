@@ -203,7 +203,7 @@ if (IS_PRODUCTION) {
       fs.writeFileSync(testFile, '');
       fs.unlinkSync(testFile);
 
-      // Seed from repo on first boot
+      // Seed from repo on first boot (root JSON files)
       const existing = fs.readdirSync(candidate).filter(f => f.endsWith('.json'));
       if (existing.length === 0) {
         const seedFiles = fs.readdirSync(LOCAL_GRAPH_DIR).filter(f => f.endsWith('.json'));
@@ -211,6 +211,31 @@ if (IS_PRODUCTION) {
           fs.copyFileSync(path.join(LOCAL_GRAPH_DIR, file), path.join(candidate, file));
         }
         console.log(`  Seeded ${seedFiles.length} entity file(s) to ${candidate}`);
+      }
+
+      // Always sync tenants.json from repo if missing on persistent disk
+      const persistentTenants = path.join(candidate, 'tenants.json');
+      const localTenants = path.join(LOCAL_GRAPH_DIR, 'tenants.json');
+      if (!fs.existsSync(persistentTenants) && fs.existsSync(localTenants)) {
+        fs.copyFileSync(localTenants, persistentTenants);
+        console.log('  Synced tenants.json from repo to persistent disk');
+      }
+
+      // Sync tenant directories from repo if missing on persistent disk
+      const localEntries = fs.readdirSync(LOCAL_GRAPH_DIR, { withFileTypes: true });
+      for (const entry of localEntries) {
+        if (entry.isDirectory() && entry.name.startsWith('tenant-')) {
+          const destDir = path.join(candidate, entry.name);
+          if (!fs.existsSync(destDir)) {
+            fs.mkdirSync(destDir, { recursive: true });
+            const srcDir = path.join(LOCAL_GRAPH_DIR, entry.name);
+            const entityFiles = fs.readdirSync(srcDir);
+            for (const ef of entityFiles) {
+              fs.copyFileSync(path.join(srcDir, ef), path.join(destDir, ef));
+            }
+            console.log(`  Synced tenant dir ${entry.name} (${entityFiles.length} files) to persistent disk`);
+          }
+        }
       }
       GRAPH_DIR = candidate;
       GRAPH_IS_PERSISTENT = true;
