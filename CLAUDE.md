@@ -136,6 +136,17 @@ Per-signal values carry: `{value, confidence, sources}` format.
 - MEASURE lever: nothing built (no metrics tracking)
 - First-time social handle extraction scores Q1 (no way to match handle to name without prior data) — user must manually link on first encounter
 
+## Agent System (MECE-005)
+Three specialized agents map to the Data Lifecycle (MECE-001) states:
+
+| Agent | Role | Owns | Data State |
+|-------|------|------|------------|
+| **collector** | Extraction & signal clustering | `src/scrapingdog.js`, `src/parsers/*`, extraction prompts | UNRESOLVED |
+| **provisioner** | Scoring & matching | `src/signalStaging.js` (scoreCluster), matching algorithms | PROVISIONAL |
+| **confirmer** | Resolution & graph writes | `src/signalStaging.js` (resolveCluster), `merge-engine.js`, `src/graph-ops.js` | CONFIRMED |
+
+Pipeline: collector → provisioner → confirmer. No agent skips a state. See `.claude/agents.json` for full descriptions.
+
 ## Rules
 - Always `git push` after completing a feature
 - Always test on localhost before pushing

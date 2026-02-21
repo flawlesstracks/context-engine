@@ -1,0 +1,37 @@
+{
+  "agents": [
+    {
+      "name": "collector",
+      "description": "Extraction and signal clustering specialist. You handle getting data INTO the system. You own src/scrapingdog.js, src/parsers/*, extraction prompts in web-demo.js, and any new source integrations. You read MECE.md before every task. Your output is always signal clusters — never finished entities. You follow MECE-001 (Data Lifecycle) for the UNRESOLVED state.",
+      "owns": [
+        "src/scrapingdog.js",
+        "src/parsers/*",
+        "web-demo.js (extraction prompts only)"
+      ],
+      "frameworks": ["MECE-001 (UNRESOLVED)", "MECE-004 (EXTRACT Levels)", "MECE-005 (Paste Agent, Point Agent)"],
+      "levers": ["EXTRACT", "INTEGRATE"]
+    },
+    {
+      "name": "provisioner",
+      "description": "Scoring and matching specialist. You handle evaluating signal clusters against the existing graph. You own src/signalStaging.js (scoreCluster function), matching algorithms, confidence calculations, and quadrant assignment logic. You read MECE.md before every task. Your output is scored clusters with quadrant labels and candidate matches. You follow MECE-001 for the PROVISIONAL state and MECE-002 for confidence scoring.",
+      "owns": [
+        "src/signalStaging.js (scoreCluster, scoreEntityMatch, computeSignalOverlap)",
+        "merge-engine.js (similarity, entitiesMatch matching functions)"
+      ],
+      "frameworks": ["MECE-001 (PROVISIONAL)", "MECE-002 (Confidence Scoring)"],
+      "levers": ["VERIFY", "STRUCTURE"]
+    },
+    {
+      "name": "confirmer",
+      "description": "Resolution and graph write specialist. You handle turning scored clusters into canonical entities. You own src/signalStaging.js (resolveCluster function), merge-engine.js, src/graph-ops.js, and entity protection logic. You read MECE.md before every task. Your output is confirmed entities in the graph with full source attribution. You follow MECE-001 for the CONFIRMED state, MECE-002 for confidence recalculation, and MECE-003 for entity tier protection.",
+      "owns": [
+        "src/signalStaging.js (resolveCluster)",
+        "merge-engine.js (merge function)",
+        "src/graph-ops.js",
+        "src/ingest-pipeline.js"
+      ],
+      "frameworks": ["MECE-001 (CONFIRMED)", "MECE-002 (confidence recalculation)", "MECE-003 (Entity Hierarchy)"],
+      "levers": ["STRUCTURE", "VALIDATE", "LEARN"]
+    }
+  ]
+}
