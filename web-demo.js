@@ -9237,7 +9237,7 @@ const WIKI_HTML = `<!DOCTYPE html>
      LINKEDIN-INSPIRED PROFILE CARDS (MAYA)
      ======================================== */
   #main.li-profile-bg {
-    background: #f4f2ee; padding: 0 24px 40px;
+    background: #f4f2ee; padding: 36px 24px 40px;
   }
   .li-profile {
     width: 100%; padding: 0 0 40px;
@@ -10756,7 +10756,7 @@ function showAffiliationsHub(tab) {
   selectedView = null;
   var empty = document.getElementById('emptyState');
   if (empty) empty.style.display = 'none';
-  breadcrumbs = [{ label: 'Affiliations' }];
+  breadcrumbs = [];
   renderBreadcrumbs();
   renderAffiliationsHub();
   renderRightPanel(null);
@@ -15851,7 +15851,8 @@ function renderDetail(data) {
   // Stats row
   h += '<div class="li-hero-stats">';
   if (rels.length > 0) {
-    h += '<span class="li-hero-stat" onclick="showConnectionsPage(\\'' + esc(entityId) + '\\')">' + rels.length + ' connection' + (rels.length !== 1 ? 's' : '') + '</span>';
+    var connClickAction = (entityId === primaryEntityId) ? 'showPeopleHub(\\'all\\')' : 'showConnectionsPage(\\'' + esc(entityId) + '\\')';
+    h += '<span class="li-hero-stat" onclick="' + connClickAction + '">' + rels.length + ' connection' + (rels.length !== 1 ? 's' : '') + '</span>';
   }
   h += '<span class="li-hero-stat muted">' + sourceCount + ' source' + (sourceCount !== 1 ? 's' : '') + '</span>';
   h += '</div>';
