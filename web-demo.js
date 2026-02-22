@@ -17,6 +17,7 @@ const { mapContactRows } = require('./src/parsers/contacts');
 const { scrapeLinkedInProfile, transformScrapingDogProfile } = require('./src/scrapingdog');
 const { analyzeEntityHealth, getRelationshipTier, getTierInfo } = require('./src/health-analyzer');
 const { parse: universalParse } = require('./universal-parser');
+const { query: queryEngine } = require('./query-engine');
 const auth = require('./src/auth');
 const drive = require('./src/drive');
 const helmet = require('helmet');
@@ -3818,6 +3819,20 @@ app.get('/api/entity/:id/context', apiAuth, (req, res) => {
       confidence: entity.extraction_metadata?.extraction_confidence || null,
     },
   });
+});
+
+// GET /api/query?q= — Natural language graph query (MECE-011)
+app.get('/api/query', apiAuth, async (req, res) => {
+  const q = (req.query.q || '').trim();
+  if (!q) return res.status(400).json({ error: 'Missing query parameter q' });
+
+  try {
+    const result = await queryEngine(q, req.graphDir);
+    res.json(result);
+  } catch (err) {
+    console.error('Query engine error:', err);
+    res.status(500).json({ error: 'Query failed', message: err.message });
+  }
 });
 
 // GET /api/search?q=&type= — Fuzzy search entities with optional type filter

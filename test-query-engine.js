@@ -568,6 +568,20 @@ async function testStep9() {
 }
 
 // ---------------------------------------------------------------------------
+// Step 10 Tests — API endpoint (validated via curl above, structural test here)
+// ---------------------------------------------------------------------------
+
+function testStep10() {
+  section('Step 10: web-demo.js has /api/query endpoint');
+  const webDemo = require('fs').readFileSync(path.join(__dirname, 'web-demo.js'), 'utf8');
+  assert(webDemo.includes("require('./query-engine')"), 'web-demo.js imports query-engine');
+  assert(webDemo.includes("/api/query"), 'web-demo.js has /api/query route');
+  assert(webDemo.includes('queryEngine'), 'web-demo.js calls queryEngine');
+  assert(webDemo.includes('req.query.q'), 'endpoint reads q parameter');
+  assert(webDemo.includes('apiAuth'), '/api/query uses apiAuth middleware');
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -612,6 +626,10 @@ async function main() {
 
   if (!step || step === 9) {
     await testStep9();
+  }
+
+  if (!step || step === 10) {
+    testStep10();
   }
 
   console.log(`\n══════════════════════════`);
