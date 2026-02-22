@@ -126,6 +126,7 @@ connects to the product.
 | MECE-007 | Entity Rendering | DELIVER | 4 types, 4 densities, 6 lenses | 2026-02-21 |
 | MECE-010 | Universal Parser | EXTRACT, STRUCTURE | 4 sub-problems, 3 entity tiers, 3 parse strategies | 2026-02-22 |
 | MECE-011 | Query Engine | RETRIEVE, REASON, DELIVER | 5 query types, 4 graph ops, 5 synthesis functions | 2026-02-22 |
+| MECE-012 | Network Schema | STRUCTURE | 3 ownership tiers, 4 schema fields | 2026-02-22 |
 
 |  |
 | :---- |
@@ -334,7 +335,7 @@ Track current state. Update after every build session.
 | INTEGRATE | ACQUIRE | 5 | 2026-02-18 | ChatGPT history import |
 | ELICIT | ACQUIRE | 1 | 2026-02-18 | GPT follow-up questions for thin entities |
 | OBSERVE | ACQUIRE | 0.5 | 2026-02-18 | GPT auto-observe (write-back) |
-| STRUCTURE | APPLY | 9.5 | 2026-02-22 | Universal parser: entity+relationship extraction with confidence, dedup, PLACE/EVENT promotion |
+| STRUCTURE | APPLY | 10 | 2026-02-22 | Universal parser + network schema: ownership tiers (self/owned/referenced), access rules, projection config, perspectives on every entity |
 | RETRIEVE | APPLY | 8 | 2026-02-22 | Query engine: fuzzy search, BFS path finding, neighborhood queries, attribute filtering — graph traversal, not just text search |
 | REASON | APPLY | 8.5 | 2026-02-22 | Query engine: 5 query types with answer synthesis — entity lookup, relationship traversal, aggregation, completeness analysis, contradiction detection |
 | DELIVER | APPLY | 8.5 | 2026-02-22 | Query results in web UI — answer cards, path visualization, gap reports, conflict cards, entity links |
@@ -343,7 +344,7 @@ Track current state. Update after every build session.
 | MEASURE | ASSESS | 0 | 2026-02-18 | Query metrics dashboard |
 | LEARN | ASSESS | 0.5 | 2026-02-20 | Confidence auto-adjustment on Q2/Q4 |
 
-**Overall: \~7.5 / 10**
+**Overall: \~7.6 / 10**
 
 |  |
 | :---- |
@@ -594,6 +595,46 @@ Each query type has a dedicated synthesis function:
 * API endpoint: `GET /api/query?q=` returns full response schema with timing metadata
 * Web UI search bar auto-detects questions and routes to query engine vs entity search
 * All graph operations are pure traversal — no AI needed, completes in < 100ms
+
+## MECE-012: Network Schema
+
+**Primary Lever:** STRUCTURE
+**Domain:** How entities declare ownership, access, and multi-perspective rendering in a networked graph.
+**Parent in fractal:** AAA Loop → APPLY → STRUCTURE → Entity Schema
+
+### Layer 1: Three Ownership Tiers (MECE)
+
+Every entity in the graph has exactly one ownership state:
+
+| Tier | Value | Set When | Meaning |
+|------|-------|----------|---------|
+| SELF | `"self"` | POST /api/self-entity designates the entity | This is the graph owner. Immutable core. Protected from automation. |
+| OWNED | `"owned"` | POST /api/entity (manual creation) | User explicitly created this entity. Full editorial control. |
+| REFERENCED | `"referenced"` | Signal staging create_new, universal parser output | Entity was extracted or discovered. User has data, not authorship. |
+
+MECE check: Every entity is either the user themselves (SELF), something the user deliberately created (OWNED), or something the system found (REFERENCED). No gaps. No overlaps.
+
+### Layer 1 (continued): Four Network Schema Fields (MECE)
+
+Every entity carries four inert schema fields that enable future multi-tenant and multi-perspective features:
+
+| Field | Type | Default | Future Purpose |
+|-------|------|---------|---------------|
+| `ownership` | string | `"referenced"` | Ownership tier (self/owned/referenced). Controls protection level. |
+| `access_rules` | object | `{ visibility: "private", shared_with: [] }` | Who can see this entity. Enables shared graphs and team workspaces. |
+| `projection_config` | object | `{ lenses: ["default"] }` | Which rendering lenses apply. Enables role-based views (recruiter vs investor). |
+| `perspectives` | array | `[]` | Multiple viewpoints on the same entity from different observers. |
+
+### Layer 2: Behavioral Rules
+
+* Every entity creation path stamps all four fields with defaults — no entity exists without them
+* `POST /api/entity` sets ownership to `"owned"` + `owner_tenant_id` from auth context
+* `POST /api/self-entity` upgrades the designated entity to `ownership: "self"`
+* Signal staging `create_new` sets ownership to `"referenced"` — user discovered, not authored
+* Universal parser output includes all four fields on every extracted entity
+* All fields are currently INERT — no access control logic, no projection filtering, no perspective merging
+* Fields exist so future features (shared graphs, team views, multi-perspective) don't require schema migration
+* `owner_tenant_id` is set on SELF and OWNED entities, null on REFERENCED
 
 |  |
 | :---- |
