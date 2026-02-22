@@ -453,12 +453,291 @@ function filterEntities(filters, graphDir) {
 }
 
 // ---------------------------------------------------------------------------
-// Q3: Answer Synthesis (stub — Step 7)
+// Q3: Answer Synthesis — Step 7
 // ---------------------------------------------------------------------------
 
+// Q3.1: Entity Lookup
+function _synthesizeEntityAnswer(entityData) {
+  if (!entityData) return { answer: 'Entity not found.', entities: [], paths: [], gaps: [], conflicts: [], confidence: 0 };
+
+  const name = _getEntityName(entityData);
+  const entityId = _getEntityId(entityData);
+  const entityType = _getEntityType(entityData);
+  const attrs = _getAttributes(entityData);
+  const summary = (entityData.entity && entityData.entity.summary && entityData.entity.summary.value) || '';
+  const rels = entityData.relationships || [];
+
+  let answer = `${name} is a ${entityType}.`;
+  if (summary) answer += ` ${summary}`;
+
+  // Key attributes
+  const keyAttrs = ['location', 'role', 'employer', 'education', 'age', 'birthdate'];
+  const attrParts = [];
+  for (const key of keyAttrs) {
+    if (attrs[key]) attrParts.push(`${key}: ${attrs[key]}`);
+  }
+  if (attrParts.length > 0) answer += ` Key details: ${attrParts.join(', ')}.`;
+
+  // Relationship count
+  if (rels.length > 0) {
+    const relNames = rels.slice(0, 3).map(r => `${r.name} (${r.relationship_type || r.relationship || 'related'})`);
+    answer += ` Connected to ${rels.length} other entities`;
+    answer += rels.length > 0 ? ` including ${relNames.join(', ')}.` : '.';
+  }
+
+  // Confidence
+  const attrList = entityData.attributes || [];
+  const avgConf = attrList.length > 0
+    ? attrList.reduce((sum, a) => sum + (a.confidence || 0), 0) / attrList.length
+    : 0.5;
+  if (avgConf < 0.5) answer += ' Note: some data has low confidence.';
+
+  return {
+    answer,
+    entities: [{ id: entityId, name, type: entityType, role: 'primary' }],
+    paths: [],
+    gaps: [],
+    conflicts: [],
+    confidence: Math.round(avgConf * 100) / 100,
+  };
+}
+
+// Q3.2: Path Narrative
+function _synthesizePathAnswer(paths, sourceName, targetName) {
+  if (!paths || paths.length === 0) {
+    return {
+      answer: `No connection found between ${sourceName} and ${targetName} within 4 hops.`,
+      entities: [],
+      paths: [],
+      gaps: [],
+      conflicts: [],
+      confidence: 0,
+    };
+  }
+
+  const shortest = paths[0];
+  const hops = shortest.length - 1;
+
+  // Build narrative
+  const steps = [];
+  for (let i = 1; i < shortest.length; i++) {
+    const node = shortest[i];
+    steps.push(`${node.relationship} → ${node.entityName}`);
+  }
+  let answer = `${sourceName} is connected to ${targetName} in ${hops} hop${hops !== 1 ? 's' : ''}: ${sourceName} → ${steps.join(' → ')}.`;
+
+  if (paths.length > 1) {
+    answer += ` There are ${paths.length} connection paths. The shortest has ${hops} hop${hops !== 1 ? 's' : ''}.`;
+  }
+
+  // Collect all entities in the path
+  const entities = shortest.map((node, i) => ({
+    id: node.entityId,
+    name: node.entityName || sourceName,
+    role: i === 0 ? 'source' : (i === shortest.length - 1 ? 'target' : 'intermediary'),
+  }));
+
+  // Format paths for response
+  const formattedPaths = paths.map(p => ({
+    hops: p.length - 1,
+    path: p.map(node => ({
+      entity: node.entityName || node.entityId,
+      relationship: node.relationship || '',
+      direction: node.direction || '→',
+    })),
+    min_confidence: Math.min(...p.filter(n => n.confidence).map(n => n.confidence).concat([1])),
+  }));
+
+  return {
+    answer,
+    entities,
+    paths: formattedPaths,
+    gaps: [],
+    conflicts: [],
+    confidence: formattedPaths[0] ? formattedPaths[0].min_confidence : 0,
+  };
+}
+
+// Q3.3: Completeness / Gap Report
+function _synthesizeCompletenessAnswer(entityData) {
+  if (!entityData) return { answer: 'Entity not found.', entities: [], paths: [], gaps: [], conflicts: [], confidence: 0 };
+
+  const name = _getEntityName(entityData);
+  const entityId = _getEntityId(entityData);
+  const entityType = _getEntityType(entityData);
+  const attrs = _getAttributes(entityData);
+  const rels = entityData.relationships || [];
+  const observations = entityData.observations || [];
+
+  const gaps = [];
+
+  // Check standard person fields
+  const personFields = ['location', 'role', 'employer', 'education', 'age', 'email'];
+  if (entityType === 'person') {
+    for (const field of personFields) {
+      if (!attrs[field]) gaps.push({ field, status: 'missing', suggestion: `Find ${name}'s ${field}` });
+    }
+  }
+
+  // Check relationship coverage
+  const relTypes = rels.map(r => (r.relationship_type || r.relationship || '').toLowerCase());
+  const hasFamily = relTypes.some(r => /spouse|parent|child|daughter|son|sibling|sister|brother|married/.test(r));
+  const hasProfessional = relTypes.some(r => /work|employ|colleague|report|manage|found/.test(r));
+  const hasSocial = relTypes.some(r => /friend|attend|member/.test(r));
+  if (!hasFamily) gaps.push({ field: 'family_relationships', status: 'missing', suggestion: 'Add family connections' });
+  if (!hasProfessional) gaps.push({ field: 'professional_relationships', status: 'missing', suggestion: 'Add work connections' });
+  if (!hasSocial) gaps.push({ field: 'social_relationships', status: 'missing', suggestion: 'Add social connections' });
+
+  // Check confidence
+  const attrList = entityData.attributes || [];
+  const lowConf = attrList.filter(a => (a.confidence || 0) < 0.5);
+  for (const a of lowConf) {
+    gaps.push({ field: a.key, status: 'low_confidence', confidence: a.confidence, suggestion: `Verify ${a.key} from another source` });
+  }
+
+  // Check source diversity
+  const sources = new Set();
+  for (const obs of observations) {
+    if (obs.source) sources.add(obs.source);
+    if (obs.source_attribution && obs.source_attribution.source_type) sources.add(obs.source_attribution.source_type);
+  }
+
+  // Coverage score
+  const totalChecks = personFields.length + 3 + attrList.length; // fields + rel categories + attrs
+  const gapCount = gaps.length;
+  const coverage = totalChecks > 0 ? Math.round(((totalChecks - gapCount) / totalChecks) * 100) : 0;
+
+  let answer = `${name} has ${coverage}% coverage.`;
+  const missingFields = gaps.filter(g => g.status === 'missing').map(g => g.field);
+  if (missingFields.length > 0) answer += ` Missing: ${missingFields.join(', ')}.`;
+  const lowConfFields = gaps.filter(g => g.status === 'low_confidence').map(g => g.field);
+  if (lowConfFields.length > 0) answer += ` Low confidence on: ${lowConfFields.join(', ')}.`;
+  if (sources.size > 0) answer += ` Sources: ${sources.size} unique.`;
+
+  return {
+    answer,
+    entities: [{ id: entityId, name, coverage: coverage / 100 }],
+    paths: [],
+    gaps,
+    conflicts: [],
+    confidence: 0.9,
+  };
+}
+
+// Q3.4: Aggregation
+function _synthesizeAggregationAnswer(entities, question) {
+  if (!entities || entities.length === 0) {
+    return { answer: 'No entities found matching your criteria.', entities: [], paths: [], gaps: [], conflicts: [], confidence: 1.0 };
+  }
+
+  // Group by type
+  const byType = {};
+  for (const e of entities) {
+    const t = e.type || 'unknown';
+    if (!byType[t]) byType[t] = [];
+    byType[t].push(e);
+  }
+
+  let answer = `Found ${entities.length} entities.`;
+
+  // Type breakdown
+  const typeBreakdown = Object.entries(byType).map(([t, arr]) => `${arr.length} ${t}`).join(', ');
+  if (Object.keys(byType).length > 1) {
+    answer += ` By type: ${typeBreakdown}.`;
+  }
+
+  // List names (up to 10)
+  const names = entities.slice(0, 10).map(e => e.name || e.entityId);
+  answer += ` Including: ${names.join(', ')}`;
+  if (entities.length > 10) answer += ` and ${entities.length - 10} more`;
+  answer += '.';
+
+  return {
+    answer,
+    entities: entities.map(e => ({ id: e.entityId || e.id, name: e.name, type: e.type })),
+    paths: [],
+    gaps: [],
+    conflicts: [],
+    confidence: 1.0,
+  };
+}
+
+// Q3.5: Contradiction
+function _synthesizeContradictionAnswer(entityData) {
+  if (!entityData) return { answer: 'Entity not found.', entities: [], paths: [], gaps: [], conflicts: [], confidence: 0 };
+
+  const name = _getEntityName(entityData);
+  const entityId = _getEntityId(entityData);
+  const attrs = entityData.attributes || [];
+  const existingConflicts = entityData.conflicts || [];
+
+  const conflicts = [];
+
+  // Check for duplicate attribute keys with different values
+  const byKey = {};
+  for (const a of attrs) {
+    if (!a.key) continue;
+    if (!byKey[a.key]) byKey[a.key] = [];
+    byKey[a.key].push(a);
+  }
+  for (const [key, values] of Object.entries(byKey)) {
+    if (values.length > 1) {
+      const uniqueVals = [...new Set(values.map(v => String(v.value).toLowerCase()))];
+      if (uniqueVals.length > 1) {
+        conflicts.push({
+          field: key,
+          values: values.map(v => ({ value: v.value, confidence: v.confidence, source: v.source_attribution })),
+          type: 'FACTUAL',
+        });
+      }
+    }
+  }
+
+  // Include existing entity conflicts
+  for (const c of existingConflicts) {
+    conflicts.push(c);
+  }
+
+  let answer;
+  if (conflicts.length === 0) {
+    answer = `No conflicts found for ${name}. All data is consistent.`;
+  } else {
+    answer = `Found ${conflicts.length} conflict${conflicts.length !== 1 ? 's' : ''} for ${name}: `;
+    const parts = conflicts.map((c, i) => {
+      if (c.field && c.values) {
+        return `(${i + 1}) ${c.field} has conflicting values: ${c.values.map(v => v.value).join(' vs ')}`;
+      }
+      return `(${i + 1}) ${c.type || 'conflict'}: ${c.attribute_key || c.field || 'unknown'}`;
+    });
+    answer += parts.join('. ') + '.';
+  }
+
+  return {
+    answer,
+    entities: [{ id: entityId, name }],
+    paths: [],
+    gaps: [],
+    conflicts,
+    confidence: conflicts.length > 0 ? 0.85 : 1.0,
+  };
+}
+
+// Main synthesizeAnswer dispatcher
 function synthesizeAnswer(queryType, data) {
-  // TODO: Step 7
-  return { answer: '', entities: [], paths: [], gaps: [], conflicts: [], confidence: 0 };
+  switch (queryType) {
+    case 'ENTITY_LOOKUP':
+      return _synthesizeEntityAnswer(data.entity);
+    case 'RELATIONSHIP':
+      return _synthesizePathAnswer(data.paths, data.sourceName, data.targetName);
+    case 'AGGREGATION':
+      return _synthesizeAggregationAnswer(data.entities, data.question);
+    case 'COMPLETENESS':
+      return _synthesizeCompletenessAnswer(data.entity);
+    case 'CONTRADICTION':
+      return _synthesizeContradictionAnswer(data.entity);
+    default:
+      return { answer: "I'm not sure how to answer that question. Try asking about a specific person, organization, or relationship.", entities: [], paths: [], gaps: [], conflicts: [], confidence: 0 };
+  }
 }
 
 // ---------------------------------------------------------------------------

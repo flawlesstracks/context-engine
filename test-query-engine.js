@@ -372,6 +372,83 @@ function testStep6() {
 }
 
 // ---------------------------------------------------------------------------
+// Step 7 Tests — synthesizeAnswer
+// ---------------------------------------------------------------------------
+
+function testStep7() {
+  // Load real entity data
+  const { readEntity } = require('./src/graph-ops');
+  const steveData = readEntity('ENT-SH-052', GRAPH_DIR);
+  const index = buildRelationshipIndex(GRAPH_DIR);
+
+  section('Step 7: synthesizeAnswer — ENTITY_LOOKUP');
+  const entityResult = synthesizeAnswer('ENTITY_LOOKUP', { entity: steveData });
+  assert(typeof entityResult.answer === 'string', 'ENTITY_LOOKUP: answer is string');
+  assert(entityResult.answer.length > 0, 'ENTITY_LOOKUP: answer is not empty');
+  assert(entityResult.answer.includes('Steve Hughes'), 'ENTITY_LOOKUP: answer contains entity name');
+  assert(entityResult.answer.includes('person'), 'ENTITY_LOOKUP: answer contains entity type');
+  assert(Array.isArray(entityResult.entities), 'ENTITY_LOOKUP: has entities array');
+  assert(entityResult.entities.length > 0, 'ENTITY_LOOKUP: entities not empty');
+  assert(entityResult.entities[0].id === 'ENT-SH-052', 'ENTITY_LOOKUP: entity id correct');
+  assert(entityResult.entities[0].role === 'primary', 'ENTITY_LOOKUP: entity role is primary');
+  assert(typeof entityResult.confidence === 'number', 'ENTITY_LOOKUP: has confidence number');
+
+  section('Step 7: synthesizeAnswer — RELATIONSHIP (with paths)');
+  const paths = findPaths('ENT-SH-052', 'ENT-CM-001', index);
+  const pathResult = synthesizeAnswer('RELATIONSHIP', { paths, sourceName: 'Steve Hughes', targetName: 'CJ Mitchell' });
+  assert(typeof pathResult.answer === 'string', 'RELATIONSHIP: answer is string');
+  assert(pathResult.answer.includes('Steve Hughes'), 'RELATIONSHIP: answer contains source name');
+  assert(pathResult.answer.includes('CJ Mitchell'), 'RELATIONSHIP: answer contains target name');
+  assert(pathResult.answer.includes('connected'), 'RELATIONSHIP: answer mentions connection');
+  assert(Array.isArray(pathResult.paths), 'RELATIONSHIP: has paths array');
+  assert(pathResult.paths.length > 0, 'RELATIONSHIP: has at least one path');
+  assert(typeof pathResult.paths[0].hops === 'number', 'RELATIONSHIP: path has hops count');
+
+  section('Step 7: synthesizeAnswer — RELATIONSHIP (no paths)');
+  const noPathResult = synthesizeAnswer('RELATIONSHIP', { paths: [], sourceName: 'A', targetName: 'B' });
+  assert(noPathResult.answer.includes('No connection found'), 'RELATIONSHIP no-path: correct message');
+  assert(noPathResult.confidence === 0, 'RELATIONSHIP no-path: confidence is 0');
+
+  section('Step 7: synthesizeAnswer — AGGREGATION');
+  const people = filterEntities({ type: 'person' }, GRAPH_DIR);
+  const aggResult = synthesizeAnswer('AGGREGATION', { entities: people, question: 'How many people?' });
+  assert(typeof aggResult.answer === 'string', 'AGGREGATION: answer is string');
+  assert(aggResult.answer.includes('Found'), 'AGGREGATION: answer has count');
+  assert(aggResult.confidence === 1.0, 'AGGREGATION: confidence is 1.0 (deterministic)');
+  assert(Array.isArray(aggResult.entities), 'AGGREGATION: has entities array');
+  assert(aggResult.entities.length === people.length, 'AGGREGATION: entities count matches');
+
+  section('Step 7: synthesizeAnswer — AGGREGATION (empty)');
+  const emptyAgg = synthesizeAnswer('AGGREGATION', { entities: [], question: 'test' });
+  assert(emptyAgg.answer.includes('No entities'), 'AGGREGATION empty: correct message');
+
+  section('Step 7: synthesizeAnswer — COMPLETENESS');
+  const compResult = synthesizeAnswer('COMPLETENESS', { entity: steveData });
+  assert(typeof compResult.answer === 'string', 'COMPLETENESS: answer is string');
+  assert(compResult.answer.includes('Steve Hughes'), 'COMPLETENESS: answer contains name');
+  assert(compResult.answer.includes('%'), 'COMPLETENESS: answer has coverage percentage');
+  assert(Array.isArray(compResult.gaps), 'COMPLETENESS: has gaps array');
+  assert(compResult.confidence === 0.9, 'COMPLETENESS: confidence is 0.9');
+
+  section('Step 7: synthesizeAnswer — CONTRADICTION');
+  const conflictResult = synthesizeAnswer('CONTRADICTION', { entity: steveData });
+  assert(typeof conflictResult.answer === 'string', 'CONTRADICTION: answer is string');
+  assert(conflictResult.answer.includes('Steve Hughes'), 'CONTRADICTION: answer contains name');
+  assert(Array.isArray(conflictResult.conflicts), 'CONTRADICTION: has conflicts array');
+  assert(typeof conflictResult.confidence === 'number', 'CONTRADICTION: has confidence number');
+
+  section('Step 7: synthesizeAnswer — UNKNOWN type');
+  const unknownResult = synthesizeAnswer('UNKNOWN', {});
+  assert(typeof unknownResult.answer === 'string', 'UNKNOWN: answer is string');
+  assert(unknownResult.answer.length > 0, 'UNKNOWN: answer is not empty');
+  assert(unknownResult.confidence === 0, 'UNKNOWN: confidence is 0');
+
+  section('Step 7: synthesizeAnswer — null entity');
+  const nullResult = synthesizeAnswer('ENTITY_LOOKUP', { entity: null });
+  assert(nullResult.answer.includes('not found'), 'null entity: answer says not found');
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -404,6 +481,10 @@ async function main() {
 
   if (!step || step === 6) {
     testStep6();
+  }
+
+  if (!step || step === 7) {
+    testStep7();
   }
 
   console.log(`\n══════════════════════════`);
