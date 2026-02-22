@@ -610,12 +610,197 @@ function assignConfidence(entities, relationships) {
 }
 
 // ---------------------------------------------------------------------------
-// P3/Post — Post-Processing (stub — Step 5)
+// P3/Post — Post-Processing
+// Normalize names, dedup entities, merge relationships, promote PLACE/EVENT.
 // ---------------------------------------------------------------------------
 
+/**
+ * Dice coefficient for string similarity (bigram overlap).
+ */
+function _dice(a, b) {
+  if (!a || !b) return 0;
+  const s1 = a.toLowerCase().trim();
+  const s2 = b.toLowerCase().trim();
+  if (s1 === s2) return 1;
+  if (s1.length < 2 || s2.length < 2) return 0;
+
+  const bigrams1 = new Set();
+  for (let i = 0; i < s1.length - 1; i++) bigrams1.add(s1.slice(i, i + 2));
+  const bigrams2 = new Set();
+  for (let i = 0; i < s2.length - 1; i++) bigrams2.add(s2.slice(i, i + 2));
+
+  let overlap = 0;
+  for (const bg of bigrams1) {
+    if (bigrams2.has(bg)) overlap++;
+  }
+  return (2 * overlap) / (bigrams1.size + bigrams2.size);
+}
+
+/**
+ * Title-case a name string: "john doe" → "John Doe".
+ */
+function _titleCase(str) {
+  return str.replace(/\b\w/g, c => c.toUpperCase());
+}
+
+/**
+ * Post-process entities and relationships.
+ * 1. Normalize entity names (trim, title case for PERSON)
+ * 2. Merge duplicate entities (Dice > 0.8)
+ * 3. Merge duplicate relationships (same source+target+similar type)
+ * 4. Promote PLACE/EVENT attributes referenced by 3+ entities
+ */
 function postProcess(entities, relationships) {
-  // TODO: Step 5
-  return { entities, relationships };
+  // Step 1: Normalize names
+  let normed = entities.map(ent => ({
+    ...ent,
+    name: ent.type === 'PERSON'
+      ? _titleCase(ent.name.trim())
+      : ent.name.trim(),
+  }));
+
+  // Step 2: Merge duplicate entities (Dice > 0.8)
+  const merged = [];
+  const used = new Set();
+
+  for (let i = 0; i < normed.length; i++) {
+    if (used.has(i)) continue;
+
+    let primary = { ...normed[i] };
+    for (let j = i + 1; j < normed.length; j++) {
+      if (used.has(j)) continue;
+      if (normed[i].type !== normed[j].type) continue;
+
+      const sim = _dice(normed[i].name, normed[j].name);
+      if (sim > 0.8) {
+        // Merge j into i: combine attributes, keep higher confidence
+        primary.attributes = { ...primary.attributes, ...normed[j].attributes };
+        primary.confidence = Math.max(primary.confidence || 0, normed[j].confidence || 0);
+        if ((normed[j].evidence || '').length > (primary.evidence || '').length) {
+          primary.evidence = normed[j].evidence;
+        }
+        used.add(j);
+      }
+    }
+    merged.push(primary);
+  }
+
+  // Step 3: Merge duplicate relationships
+  const relMap = new Map();
+  for (const rel of relationships) {
+    const key = `${(rel.source || '').toLowerCase()}|${(rel.target || '').toLowerCase()}`;
+    if (relMap.has(key)) {
+      const existing = relMap.get(key);
+      // If same relationship type (or very similar), merge
+      if (_dice(existing.relationship, rel.relationship) > 0.7) {
+        existing.confidence = Math.max(existing.confidence || 0, rel.confidence || 0);
+        if ((rel.evidence || '').length > (existing.evidence || '').length) {
+          existing.evidence = rel.evidence;
+        }
+        continue;
+      }
+    }
+    relMap.set(`${(rel.source || '').toLowerCase()}|${(rel.target || '').toLowerCase()}|${rel.relationship}`, { ...rel });
+  }
+  let mergedRels = Array.from(relMap.values());
+
+  // Step 4: Promote PLACE/EVENT attributes if referenced by 3+ entities
+  const placeCount = new Map();
+  const eventCount = new Map();
+
+  for (const ent of merged) {
+    if (!ent.attributes) continue;
+    const loc = ent.attributes.location || ent.attributes.city || ent.attributes.place;
+    if (loc) {
+      const key = loc.toLowerCase().trim();
+      placeCount.set(key, (placeCount.get(key) || 0) + 1);
+    }
+    const evt = ent.attributes.event || ent.attributes.meeting;
+    if (evt) {
+      const key = evt.toLowerCase().trim();
+      eventCount.set(key, (eventCount.get(key) || 0) + 1);
+    }
+  }
+
+  // Promote places referenced 3+ times
+  for (const [placeKey, count] of placeCount) {
+    if (count >= 3) {
+      const alreadyEntity = merged.some(e => e.name.toLowerCase().trim() === placeKey);
+      if (!alreadyEntity) {
+        // Find first entity that has this location for the canonical name
+        const ref = merged.find(e =>
+          e.attributes && (e.attributes.location || e.attributes.city || e.attributes.place || '')
+            .toLowerCase().trim() === placeKey);
+        const placeName = ref
+          ? (ref.attributes.location || ref.attributes.city || ref.attributes.place)
+          : _titleCase(placeKey);
+
+        merged.push({
+          name: placeName,
+          type: 'PLACE',
+          attributes: {},
+          confidence: 0.6,
+          evidence: `Referenced by ${count} entities`,
+        });
+
+        // Add relationships from entities to this place
+        for (const ent of merged) {
+          if (!ent.attributes) continue;
+          const loc = (ent.attributes.location || ent.attributes.city || ent.attributes.place || '').toLowerCase().trim();
+          if (loc === placeKey) {
+            mergedRels.push({
+              source: ent.name,
+              target: placeName,
+              relationship: 'located_in',
+              direction: 'A_TO_B',
+              confidence: 0.6,
+              evidence: `${ent.name} location: ${placeName}`,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  // Promote events referenced 3+ times
+  for (const [eventKey, count] of eventCount) {
+    if (count >= 3) {
+      const alreadyEntity = merged.some(e => e.name.toLowerCase().trim() === eventKey);
+      if (!alreadyEntity) {
+        const ref = merged.find(e =>
+          e.attributes && (e.attributes.event || e.attributes.meeting || '')
+            .toLowerCase().trim() === eventKey);
+        const eventName = ref
+          ? (ref.attributes.event || ref.attributes.meeting)
+          : _titleCase(eventKey);
+
+        merged.push({
+          name: eventName,
+          type: 'EVENT',
+          attributes: {},
+          confidence: 0.6,
+          evidence: `Referenced by ${count} entities`,
+        });
+
+        for (const ent of merged) {
+          if (!ent.attributes) continue;
+          const evt = (ent.attributes.event || ent.attributes.meeting || '').toLowerCase().trim();
+          if (evt === eventKey) {
+            mergedRels.push({
+              source: ent.name,
+              target: eventName,
+              relationship: 'attended',
+              direction: 'A_TO_B',
+              confidence: 0.5,
+              evidence: `${ent.name} attended ${eventName}`,
+            });
+          }
+        }
+      }
+    }
+  }
+
+  return { entities: merged, relationships: mergedRels };
 }
 
 // ---------------------------------------------------------------------------

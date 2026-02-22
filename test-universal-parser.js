@@ -431,6 +431,92 @@ function testStep4() {
 }
 
 // ---------------------------------------------------------------------------
+// Step 5 Tests — postProcess
+// ---------------------------------------------------------------------------
+
+function testStep5() {
+  section('Step 5: postProcess — Name normalization');
+
+  const entities = [
+    { name: '  cj mitchell  ', type: 'PERSON', attributes: {}, confidence: 0.8 },
+    { name: '  amazon  ', type: 'ORG', attributes: {}, confidence: 0.7 },
+  ];
+  const { entities: normed } = postProcess(entities, []);
+  assert(normed[0].name === 'Cj Mitchell', 'PERSON name title-cased + trimmed');
+  assert(normed[1].name === 'amazon', 'ORG name trimmed (not title-cased)');
+
+  section('Step 5: postProcess — Entity deduplication (Dice > 0.8)');
+
+  const dupes = [
+    { name: 'Steve Hughes', type: 'PERSON', attributes: { age: '40' }, confidence: 0.7, evidence: 'short' },
+    { name: 'Steven Hughes', type: 'PERSON', attributes: { location: 'Atlanta' }, confidence: 0.8, evidence: 'Steven Hughes is a long evidence string that should win.' },
+    { name: 'Meta', type: 'ORG', attributes: { industry: 'Tech' }, confidence: 0.6 },
+  ];
+  const { entities: deduped } = postProcess(dupes, []);
+  assert(deduped.length === 2, `Deduplication: ${deduped.length} entities (expected 2 — merged Steve/Steven)`);
+
+  const steve = deduped.find(e => e.name.toLowerCase().includes('steve'));
+  assert(steve !== undefined, 'Merged Steve entity exists');
+  assert(steve.attributes.age === '40', 'Merged Steve has age from first');
+  assert(steve.attributes.location === 'Atlanta', 'Merged Steve has location from second');
+  assert(steve.confidence === 0.8, 'Merged Steve has higher confidence');
+  assert(steve.evidence.includes('Steven Hughes is a long'), 'Merged Steve keeps longer evidence');
+
+  section('Step 5: postProcess — Different types NOT merged');
+
+  const diffTypes = [
+    { name: 'Meta', type: 'ORG', attributes: {}, confidence: 0.7 },
+    { name: 'Meta', type: 'CONCEPT', attributes: {}, confidence: 0.5 },
+  ];
+  const { entities: kept } = postProcess(diffTypes, []);
+  assert(kept.length === 2, 'Different types: both entities kept');
+
+  section('Step 5: postProcess — Relationship deduplication');
+
+  const rels = [
+    { source: 'CJ', target: 'Amazon', relationship: 'works_at', confidence: 0.7, evidence: 'short' },
+    { source: 'CJ', target: 'Amazon', relationship: 'works_at', confidence: 0.85, evidence: 'CJ works at Amazon as a PM, a longer piece of evidence.' },
+    { source: 'CJ', target: 'Steve', relationship: 'friend_of', confidence: 0.6, evidence: 'friends' },
+  ];
+  const { relationships: dedupedRels } = postProcess([], rels);
+  // The two works_at should merge; friend_of stays separate
+  assert(dedupedRels.length === 2, `Rel dedup: ${dedupedRels.length} rels (expected 2)`);
+
+  section('Step 5: postProcess — PLACE promotion (3+ references)');
+
+  const locEntities = [
+    { name: 'Alice', type: 'PERSON', attributes: { location: 'Atlanta, GA' }, confidence: 0.7 },
+    { name: 'Bob', type: 'PERSON', attributes: { location: 'Atlanta, GA' }, confidence: 0.6 },
+    { name: 'Carol', type: 'PERSON', attributes: { location: 'Atlanta, GA' }, confidence: 0.8 },
+    { name: 'Dave', type: 'PERSON', attributes: { location: 'New York' }, confidence: 0.5 },
+  ];
+  const { entities: promoted, relationships: promRels } = postProcess(locEntities, []);
+  const place = promoted.find(e => e.type === 'PLACE');
+  assert(place !== undefined, 'PLACE promoted for Atlanta, GA');
+  assert(place.name === 'Atlanta, GA', `Promoted place name: ${place.name}`);
+  const locRels = promRels.filter(r => r.relationship === 'located_in');
+  assert(locRels.length === 3, `3 located_in relationships created (got ${locRels.length})`);
+
+  // New York NOT promoted (only 1 reference)
+  const nyPlace = promoted.find(e => e.type === 'PLACE' && e.name.toLowerCase().includes('new york'));
+  assert(nyPlace === undefined, 'New York NOT promoted (only 1 ref)');
+
+  section('Step 5: postProcess — EVENT promotion (3+ references)');
+
+  const evtEntities = [
+    { name: 'P1', type: 'PERSON', attributes: { event: 'Q3 Board Meeting' }, confidence: 0.7 },
+    { name: 'P2', type: 'PERSON', attributes: { event: 'Q3 Board Meeting' }, confidence: 0.6 },
+    { name: 'P3', type: 'PERSON', attributes: { event: 'Q3 Board Meeting' }, confidence: 0.8 },
+  ];
+  const { entities: evtPromoted, relationships: evtRels } = postProcess(evtEntities, []);
+  const event = evtPromoted.find(e => e.type === 'EVENT');
+  assert(event !== undefined, 'EVENT promoted for Q3 Board Meeting');
+  assert(event.name === 'Q3 Board Meeting', `Promoted event name: ${event.name}`);
+  const attendedRels = evtRels.filter(r => r.relationship === 'attended');
+  assert(attendedRels.length === 3, `3 attended relationships created (got ${attendedRels.length})`);
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -456,6 +542,10 @@ async function main() {
 
   if (!step || step === 4) {
     testStep4();
+  }
+
+  if (!step || step === 5) {
+    testStep5();
   }
 
   console.log(`\n══════════════════════════`);
