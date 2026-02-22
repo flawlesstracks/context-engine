@@ -1203,7 +1203,7 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
         pendingTruth = 'STRONG';
 
       } else if (metadata.isLinkedIn) {
-        // LinkedIn PDF auto-detected — Career Lite extraction via signal staging
+        // LinkedIn PDF auto-detected — Career extraction via signal staging
         console.log(`[ingest] LinkedIn PDF detected: ${filename}`);
         const prompt = buildLinkedInPrompt(text, filename);
         const message = await client.messages.create({
@@ -1858,7 +1858,7 @@ app.post('/api/drive/ingest', apiAuth, async (req, res) => {
           truthLevel: 'STRONG',
         });
       } else if (metadata.isLinkedIn) {
-        // LinkedIn PDF auto-detected — Career Lite extraction via signal staging
+        // LinkedIn PDF auto-detected — Career extraction via signal staging
         console.log(`[ingest] LinkedIn PDF detected (Drive): ${filename}`);
         const prompt = buildLinkedInPrompt(text, filename);
         const message = await client.messages.create({
@@ -5036,7 +5036,7 @@ app.post('/api/extract-linkedin', apiAuth, async (req, res) => {
     const sourceAttribution = { type: 'linkedin', url: linkedin_url, extracted_at: now };
     const fullName = [profile.first_name, profile.last_name].filter(Boolean).join(' ');
 
-    // Build Career Lite
+    // Build Career
     const careerLite = {
       interface: 'career-lite',
       implements: ['Contactable', 'Identifiable', 'Experienceable'],
@@ -5242,7 +5242,7 @@ app.get('/api/graph/stats', apiAuth, (req, res) => {
 
 // --- Share API routes ---
 
-// POST /api/share — Create a new share link for a Career Lite entity
+// POST /api/share — Create a new share link for a Career entity
 app.post('/api/share', apiAuth, shareLimiter, (req, res) => {
   const { entityId, sections, expiresInDays } = req.body;
 
@@ -5274,7 +5274,7 @@ app.post('/api/share', apiAuth, shareLimiter, (req, res) => {
 
   const entityData = JSON.parse(fs.readFileSync(entityPath, 'utf-8'));
   if (!entityData.career_lite || entityData.career_lite.interface !== 'career-lite') {
-    return res.status(400).json({ error: 'Entity is not a Career Lite profile' });
+    return res.status(400).json({ error: 'Entity is not a Career profile' });
   }
 
   const shareId = crypto.randomBytes(9).toString('base64url');
@@ -5414,7 +5414,7 @@ function fetchCounts() {
       }
       var html = '';
       html += '<div class="stat"><span class="stat-label">People</span><span class="stat-value">' + people + '</span></div>';
-      html += '<div class="stat"><span class="stat-label">Organizations</span><span class="stat-value">' + orgs + '</span></div>';
+      html += '<div class="stat"><span class="stat-label">Affiliations</span><span class="stat-value">' + orgs + '</span></div>';
       html += '<div class="stat"><span class="stat-label">With dimensions</span><span class="stat-value">' + withDims + ' / ' + people + '</span></div>';
       document.getElementById('counts').innerHTML = html;
     });
@@ -5483,7 +5483,7 @@ function showResults(data) {
 
   // Orgs breakdown
   if (data.orgs) {
-    html += '<h3 style="font-size:0.95rem;margin:12px 0 6px;">Organizations</h3>';
+    html += '<h3 style="font-size:0.95rem;margin:12px 0 6px;">Affiliations</h3>';
     var orgCats = ['career', 'education', 'affiliations', 'services', 'deleted'];
     for (var i = 0; i < orgCats.length; i++) {
       var arr = data.orgs[orgCats[i]] || [];
@@ -7768,7 +7768,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     display: inline-block; font-size: 0.72rem; color: var(--info); margin-bottom: 8px;
   }
 
-  /* --- Career Lite Profile --- */
+  /* --- Career Profile --- */
   .cl-header {
     display: flex; gap: 20px; align-items: flex-start; margin-bottom: 6px;
   }
@@ -9828,7 +9828,7 @@ function getPage(entity) {
 
   // Page assignment uses connection_type only — never access score
   if (d.connection_type === 'chosen') return 'friends';
-  if (d.connection_type === 'professional') return 'professional';
+  if (d.connection_type === 'professional' || d.connection_type === 'work' || d.connection_type === 'colleague') return 'professional';
   if (d.connection_type === 'community') return 'other';
 
   return 'other';
@@ -10218,7 +10218,7 @@ function selectView(viewId) {
   selectedView = null;
   selectedCategory = null;
   // Map sidebar lens IDs to tab bar IDs
-  var tabMap = { 'overview': 'overview', 'career-lite': 'career', 'network-map': 'network', 'intelligence-brief': 'intel-brief', 'org-brief': 'org-brief', 'source-provenance': 'sources' };
+  var tabMap = { 'overview': 'overview', 'career': 'career', 'network-map': 'network', 'intelligence-brief': 'intel-brief', 'org-brief': 'org-brief', 'source-provenance': 'sources' };
   window._liActiveTab = tabMap[viewId] || 'overview';
   var mainEl = document.getElementById('main');
   if (mainEl) mainEl.className = '';
@@ -10744,6 +10744,150 @@ function renderPeopleHubGeneric(people) {
   return h;
 }
 
+// --- Affiliations Hub: tab navigation for organizations ---
+
+var _affiliationsHubTab = 'all';
+var _affiliationsHubSearch = '';
+
+function showAffiliationsHub(tab) {
+  _affiliationsHubTab = tab || _affiliationsHubTab || 'all';
+  selectedCategory = 'affiliations_hub';
+  selectedId = null;
+  selectedView = null;
+  var empty = document.getElementById('emptyState');
+  if (empty) empty.style.display = 'none';
+  breadcrumbs = [{ label: 'Affiliations' }];
+  renderBreadcrumbs();
+  renderAffiliationsHub();
+  renderRightPanel(null);
+  renderSidebar();
+}
+
+function renderAffiliationsHub() {
+  var data = buildSidebarData();
+  var allOrgs = [];
+  var cats = ['career', 'education', 'services', 'affiliations', 'other'];
+  for (var c = 0; c < cats.length; c++) {
+    var items = data.organizations[cats[c]] || [];
+    for (var i = 0; i < items.length; i++) {
+      items[i]._orgCategory = cats[c];
+      allOrgs.push(items[i]);
+    }
+  }
+
+  var careerOrgs = [], eduOrgs = [], svcOrgs = [], affOrgs = [], otherOrgs = [];
+  for (var i = 0; i < allOrgs.length; i++) {
+    var cat = allOrgs[i]._orgCategory;
+    if (cat === 'career') careerOrgs.push(allOrgs[i]);
+    else if (cat === 'education') eduOrgs.push(allOrgs[i]);
+    else if (cat === 'services') svcOrgs.push(allOrgs[i]);
+    else if (cat === 'affiliations') affOrgs.push(allOrgs[i]);
+    else otherOrgs.push(allOrgs[i]);
+  }
+
+  var tabs = [
+    { id: 'all', label: 'All', count: allOrgs.length },
+    { id: 'career', label: 'Career', count: careerOrgs.length },
+    { id: 'education', label: 'Education', count: eduOrgs.length },
+    { id: 'services', label: 'Services', count: svcOrgs.length },
+    { id: 'organizations', label: 'Organizations', count: affOrgs.length },
+    { id: 'other', label: 'Other', count: otherOrgs.length }
+  ];
+
+  var h = '<div class="people-hub">';
+
+  // Header
+  h += '<div class="people-hub-header">';
+  h += '<div class="people-hub-title-row">';
+  h += '<h1 class="people-hub-title"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg> Affiliations</h1>';
+  h += '<span class="people-hub-count">' + allOrgs.length + ' affiliations</span>';
+  h += '</div>';
+  h += '<div class="people-hub-search-wrap">';
+  h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
+  h += '<input class="people-hub-search" id="affiliationsHubSearch" placeholder="Search affiliations..." oninput="filterAffiliationsHub()" value="' + esc(_affiliationsHubSearch) + '" />';
+  h += '</div></div>';
+
+  // Tab bar
+  h += '<div class="people-hub-tabs">';
+  for (var t = 0; t < tabs.length; t++) {
+    var tab = tabs[t];
+    if (tab.id !== 'all' && tab.count === 0) continue;
+    h += '<button class="people-hub-tab' + (tab.id === _affiliationsHubTab ? ' active' : '') + '" onclick="switchAffiliationsTab(\'' + tab.id + '\')">';
+    h += esc(tab.label);
+    h += '<span class="people-hub-tab-count">' + tab.count + '</span>';
+    h += '</button>';
+  }
+  h += '</div>';
+
+  // Content area
+  h += '<div class="people-hub-content" id="affiliationsHubContent">';
+
+  var searchQ = (_affiliationsHubSearch || '').toLowerCase().trim();
+  var activeOrgs;
+
+  if (_affiliationsHubTab === 'all') activeOrgs = allOrgs;
+  else if (_affiliationsHubTab === 'career') activeOrgs = careerOrgs;
+  else if (_affiliationsHubTab === 'education') activeOrgs = eduOrgs;
+  else if (_affiliationsHubTab === 'services') activeOrgs = svcOrgs;
+  else if (_affiliationsHubTab === 'organizations') activeOrgs = affOrgs;
+  else activeOrgs = otherOrgs;
+
+  // Filter by search
+  if (searchQ) {
+    activeOrgs = activeOrgs.filter(function(item) {
+      var o = item.org || item;
+      return (o.name || '').toLowerCase().indexOf(searchQ) !== -1 ||
+             (item.subtitle || '').toLowerCase().indexOf(searchQ) !== -1 ||
+             (o.summary || '').toLowerCase().indexOf(searchQ) !== -1;
+    });
+  }
+
+  if (activeOrgs.length === 0) {
+    h += '<div class="people-hub-empty">' + (searchQ ? 'No affiliations match your search' : 'No affiliations in this category') + '</div>';
+  } else {
+    h += '<div class="cat-card-grid">';
+    for (var i = 0; i < activeOrgs.length; i++) {
+      var item = activeOrgs[i];
+      var o = item.org || item;
+      var oName = o.name || '';
+      var oSub = item.subtitle || '';
+      var oSummary = (o.summary || '').substring(0, 140);
+      if ((o.summary || '').length > 140) oSummary += '...';
+      var oType = o.entity_type || '';
+      var typeBadge = '';
+      if (oType === 'institution') typeBadge = '<span style="font-size:0.7rem;background:#e0e7ff;color:#4338ca;padding:1px 6px;border-radius:8px;margin-left:6px;">Institution</span>';
+      else if (oType === 'business') typeBadge = '<span style="font-size:0.7rem;background:#dcfce7;color:#166534;padding:1px 6px;border-radius:8px;margin-left:6px;">Business</span>';
+      var cat = item._orgCategory || '';
+      h += '<div class="cat-card" onclick="selectEntity(\'' + esc(o.entity_id) + '\',\'org_' + cat + '\')">';
+      h += '<div class="cat-card-name">' + esc(oName) + typeBadge + '</div>';
+      if (oSub) h += '<div class="cat-card-subtitle">' + esc(oSub) + '</div>';
+      if (oSummary) h += '<div class="cat-card-summary">' + esc(oSummary) + '</div>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  h += '</div></div>';
+  document.getElementById('main').innerHTML = h;
+
+  // Focus search if it had text
+  if (_affiliationsHubSearch) {
+    var si = document.getElementById('affiliationsHubSearch');
+    if (si) { si.focus(); si.setSelectionRange(si.value.length, si.value.length); }
+  }
+}
+
+function switchAffiliationsTab(tab) {
+  _affiliationsHubTab = tab;
+  renderAffiliationsHub();
+}
+
+function filterAffiliationsHub() {
+  var si = document.getElementById('affiliationsHubSearch');
+  _affiliationsHubSearch = si ? si.value : '';
+  renderAffiliationsHub();
+}
+
 function selectOrgCategoryPage(category) {
   selectedCategory = 'org_' + category;
   selectedId = null;
@@ -10752,7 +10896,7 @@ function selectOrgCategoryPage(category) {
   if (empty) empty.style.display = 'none';
   var catLabels = { career: 'Career', education: 'Education', affiliations: 'Affiliations', services: 'Services', other: 'Other' };
   breadcrumbs = [
-    { label: 'Organizations', action: '' },
+    { label: 'Affiliations', action: 'showAffiliationsHub()' },
     { label: catLabels[category] || category }
   ];
   renderBreadcrumbs();
@@ -10774,7 +10918,7 @@ function renderOrgCategoryPage(category, orgs) {
   var meta = catMeta[category] || { emoji: '', label: category };
   var html = '<div style="padding: 24px 28px;">';
   html += '<div class="cat-page-header">' + meta.emoji + ' ' + esc(meta.label);
-  html += '<span class="cat-page-count">&middot; ' + orgs.length + ' ' + (orgs.length === 1 ? 'organization' : 'organizations') + '</span>';
+  html += '<span class="cat-page-count">&middot; ' + orgs.length + ' ' + (orgs.length === 1 ? 'affiliation' : 'affiliations') + '</span>';
   html += '</div>';
   html += '<div class="cat-card-grid">';
   for (var i = 0; i < orgs.length; i++) {
@@ -10796,7 +10940,7 @@ function renderOrgCategoryPage(category, orgs) {
   }
   html += '</div>';
   if (orgs.length === 0) {
-    html += '<div style="padding:24px;color:var(--text-muted);text-align:center;">No organizations in this category</div>';
+    html += '<div style="padding:24px;color:var(--text-muted);text-align:center;">No affiliations in this category</div>';
   }
   html += '</div>';
   document.getElementById('main').innerHTML = html;
@@ -11167,7 +11311,7 @@ function renderOverview(data) {
       var c = connected[i];
       if (groups[c.entity_type]) groups[c.entity_type].push(c);
     }
-    var groupLabels = { role: 'Roles', organization: 'Organizations', institution: 'Institutions', credential: 'Credentials', skill: 'Skills' };
+    var groupLabels = { role: 'Roles', organization: 'Affiliations', institution: 'Institutions', credential: 'Credentials', skill: 'Skills' };
     var groupKeys = ['role', 'organization', 'institution', 'credential', 'skill'];
     for (var g = 0; g < groupKeys.length; g++) {
       var gk = groupKeys[g];
@@ -11526,33 +11670,16 @@ function renderSidebar() {
     totalCount += peopleCount;
   }
 
-  // Section 3: Organizations (category link rows)
+  // Section 3: Affiliations (single clickable link to hub)
   var orgCount = data.organizations.career.length + data.organizations.education.length + data.organizations.affiliations.length + data.organizations.services.length + data.organizations.other.length;
   if (orgCount > 0) {
-    html += renderSidebarSection('orgs', '\uD83C\uDFE2', 'Organizations', orgCount, function() {
-      var h = '';
-      var orgCats = [
-        { key: 'career', emoji: '\uD83D\uDCBC', label: 'Career' },
-        { key: 'education', emoji: '\uD83C\uDF93', label: 'Education' },
-        { key: 'affiliations', emoji: '\uD83E\uDD1D', label: 'Affiliations' },
-        { key: 'services', emoji: '\uD83C\uDFE6', label: 'Services' },
-        { key: 'other', emoji: '\uD83C\uDFE2', label: 'Other' }
-      ];
-      for (var g = 0; g < orgCats.length; g++) {
-        var items = data.organizations[orgCats[g].key] || [];
-        if (items.length === 0) continue;
-        var isActive = selectedCategory === ('org_' + orgCats[g].key);
-        h += '<div class="sidebar-cat-row' + (isActive ? ' active' : '') + '" onclick="selectOrgCategoryPage(' + "'" + orgCats[g].key + "'" + ')">';
-        h += '<span class="cat-emoji">' + orgCats[g].emoji + '</span>';
-        h += '<span class="cat-label">' + esc(orgCats[g].label) + '</span>';
-        h += '<span class="cat-count">' + items.length + '</span>';
-        h += '</div>';
-      }
-      if (orgCount === 0) {
-        h += '<div class="sidebar-empty-hint">No organizations found</div>';
-      }
-      return h;
-    }, false);
+    var isOrgActive = selectedCategory === 'affiliations_hub' || (selectedCategory && selectedCategory.indexOf('org_') === 0);
+    html += '<div class="sidebar-section">';
+    html += '<div class="sidebar-cat-row' + (isOrgActive ? ' active' : '') + '" onclick="showAffiliationsHub()" style="padding:10px 12px;">';
+    html += '<span class="cat-emoji">\uD83C\uDFE2</span>';
+    html += '<span class="cat-label" style="font-weight:600;">Affiliations</span>';
+    html += '<span class="cat-count">' + orgCount + '</span>';
+    html += '</div></div>';
     totalCount += orgCount;
   }
 
@@ -11643,17 +11770,17 @@ function selectEntity(id, fromCategory) {
         { label: eName || id }
       ];
     } else if (type === 'organization' || type === 'business' || type === 'institution') {
-      var orgCatLabels = { org_career: 'Career', org_education: 'Education', org_affiliations: 'Affiliations', org_services: 'Services', org_other: 'Other' };
+      var orgCatLabels = { org_career: 'Career', org_education: 'Education', org_affiliations: 'Organizations', org_services: 'Services', org_other: 'Other' };
       if (prevCategory && orgCatLabels[prevCategory]) {
         var orgCatKey = prevCategory.replace('org_', '');
         breadcrumbs = [
-          { label: 'Organizations', action: '' },
-          { label: orgCatLabels[prevCategory], action: 'selectOrgCategoryPage(' + "'" + orgCatKey + "'" + ')' },
+          { label: 'Affiliations', action: 'showAffiliationsHub()' },
+          { label: orgCatLabels[prevCategory], action: 'showAffiliationsHub(' + "'" + orgCatKey + "'" + ')' },
           { label: eName || id }
         ];
       } else {
         breadcrumbs = [
-          { label: 'Organizations', action: '' },
+          { label: 'Affiliations', action: 'showAffiliationsHub()' },
           { label: eName || id }
         ];
       }
@@ -11923,12 +12050,12 @@ function getAvailableLenses(data) {
   // Overview — always available
   lenses.push({ id: 'overview', icon: '\\uD83D\\uDCCB', label: 'Overview' });
 
-  // Career Lite — person with work_history 1+ entry
+  // Career — person with work_history 1+ entry
   if (type === 'person') {
     var hasWork = (cl.work_history && cl.work_history.length > 0) ||
                   (cl.experience && cl.experience.length > 0);
     if (hasWork) {
-      lenses.push({ id: 'career-lite', icon: '\\uD83D\\uDCBC', label: 'Career Lite' });
+      lenses.push({ id: 'career', icon: '\\uD83D\\uDCBC', label: 'Career' });
     }
   }
 
@@ -13560,7 +13687,7 @@ function renderReviewQueue(data) {
     // Related entities section
     if (b.related.length > 0) {
       h += '<div class="rq-bundle-related">';
-      h += '<div class="rq-bundle-related-label">Related Organizations (' + b.related.length + ')</div>';
+      h += '<div class="rq-bundle-related-label">Related Affiliations (' + b.related.length + ')</div>';
       for (var ri = 0; ri < b.related.length; ri++) {
         var r = b.related[ri];
         var relId = bundleId + '-rel-' + ri;
@@ -14577,7 +14704,7 @@ function renderCareerLite(data) {
   h += renderTierBadge(entityId);
   h += renderHealthIndicator(health);
   h += renderDensityBadge(data);
-  h += '<span class="cl-interface-badge">Career Lite</span>';
+  h += '<span class="cl-interface-badge">Career</span>';
   h += '</div>';
 
   // Actions
@@ -15633,7 +15760,7 @@ function renderDetail(data) {
 
   // --- Determine available lens tabs ---
   var tabs = [{ id: 'overview', label: 'Overview' }];
-  if (isPerson && experience.length > 0) tabs.push({ id: 'career', label: 'Career Lite' });
+  if (isPerson && experience.length > 0) tabs.push({ id: 'career', label: 'Career' });
   if (rels.length + connected.length >= 3) tabs.push({ id: 'network', label: 'Network Map' });
   if (isPerson && obs.length >= 5) tabs.push({ id: 'intel-brief', label: 'Intelligence Brief' });
   if (isOrg) tabs.push({ id: 'org-brief', label: 'Org Brief' });
