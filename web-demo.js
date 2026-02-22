@@ -6897,7 +6897,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     --info-bg: rgba(37,99,235,0.06);
 
     /* Layout */
-    --sidebar-width: 280px;
+    --sidebar-width: 380px;
     --radius-sm: 6px;
     --radius-md: 8px;
     --radius-lg: 12px;
@@ -7036,7 +7036,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     display: flex; align-items: center; gap: 8px;
     padding: 8px 10px; border: none; border-radius: var(--radius-sm);
     background: transparent; color: var(--text-tertiary);
-    font-size: 14px; font-weight: 500; cursor: pointer;
+    font-size: 15px; font-weight: 500; cursor: pointer;
     transition: all var(--transition-fast);
     font-family: var(--font-sans);
     text-align: left; width: 100%;
@@ -7058,7 +7058,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     border: 1px solid var(--border-primary);
     border-radius: var(--radius-sm);
     color: var(--text-primary);
-    font-size: 0.82rem; outline: none;
+    font-size: 14px; outline: none;
     font-family: var(--font-sans);
     transition: border-color var(--transition-fast);
   }
@@ -7081,7 +7081,7 @@ const WIKI_HTML = `<!DOCTYPE html>
 
   /* --- Sidebar Count --- */
   .sidebar-count {
-    padding: 10px 20px; font-size: 13px; color: var(--text-muted);
+    padding: 10px 20px; font-size: 14px; color: var(--text-muted);
     letter-spacing: 0.06em; font-weight: 600; text-transform: uppercase;
     border-bottom: 1px solid var(--border-primary);
     display: flex; align-items: baseline; gap: 6px;
@@ -8034,7 +8034,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   .sidebar-section-header {
     display: flex; align-items: center; gap: 8px;
     padding: 10px 16px; cursor: pointer;
-    font-size: 14px; font-weight: 700; color: var(--text-secondary);
+    font-size: 15px; font-weight: 700; color: var(--text-secondary);
     transition: background var(--transition-fast);
     user-select: none;
   }
@@ -8046,7 +8046,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   .sidebar-section-chevron.collapsed { transform: rotate(-90deg); }
   .sidebar-section-title { flex: 1; }
   .sidebar-section-count {
-    font-size: 0.65rem; font-weight: 500; color: var(--text-muted);
+    font-size: 13px; font-weight: 500; color: var(--text-muted);
     background: var(--bg-tertiary); padding: 1px 7px; border-radius: 10px;
   }
   .sidebar-section-body { overflow: hidden; }
@@ -8074,13 +8074,13 @@ const WIKI_HTML = `<!DOCTYPE html>
   }
   .sidebar-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
   .sidebar-profile-name {
-    font-size: 0.85rem; font-weight: 600; color: var(--text-primary);
+    font-size: 15px; font-weight: 700; color: var(--text-primary);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .sidebar-view-item {
     display: flex; align-items: center; gap: 8px;
     padding: 7px 20px 7px 36px; cursor: pointer;
-    font-size: 13px; color: var(--text-tertiary);
+    font-size: 14px; color: var(--text-tertiary);
     transition: all var(--transition-fast);
   }
   .sidebar-view-item:hover { background: var(--bg-hover); color: var(--text-primary); }
@@ -8104,7 +8104,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   }
   .sidebar-entity-row {
     display: block; padding: 6px 20px 6px 36px; cursor: pointer;
-    font-size: 13px; color: var(--text-primary);
+    font-size: 14px; color: var(--text-primary);
     transition: background var(--transition-fast);
   }
   .sidebar-entity-row:hover { background: #f0f0ff; }
@@ -8118,7 +8118,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     display: flex; align-items: center; gap: 6px;
   }
   .sidebar-entity-row .entity-subtitle {
-    font-size: 12px; color: var(--text-muted);
+    font-size: 13px; color: var(--text-muted);
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     padding-left: 0;
   }
@@ -8129,7 +8129,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   .sidebar-cat-row {
     display: flex; align-items: center; gap: 8px;
     padding: 7px 20px 7px 36px; cursor: pointer;
-    font-size: 13px; color: var(--text-tertiary);
+    font-size: 14px; color: var(--text-tertiary);
     transition: all var(--transition-fast);
   }
   .sidebar-cat-row:hover { background: var(--bg-hover); color: var(--text-primary); }
@@ -8140,7 +8140,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   .sidebar-cat-row .cat-emoji { font-size: 0.85rem; flex-shrink: 0; width: 18px; text-align: center; }
   .sidebar-cat-row .cat-label { flex: 1; }
   .sidebar-cat-row .cat-count {
-    font-size: 0.65rem; font-weight: 500; color: var(--text-muted);
+    font-size: 13px; font-weight: 500; color: var(--text-muted);
     background: var(--bg-tertiary); padding: 1px 7px; border-radius: 10px;
   }
   #breadcrumbs {
@@ -10520,7 +10520,7 @@ function showPeopleHub(tab) {
   selectedView = null;
   var empty = document.getElementById('emptyState');
   if (empty) empty.style.display = 'none';
-  breadcrumbs = [{ label: 'People' }];
+  breadcrumbs = [];
   renderBreadcrumbs();
   renderPeopleHub();
   renderRightPanel(null);
@@ -11619,6 +11619,8 @@ function confirmDeleteEntity(id, name) {
 }
 
 function selectEntity(id, fromCategory) {
+  // FIX 1: CJ Mitchell connection links redirect to People Hub
+  if (id === primaryEntityId) { showPeopleHub('all'); return; }
   var prevCategory = fromCategory || selectedCategory;
   selectedId = id;
   selectedView = null;
