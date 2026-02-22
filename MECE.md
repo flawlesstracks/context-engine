@@ -124,6 +124,7 @@ connects to the product.
 | MECE-005 | Agent Architecture | EXTRACT, INTEGRATE | 3 agents, 4 quadrants | 2026-02-21 |
 | MECE-006 | Collection Intelligence | EXTRACT | 4 modes, 4 source types, 4 filters | 2026-02-21 |
 | MECE-007 | Entity Rendering | DELIVER | 4 types, 4 densities, 6 lenses | 2026-02-21 |
+| MECE-010 | Universal Parser | EXTRACT, STRUCTURE | 4 sub-problems, 3 entity tiers, 3 parse strategies | 2026-02-22 |
 
 |  |
 | :---- |
@@ -281,6 +282,7 @@ Every incoming signal falls into one of four quadrants:
 * Every level feeds through the Data Lifecycle (MECE-001) staging layer  
 * Every extraction produces signal clusters, not finished entities  
 * Current level: 6 (LinkedIn PDF auto-detect live, social profiles active)
+* Levels 1-4 consolidated by universal parser (MECE-010): single function, any file, no type flags
 
 |  |
 | :---- |
@@ -327,11 +329,11 @@ Track current state. Update after every build session.
 
 | Lever | Phase | Current Score | Last Updated | Next Move |
 | :---- | :---- | :---- | :---- | :---- |
-| EXTRACT | ACQUIRE | 9.5 | 2026-02-21 | LinkedIn URL extraction live (ScrapingDog), LinkedIn PDF auto-detect live |
+| EXTRACT | ACQUIRE | 10 | 2026-02-22 | Universal parser live — any file type, smart detection, structured import, AI extraction, chunking |
 | INTEGRATE | ACQUIRE | 5 | 2026-02-18 | ChatGPT history import |
 | ELICIT | ACQUIRE | 1 | 2026-02-18 | GPT follow-up questions for thin entities |
 | OBSERVE | ACQUIRE | 0.5 | 2026-02-18 | GPT auto-observe (write-back) |
-| STRUCTURE | APPLY | 9 | 2026-02-20 | Signal staging up, entity tiers next |
+| STRUCTURE | APPLY | 9.5 | 2026-02-22 | Universal parser: entity+relationship extraction with confidence, dedup, PLACE/EVENT promotion |
 | RETRIEVE | APPLY | 5 | 2026-02-18 | Semantic search (embeddings) |
 | REASON | APPLY | 7 | 2026-02-18 | Multi-entity reasoning |
 | DELIVER | APPLY | 8 | 2026-02-18 | Profile mode \+ visual tiers live |
@@ -340,7 +342,7 @@ Track current state. Update after every build session.
 | MEASURE | ASSESS | 0 | 2026-02-18 | Query metrics dashboard |
 | LEARN | ASSESS | 0.5 | 2026-02-20 | Confidence auto-adjustment on Q2/Q4 |
 
-**Overall: \~6.8 / 10**
+**Overall: \~7.0 / 10**
 
 |  |
 | :---- |
@@ -489,6 +491,58 @@ Lenses are perspectives on the same underlying data. A lens ONLY appears in the 
 - Has: name, relationship to Andre (son)
 - Overview shows: minimal card, "Enrich" button, most sections empty with suggestions
 - No other lenses available — insufficient data
+
+## MECE-010: Universal Parser
+
+**Primary Levers:** EXTRACT, STRUCTURE
+**Domain:** How any file becomes structured entities and relationships in one function call.
+**Parent in fractal:** AAA Loop → ACQUIRE → EXTRACT → File Intelligence
+
+### Layer 1: Four Sub-Problems (MECE)
+
+Every parse job decomposes into exactly four sub-problems:
+
+| Sub-Problem | Question | Output |
+|-------------|----------|--------|
+| P1: File Intelligence | What kind of file is this? | file_type (pdf, json, markdown, docx, csv, tsv, html, plaintext, structured_profile, chat_export) |
+| P2: Entity Extraction | What entities are mentioned? | PERSON, ORG, CONCEPT entities with attributes and evidence |
+| P3: Relationship Mapping | How do entities connect? | Freeform relationship strings with direction and evidence |
+| P4: Confidence Assignment | How sure are we? | Entity confidence (0.2-1.0), relationship confidence (0.3-0.85) |
+
+### Layer 1 (continued): Three Parse Strategies (MECE)
+
+Every file routes to exactly one strategy:
+
+| Strategy | When | AI Call? | Confidence Floor |
+|----------|------|----------|-----------------|
+| structured_import | File has entity_type or name+attributes fields | No — direct mapping | 0.9 |
+| chat_import | File has ChatGPT mapping+message structure | Routed to existing pipeline | Varies |
+| ai_extraction | All other files | Yes — Claude Sonnet | Scored by P4 rules |
+
+### Layer 1 (continued): Three Entity Tiers (MECE)
+
+| Tier | Types | Extraction Rule |
+|------|-------|----------------|
+| Tier 1 — Core | PERSON, ORG, CONCEPT | Always extracted |
+| Tier 2 — Contextual | PLACE, EVENT | Extracted as attributes; promoted to entity if referenced by 3+ entities |
+| Not entities | Actions, tangible objects | Captured as relationships or observations |
+
+### Layer 2: Behavioral Rules
+
+* `parse(fileContent, filename)` is the single entry point — no type flags, no schema selection
+* P1 runs extension detection first, content sniffing second, plaintext fallback third
+* P1 NEVER fails silently — always attempts extraction, logs warning on unknown types
+* P2 structured profiles skip AI entirely — direct field mapping at 0.9 confidence
+* P2 large files (>100K chars) chunk at paragraph boundaries (~80K) and merge results
+* P2 chunk merging deduplicates entities by name (case-insensitive)
+* P3 relationships are freeform strings, not a fixed enum
+* P4 confidence scores entities by attribute count + evidence length, relationships by verb specificity
+* Post-processing: normalize names (title case for PERSON), dedup entities (Dice > 0.8), dedup relationships, promote PLACE/EVENT
+* Output feeds into signal staging (MECE-001) — no entity created directly
+* Module is standalone — importable with no global state
+
+|  |
+| :---- |
 
 ## Adding a New MECE Framework
 
