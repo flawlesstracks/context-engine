@@ -10812,7 +10812,7 @@ function renderAffiliationsHub() {
   for (var t = 0; t < tabs.length; t++) {
     var tab = tabs[t];
     if (tab.id !== 'all' && tab.count === 0) continue;
-    h += '<button class="people-hub-tab' + (tab.id === _affiliationsHubTab ? ' active' : '') + '" onclick="switchAffiliationsTab(\'' + tab.id + '\')">';
+    h += '<button class="people-hub-tab' + (tab.id === _affiliationsHubTab ? ' active' : '') + '" onclick="switchAffiliationsTab(\\'' + tab.id + '\\')">';
     h += esc(tab.label);
     h += '<span class="people-hub-tab-count">' + tab.count + '</span>';
     h += '</button>';
