@@ -35,6 +35,14 @@ You are **CeeCee**, CJ Mitchell's build agent for the Context Architecture proje
 | `watch-folder/graph/tenant-7105d791/` | Acme Corp demo tenant (34 entities) |
 | `watch-folder/graph/tenants.config.json` | Tenant registry — IDs, API keys, self_entity_id (tracked) |
 | `watch-folder/graph/tenants.state.json` | Tenant runtime — OAuth tokens, session data (gitignored) |
+| `query-engine.js` | Query Engine — classifyQuery, searchEntities, findPaths, getNeighborhood, filterEntities, synthesizeAnswer, resolveEntities, query() |
+| `universal-parser.js` | Universal Parser — detectFileType, extractText, extractEntities, assignConfidence, postProcess, parse() |
+| `test-query-engine.js` | Query engine tests (237 tests) |
+| `test-universal-parser.js` | Universal parser tests (182 tests) |
+| `dxt/manifest.json` | DXT/MCPB extension manifest for Claude Desktop |
+| `dxt/server/index.js` | MCP server — 3 tools: build_graph, query, update |
+| `dxt/package.json` | DXT dependencies (@modelcontextprotocol/sdk) |
+| `build-dxt.sh` | Build script → dist/context-engine.dxt |
 | `openai-actions-spec.yaml` | OpenAPI spec served at /openai-actions-spec.yaml |
 | `.env` | API keys (Anthropic, Proxycurl, tenant keys) |
 
@@ -55,7 +63,9 @@ You are **CeeCee**, CJ Mitchell's build agent for the Context Architecture proje
 | POST | /api/entity | Create entity |
 | PUT | /api/entity/{id} | Update entity |
 | DELETE | /api/entity/{id} | Delete entity |
-| POST | /api/observe | Add observation to entity |
+| POST | /api/observe | Add observation to entity (requires confidence_label + facts_layer) |
+| POST | /api/entity/{id}/observe | Add observation via entity URL (DXT-friendly — auto-defaults confidence/layer) |
+| POST | /api/entity/{id}/relationship | Add relationship to entity (DXT-friendly — accepts target_id or target_name) |
 | POST | /api/extract | Extract entities from uploaded file |
 | POST | /api/extract-url | Smart URL router: LinkedIn→ScrapingDog, X/IG→meta scraper, other→generic (all through signal staging) |
 | POST | /api/discover-entity | Point Agent v1: name→LinkedIn discovery→Career Lite extraction→signal staging (DIRECTED mode) |
@@ -72,6 +82,9 @@ You are **CeeCee**, CJ Mitchell's build agent for the Context Architecture proje
 | POST | /api/dedup-relationships | Deduplicate relationships |
 | POST | /api/entities/bulk-delete | Bulk delete entities |
 | GET | /api/entity/{id}/health | Connection intelligence: duplicates, phantoms, tier distribution, quality score |
+| GET | /api/query?q={question} | Query engine: natural language → graph traversal → structured answer |
+| GET | /api/self-entity | Get self-entity config (configured: true/false, entityId, name) |
+| POST | /api/self-entity | Set self-entity: { entity_id, entity_name, purpose } → updates ownership to "self" |
 
 ## Tenant Keys
 - CJ's tenant (eefc79c7): Check tenants.config.json for API key
@@ -136,8 +149,8 @@ Cluster stores: signal_confidence, association_confidence, association_factors, 
 - **Q2/Q4 PASS**: x.com/putchuon extracted → Q1 (no prior handle link) → user linked to ENT-CM-001 → merged (x_handle, x_url added). Re-extracted → Q4 with 0.90 confidence via social_handle_x match → skipped (source attribution added, no duplicate entity).
 - **Bug fixes**: Failed fetch no longer leaves stale preview data. confirmPreview() routes through signal staging (not direct ingest).
 
-## Current State (End of Day 5 — Feb 21, 2026)
-- 120 entities in CJ's tenant (people, orgs, mixed)
+## Current State (End of Day 6 — Feb 22, 2026)
+- 159 entities in CJ's tenant (people, orgs, roles, skills, mixed)
 - Wiki: profile mode, visual tiers (Gold/Green/Neutral/Muted), entity cards, sidebar nav
 - Custom GPT: working, calls API, synthesizes pre-meeting briefings
 - Google Drive picker: working with JSON support
@@ -157,6 +170,11 @@ Cluster stores: signal_confidence, association_confidence, association_factors, 
 - Connection Cleanup: src/cleanup-connections.js — multi-pass cleanup: phantom removal, test data removal, name fragment merge (single→multi-word), alias-aware dedup (strips parentheticals), LinkedIn artifact re-tiering. Ran on ENT-CM-001: 24→18 connections.
 - Connections Grid UI: Facebook-style card grid replacing vertical list. 3-column grid with tier sections (Family/Close Friends/Friends/Colleagues/Following), colored headers, truncation (6 per tier with "Show all N" expand), summary header with search/filter, Following collapsed by default. Separate full connections page at /wiki/entity/:id/connections with tier filter buttons and no truncation.
 - Conflict Detection Layer: working — detectConflicts(entity, incomingCluster) in src/signalStaging.js. Three conflict types: FACTUAL (same attr, same period, different values → flag for review), TEMPORAL (outdated vs current → auto-resolve, most recent wins), IDENTITY (location/handle mismatch suggesting wrong merge → block merge with evidence panel). Runs BEFORE merge in resolveCluster. Entity stores active conflicts in `conflicts[]`, resolved in `resolved_conflicts[]`. Entity profile shows conflicts section with Keep A / Keep B / Keep Both resolution buttons. Health score penalized -0.1 per active FACTUAL conflict. Hero card shows orange conflict count badge. API: POST /api/conflicts/resolve, GET /api/entity/:id/conflicts.
+- Universal Parser (MECE-010): working — parse(fileContent, filename) handles any file type. 10 file types detected (pdf, json, markdown, docx, csv, tsv, html, plaintext, structured_profile, chat_export). Three parse strategies: structured_import (no AI), chat_import (existing pipeline), ai_extraction (Claude Sonnet). Large file chunking at 80K. Post-processing: name normalization, Dice dedup, PLACE/EVENT promotion. 182 tests.
+- Query Engine (MECE-011): working — query(question, graphDir) classifies question into 5 types (ENTITY_LOOKUP, RELATIONSHIP, AGGREGATION, COMPLETENESS, CONTRADICTION). Four graph operations (searchEntities, findPaths, getNeighborhood, filterEntities). Bidirectional relationship index. Template-based synthesis (<10ms, no AI). Self-entity awareness: pronouns (my/I/me) resolve to self-entity, answers use "you/your". 237 tests. GET /api/query?q= endpoint. Web UI search bar auto-routes questions.
+- Self-Entity Awareness: working — getSelfEntity() with 3-tier lookup (self-entity.json → tenants.config.json → most-connected entity). Pronoun substitution in resolveEntities(). GET/POST /api/self-entity endpoints. POST auto-updates entity ownership to "self". Web UI sidebar shows self-entity name with star icon.
+- Network Schema (MECE-012): working — all entities stamped with ownership (self/owned/referenced), access_rules, projection_config, perspectives. Fields are inert — no access control logic yet. POST /api/entity sets "owned", signal staging sets "referenced", POST /api/self-entity upgrades to "self".
+- DXT Package (MECE-012): working — dxt/server/index.js is a full MCP server with 3 tools (build_graph, query, update). build-dxt.sh produces dist/context-engine.dxt (4.5MB). manifest.json with user_config for API URL + key (sensitive/keychain). Tested via tools/list JSON-RPC — all 3 tools returned with full schemas.
 
 ## Known Issues
 - 3 orphan entity files in graph root (outside any tenant) — not accessible via API
