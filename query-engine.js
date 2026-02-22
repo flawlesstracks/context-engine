@@ -741,12 +741,69 @@ function synthesizeAnswer(queryType, data) {
 }
 
 // ---------------------------------------------------------------------------
-// Entity Resolution (stub — Step 8)
+// Entity Resolution — Step 8
 // ---------------------------------------------------------------------------
 
+const STOP_WORDS = new Set([
+  'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+  'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+  'should', 'may', 'might', 'shall', 'can', 'need', 'must',
+  'i', 'me', 'my', 'we', 'our', 'you', 'your', 'he', 'she', 'it',
+  'they', 'them', 'his', 'her', 'its', 'their', 'who', 'what', 'which',
+  'that', 'this', 'these', 'those', 'am', 'to', 'of', 'in', 'for',
+  'on', 'with', 'at', 'by', 'from', 'about', 'between', 'through',
+  'and', 'or', 'but', 'not', 'no', 'all', 'any', 'each', 'every',
+  'how', 'many', 'much', 'tell', 'show', 'find', 'list', 'count',
+  'describe', 'summarize', 'profile', 'connect', 'relate', 'link',
+  'path', 'know', 'missing', 'gaps', 'conflicts', 'data',
+  'graph', 'entities', 'people', 'organizations', 'there',
+]);
+
+/**
+ * Extract entity names from a question and resolve to entity IDs.
+ * @param {string} question
+ * @param {string} graphDir
+ * @returns {Array<{entityId, name, score}>}
+ */
 function resolveEntities(question, graphDir) {
-  // TODO: Step 8
-  return [];
+  const q = question.replace(/[?!.,;:'"]/g, ' ').trim();
+  const words = q.split(/\s+/).filter(w => w.length > 0);
+
+  // Build candidate phrases: try multi-word combos (longest first)
+  const candidates = [];
+
+  // Try 3-word, 2-word, then 1-word phrases
+  for (let len = Math.min(3, words.length); len >= 1; len--) {
+    for (let i = 0; i <= words.length - len; i++) {
+      const phrase = words.slice(i, i + len).join(' ');
+      const phraseLower = phrase.toLowerCase();
+      // Skip if all words are stop words
+      const phraseWords = phraseLower.split(/\s+/);
+      if (phraseWords.every(w => STOP_WORDS.has(w))) continue;
+      candidates.push({ phrase, start: i, end: i + len });
+    }
+  }
+
+  // Search each candidate against the graph
+  const resolved = [];
+  const usedRanges = []; // Track which word positions are already matched
+
+  for (const cand of candidates) {
+    // Skip if overlaps with already-matched range
+    if (usedRanges.some(r => cand.start < r.end && cand.end > r.start)) continue;
+
+    const results = searchEntities(cand.phrase, graphDir, { limit: 1, minConfidence: 0.6 });
+    if (results.length > 0) {
+      const match = results[0];
+      // Avoid duplicate entity IDs
+      if (!resolved.some(r => r.entityId === match.entityId)) {
+        resolved.push({ entityId: match.entityId, name: match.name, score: match.score });
+        usedRanges.push({ start: cand.start, end: cand.end });
+      }
+    }
+  }
+
+  return resolved;
 }
 
 // ---------------------------------------------------------------------------

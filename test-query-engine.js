@@ -449,6 +449,47 @@ function testStep7() {
 }
 
 // ---------------------------------------------------------------------------
+// Step 8 Tests — resolveEntities
+// ---------------------------------------------------------------------------
+
+function testStep8() {
+  section('Step 8: resolveEntities — single entity');
+  const single = resolveEntities('Who is Steve Hughes?', GRAPH_DIR);
+  assert(single.length > 0, '"Who is Steve Hughes?" resolves at least 1 entity');
+  const hasSteve = single.some(e => e.entityId === 'ENT-SH-052');
+  assert(hasSteve, 'resolves Steve Hughes → ENT-SH-052');
+
+  section('Step 8: resolveEntities — two entities');
+  const two = resolveEntities('How does Steve Hughes connect to CJ Mitchell?', GRAPH_DIR);
+  assert(two.length >= 2, 'resolves at least 2 entities');
+  const hasSteveTwo = two.some(e => e.entityId === 'ENT-SH-052');
+  const hasCJ = two.some(e => e.entityId === 'ENT-CM-001');
+  assert(hasSteveTwo, 'resolves Steve Hughes');
+  assert(hasCJ, 'resolves CJ Mitchell');
+
+  section('Step 8: resolveEntities — result structure');
+  if (single.length > 0) {
+    const r = single[0];
+    assert(typeof r.entityId === 'string', 'result has entityId');
+    assert(r.name !== undefined, 'result has name');
+    assert(typeof r.score === 'number', 'result has score');
+  }
+
+  section('Step 8: resolveEntities — no entities');
+  const none = resolveEntities('Hello world', GRAPH_DIR);
+  assert(none.length === 0, '"Hello world" resolves no entities');
+
+  section('Step 8: resolveEntities — partial name');
+  const partial = resolveEntities('Tell me about Steve', GRAPH_DIR);
+  assert(partial.length > 0, '"Tell me about Steve" resolves at least 1 entity');
+
+  section('Step 8: resolveEntities — no duplicates');
+  const dupes = resolveEntities('Steve Hughes and Steve Hughes again', GRAPH_DIR);
+  const steveCount = dupes.filter(e => e.entityId === 'ENT-SH-052').length;
+  assert(steveCount <= 1, 'no duplicate entity IDs in results');
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -485,6 +526,10 @@ async function main() {
 
   if (!step || step === 7) {
     testStep7();
+  }
+
+  if (!step || step === 8) {
+    testStep8();
   }
 
   console.log(`\n══════════════════════════`);
