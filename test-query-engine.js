@@ -142,6 +142,73 @@ function testStep2() {
 }
 
 // ---------------------------------------------------------------------------
+// Step 3 Tests — searchEntities
+// ---------------------------------------------------------------------------
+
+function testStep3() {
+  section('Step 3: searchEntities — exact match');
+  const exact = searchEntities('Steve Hughes', GRAPH_DIR);
+  assert(exact.length > 0, 'finds "Steve Hughes"');
+  assert(exact[0].name === 'Steve Hughes' || (exact[0].name && exact[0].name.full === 'Steve Hughes'), 'top result is Steve Hughes');
+  assert(exact[0].score === 1.0, 'exact match score = 1.0');
+
+  section('Step 3: searchEntities — fuzzy match');
+  const fuzzy = searchEntities('steven', GRAPH_DIR);
+  assert(fuzzy.length > 0, 'finds results for "steven"');
+  // Should find Steve Hughes via partial name match or Dice
+  const hasSteveH = fuzzy.some(e => e.entityId === 'ENT-SH-052');
+  assert(hasSteveH, '"steven" finds Steve Hughes (ENT-SH-052)');
+
+  section('Step 3: searchEntities — partial name match');
+  const partial = searchEntities('CJ', GRAPH_DIR);
+  assert(partial.length > 0, 'finds results for "CJ"');
+  const hasCJ = partial.some(e => e.entityId === 'ENT-CM-001');
+  assert(hasCJ, '"CJ" finds CJ Mitchell (ENT-CM-001)');
+
+  section('Step 3: searchEntities — type filter');
+  const people = searchEntities('Amazon', GRAPH_DIR, { type: 'PERSON' });
+  const orgs = searchEntities('Amazon', GRAPH_DIR, { type: 'ORG' });
+  // Amazon should only show up in ORG results, not PERSON
+  const amazonInPeople = people.some(e => e.name === 'Amazon' || (e.name && e.name.full === 'Amazon'));
+  assert(!amazonInPeople, 'type:PERSON filter excludes Amazon org');
+
+  section('Step 3: searchEntities — result structure');
+  const results = searchEntities('Mitchell', GRAPH_DIR);
+  assert(results.length > 0, 'finds results for "Mitchell"');
+  const first = results[0];
+  assert(typeof first.entityId === 'string', 'result has entityId');
+  assert(first.name !== undefined, 'result has name');
+  assert(typeof first.type === 'string', 'result has type');
+  assert(typeof first.score === 'number', 'result has score');
+  assert(first.data !== undefined, 'result has data');
+
+  section('Step 3: searchEntities — limit');
+  const limited = searchEntities('a', GRAPH_DIR, { limit: 3 });
+  assert(limited.length <= 3, 'limit:3 returns at most 3 results');
+
+  section('Step 3: searchEntities — sorted by relevance');
+  const sorted = searchEntities('Steve Hughes', GRAPH_DIR);
+  if (sorted.length >= 2) {
+    assert(sorted[0].score >= sorted[1].score, 'results sorted descending by score');
+  } else {
+    assert(true, 'only one result, sorted trivially');
+  }
+
+  section('Step 3: searchEntities — no results');
+  const noResults = searchEntities('xyznonexistent123', GRAPH_DIR);
+  assert(noResults.length === 0, 'no results for nonsense query');
+
+  section('Step 3: searchEntities — empty query');
+  const empty = searchEntities('', GRAPH_DIR);
+  assert(empty.length === 0, 'empty string returns no results');
+
+  section('Step 3: searchEntities — minConfidence filter');
+  const highConf = searchEntities('Steve', GRAPH_DIR, { minConfidence: 0.9 });
+  const allConf = searchEntities('Steve', GRAPH_DIR, { minConfidence: 0 });
+  assert(highConf.length <= allConf.length, 'minConfidence filters low-score results');
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -158,6 +225,10 @@ async function main() {
 
   if (!step || step === 2) {
     testStep2();
+  }
+
+  if (!step || step === 3) {
+    testStep3();
   }
 
   console.log(`\n══════════════════════════`);
