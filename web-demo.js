@@ -17334,7 +17334,7 @@ app.get('/.well-known/mcp.json', (req, res) => {
     description: 'Knowledge graph superpowers for Claude. Extracts entities and relationships from your project files, then answers questions with multi-hop graph traversal.',
     author: { name: 'CJ Mitchell', url: 'https://github.com/flawlesstracks/context-engine' },
     endpoint: '/mcp',
-    authentication: { type: 'header', header_name: 'X-Context-API-Key' },
+    authentication: { type: 'none', note: 'Defaults to owner tenant. Optional X-Context-API-Key header for multi-tenant.' },
     tools: MCP_TOOLS.map(t => ({ name: t.name, description: t.description })),
     compatibility: { platforms: ['web', 'desktop'] }
   });
@@ -17352,7 +17352,27 @@ app.get('/mcp', (req, res) => {
 });
 
 // POST /mcp — MCP JSON-RPC endpoint (Streamable HTTP transport)
-app.post('/mcp', apiAuth, async (req, res) => {
+// Auth bypass: claude.ai Custom Connectors cannot send custom headers.
+// If X-Context-API-Key is present, use apiAuth normally.
+// If absent, default to tenant eefc79c7 (CJ's tenant).
+app.post('/mcp', async (req, res) => {
+  const key = req.headers['x-context-api-key'];
+  if (key) {
+    // Run through normal apiAuth
+    return apiAuth(req, res, () => handleMcpRequest(req, res));
+  }
+  // Default tenant fallback for unauthenticated MCP (claude.ai Custom Connectors)
+  const defaultTenantId = 'eefc79c7';
+  const tenantDir = path.join(GRAPH_DIR, `tenant-${defaultTenantId}`);
+  if (!fs.existsSync(tenantDir)) fs.mkdirSync(tenantDir, { recursive: true });
+  req.agentId = 'claude-ai-connector';
+  req.graphDir = tenantDir;
+  req.isAdmin = false;
+  req.tenantId = defaultTenantId;
+  return handleMcpRequest(req, res);
+});
+
+async function handleMcpRequest(req, res) {
   const body = req.body;
 
   // Validate JSON-RPC envelope
@@ -17417,7 +17437,7 @@ app.post('/mcp', apiAuth, async (req, res) => {
     console.error('MCP endpoint error:', err);
     return res.json(jsonrpcError(id, -32603, err.message || 'Internal error'));
   }
-});
+}
 
 // --- Start server ---
 
