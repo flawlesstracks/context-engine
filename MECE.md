@@ -125,6 +125,7 @@ connects to the product.
 | MECE-006 | Collection Intelligence | EXTRACT | 4 modes, 4 source types, 4 filters | 2026-02-21 |
 | MECE-007 | Entity Rendering | DELIVER | 4 types, 4 densities, 6 lenses | 2026-02-21 |
 | MECE-010 | Universal Parser | EXTRACT, STRUCTURE | 4 sub-problems, 3 entity tiers, 3 parse strategies | 2026-02-22 |
+| MECE-011 | Query Engine | RETRIEVE, REASON, DELIVER | 5 query types, 4 graph ops, 5 synthesis functions | 2026-02-22 |
 
 |  |
 | :---- |
@@ -334,15 +335,15 @@ Track current state. Update after every build session.
 | ELICIT | ACQUIRE | 1 | 2026-02-18 | GPT follow-up questions for thin entities |
 | OBSERVE | ACQUIRE | 0.5 | 2026-02-18 | GPT auto-observe (write-back) |
 | STRUCTURE | APPLY | 9.5 | 2026-02-22 | Universal parser: entity+relationship extraction with confidence, dedup, PLACE/EVENT promotion |
-| RETRIEVE | APPLY | 5 | 2026-02-18 | Semantic search (embeddings) |
-| REASON | APPLY | 7 | 2026-02-18 | Multi-entity reasoning |
-| DELIVER | APPLY | 8 | 2026-02-18 | Profile mode \+ visual tiers live |
+| RETRIEVE | APPLY | 8 | 2026-02-22 | Query engine: fuzzy search, BFS path finding, neighborhood queries, attribute filtering — graph traversal, not just text search |
+| REASON | APPLY | 8.5 | 2026-02-22 | Query engine: 5 query types with answer synthesis — entity lookup, relationship traversal, aggregation, completeness analysis, contradiction detection |
+| DELIVER | APPLY | 8.5 | 2026-02-22 | Query results in web UI — answer cards, path visualization, gap reports, conflict cards, entity links |
 | VERIFY | ASSESS | 3 | 2026-02-20 | Confidence scoring live, cross-source next |
 | VALIDATE | ASSESS | 5.5 | 2026-02-20 | Review Queue live, thumbs up/down next |
 | MEASURE | ASSESS | 0 | 2026-02-18 | Query metrics dashboard |
 | LEARN | ASSESS | 0.5 | 2026-02-20 | Confidence auto-adjustment on Q2/Q4 |
 
-**Overall: \~7.0 / 10**
+**Overall: \~7.5 / 10**
 
 |  |
 | :---- |
@@ -540,6 +541,59 @@ Every file routes to exactly one strategy:
 * Post-processing: normalize names (title case for PERSON), dedup entities (Dice > 0.8), dedup relationships, promote PLACE/EVENT
 * Output feeds into signal staging (MECE-001) — no entity created directly
 * Module is standalone — importable with no global state
+
+## MECE-011: Query Engine
+
+**Primary Levers:** RETRIEVE, REASON, DELIVER
+**Domain:** How natural language questions become graph traversals and structured answers.
+**Parent in fractal:** AAA Loop → APPLY → RETRIEVE/REASON → Graph Query
+
+### Layer 1: Five Query Types (MECE)
+
+Every natural language question maps to exactly one type:
+
+| Type | Pattern | Graph Operation |
+|------|---------|----------------|
+| ENTITY_LOOKUP | "Who is X", "Tell me about X" | Load entity, return profile |
+| RELATIONSHIP | "How does X connect to Y" | BFS path finding between two entities |
+| AGGREGATION | "How many", "List all", "Who are" | Filter + count/collect |
+| COMPLETENESS | "What's missing", "What gaps" | Coverage analysis per entity |
+| CONTRADICTION | "Any conflicts", "What disagrees" | Attribute comparison across sources |
+
+### Layer 1 (continued): Four Graph Operations (MECE)
+
+Every graph query uses one or more of these operations:
+
+| Operation | Input | Output | Algorithm |
+|-----------|-------|--------|-----------|
+| searchEntities | query string + options | ranked entity matches | Dice coefficient fuzzy matching |
+| findPaths | sourceId, targetId, index | shortest paths | BFS on bidirectional adjacency list |
+| getNeighborhood | entityId, depth | concentric rings | BFS with depth tracking |
+| filterEntities | attribute filters | matching entities | Predicate evaluation with dot notation |
+
+### Layer 1 (continued): Five Synthesis Functions (MECE)
+
+Each query type has a dedicated synthesis function:
+
+| Function | Query Type | Output |
+|----------|-----------|--------|
+| synthesizeEntityAnswer | ENTITY_LOOKUP | Profile summary + attributes + relationship count |
+| synthesizePathAnswer | RELATIONSHIP | Path narrative + hop count + intermediaries |
+| synthesizeAggregationAnswer | AGGREGATION | Count + type breakdown + name listing |
+| synthesizeCompletenessAnswer | COMPLETENESS | Coverage % + gap list + suggestions |
+| synthesizeContradictionAnswer | CONTRADICTION | Conflict list + attribute comparison |
+
+### Layer 2: Behavioral Rules
+
+* `query(question, graphDir)` is the single entry point — classifies, resolves entities, traverses graph, synthesizes answer
+* Classification uses keyword regex first (< 5ms) — no AI call for classification
+* Entity resolution extracts names from questions using stop-word filtering + multi-word phrase matching
+* Relationship index is bidirectional — `works_at` creates forward edge AND `employs` reverse edge
+* Path finding respects maxDepth (default 4 hops) with visited set to prevent cycles
+* Answer synthesis is template-based (< 10ms) — no AI call for synthesis in v1
+* API endpoint: `GET /api/query?q=` returns full response schema with timing metadata
+* Web UI search bar auto-detects questions and routes to query engine vs entity search
+* All graph operations are pure traversal — no AI needed, completes in < 100ms
 
 |  |
 | :---- |
