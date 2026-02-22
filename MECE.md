@@ -127,6 +127,7 @@ connects to the product.
 | MECE-010 | Universal Parser | EXTRACT, STRUCTURE | 4 sub-problems, 3 entity tiers, 3 parse strategies | 2026-02-22 |
 | MECE-011 | Query Engine | RETRIEVE, REASON, DELIVER | 5 query types, 4 graph ops, 5 synthesis functions | 2026-02-22 |
 | MECE-012 | Network Schema | STRUCTURE | 3 ownership tiers, 4 schema fields | 2026-02-22 |
+| MECE-014 | Remote MCP Endpoint | DELIVER, INTEGRATE | 2 transports, 3 tools, 4 JSON-RPC methods | 2026-02-22 |
 
 |  |
 | :---- |
@@ -332,19 +333,19 @@ Track current state. Update after every build session.
 | Lever | Phase | Current Score | Last Updated | Next Move |
 | :---- | :---- | :---- | :---- | :---- |
 | EXTRACT | ACQUIRE | 10 | 2026-02-22 | Universal parser live — any file type, smart detection, structured import, AI extraction, chunking |
-| INTEGRATE | ACQUIRE | 5 | 2026-02-18 | ChatGPT history import |
+| INTEGRATE | ACQUIRE | 6 | 2026-02-22 | ChatGPT history import + MCP protocol (Claude Desktop DXT + claude.ai Custom Connectors) |
 | ELICIT | ACQUIRE | 1 | 2026-02-18 | GPT follow-up questions for thin entities |
 | OBSERVE | ACQUIRE | 0.5 | 2026-02-18 | GPT auto-observe (write-back) |
 | STRUCTURE | APPLY | 10 | 2026-02-22 | Universal parser + network schema: ownership tiers (self/owned/referenced), access rules, projection config, perspectives on every entity |
 | RETRIEVE | APPLY | 8 | 2026-02-22 | Query engine: fuzzy search, BFS path finding, neighborhood queries, attribute filtering — graph traversal, not just text search |
 | REASON | APPLY | 8.5 | 2026-02-22 | Query engine: 5 query types with answer synthesis — entity lookup, relationship traversal, aggregation, completeness analysis, contradiction detection |
-| DELIVER | APPLY | 8.5 | 2026-02-22 | Query results in web UI — answer cards, path visualization, gap reports, conflict cards, entity links |
+| DELIVER | APPLY | 9 | 2026-02-22 | Query results in web UI + MCP protocol (DXT desktop + remote Streamable HTTP for claude.ai) — answer cards, path visualization, gap reports, conflict cards, entity links, programmatic tool access |
 | VERIFY | ASSESS | 3 | 2026-02-20 | Confidence scoring live, cross-source next |
 | VALIDATE | ASSESS | 5.5 | 2026-02-20 | Review Queue live, thumbs up/down next |
 | MEASURE | ASSESS | 0 | 2026-02-18 | Query metrics dashboard |
 | LEARN | ASSESS | 0.5 | 2026-02-20 | Confidence auto-adjustment on Q2/Q4 |
 
-**Overall: \~7.6 / 10**
+**Overall: \~7.7 / 10**
 
 |  |
 | :---- |
@@ -635,6 +636,62 @@ Every entity carries four inert schema fields that enable future multi-tenant an
 * All fields are currently INERT — no access control logic, no projection filtering, no perspective merging
 * Fields exist so future features (shared graphs, team views, multi-perspective) don't require schema migration
 * `owner_tenant_id` is set on SELF and OWNED entities, null on REFERENCED
+
+|  |
+| :---- |
+
+## MECE-014: Remote MCP Endpoint
+
+**Primary Levers:** DELIVER, INTEGRATE
+**Domain:** How Claude (Desktop and web) connects to the Context Engine graph via the Model Context Protocol.
+**Parent in fractal:** AAA Loop → APPLY → DELIVER → Programmatic Access
+
+### Layer 1: Two Transports (MECE)
+
+Every MCP connection uses exactly one transport:
+
+| Transport | Protocol | Client | Deployment |
+|-----------|----------|--------|------------|
+| stdio | JSON-RPC over stdin/stdout | Claude Desktop (DXT package) | Local — runs on user's machine |
+| Streamable HTTP | JSON-RPC over HTTP POST | claude.ai Custom Connectors | Remote — runs on Render server |
+
+MECE check: MCP defines exactly two transports. Desktop apps use stdio. Web/cloud apps use HTTP. No gaps. No overlaps.
+
+### Layer 1 (continued): Three Tools (MECE)
+
+Every MCP interaction invokes exactly one tool:
+
+| Tool | AAA Phase | Input | Output | Internal Path |
+|------|-----------|-------|--------|---------------|
+| build_graph | ACQUIRE | files[] (filename + content), source | entities staged, file results, graph count | universalParse → stageAndScoreExtraction |
+| query | APPLY | question (natural language) | answer, query_type, entities, paths, gaps, conflicts, confidence, timing | queryEngine (MECE-011) |
+| update | APPLY | action (add_observation, add_relationship, get_entity, list_entities) + params | action-specific result | graph-ops CRUD (readEntity, writeEntity, listEntities) |
+
+MECE check: You either ADD data (build_graph), ASK about data (query), or MODIFY data (update). All graph operations fall into one of these three.
+
+### Layer 1 (continued): Four JSON-RPC Methods (MECE)
+
+Every MCP message is one of four method types:
+
+| Method | Direction | Purpose |
+|--------|-----------|---------|
+| initialize | Client → Server | Handshake — negotiate protocol version, exchange capabilities |
+| tools/list | Client → Server | Discovery — client learns available tools and their schemas |
+| tools/call | Client → Server | Execution — invoke a tool with arguments, get result |
+| ping | Client → Server | Health check — verify server is alive |
+
+### Layer 2: Behavioral Rules
+
+* stdio transport (DXT): MCP SDK handles framing. Server calls Render API over HTTP. Runs locally via Claude Desktop.
+* Streamable HTTP transport (remote): Express route at `POST /mcp` handles JSON-RPC directly. No SDK needed server-side.
+* Remote endpoint calls internal functions directly — no HTTP self-calls, no localhost fetch loops
+* Auth: `X-Context-API-Key` header required on all `POST /mcp` requests. Same apiAuth middleware as REST endpoints.
+* Discovery: `GET /.well-known/mcp.json` returns auto-discovery manifest. `GET /mcp` returns server metadata + tool list.
+* Tool schemas are identical across both transports — same inputSchema definitions in DXT manifest and remote endpoint
+* Notifications (e.g., `notifications/initialized`) are acknowledged silently — no response needed per JSON-RPC spec
+* Error responses use standard JSON-RPC error codes: -32601 (method not found), -32602 (invalid params), -32603 (internal error)
+* All tool handlers are async — `build_graph` runs universal parser, `query` awaits queryEngine, `update` reads/writes graph files
+* MCP protocol version: `2024-11-05` — returned in initialize handshake
 
 |  |
 | :---- |
