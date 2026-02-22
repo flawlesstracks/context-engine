@@ -807,34 +807,116 @@ function resolveEntities(question, graphDir) {
 }
 
 // ---------------------------------------------------------------------------
-// Main entry point (stub — Step 9)
+// Main entry point — Step 9
 // ---------------------------------------------------------------------------
 
 async function query(question, graphDir) {
   const startTime = Date.now();
+
+  // Q1: Classify
   const classStart = Date.now();
   const queryType = classifyQuery(question);
   const classificationMs = Date.now() - classStart;
 
-  // TODO: Steps 8-9 — resolve entities, graph ops, synthesis
+  // Q2: Resolve entities + graph operations
+  const graphStart = Date.now();
+  const resolved = resolveEntities(question, graphDir);
+
+  let synthesisData = {};
+  let result;
+
+  switch (queryType) {
+    case 'ENTITY_LOOKUP': {
+      if (resolved.length > 0) {
+        const entityData = readEntity(resolved[0].entityId, graphDir);
+        synthesisData = { entity: entityData };
+      } else {
+        synthesisData = { entity: null };
+      }
+      break;
+    }
+    case 'RELATIONSHIP': {
+      if (resolved.length >= 2) {
+        const index = buildRelationshipIndex(graphDir);
+        const paths = findPaths(resolved[0].entityId, resolved[1].entityId, index, 4);
+        synthesisData = {
+          paths,
+          sourceName: resolved[0].name,
+          targetName: resolved[1].name,
+        };
+      } else if (resolved.length === 1) {
+        // Show neighborhood if only one entity found
+        const index = buildRelationshipIndex(graphDir);
+        const hood = getNeighborhood(resolved[0].entityId, index, 2);
+        const neighbors = hood.rings.flatMap(r => r.entities);
+        synthesisData = { paths: [], sourceName: resolved[0].name, targetName: 'unknown' };
+      } else {
+        synthesisData = { paths: [], sourceName: 'unknown', targetName: 'unknown' };
+      }
+      break;
+    }
+    case 'AGGREGATION': {
+      // Parse type from question if possible
+      const q = question.toLowerCase();
+      let typeFilter = null;
+      if (/people|person/.test(q)) typeFilter = 'person';
+      else if (/organization|org|company|companies/.test(q)) typeFilter = 'organization';
+      else if (/business/.test(q)) typeFilter = 'business';
+      else if (/institution/.test(q)) typeFilter = 'institution';
+
+      const filters = typeFilter ? { type: typeFilter } : {};
+      const entities = typeFilter ? filterEntities(filters, graphDir) : filterEntities({}, graphDir);
+      synthesisData = { entities, question };
+      break;
+    }
+    case 'COMPLETENESS': {
+      if (resolved.length > 0) {
+        const entityData = readEntity(resolved[0].entityId, graphDir);
+        synthesisData = { entity: entityData };
+      } else {
+        synthesisData = { entity: null };
+      }
+      break;
+    }
+    case 'CONTRADICTION': {
+      if (resolved.length > 0) {
+        const entityData = readEntity(resolved[0].entityId, graphDir);
+        synthesisData = { entity: entityData };
+      } else {
+        synthesisData = { entity: null };
+      }
+      break;
+    }
+    default: {
+      synthesisData = {};
+      break;
+    }
+  }
+
+  const graphQueryMs = Date.now() - graphStart;
+
+  // Q3: Synthesize answer
+  const synthStart = Date.now();
+  result = synthesizeAnswer(queryType, synthesisData);
+  const synthesisMs = Date.now() - synthStart;
 
   return {
-    answer: '',
+    answer: result.answer,
     query: {
       original: question,
       type: queryType,
       classified_by: 'keyword',
-      entities_resolved: [],
+      entities_resolved: resolved.map(r => r.entityId),
     },
-    entities: [],
-    paths: [],
-    gaps: [],
-    conflicts: [],
-    confidence: 0,
+    entities: result.entities,
+    paths: result.paths,
+    gaps: result.gaps || [],
+    conflicts: result.conflicts || [],
+    confidence: result.confidence,
     timing: {
       classification_ms: classificationMs,
-      graph_query_ms: 0,
-      synthesis_ms: 0,
+      graph_query_ms: graphQueryMs,
+      synthesis_ms: synthesisMs,
       total_ms: Date.now() - startTime,
     },
   };

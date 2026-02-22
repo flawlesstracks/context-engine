@@ -490,6 +490,84 @@ function testStep8() {
 }
 
 // ---------------------------------------------------------------------------
+// Step 9 Tests — query() integration
+// ---------------------------------------------------------------------------
+
+async function testStep9() {
+  section('Step 9: query() — ENTITY_LOOKUP "Who is Steve Hughes?"');
+  const q1 = await query('Who is Steve Hughes?', GRAPH_DIR);
+  assert(q1.query.type === 'ENTITY_LOOKUP', 'classified as ENTITY_LOOKUP');
+  assert(q1.answer.includes('Steve Hughes'), 'answer contains Steve Hughes');
+  assert(q1.query.entities_resolved.includes('ENT-SH-052'), 'resolved ENT-SH-052');
+  assert(q1.entities.length > 0, 'has entities');
+  assert(q1.confidence > 0, 'has confidence > 0');
+
+  section('Step 9: query() — ENTITY_LOOKUP "Tell me about Amazon"');
+  const q2 = await query('Tell me about Amazon', GRAPH_DIR);
+  assert(q2.query.type === 'ENTITY_LOOKUP', 'classified as ENTITY_LOOKUP');
+  assert(q2.answer.length > 0, 'answer not empty');
+
+  section('Step 9: query() — RELATIONSHIP "How does Steve Hughes connect to CJ Mitchell?"');
+  const q3 = await query('How does Steve Hughes connect to CJ Mitchell?', GRAPH_DIR);
+  assert(q3.query.type === 'RELATIONSHIP', 'classified as RELATIONSHIP');
+  assert(q3.answer.includes('Steve Hughes'), 'answer contains source');
+  assert(q3.answer.includes('CJ Mitchell'), 'answer contains target');
+  assert(q3.paths.length > 0, 'has paths');
+  assert(q3.query.entities_resolved.length >= 2, 'resolved 2+ entities');
+
+  section('Step 9: query() — AGGREGATION "How many people are in my graph?"');
+  const q4 = await query('How many people are in my graph?', GRAPH_DIR);
+  assert(q4.query.type === 'AGGREGATION', 'classified as AGGREGATION');
+  assert(q4.answer.includes('Found'), 'answer has count');
+  assert(q4.entities.length > 0, 'has entities');
+  assert(q4.confidence === 1.0, 'confidence is 1.0');
+
+  section('Step 9: query() — AGGREGATION "List all organizations"');
+  const q5 = await query('List all organizations', GRAPH_DIR);
+  assert(q5.query.type === 'AGGREGATION', 'classified as AGGREGATION');
+  assert(q5.entities.length > 0, 'has entities');
+
+  section('Step 9: query() — COMPLETENESS "What am I missing about Steve Hughes?"');
+  const q6 = await query('What am I missing about Steve Hughes?', GRAPH_DIR);
+  assert(q6.query.type === 'COMPLETENESS', 'classified as COMPLETENESS');
+  assert(q6.answer.includes('Steve Hughes'), 'answer contains name');
+  assert(q6.answer.includes('%'), 'answer has coverage %');
+  assert(Array.isArray(q6.gaps), 'has gaps array');
+
+  section('Step 9: query() — CONTRADICTION "Any conflicts in Steve Hughes data?"');
+  const q7 = await query("Any conflicts in Steve Hughes' data?", GRAPH_DIR);
+  assert(q7.query.type === 'CONTRADICTION', 'classified as CONTRADICTION');
+  assert(q7.answer.includes('Steve Hughes'), 'answer contains name');
+  assert(Array.isArray(q7.conflicts), 'has conflicts array');
+
+  section('Step 9: query() — UNKNOWN "Hello"');
+  const q8 = await query('Hello', GRAPH_DIR);
+  assert(q8.query.type === 'UNKNOWN', 'classified as UNKNOWN');
+  assert(q8.answer.length > 0, 'answer not empty');
+  assert(q8.confidence === 0, 'confidence is 0');
+
+  section('Step 9: query() — timing metadata');
+  assert(typeof q1.timing.classification_ms === 'number', 'has classification_ms');
+  assert(typeof q1.timing.graph_query_ms === 'number', 'has graph_query_ms');
+  assert(typeof q1.timing.synthesis_ms === 'number', 'has synthesis_ms');
+  assert(typeof q1.timing.total_ms === 'number', 'has total_ms');
+  assert(q1.timing.total_ms < 5000, 'total < 5s (no AI call)');
+
+  section('Step 9: query() — response schema');
+  assert(typeof q1.answer === 'string', 'answer is string');
+  assert(typeof q1.query === 'object', 'query is object');
+  assert(typeof q1.query.original === 'string', 'query.original is string');
+  assert(typeof q1.query.type === 'string', 'query.type is string');
+  assert(typeof q1.query.classified_by === 'string', 'query.classified_by is string');
+  assert(Array.isArray(q1.query.entities_resolved), 'query.entities_resolved is array');
+  assert(Array.isArray(q1.entities), 'entities is array');
+  assert(Array.isArray(q1.paths), 'paths is array');
+  assert(Array.isArray(q1.gaps), 'gaps is array');
+  assert(Array.isArray(q1.conflicts), 'conflicts is array');
+  assert(typeof q1.confidence === 'number', 'confidence is number');
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -530,6 +608,10 @@ async function main() {
 
   if (!step || step === 8) {
     testStep8();
+  }
+
+  if (!step || step === 9) {
+    await testStep9();
   }
 
   console.log(`\n══════════════════════════`);
