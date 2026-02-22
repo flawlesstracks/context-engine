@@ -9363,6 +9363,67 @@ const WIKI_HTML = `<!DOCTYPE html>
     border-radius: 6px; font-size: 13px; color: #b45309;
   }
 
+  /* Dynamic structured-attribute cards */
+  .li-collapse-btn {
+    background: none; border: none; cursor: pointer; padding: 4px;
+    border-radius: 50%; color: #999; transition: all 0.15s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .li-collapse-btn:hover { background: #f0f0f0; color: #191919; }
+  .li-card.li-collapsed .li-card-body { display: none; }
+  .li-card.li-collapsed .li-collapse-btn svg { transform: rotate(-90deg); }
+
+  .li-kv-row { display: flex; padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; }
+  .li-kv-row:last-child { border-bottom: none; }
+  .li-kv-key { min-width: 160px; color: #666; font-weight: 500; flex-shrink: 0; }
+  .li-kv-val { color: #191919; flex: 1; line-height: 1.4; }
+
+  .li-bar-wrap { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .li-bar-label { min-width: 140px; font-size: 14px; font-weight: 500; color: #191919; }
+  .li-bar-track { flex: 1; height: 18px; background: #f0f0f0; border-radius: 9px; overflow: hidden; }
+  .li-bar-fill { height: 100%; border-radius: 9px; background: linear-gradient(90deg, #0a66c2, #004182); transition: width 0.4s; }
+  .li-bar-value { min-width: 40px; font-size: 13px; font-weight: 700; color: #191919; text-align: right; }
+  .li-bar-dispute { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; background: rgba(245,158,11,0.12); color: #b45309; margin-left: 4px; }
+
+  .li-pill-tag { display: inline-block; padding: 4px 12px; border-radius: 16px; font-size: 13px; font-weight: 500; margin: 3px 4px 3px 0; }
+  .li-pill-green { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+  .li-pill-red { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+  .li-pill-blue { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+  .li-pill-amber { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+
+  .li-border-item { border-left: 3px solid; border-radius: 6px; padding: 8px 14px; margin-bottom: 6px; font-size: 14px; color: #191919; line-height: 1.4; }
+  .li-border-green { border-color: #10b981; background: rgba(16,185,129,0.04); }
+  .li-border-red { border-color: #ef4444; background: rgba(239,68,68,0.04); }
+  .li-border-amber { border-color: #f59e0b; background: rgba(245,158,11,0.04); }
+  .li-border-blue { border-color: #3b82f6; background: rgba(59,130,246,0.04); }
+
+  .li-status-tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; margin-left: 6px; text-transform: uppercase; letter-spacing: 0.03em; }
+  .li-status-confirmed { background: rgba(16,185,129,0.12); color: #059669; }
+  .li-status-disputed { background: rgba(239,68,68,0.12); color: #dc2626; }
+  .li-status-modified { background: rgba(245,158,11,0.12); color: #d97706; }
+
+  .li-blockquote { border-left: 3px solid #0a66c2; padding: 12px 16px; margin: 8px 0; background: #f8fafc; border-radius: 0 8px 8px 0; }
+  .li-blockquote-text { font-size: 14px; color: #191919; line-height: 1.5; font-style: italic; }
+  .li-blockquote-source { font-size: 12px; color: #666; margin-top: 6px; font-style: normal; }
+
+  .li-sub-section { margin-top: 16px; }
+  .li-sub-title { font-size: 15px; font-weight: 600; color: #191919; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .li-sub-card { background: #fafafa; border: 1px solid #f0f0f0; border-radius: 8px; padding: 14px; margin-bottom: 8px; }
+
+  .li-insight-card { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; border-left: 3px solid #0a66c2; }
+  .li-insight-text { font-size: 14px; color: #191919; line-height: 1.5; }
+  .li-insight-source { font-size: 12px; color: #666; margin-top: 4px; }
+
+  .li-mbti-badge { display: inline-block; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px 14px; font-weight: 700; font-size: 16px; color: #1d4ed8; }
+  .li-enneagram-badge { display: inline-block; background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 8px 14px; font-weight: 700; font-size: 16px; color: #7c3aed; }
+
+  .li-family-member { display: flex; gap: 14px; padding: 14px; background: #fafafa; border: 1px solid #f0f0f0; border-radius: 8px; margin-bottom: 8px; }
+  .li-family-avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #0a66c2, #004182); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
+  .li-family-info { flex: 1; min-width: 0; }
+  .li-family-name { font-size: 14px; font-weight: 600; color: #191919; }
+  .li-family-role { font-size: 13px; color: #666; margin-top: 2px; }
+  .li-family-detail { font-size: 13px; color: #191919; margin-top: 4px; }
+
   /* Experience card */
   .li-exp-item {
     display: flex; gap: 14px; padding: 14px 0;
@@ -13518,6 +13579,14 @@ function toggleCardEdit(cardId, entityId) {
   }
 }
 
+function toggleCardCollapse(cardId) {
+  var card = document.getElementById(cardId);
+  if (!card) return;
+  card.classList.toggle('li-collapsed');
+  var body = document.getElementById(cardId + '-body');
+  if (body) body.style.display = card.classList.contains('li-collapsed') ? 'none' : '';
+}
+
 function saveCardEdit(cardId, entityId) {
   var payload = {};
 
@@ -14750,12 +14819,484 @@ function renderProfileDetail(data) {
   document.getElementById('main').innerHTML = h;
 }
 
-function renderDetail(data) {
-  // Check for Profile Mode
-  if (data.structured_attributes && data.structured_attributes.interface === 'profile') {
-    return renderProfileDetail(data);
+// --- Dynamic Card Renderer for Structured Attributes in LinkedIn Layout ---
+
+function renderLiOceanBars(ocean) {
+  if (!ocean || typeof ocean !== 'object') return '';
+  var traits = ['openness', 'conscientiousness', 'extraversion', 'agreeableness', 'neuroticism'];
+  var h = '';
+  for (var i = 0; i < traits.length; i++) {
+    var trait = traits[i];
+    var data = ocean[trait];
+    if (!data) continue;
+    var score = 0;
+    var disputeNote = (data && data._note) || '';
+    if (typeof data === 'object') {
+      score = data.score || data.percentile || 0;
+    } else if (typeof data === 'number') {
+      score = data;
+    }
+    var pct = Math.min(100, Math.max(0, typeof score === 'number' ? (score > 1 ? score : score * 100) : 0));
+    var valStr = typeof score === 'number' ? (score > 1 ? score.toFixed(0) : (score * 100).toFixed(0)) + '%' : esc(String(score));
+    h += '<div class="li-bar-wrap">';
+    h += '<span class="li-bar-label">' + formatProfileKey(trait) + '</span>';
+    h += '<span class="li-bar-track"><span class="li-bar-fill" style="width:' + pct + '%"></span></span>';
+    h += '<span class="li-bar-value">' + valStr + '</span>';
+    if (disputeNote) h += '<span class="li-bar-dispute" title="' + esc(String(disputeNote)) + '">&#9888; disputed</span>';
+    h += '</div>';
+  }
+  return h;
+}
+
+function renderLiPillTags(items, colorClass) {
+  if (!Array.isArray(items) || items.length === 0) return '';
+  var h = '';
+  for (var i = 0; i < items.length; i++) {
+    h += '<span class="li-pill-tag ' + colorClass + '">' + esc(String(items[i])) + '</span>';
+  }
+  return h;
+}
+
+function renderLiBorderItems(items, colorClass) {
+  if (!Array.isArray(items) || items.length === 0) return '';
+  var h = '';
+  for (var i = 0; i < items.length; i++) {
+    h += '<div class="li-border-item ' + colorClass + '">' + esc(String(items[i])) + '</div>';
+  }
+  return h;
+}
+
+function renderLiStatusItems(items, statusType) {
+  if (!Array.isArray(items) || items.length === 0) return '';
+  var tagClass = 'li-status-' + statusType;
+  var h = '';
+  for (var i = 0; i < items.length; i++) {
+    h += '<div class="li-border-item ' + (statusType === 'confirmed' ? 'li-border-green' : statusType === 'disputed' ? 'li-border-red' : 'li-border-amber') + '">';
+    h += esc(String(items[i]));
+    h += '<span class="li-status-tag ' + tagClass + '">' + statusType + '</span>';
+    h += '</div>';
+  }
+  return h;
+}
+
+function renderLiKvTable(obj) {
+  if (!obj || typeof obj !== 'object') return '';
+  var keys = Object.keys(obj);
+  var h = '<div class="li-kv-table">';
+  for (var i = 0; i < keys.length; i++) {
+    var k = keys[i];
+    if (k === 'interface' || k.startsWith('_')) continue;
+    var v = obj[k];
+    if (v === null || v === undefined) continue;
+    if (typeof v === 'object' && !Array.isArray(v)) continue; // skip nested objects, handled separately
+    var valStr = Array.isArray(v) ? v.join(', ') : String(v);
+    h += '<div class="li-kv-row"><span class="li-kv-key">' + formatProfileKey(k) + '</span><span class="li-kv-val">' + esc(valStr) + '</span></div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+function renderLiGenericValue(val, contextKey) {
+  if (val === null || val === undefined) return '';
+  if (Array.isArray(val)) {
+    if (val.length === 0) return '';
+    if (typeof val[0] === 'object' && val[0] !== null) {
+      var h = '';
+      for (var i = 0; i < val.length; i++) {
+        h += '<div class="li-sub-card">';
+        h += renderLiKvTable(val[i]);
+        h += '</div>';
+      }
+      return h;
+    }
+    return renderLiBorderItems(val, 'li-border-blue');
+  }
+  if (typeof val === 'object') {
+    return renderLiKvTable(val);
+  }
+  return '<div style="font-size:14px;color:#191919;line-height:1.4">' + esc(String(val)) + '</div>';
+}
+
+function renderDynamicCardContent(sectionKey, sectionData) {
+  var h = '';
+
+  // --- IDENTITY ---
+  if (sectionKey === 'identity') {
+    return renderLiKvTable(sectionData);
   }
 
+  // --- PROFESSIONAL ---
+  if (sectionKey === 'professional') {
+    return renderLiKvTable(sectionData);
+  }
+
+  // --- PERSONALITY ASSESSMENTS (with OCEAN bars) ---
+  if (sectionKey === 'personality_assessments') {
+    var pa = sectionData;
+    if (pa.mbti) {
+      h += '<div style="margin-bottom:16px">';
+      h += '<div class="li-sub-title">MBTI</div>';
+      h += '<span class="li-mbti-badge">' + esc(pa.mbti.type || '') + '</span>';
+      if (pa.mbti.description) h += '<div style="margin-top:8px;font-size:14px;color:#191919;line-height:1.4">' + esc(pa.mbti.description) + '</div>';
+      if (pa.mbti.confidence) h += '<div style="margin-top:4px;font-size:13px;color:#666">Confidence: ' + esc(String(pa.mbti.confidence)) + '</div>';
+      h += '</div>';
+    }
+    if (pa.enneagram) {
+      h += '<div style="margin-bottom:16px">';
+      h += '<div class="li-sub-title">Enneagram</div>';
+      var ennLabel = 'Type ' + (pa.enneagram.core_type || '') + (pa.enneagram.wing ? 'w' + pa.enneagram.wing : '');
+      h += '<span class="li-enneagram-badge">' + esc(ennLabel) + '</span>';
+      if (pa.enneagram.tritype) h += '<span style="margin-left:8px;font-size:13px;color:#666">Tritype: ' + esc(String(pa.enneagram.tritype)) + '</span>';
+      if (pa.enneagram.instinctual_variant) h += '<span style="margin-left:8px;font-size:13px;color:#666">' + esc(pa.enneagram.instinctual_variant) + '</span>';
+      if (pa.enneagram.description) h += '<div style="margin-top:8px;font-size:14px;color:#191919;line-height:1.4">' + esc(pa.enneagram.description) + '</div>';
+      h += '</div>';
+    }
+    if (pa.ocean) {
+      h += '<div style="margin-bottom:8px">';
+      h += '<div class="li-sub-title">OCEAN / Big Five</div>';
+      h += renderLiOceanBars(pa.ocean);
+      h += '</div>';
+    }
+    return h;
+  }
+
+  // --- BEHAVIORAL PATTERNS ---
+  if (sectionKey === 'behavioral_patterns') {
+    var bp = sectionData;
+    // Key-value fields
+    var kvFields = ['communication_style', 'decision_making', 'conflict_style'];
+    var hasKv = false;
+    for (var i = 0; i < kvFields.length; i++) {
+      if (bp[kvFields[i]]) {
+        h += '<div class="li-kv-row"><span class="li-kv-key">' + formatProfileKey(kvFields[i]) + '</span><span class="li-kv-val">' + esc(String(bp[kvFields[i]])) + '</span></div>';
+        hasKv = true;
+      }
+    }
+    // Energized By pills
+    if (bp.energized_by && bp.energized_by.length > 0) {
+      h += '<div class="li-sub-section"><div class="li-sub-title">Energized By</div>';
+      h += renderLiPillTags(bp.energized_by, 'li-pill-green');
+      h += '</div>';
+    }
+    // Drained By pills
+    if (bp.drained_by && bp.drained_by.length > 0) {
+      h += '<div class="li-sub-section"><div class="li-sub-title">Drained By</div>';
+      h += renderLiPillTags(bp.drained_by, 'li-pill-red');
+      h += '</div>';
+    }
+    // Blind Spots
+    if (bp.blind_spots && bp.blind_spots.length > 0) {
+      h += '<div class="li-sub-section"><div class="li-sub-title">&#9888; Blind Spots</div>';
+      h += renderLiBorderItems(bp.blind_spots, 'li-border-amber');
+      h += '</div>';
+    }
+    // Any remaining fields
+    var handled = ['communication_style', 'decision_making', 'conflict_style', 'energized_by', 'drained_by', 'blind_spots'];
+    var bpKeys = Object.keys(bp);
+    for (var i = 0; i < bpKeys.length; i++) {
+      if (handled.indexOf(bpKeys[i]) === -1 && !bpKeys[i].startsWith('_')) {
+        h += '<div class="li-sub-section"><div class="li-sub-title">' + formatProfileKey(bpKeys[i]) + '</div>';
+        h += renderLiGenericValue(bp[bpKeys[i]], bpKeys[i]);
+        h += '</div>';
+      }
+    }
+    return h;
+  }
+
+  // --- ENNEAGRAM DYNAMICS ---
+  if (sectionKey === 'enneagram_dynamics') {
+    return renderLiKvTable(sectionData);
+  }
+
+  // --- FAMILY (with member sub-cards) ---
+  if (sectionKey === 'family') {
+    var fam = sectionData;
+    // Spouse sub-card
+    if (fam.spouse) {
+      var sp = fam.spouse;
+      var spInit = (sp.name || '').split(/\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
+      h += '<div class="li-family-member">';
+      h += '<div class="li-family-avatar">' + esc(spInit) + '</div>';
+      h += '<div class="li-family-info">';
+      h += '<div class="li-family-name">' + esc(sp.name || '') + '</div>';
+      h += '<div class="li-family-role">' + esc(sp.relationship_type || 'Spouse') + '</div>';
+      var spDetails = [];
+      if (sp.origin) spDetails.push('Origin: ' + sp.origin);
+      if (sp.profession) spDetails.push(sp.profession);
+      if (sp.personality_type) spDetails.push('Personality: ' + sp.personality_type);
+      if (spDetails.length > 0) h += '<div class="li-family-detail">' + esc(spDetails.join(' · ')) + '</div>';
+      h += '</div></div>';
+    }
+    // Children
+    if (fam.children && fam.children.length > 0) {
+      for (var i = 0; i < fam.children.length; i++) {
+        var child = fam.children[i];
+        var cInit = (child.name || '').split(/\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
+        h += '<div class="li-family-member">';
+        h += '<div class="li-family-avatar" style="background:linear-gradient(135deg,#7c3aed,#5b21b6)">' + esc(cInit) + '</div>';
+        h += '<div class="li-family-info">';
+        h += '<div class="li-family-name">' + esc(child.name || '') + '</div>';
+        var childMeta = [];
+        if (child.age) childMeta.push('Age ' + child.age);
+        if (child.birth_date) childMeta.push('Born: ' + child.birth_date);
+        if (childMeta.length > 0) h += '<div class="li-family-role">' + esc(childMeta.join(' · ')) + '</div>';
+        if (child.notes) h += '<div class="li-family-detail">' + esc(child.notes) + '</div>';
+        h += '</div></div>';
+      }
+    }
+    // Family notes
+    if (fam.family_notes) {
+      h += '<div style="margin-top:12px;font-size:14px;color:#666;line-height:1.4;font-style:italic">' + esc(fam.family_notes) + '</div>';
+    }
+    // Any other fields
+    var famHandled = ['spouse', 'children', 'family_notes'];
+    var famKeys = Object.keys(fam);
+    for (var i = 0; i < famKeys.length; i++) {
+      if (famHandled.indexOf(famKeys[i]) === -1 && !famKeys[i].startsWith('_')) {
+        h += '<div class="li-kv-row"><span class="li-kv-key">' + formatProfileKey(famKeys[i]) + '</span><span class="li-kv-val">' + esc(String(fam[famKeys[i]])) + '</span></div>';
+      }
+    }
+    return h;
+  }
+
+  // --- SPOUSE DYNAMIC (with status tags) ---
+  if (sectionKey === 'spouse_dynamic') {
+    var sd = sectionData;
+    if (sd.core_dynamic) {
+      h += '<div class="li-kv-row"><span class="li-kv-key">Core Dynamic</span><span class="li-kv-val">' + esc(String(sd.core_dynamic)) + '</span></div>';
+    }
+    if (sd.friction_points && sd.friction_points.length > 0) {
+      h += '<div class="li-sub-section"><div class="li-sub-title" style="color:#ef4444">Friction Points</div>';
+      h += renderLiBorderItems(sd.friction_points, 'li-border-red');
+      h += '</div>';
+    }
+    if (sd.strengths && sd.strengths.length > 0) {
+      h += '<div class="li-sub-section"><div class="li-sub-title" style="color:#10b981">Strengths</div>';
+      h += renderLiBorderItems(sd.strengths, 'li-border-green');
+      h += '</div>';
+    }
+    if (sd.confirmed && sd.confirmed.length > 0) {
+      h += '<div class="li-sub-section"><div class="li-sub-title" style="color:#10b981">&#10003; Confirmed</div>';
+      h += renderLiStatusItems(sd.confirmed, 'confirmed');
+      h += '</div>';
+    }
+    if (sd.disputed && sd.disputed.length > 0) {
+      h += '<div class="li-sub-section"><div class="li-sub-title" style="color:#dc2626">&#9888; Disputed</div>';
+      h += renderLiStatusItems(sd.disputed, 'disputed');
+      h += '</div>';
+    }
+    if (sd.modified && sd.modified.length > 0) {
+      h += '<div class="li-sub-section"><div class="li-sub-title" style="color:#d97706">&#9998; Modified</div>';
+      h += renderLiStatusItems(sd.modified, 'modified');
+      h += '</div>';
+    }
+    // Any other fields
+    var sdHandled = ['core_dynamic', 'friction_points', 'strengths', 'confirmed', 'disputed', 'modified'];
+    var sdKeys = Object.keys(sd);
+    for (var i = 0; i < sdKeys.length; i++) {
+      if (sdHandled.indexOf(sdKeys[i]) === -1 && !sdKeys[i].startsWith('_')) {
+        h += '<div class="li-sub-section"><div class="li-sub-title">' + formatProfileKey(sdKeys[i]) + '</div>';
+        h += renderLiGenericValue(sd[sdKeys[i]], sdKeys[i]);
+        h += '</div>';
+      }
+    }
+    return h;
+  }
+
+  // --- RELATIONSHIP WITH PRIMARY USER ---
+  if (sectionKey === 'relationship_to_primary_user') {
+    var rp = sectionData;
+    if (rp.what_works && rp.what_works.length > 0) {
+      h += '<div class="li-sub-section"><div class="li-sub-title" style="color:#10b981">&#10003; What Works</div>';
+      h += renderLiBorderItems(rp.what_works, 'li-border-green');
+      h += '</div>';
+    }
+    if (rp.what_doesnt_work && rp.what_doesnt_work.length > 0) {
+      h += '<div class="li-sub-section"><div class="li-sub-title" style="color:#ef4444">&#10007; What Doesn\'t Work</div>';
+      h += renderLiBorderItems(rp.what_doesnt_work, 'li-border-red');
+      h += '</div>';
+    }
+    if (rp.management_protocol) {
+      h += '<div class="li-sub-section"><div class="li-sub-title">Management Protocol</div>';
+      h += '<div style="font-size:14px;color:#191919;line-height:1.4;padding:10px 14px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0">' + esc(String(rp.management_protocol)) + '</div>';
+      h += '</div>';
+    }
+    if (rp.mj_analysis) {
+      h += '<div class="li-sub-section"><div class="li-sub-title">MJ Analysis</div>';
+      h += '<div class="li-blockquote"><div class="li-blockquote-text">' + esc(String(rp.mj_analysis)) + '</div>';
+      h += '<div class="li-blockquote-source">Source: MJ/AI Assessment</div></div>';
+      h += '</div>';
+    }
+    if (rp.communication_guidelines) {
+      h += '<div class="li-sub-section"><div class="li-sub-title">Communication Guidelines</div>';
+      if (typeof rp.communication_guidelines === 'string') {
+        h += '<div style="font-size:14px;color:#191919;line-height:1.4">' + esc(rp.communication_guidelines) + '</div>';
+      } else {
+        h += renderLiGenericValue(rp.communication_guidelines, 'communication_guidelines');
+      }
+      h += '</div>';
+    }
+    // Any other fields
+    var rpHandled = ['what_works', 'what_doesnt_work', 'management_protocol', 'mj_analysis', 'communication_guidelines'];
+    var rpKeys = Object.keys(rp);
+    for (var i = 0; i < rpKeys.length; i++) {
+      if (rpHandled.indexOf(rpKeys[i]) === -1 && !rpKeys[i].startsWith('_')) {
+        h += '<div class="li-sub-section"><div class="li-sub-title">' + formatProfileKey(rpKeys[i]) + '</div>';
+        h += renderLiGenericValue(rp[rpKeys[i]], rpKeys[i]);
+        h += '</div>';
+      }
+    }
+    return h;
+  }
+
+  // --- AI INTERACTION GUIDELINES / COMMUNICATION GUIDELINES ---
+  if (sectionKey === 'ai_interaction_guidelines') {
+    var ai = sectionData;
+    if (ai.expectations && ai.expectations.length > 0) {
+      h += '<div class="li-sub-section"><div class="li-sub-title" style="color:#10b981">Expectations</div>';
+      h += renderLiBorderItems(ai.expectations, 'li-border-green');
+      h += '</div>';
+    }
+    if (ai.cautions && ai.cautions.length > 0) {
+      h += '<div class="li-sub-section"><div class="li-sub-title" style="color:#f59e0b">&#9888; Cautions</div>';
+      h += renderLiBorderItems(ai.cautions, 'li-border-amber');
+      h += '</div>';
+    }
+    if (ai.preferred_approach) {
+      h += '<div class="li-kv-row"><span class="li-kv-key">Preferred Approach</span><span class="li-kv-val">' + esc(String(ai.preferred_approach)) + '</span></div>';
+    }
+    // Any other fields
+    var aiHandled = ['expectations', 'cautions', 'preferred_approach'];
+    var aiKeys = Object.keys(ai);
+    for (var i = 0; i < aiKeys.length; i++) {
+      if (aiHandled.indexOf(aiKeys[i]) === -1 && !aiKeys[i].startsWith('_')) {
+        h += '<div class="li-sub-section"><div class="li-sub-title">' + formatProfileKey(aiKeys[i]) + '</div>';
+        h += renderLiGenericValue(ai[aiKeys[i]], aiKeys[i]);
+        h += '</div>';
+      }
+    }
+    return h;
+  }
+
+  // --- PROFILE METADATA ---
+  if (sectionKey === 'profile_metadata') {
+    var pm = sectionData;
+    var pmKeys = Object.keys(pm);
+    for (var i = 0; i < pmKeys.length; i++) {
+      var k = pmKeys[i];
+      if (k.startsWith('_')) continue;
+      var v = pm[k];
+      if (v === null || v === undefined) continue;
+      if (Array.isArray(v)) {
+        h += '<div class="li-sub-section"><div class="li-sub-title">' + formatProfileKey(k) + '</div>';
+        h += renderLiPillTags(v, 'li-pill-blue');
+        h += '</div>';
+      } else {
+        h += '<div class="li-kv-row"><span class="li-kv-key">' + formatProfileKey(k) + '</span><span class="li-kv-val">' + esc(String(v)) + '</span></div>';
+      }
+    }
+    return h;
+  }
+
+  // --- GENERIC FALLBACK ---
+  if (typeof sectionData === 'string') {
+    return '<div style="font-size:14px;color:#191919;line-height:1.4">' + esc(sectionData) + '</div>';
+  }
+  if (Array.isArray(sectionData)) {
+    return renderLiGenericValue(sectionData, sectionKey);
+  }
+  if (typeof sectionData === 'object') {
+    // Check for known patterns
+    var sdKeys = Object.keys(sectionData);
+    var hasWhatWorks = sdKeys.indexOf('what_works') !== -1 || sdKeys.indexOf('what_doesnt_work') !== -1;
+    var hasOcean = sdKeys.indexOf('ocean') !== -1 || sdKeys.indexOf('mbti') !== -1;
+    var hasSpouse = sdKeys.indexOf('spouse') !== -1 || sdKeys.indexOf('children') !== -1;
+    if (hasWhatWorks) return renderDynamicCardContent('relationship_to_primary_user', sectionData);
+    if (hasOcean) return renderDynamicCardContent('personality_assessments', sectionData);
+    if (hasSpouse) return renderDynamicCardContent('family', sectionData);
+    // Render as KV with nested sections
+    h = '';
+    for (var i = 0; i < sdKeys.length; i++) {
+      var k = sdKeys[i];
+      if (k.startsWith('_') || k === 'interface') continue;
+      var v = sectionData[k];
+      if (v === null || v === undefined) continue;
+      if (typeof v === 'object' && !Array.isArray(v)) {
+        h += '<div class="li-sub-section"><div class="li-sub-title">' + formatProfileKey(k) + '</div>';
+        h += renderLiKvTable(v);
+        h += '</div>';
+      } else if (Array.isArray(v)) {
+        h += '<div class="li-sub-section"><div class="li-sub-title">' + formatProfileKey(k) + '</div>';
+        h += renderLiGenericValue(v, k);
+        h += '</div>';
+      } else {
+        h += '<div class="li-kv-row"><span class="li-kv-key">' + formatProfileKey(k) + '</span><span class="li-kv-val">' + esc(String(v)) + '</span></div>';
+      }
+    }
+    return h;
+  }
+  return esc(String(sectionData));
+}
+
+function renderStructuredAttributeCards(sa, editSvg, entityId) {
+  if (!sa || typeof sa !== 'object') return '';
+  var saKeys = Object.keys(sa);
+  var skipKeys = ['interface'];
+
+  // Section display config
+  var sectionConfig = {
+    'identity': { label: 'Identity', order: 1 },
+    'professional': { label: 'Professional', order: 2 },
+    'personality_assessments': { label: 'Personality Profile', order: 3 },
+    'behavioral_patterns': { label: 'Behavioral Patterns', order: 4 },
+    'enneagram_dynamics': { label: 'Enneagram Dynamics', order: 5 },
+    'family': { label: 'Family', order: 6 },
+    'spouse_dynamic': { label: 'Spouse Dynamic', order: 7 },
+    'relationship_to_primary_user': { label: 'Relationship with Primary User', order: 8 },
+    'ai_interaction_guidelines': { label: 'Communication Guidelines', order: 9 },
+    'profile_metadata': { label: 'Profile Metadata', order: 100 }
+  };
+
+  // Collect sections
+  var sections = [];
+  for (var i = 0; i < saKeys.length; i++) {
+    var sKey = saKeys[i];
+    if (skipKeys.indexOf(sKey) !== -1) continue;
+    var sData = sa[sKey];
+    if (!sData) continue;
+    if (typeof sData === 'object' && !Array.isArray(sData) && Object.keys(sData).length === 0) continue;
+    var config = sectionConfig[sKey] || { label: formatProfileKey(sKey), order: 50 };
+    sections.push({ key: sKey, label: config.label, order: config.order, data: sData });
+  }
+
+  // Sort by order
+  sections.sort(function(a, b) { return a.order - b.order; });
+
+  var h = '';
+  for (var i = 0; i < sections.length; i++) {
+    var sec = sections[i];
+    var cardId = 'li-card-sa-' + sec.key;
+    var collapsed = sec.key === 'profile_metadata';
+
+    h += '<div class="li-card' + (collapsed ? ' li-collapsed' : '') + '" id="' + cardId + '">';
+    h += '<div class="li-card-header">';
+    h += '<h2 class="li-card-title">' + esc(sec.label) + '</h2>';
+    h += '<div style="display:flex;align-items:center;gap:8px;">';
+    h += '<button class="li-edit-btn" onclick="toggleCardEdit(\\'sa-' + sec.key + '\\',\\'' + esc(entityId) + '\\')" title="Edit">' + editSvg + '</button>';
+    h += '<button class="li-collapse-btn" onclick="toggleCardCollapse(\\'' + cardId + '\\')" title="Toggle">';
+    h += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>';
+    h += '</button>';
+    h += '</div></div>';
+
+    h += '<div class="li-card-body" id="' + cardId + '-body"' + (collapsed ? ' style="display:none"' : '') + '>';
+    h += renderDynamicCardContent(sec.key, sec.data);
+    h += '</div></div>';
+  }
+  return h;
+}
+
+function renderDetail(data) {
+  // Profile mode entities now render in LinkedIn card layout with dynamic structured attribute cards
   var e = data.entity || {};
   var type = e.entity_type || '';
 
@@ -14802,6 +15343,20 @@ function renderDetail(data) {
   var education = cl.education || [];
   var skills = cl.skills || [];
   var isSelf = entityId === primaryEntityId;
+
+  // Augment with structured_attributes data for profile-mode entities
+  var sa = data.structured_attributes || {};
+  var preferredName = (sa.identity && sa.identity.preferred_name) || '';
+  if (!headline && sa.professional) {
+    var saRole = sa.professional.current_role || '';
+    var saCompany = sa.professional.company || '';
+    if (saRole && saCompany) headline = saRole + ' at ' + saCompany;
+    else if (saRole) headline = saRole;
+    else if (saCompany) headline = saCompany;
+  }
+  if (!location && sa.identity && sa.identity.location) location = sa.identity.location;
+  if (!currentTitle && sa.professional) currentTitle = sa.professional.current_role || '';
+  if (!currentCompany && sa.professional) currentCompany = sa.professional.company || '';
 
   // Source count
   var srcSet = {};
@@ -14885,7 +15440,9 @@ function renderDetail(data) {
   h += '<div class="li-hero-top">';
   h += '<div class="li-hero-avatar ' + (isOrg ? 'org' : 'person') + '">' + esc(initials) + '</div>';
   h += '<div class="li-hero-info">';
-  h += '<h1 class="li-hero-name" id="li-hero-name">' + esc(name) + '</h1>';
+  h += '<h1 class="li-hero-name" id="li-hero-name">' + esc(name);
+  if (preferredName && preferredName !== name) h += ' <span style="color:#666;font-weight:400;font-size:18px">(' + esc(preferredName) + ')</span>';
+  h += '</h1>';
   if (headline) {
     h += '<div class="li-hero-headline">' + esc(headline) + '</div>';
   } else if (currentTitle && currentCompany) {
@@ -14992,6 +15549,11 @@ function renderDetail(data) {
     h += '</div></div>';
 
     h += '</div>'; // li-card about
+  }
+
+  // --- DYNAMIC STRUCTURED ATTRIBUTE CARDS ---
+  if (sa && typeof sa === 'object' && Object.keys(sa).length > 1) {
+    h += renderStructuredAttributeCards(sa, editSvg, entityId);
   }
 
   // --- CARD 3: INTELLIGENCE (self entity only) ---
