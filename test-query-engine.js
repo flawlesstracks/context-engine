@@ -262,6 +262,63 @@ function testStep4() {
 }
 
 // ---------------------------------------------------------------------------
+// Step 5 Tests — getNeighborhood
+// ---------------------------------------------------------------------------
+
+function testStep5() {
+  const index = buildRelationshipIndex(GRAPH_DIR);
+
+  section('Step 5: getNeighborhood — structure');
+  const hood = getNeighborhood('ENT-SH-052', index, 2);
+  assert(hood && typeof hood === 'object', 'returns an object');
+  assert(hood.center === 'ENT-SH-052', 'center is Steve Hughes');
+  assert(Array.isArray(hood.rings), 'has rings array');
+
+  section('Step 5: getNeighborhood — depth 1 ring');
+  assert(hood.rings.length >= 1, 'has at least 1 ring');
+  const ring1 = hood.rings.find(r => r.depth === 1);
+  assert(ring1 !== undefined, 'ring at depth 1 exists');
+  assert(ring1 && ring1.entities.length > 0, 'depth 1 has entities');
+  // Steve's direct connections include CJ Mitchell
+  if (ring1) {
+    const hasCJ = ring1.entities.some(e => e.entityId === 'ENT-CM-001' || e.entityName === 'CJ Mitchell');
+    assert(hasCJ, 'depth 1 includes CJ Mitchell');
+  }
+
+  section('Step 5: getNeighborhood — ring entity structure');
+  if (ring1 && ring1.entities.length > 0) {
+    const e = ring1.entities[0];
+    assert(typeof e.entityId === 'string', 'ring entity has entityId');
+    assert(typeof e.entityName === 'string', 'ring entity has entityName');
+    assert(typeof e.relationship === 'string', 'ring entity has relationship');
+    assert(typeof e.fromEntity === 'string', 'ring entity has fromEntity');
+  }
+
+  section('Step 5: getNeighborhood — depth 2 ring');
+  if (hood.rings.length >= 2) {
+    const ring2 = hood.rings.find(r => r.depth === 2);
+    assert(ring2 !== undefined, 'ring at depth 2 exists');
+    assert(ring2 && ring2.entities.length > 0, 'depth 2 has entities');
+    // Depth 2 should NOT repeat depth 1 entities
+    if (ring1 && ring2) {
+      const depth1Ids = new Set(ring1.entities.map(e => e.entityId));
+      const overlap = ring2.entities.some(e => depth1Ids.has(e.entityId) || e.entityId === 'ENT-SH-052');
+      assert(!overlap, 'depth 2 does not repeat depth 1 or center');
+    }
+  } else {
+    assert(true, 'no depth 2 ring (isolated neighborhood)');
+  }
+
+  section('Step 5: getNeighborhood — depth 0');
+  const hood0 = getNeighborhood('ENT-SH-052', index, 0);
+  assert(hood0.rings.length === 0, 'depth 0 has no rings');
+
+  section('Step 5: getNeighborhood — depth 1 only');
+  const hood1 = getNeighborhood('ENT-SH-052', index, 1);
+  assert(hood1.rings.length <= 1, 'depth 1 has at most 1 ring');
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -286,6 +343,10 @@ async function main() {
 
   if (!step || step === 4) {
     testStep4();
+  }
+
+  if (!step || step === 5) {
+    testStep5();
   }
 
   console.log(`\n══════════════════════════`);
