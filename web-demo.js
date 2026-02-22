@@ -17006,6 +17006,419 @@ function revokeShare(shareId) {
 </body>
 </html>`;
 
+// ==========================================================================
+// MECE-014: Remote MCP Endpoint (Streamable HTTP Transport)
+// Enables claude.ai Custom Connectors: Settings → Connectors → Add
+// Same 3 tools as the DXT package, running server-side over HTTP.
+// ==========================================================================
+
+const MCP_PROTOCOL_VERSION = '2024-11-05';
+const MCP_SERVER_INFO = { name: 'context-engine', version: '1.0.0' };
+
+// --- MCP Tool Definitions (same as dxt/server/index.js) ---
+
+const MCP_TOOLS = [
+  {
+    name: 'build_graph',
+    description: 'Build or rebuild the knowledge graph from files. Extracts entities (people, organizations, concepts) and their relationships from all provided content. Call this when the user wants to analyze their project files or update the graph with new information.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        files: {
+          type: 'array',
+          description: 'Array of {filename, content} objects to process',
+          items: {
+            type: 'object',
+            properties: {
+              filename: { type: 'string', description: 'Name of the file including extension' },
+              content: { type: 'string', description: 'Full text content of the file' }
+            },
+            required: ['filename', 'content']
+          }
+        },
+        set_self_entity: {
+          type: 'string',
+          description: 'Optional. Name of the primary person this graph is about.'
+        }
+      },
+      required: ['files']
+    }
+  },
+  {
+    name: 'query',
+    description: "Query the knowledge graph with a natural language question. Supports: entity lookup ('Who is X?'), relationship traversal ('How does X connect to Y?'), aggregation ('How many people?'), completeness checks ('What am I missing about X?'), contradiction detection ('Any conflicts?').",
+    inputSchema: {
+      type: 'object',
+      properties: {
+        question: { type: 'string', description: 'Natural language question about entities, relationships, or the knowledge graph' }
+      },
+      required: ['question']
+    }
+  },
+  {
+    name: 'update',
+    description: 'Add new observations or relationships to an entity in the knowledge graph. Use when the user mentions new facts in conversation.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        entity_name: { type: 'string', description: 'Entity to update or create' },
+        entity_type: { type: 'string', enum: ['person', 'business', 'institution'], description: 'Type of entity (person, business, or institution)' },
+        observations: {
+          type: 'array',
+          description: 'New facts about this entity',
+          items: {
+            type: 'object',
+            properties: {
+              attribute: { type: 'string', description: 'What this fact is about (e.g., role, location, education)' },
+              value: { type: 'string', description: 'The fact itself' },
+              confidence: { type: 'number', description: 'How confident (0-1). Use 0.9 for stated facts, 0.6 for inferred.' }
+            },
+            required: ['attribute', 'value']
+          }
+        },
+        relationships: {
+          type: 'array',
+          description: 'New relationships to add',
+          items: {
+            type: 'object',
+            properties: {
+              target_name: { type: 'string', description: 'Name of the related entity' },
+              relationship: { type: 'string', description: 'Type of relationship (e.g., works_at, friend_of, created)' },
+              context: { type: 'string', description: 'Context for this relationship' }
+            },
+            required: ['target_name', 'relationship']
+          }
+        }
+      },
+      required: ['entity_name']
+    }
+  }
+];
+
+// --- MCP Tool Handlers (server-side, calls internal functions directly) ---
+
+async function mcpBuildGraph(args, graphDir) {
+  const { files, set_self_entity } = args || {};
+  if (!files || !Array.isArray(files)) throw new Error('files array is required');
+
+  const results = [];
+  for (const file of files) {
+    try {
+      const content = file.content || '';
+      const buf = Buffer.from(content, content.match(/^[A-Za-z0-9+/=\s]+$/) ? 'base64' : 'utf-8');
+      const parsed = await universalParse(buf, file.filename);
+      const entities = (parsed.entities || []).map(ent => {
+        const eType = (ent.type || 'PERSON').toLowerCase();
+        const mapped = eType === 'org' ? 'business' : eType === 'concept' ? 'business' : (eType === 'person' ? 'person' : 'business');
+        const nameObj = mapped === 'person'
+          ? { full: ent.name, preferred: (ent.name || '').split(/\s+/)[0], confidence: ent.confidence || 0.8, facts_layer: 1 }
+          : { common: ent.name, confidence: ent.confidence || 0.8, facts_layer: 1 };
+        const attrs = [];
+        if (ent.attributes) {
+          let seq = 1;
+          for (const [key, value] of Object.entries(ent.attributes)) {
+            attrs.push({ attribute_id: `ATTR-${String(seq++).padStart(3, '0')}`, key, value: String(value), confidence: ent.confidence || 0.7 });
+          }
+        }
+        return {
+          schema_version: '2.0', schema_type: 'context_architecture_entity',
+          extraction_metadata: { extracted_at: new Date().toISOString(), source_description: `MCP build_graph: ${file.filename}`, extraction_model: 'universal-parser', extraction_confidence: ent.confidence || 0.7, schema_version: '2.0' },
+          entity: { entity_type: mapped, name: nameObj, summary: { value: ent.evidence || '', confidence: ent.confidence || 0.5, facts_layer: 2 } },
+          attributes: attrs, relationships: [], values: [], key_facts: [], constraints: [], observations: [],
+          ownership: 'referenced', access_rules: { visibility: 'private', shared_with: [] }, projection_config: { lenses: ['default'] }, perspectives: []
+        };
+      });
+      if (entities.length > 0) {
+        const staged = stageAndScoreExtraction(entities, { type: 'file', url: '', description: `MCP build_graph: ${file.filename}` }, graphDir);
+        results.push({ filename: file.filename, entities_staged: staged.length });
+      } else {
+        results.push({ filename: file.filename, entities_staged: 0 });
+      }
+    } catch (err) {
+      results.push({ filename: file.filename, error: err.message });
+    }
+  }
+
+  if (set_self_entity) {
+    const { similarity } = require('./merge-engine');
+    const allEnts = listEntities(graphDir);
+    let bestMatch = null, bestScore = 0;
+    for (const { data } of allEnts) {
+      const e = data.entity || {};
+      const eName = e.name?.full || e.name?.common || e.name?.preferred || '';
+      const score = similarity(set_self_entity, eName);
+      if (score > bestScore) { bestScore = score; bestMatch = { id: e.entity_id, name: eName }; }
+    }
+    if (bestMatch && bestScore > 0.6) {
+      const selfPath = path.join(graphDir, 'self-entity.json');
+      fs.writeFileSync(selfPath, JSON.stringify({ self_entity_id: bestMatch.id, self_entity_name: bestMatch.name, purpose: 'Primary user knowledge graph' }, null, 2));
+      clearSelfEntityCache(graphDir);
+      const selfData = readEntity(bestMatch.id, graphDir);
+      if (selfData) { selfData.ownership = 'self'; writeEntity(bestMatch.id, selfData, graphDir); }
+    }
+  }
+
+  const totalEntities = listEntities(graphDir).length;
+  return {
+    files_processed: files.length,
+    file_results: results,
+    total_entities: totalEntities,
+    self_entity: set_self_entity || null,
+    message: `Processed ${files.length} files. ${totalEntities} entities in graph.`
+  };
+}
+
+async function mcpQuery(args, graphDir) {
+  const { question } = args || {};
+  if (!question) throw new Error('question is required');
+  const response = await queryEngine(question, graphDir);
+  return {
+    answer: response.answer,
+    query_type: response.query?.type,
+    entities: response.entities || [],
+    paths: response.paths || [],
+    gaps: response.gaps || [],
+    conflicts: response.conflicts || [],
+    confidence: response.confidence,
+    timing_ms: response.timing?.total_ms
+  };
+}
+
+async function mcpUpdate(args, graphDir) {
+  const { entity_name, entity_type, observations, relationships } = args || {};
+  if (!entity_name) throw new Error('entity_name is required');
+
+  const { similarity } = require('./merge-engine');
+  const allEnts = listEntities(graphDir);
+
+  // Find existing entity by name
+  let entityId = null;
+  let bestScore = 0;
+  for (const { data } of allEnts) {
+    const e = data.entity || {};
+    const eName = e.name?.full || e.name?.common || e.name?.preferred || '';
+    const score = similarity(entity_name, eName);
+    if (score > bestScore) { bestScore = score; entityId = e.entity_id; }
+  }
+  if (bestScore < 0.7) entityId = null;
+
+  // Create if not found
+  if (!entityId) {
+    const eType = entity_type || 'person';
+    const nameParts = entity_name.trim().split(/\s+/);
+    let initials;
+    if (eType === 'person') initials = nameParts.map(w => w[0]).join('').toUpperCase();
+    else if (eType === 'institution') initials = 'INST-' + nameParts.map(w => w[0]).join('').toUpperCase();
+    else initials = 'BIZ-' + nameParts.map(w => w[0]).join('').toUpperCase();
+    const seq = getNextCounter(graphDir, eType);
+    entityId = `ENT-${initials}-${String(seq).padStart(3, '0')}`;
+    const now = new Date().toISOString();
+    const nameObj = eType === 'person' ? { full: entity_name, preferred: nameParts[0], confidence: 0.9, facts_layer: 1 } : { common: entity_name, confidence: 0.9, facts_layer: 1 };
+    const entityData = {
+      schema_version: '2.0', schema_type: 'context_architecture_entity',
+      extraction_metadata: { extracted_at: now, updated_at: now, source_description: 'MCP update tool', extraction_model: 'conversation', extraction_confidence: 0.8, schema_version: '2.0' },
+      entity: { entity_type: eType, entity_id: entityId, name: nameObj, summary: { value: '', confidence: 0, facts_layer: 2 } },
+      attributes: [], relationships: [], values: [], key_facts: [], constraints: [], observations: [],
+      ownership: 'owned', access_rules: { visibility: 'private', shared_with: [] }, projection_config: { lenses: ['default'] }, perspectives: [],
+      provenance_chain: { created_at: now, created_by: 'mcp-update', source_documents: [{ source: 'conversation', ingested_at: now }], merge_history: [] }
+    };
+    writeEntity(entityId, entityData, graphDir);
+  }
+
+  let obsAdded = 0, relsAdded = 0;
+
+  // Add observations
+  if (observations && observations.length > 0) {
+    const entity = readEntity(entityId, graphDir);
+    if (entity) {
+      if (!entity.observations) entity.observations = [];
+      const now = new Date().toISOString();
+      for (const obs of observations) {
+        const seq = String(entity.observations.length + 1).padStart(3, '0');
+        const tsCompact = now.replace(/[-:T]/g, '').slice(0, 14);
+        entity.observations.push({
+          observation_id: `OBS-${entityId}-${tsCompact}-${seq}`,
+          observation: `${obs.attribute}: ${obs.value}`,
+          confidence: obs.confidence || 0.8,
+          confidence_label: (obs.confidence || 0.8) >= 0.8 ? 'STRONG' : 'MODERATE',
+          facts_layer: 'L1_OBJECTIVE', layer_number: 1,
+          truth_level: 'INFERRED',
+          observed_at: now, observed_by: 'mcp-update', source: 'conversation'
+        });
+        obsAdded++;
+      }
+      writeEntity(entityId, entity, graphDir);
+    }
+  }
+
+  // Add relationships
+  if (relationships && relationships.length > 0) {
+    const entity = readEntity(entityId, graphDir);
+    if (entity) {
+      if (!entity.relationships) entity.relationships = [];
+      for (const rel of relationships) {
+        // Find target
+        let targetId = null, targetName = rel.target_name;
+        let tBest = 0;
+        for (const { data } of allEnts) {
+          const e = data.entity || {};
+          const eName = e.name?.full || e.name?.common || e.name?.preferred || '';
+          const score = similarity(rel.target_name, eName);
+          if (score > tBest) { tBest = score; targetId = e.entity_id; targetName = eName; }
+        }
+        if (tBest < 0.7) {
+          // Create target
+          const tParts = rel.target_name.trim().split(/\s+/);
+          const tInit = tParts.map(w => w[0]).join('').toUpperCase();
+          const tSeq = getNextCounter(graphDir, 'person');
+          targetId = `ENT-${tInit}-${String(tSeq).padStart(3, '0')}`;
+          const now2 = new Date().toISOString();
+          writeEntity(targetId, {
+            schema_version: '2.0', schema_type: 'context_architecture_entity',
+            extraction_metadata: { extracted_at: now2, updated_at: now2, source_description: 'MCP update (relationship target)', extraction_model: 'conversation', extraction_confidence: 0.6, schema_version: '2.0' },
+            entity: { entity_type: 'person', entity_id: targetId, name: { full: rel.target_name, preferred: tParts[0], confidence: 0.7, facts_layer: 1 }, summary: { value: '', confidence: 0, facts_layer: 2 } },
+            attributes: [], relationships: [], values: [], key_facts: [], constraints: [], observations: [],
+            ownership: 'referenced', access_rules: { visibility: 'private', shared_with: [] }, projection_config: { lenses: ['default'] }, perspectives: [],
+            provenance_chain: { created_at: now2, created_by: 'mcp-update', source_documents: [], merge_history: [] }
+          }, graphDir);
+          targetName = rel.target_name;
+        }
+        const relSeq = String(entity.relationships.length + 1).padStart(3, '0');
+        entity.relationships.push({
+          relationship_id: `REL-${relSeq}`, name: targetName, entity_id: targetId,
+          relationship_type: rel.relationship, context: rel.context || '',
+          sentiment: 'neutral', confidence: 0.8, confidence_label: 'STRONG', source: 'conversation'
+        });
+        relsAdded++;
+      }
+      writeEntity(entityId, entity, graphDir);
+    }
+  }
+
+  return {
+    entity_id: entityId,
+    entity_name,
+    observations_added: obsAdded,
+    relationships_added: relsAdded,
+    message: `Updated ${entity_name}: +${obsAdded} observations, +${relsAdded} relationships.`
+  };
+}
+
+const MCP_HANDLERS = {
+  build_graph: mcpBuildGraph,
+  query: mcpQuery,
+  update: mcpUpdate
+};
+
+// --- JSON-RPC helpers ---
+
+function jsonrpcSuccess(id, result) {
+  return { jsonrpc: '2.0', id, result };
+}
+
+function jsonrpcError(id, code, message, data) {
+  const err = { jsonrpc: '2.0', id, error: { code, message } };
+  if (data !== undefined) err.error.data = data;
+  return err;
+}
+
+// --- MCP Routes ---
+
+// GET /.well-known/mcp.json — Auto-discovery manifest for claude.ai
+app.get('/.well-known/mcp.json', (req, res) => {
+  res.json({
+    mcpb_version: '0.1',
+    name: 'context-engine',
+    version: '1.0.0',
+    display_name: 'Context Engine',
+    description: 'Knowledge graph superpowers for Claude. Extracts entities and relationships from your project files, then answers questions with multi-hop graph traversal.',
+    author: { name: 'CJ Mitchell', url: 'https://github.com/flawlesstracks/context-engine' },
+    endpoint: '/mcp',
+    authentication: { type: 'header', header_name: 'X-Context-API-Key' },
+    tools: MCP_TOOLS.map(t => ({ name: t.name, description: t.description })),
+    compatibility: { platforms: ['web', 'desktop'] }
+  });
+});
+
+// GET /mcp — Server metadata + tool discovery
+app.get('/mcp', (req, res) => {
+  res.json({
+    name: MCP_SERVER_INFO.name,
+    version: MCP_SERVER_INFO.version,
+    protocol_version: MCP_PROTOCOL_VERSION,
+    capabilities: { tools: {} },
+    tools: MCP_TOOLS
+  });
+});
+
+// POST /mcp — MCP JSON-RPC endpoint (Streamable HTTP transport)
+app.post('/mcp', apiAuth, async (req, res) => {
+  const body = req.body;
+
+  // Validate JSON-RPC envelope
+  if (!body || body.jsonrpc !== '2.0') {
+    return res.status(400).json(jsonrpcError(body?.id || null, -32600, 'Invalid JSON-RPC: missing jsonrpc: "2.0"'));
+  }
+
+  const { id, method, params } = body;
+
+  try {
+    // --- initialize ---
+    if (method === 'initialize') {
+      return res.json(jsonrpcSuccess(id, {
+        protocolVersion: MCP_PROTOCOL_VERSION,
+        capabilities: { tools: {} },
+        serverInfo: MCP_SERVER_INFO
+      }));
+    }
+
+    // --- ping ---
+    if (method === 'ping') {
+      return res.json(jsonrpcSuccess(id, {}));
+    }
+
+    // --- notifications/initialized (client notification, no response needed) ---
+    if (method === 'notifications/initialized') {
+      return res.json(jsonrpcSuccess(id, {}));
+    }
+
+    // --- tools/list ---
+    if (method === 'tools/list') {
+      return res.json(jsonrpcSuccess(id, { tools: MCP_TOOLS }));
+    }
+
+    // --- tools/call ---
+    if (method === 'tools/call') {
+      const toolName = params?.name;
+      const toolArgs = params?.arguments || {};
+      const handler = MCP_HANDLERS[toolName];
+
+      if (!handler) {
+        return res.json(jsonrpcError(id, -32602, `Unknown tool: ${toolName}`));
+      }
+
+      try {
+        const result = await handler(toolArgs, req.graphDir);
+        return res.json(jsonrpcSuccess(id, {
+          content: [{ type: 'text', text: JSON.stringify(result, null, 2) }]
+        }));
+      } catch (toolErr) {
+        return res.json(jsonrpcSuccess(id, {
+          content: [{ type: 'text', text: JSON.stringify({ error: toolErr.message }) }],
+          isError: true
+        }));
+      }
+    }
+
+    // --- Unknown method ---
+    return res.json(jsonrpcError(id, -32601, `Method not found: ${method}`));
+
+  } catch (err) {
+    console.error('MCP endpoint error:', err);
+    return res.json(jsonrpcError(id, -32603, err.message || 'Internal error'));
+  }
+});
+
 // --- Start server ---
 
 const PORT = process.env.PORT || 3000;

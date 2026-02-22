@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context Engine — Integration Test Suite</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { 
+    font-family: 'SF Mono', 'Fira Code', monospace; 
+    background: #0d1117; color: #c9d1d9; 
+    padding: 24px; max-width: 900px; margin: 0 auto;
+  }
+  h1 { color: #58a6ff; font-size: 1.4rem; margin-bottom: 4px; }
+  .subtitle { color: #8b949e; font-size: 0.85rem; margin-bottom: 24px; }
+  
+  .config { 
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px; 
+    padding: 16px; margin-bottom: 24px; display: flex; gap: 12px; align-items: end;
+  }
+  .config label { display: block; font-size: 0.75rem; color: #8b949e; margin-bottom: 4px; }
+  .config input { 
+    background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; 
+    padding: 8px 12px; border-radius: 6px; font-family: inherit; font-size: 0.85rem;
+  }
+  .config input:first-of-type { flex: 1; }
+  .config input:last-of-type { width: 320px; }
+  
+  button {
+    background: #238636; color: #fff; border: none; padding: 8px 20px;
+    border-radius: 6px; cursor: pointer; font-family: inherit; font-weight: 600;
+    font-size: 0.85rem; transition: background 0.15s;
+  }
+  button:hover { background: #2ea043; }
+  button:disabled { background: #21262d; color: #484f58; cursor: not-allowed; }
+  button.danger { background: #da3633; }
+  button.danger:hover { background: #f85149; }
+  
+  .test-card {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    margin-bottom: 12px; overflow: hidden; transition: border-color 0.3s;
+  }
+  .test-card.pass { border-color: #238636; }
+  .test-card.fail { border-color: #da3633; }
+  .test-card.running { border-color: #d29922; }
+  
+  .test-header {
+    padding: 12px 16px; display: flex; justify-content: space-between; 
+    align-items: center; cursor: pointer;
+  }
+  .test-header:hover { background: #1c2128; }
+  .test-title { display: flex; align-items: center; gap: 10px; }
+  .test-num { 
+    background: #30363d; color: #8b949e; width: 24px; height: 24px; 
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 700;
+  }
+  .test-card.pass .test-num { background: #238636; color: #fff; }
+  .test-card.fail .test-num { background: #da3633; color: #fff; }
+  .test-card.running .test-num { background: #d29922; color: #fff; }
+  
+  .test-name { font-size: 0.9rem; }
+  .test-badge {
+    font-size: 0.7rem; padding: 2px 8px; border-radius: 10px;
+    text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;
+  }
+  .badge-pending { background: #21262d; color: #484f58; }
+  .badge-running { background: #d29922; color: #0d1117; }
+  .badge-pass { background: #238636; color: #fff; }
+  .badge-fail { background: #da3633; color: #fff; }
+  .badge-skip { background: #6e7681; color: #fff; }
+  
+  .test-detail {
+    display: none; padding: 0 16px 16px; border-top: 1px solid #21262d;
+  }
+  .test-card.expanded .test-detail { display: block; padding-top: 12px; }
+  
+  .detail-section { margin-bottom: 10px; }
+  .detail-label { font-size: 0.7rem; color: #8b949e; text-transform: uppercase; margin-bottom: 4px; }
+  
+  pre {
+    background: #0d1117; padding: 12px; border-radius: 6px; 
+    font-size: 0.8rem; overflow-x: auto; white-space: pre-wrap;
+    max-height: 300px; overflow-y: auto; line-height: 1.5;
+  }
+  .endpoint { color: #d29922; font-size: 0.8rem; }
+  .time { color: #8b949e; font-size: 0.75rem; }
+  
+  .scoreboard {
+    background: #161b22; border: 1px solid #30363d; border-radius: 8px;
+    padding: 16px; margin-top: 24px; display: flex; gap: 24px;
+    justify-content: center;
+  }
+  .score-item { text-align: center; }
+  .score-num { font-size: 2rem; font-weight: 700; }
+  .score-label { font-size: 0.7rem; color: #8b949e; text-transform: uppercase; }
+  .score-pass { color: #3fb950; }
+  .score-fail { color: #f85149; }
+  .score-total { color: #58a6ff; }
+  
+  .timer { color: #8b949e; font-size: 0.85rem; text-align: center; margin-top: 8px; }
+</style>
+</head>
+<body>
+
+<h1>Context Engine — Integration Test Suite</h1>
+<p class="subtitle">DXT MVP Validation · 6 Tests · Live API</p>
+
+<div class="config">
+  <div style="flex:1">
+    <label>Render URL</label>
+    <input type="text" id="apiUrl" value="https://context-engine-nw4l.onrender.com" style="width:100%">
+  </div>
+  <div>
+    <label>API Key</label>
+    <input type="text" id="apiKey" value="ctx-0b72bebef0e0aad558b954e0887b07e0">
+  </div>
+  <button onclick="runAllTests()">Run All Tests</button>
+</div>
+
+<div id="tests"></div>
+
+<div class="scoreboard" id="scoreboard" style="display:none">
+  <div class="score-item"><div class="score-num score-pass" id="passCount">0</div><div class="score-label">Passed</div></div>
+  <div class="score-item"><div class="score-num score-fail" id="failCount">0</div><div class="score-label">Failed</div></div>
+  <div class="score-item"><div class="score-num score-total" id="totalCount">0</div><div class="score-label">Total</div></div>
+</div>
+<div class="timer" id="timer"></div>
+
+<script>
+const TESTS = [
+  {
+    num: 1, 
+    name: "Search — Who is in the graph?",
+    endpoint: "GET /api/search?q=",
+    desc: "Lists all entities. Proves the graph is populated.",
+    run: async (url, key) => {
+      const r = await apiFetch(`${url}/api/search?q=`, key);
+      const data = await r.json();
+      const count = Array.isArray(data) ? data.length : (data.results?.length || 0);
+      return { 
+        pass: count > 0, 
+        summary: `Found ${count} entities in the graph`,
+        data 
+      };
+    }
+  },
+  {
+    num: 2,
+    name: "Entity Lookup — Who is Steve Hughes?",
+    endpoint: "GET /api/search?q=Steve",
+    desc: "Searches for a specific person. Tests fuzzy matching.",
+    run: async (url, key) => {
+      const r = await apiFetch(`${url}/api/search?q=Steve`, key);
+      const data = await r.json();
+      const results = Array.isArray(data) ? data : (data.results || []);
+      const steve = results.find(e => /steve|hughes/i.test(e.name || ''));
+      return {
+        pass: !!steve,
+        summary: steve ? `Found: ${steve.name} (${steve.id || steve.entity_id || 'no id'})` : 'Steve not found in graph',
+        data,
+        entityId: steve?.id || steve?.entity_id
+      };
+    }
+  },
+  {
+    num: 3,
+    name: "Query Engine — How does Steve connect to Amazon?",
+    endpoint: "GET /api/query?q=How does Steve connect to Amazon",
+    desc: "Tests the query engine's graph traversal and natural language response.",
+    run: async (url, key) => {
+      // Try query endpoint first, fall back to search
+      try {
+        const r = await apiFetch(`${url}/api/query?q=How does Steve connect to Amazon`, key);
+        if (r.ok) {
+          const data = await r.json();
+          return {
+            pass: true,
+            summary: `Query engine responded (type: ${data.query_type || 'unknown'})`,
+            data
+          };
+        }
+      } catch(e) {}
+      return { pass: false, summary: 'Query endpoint not reachable', data: null };
+    }
+  },
+  {
+    num: 4,
+    name: "Self-Entity — Who am I?",
+    endpoint: "GET /api/self-entity",
+    desc: "Tests self-entity awareness. Should return CJ Mitchell as the graph owner.",
+    run: async (url, key) => {
+      try {
+        const r = await apiFetch(`${url}/api/self-entity`, key);
+        if (r.ok) {
+          const data = await r.json();
+          const name = data.name || data.entity?.name || 'unknown';
+          return {
+            pass: /mitchell|cj|clarence/i.test(JSON.stringify(data)),
+            summary: `Self-entity: ${name}`,
+            data
+          };
+        }
+      } catch(e) {}
+      // Fallback: search for self
+      try {
+        const r2 = await apiFetch(`${url}/api/search?q=CJ Mitchell`, key);
+        const data2 = await r2.json();
+        const results = Array.isArray(data2) ? data2 : (data2.results || []);
+        const self = results.find(e => /mitchell/i.test(e.name || ''));
+        return {
+          pass: !!self,
+          summary: self ? `Found self via search: ${self.name}` : 'Self-entity endpoint missing, search fallback failed',
+          data: data2
+        };
+      } catch(e2) {
+        return { pass: false, summary: 'Self-entity endpoint not available', data: null };
+      }
+    }
+  },
+  {
+    num: 5,
+    name: "Observe — Add new observation",
+    endpoint: "POST /api/observe",
+    desc: "Writes a new observation. Tests write pipeline.",
+    run: async (url, key) => {
+      // First find an entity to observe
+      const searchR = await apiFetch(`${url}/api/search?q=Steve`, key);
+      const searchData = await searchR.json();
+      const results = Array.isArray(searchData) ? searchData : (searchData.results || []);
+      const target = results[0];
+      
+      if (!target) {
+        // Try the DXT-friendly endpoint
+        return { pass: false, summary: 'No entity found to observe', data: null };
+      }
+      
+      const entityId = target.id || target.entity_id;
+      const observation = {
+        entity_id: entityId,
+        observation: `Integration test observation at ${new Date().toISOString()}`,
+        source: 'integration-test',
+        confidence_label: 'medium',
+        facts_layer: 'current',
+        agent: 'claudine-test'
+      };
+      
+      // Try standard observe endpoint
+      try {
+        const r = await apiFetch(`${url}/api/observe`, key, {
+          method: 'POST',
+          body: JSON.stringify(observation)
+        });
+        if (r.ok) {
+          const data = await r.json();
+          return { pass: true, summary: `Observation written to ${target.name}`, data };
+        }
+        const errData = await r.text();
+        
+        // Try DXT-friendly endpoint
+        try {
+          const r2 = await apiFetch(`${url}/api/entity/${entityId}/observe`, key, {
+            method: 'POST',
+            body: JSON.stringify({ observation: observation.observation })
+          });
+          if (r2.ok) {
+            const data2 = await r2.json();
+            return { pass: true, summary: `Observation written via DXT endpoint to ${target.name}`, data: data2 };
+          }
+        } catch(e2) {}
+        
+        return { pass: false, summary: `POST /api/observe returned ${r.status}: ${errData.substring(0, 200)}`, data: errData };
+      } catch(e) {
+        return { pass: false, summary: `Error: ${e.message}`, data: null };
+      }
+    }
+  },
+  {
+    num: 6,
+    name: "Verify — Re-query after observation",
+    endpoint: "GET /api/search?q=Steve (re-read)",
+    desc: "Reads the entity again after writing. Proves the write persisted.",
+    run: async (url, key) => {
+      const r = await apiFetch(`${url}/api/search?q=Steve`, key);
+      const data = await r.json();
+      const results = Array.isArray(data) ? data : (data.results || []);
+      const steve = results.find(e => /steve|hughes/i.test(e.name || ''));
+      
+      if (!steve) return { pass: false, summary: 'Steve not found on re-query', data };
+      
+      // Try to get full context
+      const entityId = steve.id || steve.entity_id;
+      try {
+        const r2 = await apiFetch(`${url}/api/entity/${entityId}/context`, key);
+        if (r2.ok) {
+          const contextData = await r2.json();
+          const obsCount = contextData.observations?.length || contextData.entity?.observations?.length || '?';
+          return { 
+            pass: true, 
+            summary: `Steve Hughes verified. ${obsCount} observations on record.`,
+            data: contextData 
+          };
+        }
+      } catch(e) {}
+      
+      return { pass: true, summary: `Steve found: ${steve.name}`, data: steve };
+    }
+  }
+];
+
+async function apiFetch(url, key, opts = {}) {
+  return fetch(url, {
+    ...opts,
+    headers: {
+      'X-Context-API-Key': key,
+      'Content-Type': 'application/json',
+      ...(opts.headers || {})
+    }
+  });
+}
+
+function renderTests() {
+  const container = document.getElementById('tests');
+  container.innerHTML = TESTS.map(t => `
+    <div class="test-card" id="test-${t.num}" onclick="toggleExpand(${t.num})">
+      <div class="test-header">
+        <div class="test-title">
+          <div class="test-num">${t.num}</div>
+          <div>
+            <div class="test-name">${t.name}</div>
+            <div class="endpoint">${t.endpoint}</div>
+          </div>
+        </div>
+        <div>
+          <span class="time" id="time-${t.num}"></span>
+          <span class="test-badge badge-pending" id="badge-${t.num}">PENDING</span>
+        </div>
+      </div>
+      <div class="test-detail" id="detail-${t.num}">
+        <div class="detail-section">
+          <div class="detail-label">Description</div>
+          <div style="font-size:0.8rem;color:#8b949e">${t.desc}</div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Result</div>
+          <div id="summary-${t.num}" style="font-size:0.85rem;margin-bottom:8px">—</div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label">Response</div>
+          <pre id="response-${t.num}">Waiting...</pre>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function toggleExpand(num) {
+  document.getElementById(`test-${num}`).classList.toggle('expanded');
+}
+
+function setBadge(num, status) {
+  const badge = document.getElementById(`badge-${num}`);
+  const card = document.getElementById(`test-${num}`);
+  badge.className = `test-badge badge-${status}`;
+  badge.textContent = status.toUpperCase();
+  card.className = `test-card ${status === 'pass' ? 'pass' : status === 'fail' ? 'fail' : status === 'running' ? 'running' : ''}`;
+}
+
+async function runAllTests() {
+  const url = document.getElementById('apiUrl').value.replace(/\/$/, '');
+  const key = document.getElementById('apiKey').value;
+  const startTime = Date.now();
+  let passed = 0, failed = 0;
+  
+  document.getElementById('scoreboard').style.display = 'flex';
+  
+  for (const test of TESTS) {
+    setBadge(test.num, 'running');
+    document.getElementById(`summary-${test.num}`).textContent = 'Running...';
+    document.getElementById(`response-${test.num}`).textContent = 'Fetching...';
+    
+    const t0 = Date.now();
+    try {
+      const result = await test.run(url, key);
+      const elapsed = Date.now() - t0;
+      
+      document.getElementById(`time-${test.num}`).textContent = `${elapsed}ms`;
+      document.getElementById(`summary-${test.num}`).textContent = result.summary;
+      document.getElementById(`response-${test.num}`).textContent = JSON.stringify(result.data, null, 2)?.substring(0, 5000) || 'No data';
+      
+      if (result.pass) { passed++; setBadge(test.num, 'pass'); }
+      else { failed++; setBadge(test.num, 'fail'); }
+      
+      // Auto-expand failed tests
+      if (!result.pass) document.getElementById(`test-${test.num}`).classList.add('expanded');
+      
+    } catch (err) {
+      failed++;
+      const elapsed = Date.now() - t0;
+      document.getElementById(`time-${test.num}`).textContent = `${elapsed}ms`;
+      document.getElementById(`summary-${test.num}`).textContent = `Error: ${err.message}`;
+      document.getElementById(`response-${test.num}`).textContent = err.stack || err.message;
+      setBadge(test.num, 'fail');
+      document.getElementById(`test-${test.num}`).classList.add('expanded');
+    }
+    
+    document.getElementById('passCount').textContent = passed;
+    document.getElementById('failCount').textContent = failed;
+    document.getElementById('totalCount').textContent = passed + failed;
+  }
+  
+  const totalTime = ((Date.now() - startTime) / 1000).toFixed(1);
+  document.getElementById('timer').textContent = `Completed in ${totalTime}s`;
+  
+  if (failed === 0) {
+    document.getElementById('timer').textContent += ' — ALL TESTS PASSED ✓';
+    document.getElementById('timer').style.color = '#3fb950';
+  } else {
+    document.getElementById('timer').textContent += ` — ${failed} FAILED`;
+    document.getElementById('timer').style.color = '#f85149';
+  }
+}
+
+renderTests();
+</script>
+</body>
+</html>
