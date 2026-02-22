@@ -16,6 +16,7 @@ const { buildLinkedInPrompt, linkedInResponseToEntity, linkedInExperienceToOrgs 
 const { mapContactRows } = require('./src/parsers/contacts');
 const { scrapeLinkedInProfile, transformScrapingDogProfile } = require('./src/scrapingdog');
 const { analyzeEntityHealth, getRelationshipTier, getTierInfo } = require('./src/health-analyzer');
+const { parse: universalParse } = require('./universal-parser');
 const auth = require('./src/auth');
 const drive = require('./src/drive');
 const helmet = require('helmet');
@@ -1589,6 +1590,140 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
     });
   }
   res.end();
+});
+
+// POST /api/ingest/universal — Universal parser: upload any file, get entities + relationships
+const universalUpload = multer({ storage: multer.memoryStorage(), limits: { files: 1, fileSize: 50 * 1024 * 1024 } });
+app.post('/api/ingest/universal', apiAuth, universalUpload.single('file'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) {
+      return res.status(400).json({ error: 'No file uploaded. Send file via multipart field "file".' });
+    }
+
+    const filename = file.originalname;
+    console.log(`[universal-parser] Processing: ${filename} (${file.size} bytes)`);
+
+    // Run universal parser
+    const result = await universalParse(file.buffer, filename);
+
+    // If structured profile or chat export, we can stage directly
+    // For AI-extracted entities, convert to signal staging format
+    if (result.entities.length > 0 && result.metadata.parse_strategy !== 'chat_import') {
+      const now = new Date().toISOString();
+      const v2Entities = result.entities.map(ent => {
+        const entityType = ent.type === 'PERSON' ? 'person'
+          : ent.type === 'ORG' ? 'business'
+          : 'business'; // CONCEPT → business for signal staging
+
+        const v2 = {
+          schema_version: '2.0',
+          schema_type: 'context_architecture_entity',
+          extraction_metadata: {
+            extracted_at: now,
+            updated_at: now,
+            source_description: `universal_parser:${filename}`,
+            extraction_model: result.metadata.model_used || 'claude-sonnet-4-5-20250929',
+            extraction_confidence: ent.confidence || 0.7,
+            schema_version: '2.0',
+          },
+          entity: {
+            entity_type: entityType,
+            name: { full: ent.name, confidence: ent.confidence || 0.7, facts_layer: 2 },
+            summary: { value: ent.evidence || '', confidence: ent.confidence || 0.7, facts_layer: 2 },
+          },
+          attributes: [],
+          relationships: [],
+          values: [],
+          key_facts: [],
+          constraints: [],
+          observations: [],
+          provenance_chain: {
+            created_at: now,
+            created_by: req.agentId,
+            source_documents: [{ source: `universal_parser:${filename}`, ingested_at: now }],
+            merge_history: [],
+          },
+        };
+
+        // Map attributes
+        if (ent.attributes && typeof ent.attributes === 'object') {
+          let seq = 1;
+          for (const [k, val] of Object.entries(ent.attributes)) {
+            const sv = String(val);
+            if (sv) {
+              v2.attributes.push({
+                attribute_id: 'ATTR-' + String(seq++).padStart(3, '0'),
+                key: k,
+                value: sv,
+                confidence: ent.confidence || 0.7,
+                confidence_label: ent.confidence >= 0.8 ? 'HIGH' : 'MODERATE',
+                time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+                source_attribution: { facts_layer: 2, layer_label: 'group' },
+              });
+            }
+          }
+        }
+
+        // Map relationships from parser output
+        const myRels = result.relationships.filter(r => r.source === ent.name);
+        let relSeq = 1;
+        for (const r of myRels) {
+          v2.relationships.push({
+            relationship_id: 'REL-' + String(relSeq++).padStart(3, '0'),
+            name: r.target,
+            relationship_type: r.relationship,
+            context: r.evidence || '',
+            sentiment: 'neutral',
+            confidence: r.confidence || 0.5,
+            confidence_label: r.confidence >= 0.8 ? 'HIGH' : 'MODERATE',
+          });
+        }
+
+        return v2;
+      });
+
+      // Stage through signal staging pipeline
+      const scoredClusters = stageAndScoreExtraction(v2Entities, {
+        type: 'file_upload',
+        url: '',
+        description: `universal_parser:${filename}`,
+      }, req.graphDir);
+
+      console.log(`[universal-parser] Staged ${scoredClusters.length} clusters from ${filename}`);
+
+      return res.json({
+        success: true,
+        metadata: result.metadata,
+        summary: result.summary,
+        entities_found: result.entities.length,
+        relationships_found: result.relationships.length,
+        clusters_staged: scoredClusters.length,
+        clusters: scoredClusters.map(c => ({
+          cluster_id: c.cluster_id,
+          entity_name: (c.signals?.names || [])[0] || '',
+          quadrant: c.quadrant,
+          confidence: c.confidence,
+          state: c.state,
+        })),
+      });
+    }
+
+    // No entities or chat import — return raw result
+    return res.json({
+      success: true,
+      metadata: result.metadata,
+      summary: result.summary,
+      entities_found: result.entities.length,
+      relationships_found: result.relationships.length,
+      entities: result.entities,
+      relationships: result.relationships,
+    });
+
+  } catch (err) {
+    console.error('[universal-parser] Error:', err);
+    return res.status(500).json({ error: err.message });
+  }
 });
 
 // POST /api/ingest/confirm — Save user-approved entities from preview
@@ -7005,7 +7140,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     width: var(--sidebar-width); min-width: var(--sidebar-width);
     border-right: 1px solid var(--border-primary);
     display: flex; flex-direction: column;
-    background: var(--bg-secondary);
+    background: #fafafa;
   }
 
   /* --- Sidebar Brand --- */
@@ -7026,26 +7161,22 @@ const WIKI_HTML = `<!DOCTYPE html>
     letter-spacing: -0.01em;
   }
 
-  /* --- Sidebar Nav --- */
-  .sidebar-nav {
-    padding: 8px 12px;
+  /* --- Sidebar Utility Bar --- */
+  .sidebar-utility-bar {
+    display: flex; align-items: center; justify-content: center;
+    gap: 4px; padding: 10px 16px;
     border-bottom: 1px solid var(--border-primary);
-    display: flex; flex-direction: column; gap: 2px;
   }
-  .nav-item {
-    display: flex; align-items: center; gap: 8px;
-    padding: 8px 10px; border: none; border-radius: var(--radius-sm);
-    background: transparent; color: var(--text-tertiary);
-    font-size: 15px; font-weight: 500; cursor: pointer;
-    transition: all var(--transition-fast);
-    font-family: var(--font-sans);
-    text-align: left; width: 100%;
+  .sidebar-utility-link {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 8px; border-radius: 8px; cursor: pointer;
+    color: #666; font-size: 10px; gap: 3px;
+    transition: background 0.15s;
   }
-  .nav-item:hover { background: var(--bg-hover); color: var(--text-primary); }
-  .nav-item svg { flex-shrink: 0; opacity: 0.6; }
-  .nav-item:hover svg { opacity: 1; }
+  .sidebar-utility-link:hover { background: #f0f0f0; }
+  .sidebar-utility-link svg { width: 20px; height: 20px; }
 
-  /* --- Sidebar Search --- */
+  /* --- Sidebar Search (togglable) --- */
   .sidebar-search { padding: 12px 16px 8px; }
   .search-wrapper { position: relative; display: flex; align-items: center; }
   .search-icon {
@@ -7065,27 +7196,67 @@ const WIKI_HTML = `<!DOCTYPE html>
   #searchInput:focus { border-color: var(--border-focus); }
   #searchInput::placeholder { color: var(--text-muted); }
 
-  /* --- Sidebar Actions (legacy compat) --- */
-  .sidebar-actions {
-    padding: 8px 16px; border-bottom: 1px solid var(--border-primary);
+  /* --- Flat Nav Styles --- */
+  .sb-section-label {
+    font-size: 12px; text-transform: uppercase; color: #999;
+    letter-spacing: 0.5px; padding: 24px 16px 8px 16px;
+    font-weight: 600;
   }
-  .btn-upload {
-    width: 100%; padding: 7px 0;
-    border: 1px dashed var(--border-primary); border-radius: var(--radius-sm);
-    background: transparent; color: var(--text-tertiary);
-    font-size: 0.75rem; font-weight: 600;
-    cursor: pointer; transition: all var(--transition-fast);
-    letter-spacing: 0.03em; font-family: var(--font-sans);
+  .sb-nav-item {
+    display: flex; align-items: center; padding: 8px 16px;
+    cursor: pointer; color: #333; font-size: 14px;
+    border-left: 3px solid transparent;
+    transition: background 0.15s;
   }
-  .btn-upload:hover { border-color: var(--accent-primary); color: var(--accent-tertiary); background: var(--bg-hover); }
+  .sb-nav-item:hover { background: #f0f0f0; }
+  .sb-nav-item.active {
+    font-weight: 600; border-left-color: #0a66c2; color: #0a66c2;
+  }
+  .sb-nav-item svg {
+    width: 16px; height: 16px; color: #666;
+    margin-right: 8px; flex-shrink: 0;
+  }
+  .sb-nav-item.active svg { color: #0a66c2; }
+  .sb-nav-item.add-item { color: #0a66c2; }
+  .sb-see-more {
+    padding: 6px 16px 6px 40px; font-size: 13px; color: #999;
+    cursor: pointer; transition: color 0.15s;
+  }
+  .sb-see-more:hover { color: #333; }
+  .sb-recent-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 16px; cursor: pointer; font-size: 13px;
+    transition: background 0.15s;
+  }
+  .sb-recent-item:hover { background: #f0f0f0; }
+  .sb-recent-avatar {
+    width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+    background: #e0e0e0; font-size: 10px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    color: #666;
+  }
 
-  /* --- Sidebar Count --- */
-  .sidebar-count {
-    padding: 10px 20px; font-size: 14px; color: var(--text-muted);
-    letter-spacing: 0.06em; font-weight: 600; text-transform: uppercase;
-    border-bottom: 1px solid var(--border-primary);
-    display: flex; align-items: baseline; gap: 6px;
+  /* --- Sidebar Bottom --- */
+  .sidebar-bottom {
+    margin-top: auto; padding: 12px 16px;
+    border-top: 1px solid var(--border-primary);
+    display: flex; align-items: center; gap: 8px;
   }
+  .sidebar-bottom-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--accent-gradient);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.55rem; font-weight: 700; color: white; flex-shrink: 0;
+    overflow: hidden;
+  }
+  .sidebar-bottom-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .sidebar-bottom-name { font-size: 13px; font-weight: 600; flex: 1; }
+  .sidebar-bottom-actions { display: flex; gap: 8px; align-items: center; }
+  .sidebar-bottom-actions a {
+    color: #999; font-size: 12px; text-decoration: none;
+    transition: color 0.15s;
+  }
+  .sidebar-bottom-actions a:hover { color: var(--accent-tertiary); }
 
   /* --- Entity List --- */
   #entityList { flex: 1; overflow-y: auto; }
@@ -8015,134 +8186,9 @@ const WIKI_HTML = `<!DOCTYPE html>
     display: flex; align-items: center; gap: 10px;
   }
 
-  /* --- Sidebar Footer --- */
-  .sidebar-footer {
-    padding: 12px 20px;
-    border-top: 1px solid var(--border-primary);
-    font-size: 0.7rem; color: var(--text-faint); text-align: center;
-    line-height: 1.6;
-  }
-  .sidebar-footer a {
-    color: var(--text-muted); text-decoration: none;
-    transition: color var(--transition-fast);
-  }
-  .sidebar-footer a:hover { color: var(--accent-tertiary); }
+  /* (old sidebar-footer CSS removed — replaced by .sidebar-bottom styles) */
 
-  /* --- Sidebar Hierarchical Nav --- */
-  .sidebar-section { border-bottom: 1px solid var(--border-subtle); }
-  .sidebar-section:last-child { border-bottom: none; }
-  .sidebar-section-header {
-    display: flex; align-items: center; gap: 8px;
-    padding: 10px 16px; cursor: pointer;
-    font-size: 15px; font-weight: 700; color: var(--text-secondary);
-    transition: background var(--transition-fast);
-    user-select: none;
-  }
-  .sidebar-section-header:hover { background: var(--bg-hover); }
-  .sidebar-section-chevron {
-    display: inline-block; font-size: 0.6rem; transition: transform 0.2s ease;
-    color: var(--text-muted); flex-shrink: 0;
-  }
-  .sidebar-section-chevron.collapsed { transform: rotate(-90deg); }
-  .sidebar-section-title { flex: 1; }
-  .sidebar-section-count {
-    font-size: 13px; font-weight: 500; color: var(--text-muted);
-    background: var(--bg-tertiary); padding: 1px 7px; border-radius: 10px;
-  }
-  .sidebar-section-body { overflow: hidden; }
-  .sidebar-section-body.collapsed { display: none; }
-  .sidebar-my-profile {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 16px; margin: 8px 8px 4px; cursor: pointer;
-    border-radius: 8px; transition: background 0.15s;
-  }
-  .sidebar-my-profile:hover { background: var(--bg-hover); }
-  .sidebar-my-profile.active {
-    background: #f5f0ff; border-left: 3px solid #6366f1;
-    padding-left: 13px;
-  }
-  .sidebar-profile-header {
-    display: flex; align-items: center; gap: 10px;
-    padding: 8px 20px 4px;
-  }
-  .sidebar-profile-avatar {
-    width: 32px; height: 32px; border-radius: 50%;
-    background: var(--accent-gradient);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.7rem; font-weight: 700; color: white; flex-shrink: 0;
-    overflow: hidden;
-  }
-  .sidebar-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .sidebar-profile-name {
-    font-size: 15px; font-weight: 700; color: var(--text-primary);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .sidebar-view-item {
-    display: flex; align-items: center; gap: 8px;
-    padding: 7px 20px 7px 36px; cursor: pointer;
-    font-size: 14px; color: var(--text-tertiary);
-    transition: all var(--transition-fast);
-  }
-  .sidebar-view-item:hover { background: var(--bg-hover); color: var(--text-primary); }
-  .sidebar-view-item.active {
-    background: #f5f0ff; color: #6366f1;
-    border-left: 3px solid #6366f1;
-    padding-left: 33px;
-  }
-  .sidebar-view-item .view-icon { font-size: 0.85rem; flex-shrink: 0; width: 18px; text-align: center; }
-  .sidebar-view-item.placeholder { color: var(--text-muted); cursor: default; }
-  .sidebar-view-item.placeholder:hover { background: transparent; color: var(--text-muted); }
-  .coming-soon-badge {
-    font-size: 0.55rem; font-weight: 600; color: var(--text-muted);
-    background: var(--bg-tertiary); padding: 1px 6px; border-radius: 8px;
-    text-transform: uppercase; letter-spacing: 0.04em;
-  }
-  .sidebar-group-label {
-    font-size: 11px; font-weight: 600; color: var(--text-muted);
-    text-transform: uppercase; letter-spacing: 0.06em;
-    padding: 8px 20px 4px;
-  }
-  .sidebar-entity-row {
-    display: block; padding: 6px 20px 6px 36px; cursor: pointer;
-    font-size: 14px; color: var(--text-primary);
-    transition: background var(--transition-fast);
-  }
-  .sidebar-entity-row:hover { background: #f0f0ff; }
-  .sidebar-entity-row.active {
-    background: #f5f0ff;
-    border-left: 3px solid #6366f1;
-    padding-left: 33px;
-  }
-  .sidebar-entity-row .entity-name {
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    display: flex; align-items: center; gap: 6px;
-  }
-  .sidebar-entity-row .entity-subtitle {
-    font-size: 13px; color: var(--text-muted);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    padding-left: 0;
-  }
-  .sidebar-empty-hint {
-    padding: 8px 20px 8px 36px; font-size: 12px; color: var(--text-muted);
-    font-style: italic;
-  }
-  .sidebar-cat-row {
-    display: flex; align-items: center; gap: 8px;
-    padding: 7px 20px 7px 36px; cursor: pointer;
-    font-size: 14px; color: var(--text-tertiary);
-    transition: all var(--transition-fast);
-  }
-  .sidebar-cat-row:hover { background: var(--bg-hover); color: var(--text-primary); }
-  .sidebar-cat-row.active {
-    background: #f5f0ff; color: #6366f1;
-    border-left: 3px solid #6366f1; padding-left: 33px;
-  }
-  .sidebar-cat-row .cat-emoji { font-size: 0.85rem; flex-shrink: 0; width: 18px; text-align: center; }
-  .sidebar-cat-row .cat-label { flex: 1; }
-  .sidebar-cat-row .cat-count {
-    font-size: 13px; font-weight: 500; color: var(--text-muted);
-    background: var(--bg-tertiary); padding: 1px 7px; border-radius: 10px;
-  }
+  /* (old hierarchical sidebar CSS removed — replaced by flat nav styles above) */
   #breadcrumbs {
     padding: 0;
   }
@@ -8277,30 +8323,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     border-top: 1px solid #E0E0E0; padding-top: 10px;
   }
   .cat-sub-divider:first-child { margin-top: 0; border-top: none; padding-top: 0; }
-  .sidebar-footer-user {
-    display: flex; align-items: center; gap: 8px;
-    margin-bottom: 6px; justify-content: center;
-  }
-  .sidebar-user-avatar {
-    width: 32px; height: 32px; border-radius: 50%;
-    background: var(--accent-gradient);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.6rem; font-weight: 700; color: white; flex-shrink: 0;
-    overflow: hidden;
-  }
-  .sidebar-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
-  .sidebar-footer-user-name {
-    font-size: 13px; font-weight: 600; color: var(--text-primary);
-  }
-  .sidebar-footer-actions {
-    display: flex; gap: 6px; justify-content: center; flex-wrap: wrap;
-  }
-  .sidebar-footer-actions a, .sidebar-footer-actions span a {
-    color: var(--text-muted); text-decoration: none; font-size: 12px;
-    transition: color var(--transition-fast);
-  }
-  .sidebar-footer-actions a:hover { color: var(--accent-tertiary); }
-  .sidebar-footer-separator { color: var(--text-faint); }
+  /* (old sidebar-footer-user CSS removed — replaced by .sidebar-bottom styles) */
 
   /* --- Review Queue Badge --- */
   .review-queue-badge {
@@ -9662,37 +9685,49 @@ const WIKI_HTML = `<!DOCTYPE html>
 <!-- App -->
 <div id="app">
   <div id="sidebar">
+    <!-- Brand -->
     <div class="sidebar-brand">
       <div class="brand-icon">CA</div>
       <div class="brand-text">Context Architecture</div>
     </div>
-    <div class="sidebar-search">
-      <div class="search-wrapper">
-        <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-          <circle cx="6.5" cy="6.5" r="5"/>
-          <path d="M14.5 14.5l-4-4"/>
-        </svg>
-        <input type="text" id="searchInput" placeholder="Search entities..." oninput="onSearch()" />
+    <!-- Utility bar -->
+    <div class="sidebar-utility-bar">
+      <div class="sidebar-utility-link" onclick="showUploadView()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span>Upload</span>
+      </div>
+      <div class="sidebar-utility-link" id="sidebarSearchToggle" onclick="toggleSidebarSearch()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span>Search</span>
+      </div>
+      <div class="sidebar-utility-link" onclick="showReviewQueue()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>Review<span id="reviewQueueBadge" class="review-queue-badge" style="display:none">0</span></span>
+      </div>
+      <div class="sidebar-utility-link" onclick="showCleanupView()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>
+        <span>Cleanup</span>
       </div>
     </div>
-    <div class="sidebar-count" id="sidebarCount"></div>
+    <!-- Hideable search panel -->
+    <div id="sidebarSearchPanel" style="display:none">
+      <div class="sidebar-search">
+        <div class="search-wrapper">
+          <svg class="search-icon" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+            <circle cx="6.5" cy="6.5" r="5"/>
+            <path d="M14.5 14.5l-4-4"/>
+          </svg>
+          <input type="text" id="searchInput" placeholder="Search..." oninput="onSearch()" />
+        </div>
+      </div>
+    </div>
+    <!-- Dynamic content -->
     <div id="entityList"></div>
-    <div class="sidebar-footer">
-      <div class="sidebar-footer-user">
-        <div class="sidebar-user-avatar" id="userAvatar"></div>
-        <span id="userInfo"></span>
-      </div>
-      <div class="sidebar-footer-actions">
-        <a href="#" onclick="showUploadView();return false;">Upload</a>
-        <span class="sidebar-footer-separator">&middot;</span>
-        <a href="#" onclick="showReviewQueue();return false;" id="btnReviewQueue">Review<span id="reviewQueueBadge" class="review-queue-badge" style="display:none;">0</span></a>
-        <span class="sidebar-footer-separator">&middot;</span>
-        <a href="#" onclick="showCleanupView();return false;">Cleanup</a>
-        <span class="sidebar-footer-separator">&middot;</span>
-        <a href="#" onclick="showDriveView();return false;" id="btnDrive" style="display:none;">Drive</a>
-        <span class="sidebar-footer-separator" id="driveSep" style="display:none;">&middot;</span>
-        <span id="logoutLink"></span>
-      </div>
+    <!-- Bottom user section -->
+    <div class="sidebar-bottom">
+      <div class="sidebar-bottom-avatar" id="userAvatar"></div>
+      <span class="sidebar-bottom-name" id="userInfo"></span>
+      <span id="logoutLink"></span>
     </div>
   </div>
   <div id="breadcrumbs"></div>
@@ -9728,9 +9763,31 @@ var allEntities = [];
 var selectedView = null;
 var selectedCategory = null;
 var breadcrumbs = [];
-var collapsedSections = {};
+var recentEntities = [];
+var _sbProjectsExpanded = false;
 
 function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+
+function toggleSidebarSearch() {
+  var panel = document.getElementById('sidebarSearchPanel');
+  if (!panel) return;
+  if (panel.style.display === 'none') {
+    panel.style.display = 'block';
+    var inp = document.getElementById('searchInput');
+    if (inp) inp.focus();
+  } else {
+    panel.style.display = 'none';
+    var inp = document.getElementById('searchInput');
+    if (inp) { inp.value = ''; onSearch(); }
+  }
+}
+
+function trackRecentEntity(id, name) {
+  if (!id || id === primaryEntityId) return;
+  recentEntities = recentEntities.filter(function(r) { return r.id !== id; });
+  recentEntities.unshift({ id: id, name: name || id });
+  if (recentEntities.length > 8) recentEntities = recentEntities.slice(0, 8);
+}
 
 function renderBreadcrumbs() {
   var el = document.getElementById('breadcrumbs');
@@ -11344,11 +11401,7 @@ function renderOverview(data) {
   document.getElementById('main').innerHTML = h;
 }
 
-function toggleSection(sectionId) {
-  collapsedSections[sectionId] = !collapsedSections[sectionId];
-  try { sessionStorage.setItem('ca_collapsed', JSON.stringify(collapsedSections)); } catch(e) {}
-  renderSidebar();
-}
+
 
 function toggleProfileSection(id) {
   var body = document.getElementById('profile-sec-' + id);
@@ -11410,18 +11463,14 @@ function enterApp(user) {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
 
-  // Restore collapsed sections from sessionStorage
-  try {
-    var saved = sessionStorage.getItem('ca_collapsed');
-    if (saved) collapsedSections = JSON.parse(saved);
-  } catch(e) {}
-
-  // Set up footer user info
+  // Set up bottom user info
   if (user && user.name) {
-    document.getElementById('userInfo').innerHTML = '<span class="sidebar-footer-user-name">' + esc(user.name) + '</span>';
-    document.getElementById('logoutLink').innerHTML = '<a href="#" onclick="logout();return false;">Logout</a>';
-    document.getElementById('btnDrive').style.display = 'inline';
-    document.getElementById('driveSep').style.display = 'inline';
+    document.getElementById('userInfo').textContent = user.name;
+    document.getElementById('logoutLink').innerHTML = '<a href="#" onclick="logout();return false;" style="color:#999;font-size:12px;text-decoration:none;">Logout</a>';
+    var driveBtn = document.getElementById('btnDrive');
+    if (driveBtn) driveBtn.style.display = 'inline';
+    var driveSepEl = document.getElementById('driveSep');
+    if (driveSepEl) driveSepEl.style.display = 'inline';
     // User avatar
     var avatarEl = document.getElementById('userAvatar');
     if (user.picture) {
@@ -11593,132 +11642,79 @@ function renderSearchResults(results, query) {
   document.getElementById('main').innerHTML = html;
 }
 
-function renderSidebarSection(id, emoji, title, count, contentFn, defaultCollapsed) {
-  var isCollapsed = collapsedSections[id] !== undefined ? collapsedSections[id] : !!defaultCollapsed;
-  var html = '<div class="sidebar-section">';
-  html += '<div class="sidebar-section-header" onclick="toggleSection(' + "'" + id + "'" + ')">';
-  html += '<span class="sidebar-section-chevron' + (isCollapsed ? ' collapsed' : '') + '">&#9660;</span>';
-  html += '<span class="sidebar-section-title">' + emoji + ' ' + esc(title) + '</span>';
-  if (count != null) html += '<span class="sidebar-section-count">' + count + '</span>';
-  html += '</div>';
-  html += '<div class="sidebar-section-body' + (isCollapsed ? ' collapsed' : '') + '">';
-  html += contentFn();
-  html += '</div></div>';
-  return html;
-}
-
-function renderSidebarEntityRow(e, subtitle) {
-  var cls = (e.entity_id === selectedId && selectedView === null) ? 'sidebar-entity-row active' : 'sidebar-entity-row';
-  var html = '<div class="' + cls + '" onclick="selectEntity(' + "'" + esc(e.entity_id) + "'" + ')">';
-  html += '<div class="entity-name">' + esc(e.name) + ' <span class="type-badge ' + e.entity_type + '">' + e.entity_type + '</span></div>';
-  if (subtitle) html += '<div class="entity-subtitle">' + esc(subtitle) + '</div>';
-  html += '</div>';
-  return html;
-}
-
 function renderSidebar() {
   var data = buildSidebarData();
-  console.log('SIDEBAR_DEBUG: buildSidebarData called');
-  console.log('SIDEBAR_DEBUG: you:', data.you ? data.you.name : 'NOT FOUND');
-  console.log('SIDEBAR_DEBUG: allEntities:', allEntities.length, 'entities:', entities.length);
-  console.log('SIDEBAR_DEBUG: primaryEntityId:', primaryEntityId);
-  console.log('SIDEBAR_DEBUG: primaryEntityData:', primaryEntityData ? 'loaded' : 'null');
-  console.log('SIDEBAR_DEBUG: people fam/friends/pro/community/other:', data.people.family.length, data.people.friends.length, data.people.professional.length, data.people.community.length, data.people.other.length);
-  console.log('SIDEBAR_DEBUG: orgs career/edu/affil/svc/other:', data.organizations.career.length, data.organizations.education.length, data.organizations.affiliations.length, data.organizations.services.length, data.organizations.other.length);
   var html = '';
-  var totalCount = 0;
 
-  // Section 1: My Profile — single link to self-entity with LinkedIn card layout
-  if (data.you) {
-    var isMyProfileActive = (selectedId === primaryEntityId);
-    var headline = '';
-    var pAttrs = (primaryEntityData && primaryEntityData.attributes) || [];
-    for (var a = 0; a < pAttrs.length; a++) {
-      if (pAttrs[a].key === 'headline') { headline = String(pAttrs[a].value || ''); break; }
-    }
-    var myHealth = primaryEntityData ? computeEntityHealth(primaryEntityData) : { level: 'thin', label: 'Thin' };
-    html += '<div class="sidebar-my-profile' + (isMyProfileActive ? ' active' : '') + '" onclick="selectView(' + "'" + 'overview' + "'" + ')">';
-    html += '<div class="sidebar-profile-avatar">';
-    if (sessionUser && sessionUser.picture) {
-      html += '<img src="' + esc(sessionUser.picture) + '" alt="" />';
-    } else {
-      var n = data.you.name || (sessionUser && sessionUser.name) || '';
-      var init = n.split(/\\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
-      html += init;
-    }
-    html += '</div>';
-    html += '<div style="overflow:hidden;flex:1;">';
-    html += '<div class="sidebar-profile-name">My Profile<span class="sidebar-health-dot health-' + myHealth.level + '" title="Entity health: ' + myHealth.label + '"></span></div>';
-    html += '<div style="font-size:11px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(data.you.name || '') + '</div>';
-    if (headline) html += '<div style="font-size:10px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(headline) + '</div>';
-    html += '</div>';
-    html += '</div>';
-    totalCount++;
+  // ── ME section ──
+  html += '<div class="sb-section-label">Me</div>';
+
+  // About
+  var aboutActive = (selectedId === primaryEntityId && window._liActiveTab === 'overview');
+  html += '<div class="sb-nav-item' + (aboutActive ? ' active' : '') + '" onclick="selectView(\\'overview\\')">';
+  html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>';
+  html += 'About</div>';
+
+  // Career
+  var careerActive = (selectedId === primaryEntityId && window._liActiveTab === 'career');
+  html += '<div class="sb-nav-item' + (careerActive ? ' active' : '') + '" onclick="selectView(\\'career\\')">';
+  html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>';
+  html += 'Career</div>';
+
+  // Family
+  var familyActive = (selectedCategory === 'people_hub' && window._peopleHubTab === 'family');
+  html += '<div class="sb-nav-item' + (familyActive ? ' active' : '') + '" onclick="showPeopleHub(\\'family\\')">';
+  html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>';
+  html += 'Family</div>';
+
+  // Friends
+  var friendsActive = (selectedCategory === 'people_hub' && window._peopleHubTab === 'friends');
+  html += '<div class="sb-nav-item' + (friendsActive ? ' active' : '') + '" onclick="showPeopleHub(\\'friends\\')">';
+  html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>';
+  html += 'Friends</div>';
+
+  // Affiliations
+  var affilActive = (selectedCategory === 'affiliations_hub');
+  html += '<div class="sb-nav-item' + (affilActive ? ' active' : '') + '" onclick="showAffiliationsHub()">';
+  html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>';
+  html += 'Affiliations</div>';
+
+  // ── PROJECTS section ──
+  var allProjects = [].concat(data.projects.active || [], data.projects.rnd || [], data.projects.archive || []);
+  html += '<div class="sb-section-label">Projects</div>';
+
+  // + New Project
+  html += '<div class="sb-nav-item add-item" onclick="toast(\\'Project creation coming soon\\');">';
+  html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+  html += '+ New Project</div>';
+
+  var showMax = _sbProjectsExpanded ? allProjects.length : 5;
+  for (var i = 0; i < Math.min(showMax, allProjects.length); i++) {
+    var p = allProjects[i];
+    var pActive = (p.entity_id === selectedId && selectedView === null);
+    html += '<div class="sb-nav-item' + (pActive ? ' active' : '') + '" onclick="selectEntity(\\'' + esc(p.entity_id) + '\\')">';
+    html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>';
+    html += esc(p.name) + '</div>';
+  }
+  if (!_sbProjectsExpanded && allProjects.length > 5) {
+    html += '<div class="sb-see-more" onclick="_sbProjectsExpanded=true;renderSidebar();">... see ' + (allProjects.length - 5) + ' more</div>';
   }
 
-  // Section 2: People — single hub link
-  var peopleCount = data.people.family.length + data.people.friends.length +
-                    data.people.professional.length + data.people.community.length + data.people.other.length;
-  if (peopleCount > 0 || !data.you) {
-    var isPeopleActive = selectedCategory === 'people_hub' || selectedCategory === 'family' || selectedCategory === 'friends' || selectedCategory === 'professional' || selectedCategory === 'community' || selectedCategory === 'other';
-    html += '<div class="sidebar-section">';
-    html += '<div class="sidebar-cat-row' + (isPeopleActive ? ' active' : '') + '" onclick="showPeopleHub(\\'all\\')" style="padding:10px 12px;">';
-    html += '<span class="cat-emoji">\uD83D\uDC65</span>';
-    html += '<span class="cat-label" style="font-weight:600;">People</span>';
-    html += '<span class="cat-count">' + peopleCount + '</span>';
-    html += '</div></div>';
-    totalCount += peopleCount;
+  // ── RECENT section ──
+  if (recentEntities.length > 0) {
+    html += '<div class="sb-section-label">Recent</div>';
+    var recentMax = Math.min(recentEntities.length, 8);
+    for (var i = 0; i < recentMax; i++) {
+      var r = recentEntities[i];
+      var initials = (r.name || '').split(/\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
+      html += '<div class="sb-recent-item" onclick="selectEntity(\\'' + esc(r.id) + '\\')">';
+      html += '<div class="sb-recent-avatar">' + esc(initials) + '</div>';
+      html += '<span>' + esc(r.name) + '</span>';
+      html += '</div>';
+    }
   }
-
-  // Section 3: Affiliations (single clickable link to hub)
-  var orgCount = data.organizations.career.length + data.organizations.education.length + data.organizations.affiliations.length + data.organizations.services.length + data.organizations.other.length;
-  if (orgCount > 0) {
-    var isOrgActive = selectedCategory === 'affiliations_hub' || (selectedCategory && selectedCategory.indexOf('org_') === 0);
-    html += '<div class="sidebar-section">';
-    html += '<div class="sidebar-cat-row' + (isOrgActive ? ' active' : '') + '" onclick="showAffiliationsHub()" style="padding:10px 12px;">';
-    html += '<span class="cat-emoji">\uD83C\uDFE2</span>';
-    html += '<span class="cat-label" style="font-weight:600;">Affiliations</span>';
-    html += '<span class="cat-count">' + orgCount + '</span>';
-    html += '</div></div>';
-    totalCount += orgCount;
-  }
-
-  // Section 4: Projects
-  var projCount = data.projects.active.length + data.projects.rnd.length + data.projects.archive.length;
-  html += renderSidebarSection('projects', '\uD83D\uDD28', 'Projects', projCount, function() {
-    var h = '';
-    if (projCount === 0) {
-      h += '<div class="sidebar-empty-hint">No projects yet &mdash; upload project docs to get started</div>';
-      return h;
-    }
-    if (data.projects.active.length > 0) {
-      h += '<div class="sidebar-group-label">\uD83D\uDFE2 Active</div>';
-      for (var i = 0; i < data.projects.active.length; i++) {
-        h += renderSidebarEntityRow(data.projects.active[i], '');
-      }
-    }
-    if (data.projects.rnd.length > 0) {
-      h += '<div class="sidebar-group-label">\uD83D\uDD2C R&amp;D</div>';
-      for (var i = 0; i < data.projects.rnd.length; i++) {
-        h += renderSidebarEntityRow(data.projects.rnd[i], '');
-      }
-    }
-    if (data.projects.archive.length > 0) {
-      h += '<div class="sidebar-group-label">\uD83D\uDCE6 Archive</div>';
-      for (var i = 0; i < data.projects.archive.length; i++) {
-        h += renderSidebarEntityRow(data.projects.archive[i], '');
-      }
-    }
-    return h;
-  }, true);
-
-  // Section 5: Timeline
-  html += renderSidebarSection('timeline', '\uD83D\uDCC5', 'Timeline', null, function() {
-    return '<div class="sidebar-view-item" onclick="selectView(' + "'" + 'overview' + "'" + ')"><span class="view-icon">\uD83D\uDCC5</span><span>Timeline</span></div>';
-  }, true);
 
   document.getElementById('entityList').innerHTML = html || '<div style="padding:16px;color:#3a3a4a;font-size:0.82rem;">No entities found</div>';
-  document.getElementById('sidebarCount').innerHTML = '<span class="sidebar-metric">' + totalCount + '</span><span class="sidebar-metric-label">entit' + (totalCount === 1 ? 'y' : 'ies') + ' in graph</span>';
 }
 
 // Backward-compat alias
@@ -11761,6 +11757,7 @@ function selectEntity(id, fromCategory) {
     selectedData = data;
     var type = (data.entity || {}).entity_type || '';
     var eName = type === 'person' ? ((data.entity.name || {}).full || '') : ((data.entity.name || {}).common || (data.entity.name || {}).legal || '');
+    trackRecentEntity(id, eName || id);
     // Build breadcrumbs based on entity type and navigation context
     var catLabels = { family: 'Family', friends: 'Friends', professional: 'Professional', community: 'Communities', other: 'Other' };
     if (type === 'person' && prevCategory && catLabels[prevCategory]) {
