@@ -541,12 +541,72 @@ function _mergeChunkEntities(entities) {
 }
 
 // ---------------------------------------------------------------------------
-// P4 — Confidence Assignment (stub — Step 4)
+// P4 — Confidence Assignment
+// Score entities and relationships based on evidence quality.
 // ---------------------------------------------------------------------------
 
+/**
+ * Assign confidence scores to entities and relationships.
+ * Entities that already have confidence (e.g. from direct import) keep it.
+ *
+ * Entity confidence rules:
+ *   Named + multiple attributes → HIGH (0.85-1.0)
+ *   Named + minimal context → MEDIUM (0.6-0.8)
+ *   Named once in passing → LOW-MEDIUM (0.4-0.6)
+ *   Inferred, not named → LOW (0.2-0.4)
+ *
+ * Relationship confidence rules:
+ *   Explicitly stated → HIGH (0.85)
+ *   Implied by context → MEDIUM (0.5)
+ *   Co-mention in same paragraph → LOW (0.3)
+ */
 function assignConfidence(entities, relationships) {
-  // TODO: Step 4
-  return { entities, relationships };
+  const scoredEntities = entities.map(ent => {
+    // If already scored (direct import sets 0.9), keep it
+    if (typeof ent.confidence === 'number') return ent;
+
+    const attrCount = ent.attributes ? Object.keys(ent.attributes).length : 0;
+    const evidenceLen = (ent.evidence || '').length;
+
+    let confidence;
+    if (attrCount >= 3 && evidenceLen > 50) {
+      confidence = 0.85 + Math.min(attrCount / 50, 0.15); // 0.85–1.0
+    } else if (attrCount >= 1 || evidenceLen > 30) {
+      confidence = 0.6 + Math.min(attrCount / 20, 0.2);   // 0.6–0.8
+    } else if (evidenceLen > 0) {
+      confidence = 0.5;                                     // LOW-MEDIUM
+    } else {
+      confidence = 0.3;                                     // LOW
+    }
+
+    return { ...ent, confidence: Math.round(confidence * 100) / 100 };
+  });
+
+  const scoredRelationships = relationships.map(rel => {
+    if (typeof rel.confidence === 'number') return rel;
+
+    const evidenceLen = (rel.evidence || '').length;
+    const relationship = (rel.relationship || '').toLowerCase();
+
+    let confidence;
+    // Explicit relationships (specific verbs) get high confidence
+    const explicitVerbs = ['works_at', 'employed_by', 'founded', 'married_to', 'parent_of',
+      'friend_of', 'manages', 'reports_to', 'attended', 'graduated_from', 'created', 'leads',
+      'member_of', 'sibling_of', 'mentor_of'];
+    const isExplicit = explicitVerbs.some(v => relationship.includes(v));
+
+    if (isExplicit && evidenceLen > 20) {
+      confidence = 0.85;
+    } else if (evidenceLen > 30) {
+      confidence = 0.5;
+    } else {
+      confidence = 0.3;
+    }
+
+    return { ...rel, confidence: Math.round(confidence * 100) / 100 };
+  });
+
+  return { entities: scoredEntities, relationships: scoredRelationships };
 }
 
 // ---------------------------------------------------------------------------

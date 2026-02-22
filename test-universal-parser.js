@@ -347,6 +347,90 @@ async function testStep3Parse() {
 }
 
 // ---------------------------------------------------------------------------
+// Step 4 Tests — assignConfidence
+// ---------------------------------------------------------------------------
+
+function testStep4() {
+  section('Step 4: assignConfidence — Entity scoring');
+
+  // Entity with many attributes + long evidence → HIGH
+  const richEntity = {
+    name: 'CJ Mitchell',
+    type: 'PERSON',
+    attributes: { role: 'PM', company: 'Amazon', location: 'Redmond, WA', education: 'Howard University' },
+    evidence: 'CJ Mitchell is a Principal Product Manager at Amazon, based in Redmond, WA. He attended Howard University.',
+  };
+  const { entities: [scored1] } = assignConfidence([richEntity], []);
+  assert(scored1.confidence >= 0.85, `Rich entity confidence (${scored1.confidence}) >= 0.85`);
+
+  // Entity with 1 attribute, some evidence → MEDIUM
+  const medEntity = {
+    name: 'Meta',
+    type: 'ORG',
+    attributes: { industry: 'Technology' },
+    evidence: 'Steve works at Meta in Atlanta.',
+  };
+  const { entities: [scored2] } = assignConfidence([medEntity], []);
+  assert(scored2.confidence >= 0.6 && scored2.confidence <= 0.8,
+    `Medium entity confidence (${scored2.confidence}) in 0.6-0.8`);
+
+  // Entity with no attributes, short evidence → LOW
+  const thinEntity = {
+    name: 'BDAT Group',
+    type: 'ORG',
+    attributes: {},
+    evidence: 'BDAT member',
+  };
+  const { entities: [scored3] } = assignConfidence([thinEntity], []);
+  assert(scored3.confidence >= 0.3 && scored3.confidence <= 0.6,
+    `Thin entity confidence (${scored3.confidence}) in 0.3-0.6`);
+
+  // Entity with no evidence at all → LOW
+  const bareEntity = { name: 'Something', type: 'CONCEPT', attributes: {} };
+  const { entities: [scored4] } = assignConfidence([bareEntity], []);
+  assert(scored4.confidence <= 0.4, `Bare entity confidence (${scored4.confidence}) <= 0.4`);
+
+  // Already-scored entity (direct import) preserved
+  const preScored = { name: 'Pre', type: 'PERSON', confidence: 0.9 };
+  const { entities: [scored5] } = assignConfidence([preScored], []);
+  assert(scored5.confidence === 0.9, 'Pre-scored entity confidence preserved');
+
+  section('Step 4: assignConfidence — Relationship scoring');
+
+  // Explicit relationship with evidence → HIGH
+  const explicitRel = {
+    source: 'CJ', target: 'Amazon',
+    relationship: 'works_at',
+    evidence: 'CJ Mitchell works at Amazon as a PM in Redmond, WA.',
+  };
+  const { relationships: [rScored1] } = assignConfidence([], [explicitRel]);
+  assert(rScored1.confidence === 0.85, `Explicit rel confidence (${rScored1.confidence}) = 0.85`);
+
+  // Non-explicit with good evidence → MEDIUM
+  const impliedRel = {
+    source: 'CJ', target: 'Steve',
+    relationship: 'mentioned_together',
+    evidence: 'Both CJ and Steve were at the meeting last Thursday.',
+  };
+  const { relationships: [rScored2] } = assignConfidence([], [impliedRel]);
+  assert(rScored2.confidence === 0.5, `Implied rel confidence (${rScored2.confidence}) = 0.5`);
+
+  // Minimal evidence → LOW
+  const weakRel = {
+    source: 'X', target: 'Y',
+    relationship: 'referenced',
+    evidence: 'X and Y',
+  };
+  const { relationships: [rScored3] } = assignConfidence([], [weakRel]);
+  assert(rScored3.confidence === 0.3, `Weak rel confidence (${rScored3.confidence}) = 0.3`);
+
+  // Pre-scored relationship preserved
+  const preScoredRel = { source: 'A', target: 'B', relationship: 'test', confidence: 0.9 };
+  const { relationships: [rScored4] } = assignConfidence([], [preScoredRel]);
+  assert(rScored4.confidence === 0.9, 'Pre-scored rel confidence preserved');
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -368,6 +452,10 @@ async function main() {
   if (!step || step === 3) {
     await testStep3();
     await testStep3Parse();
+  }
+
+  if (!step || step === 4) {
+    testStep4();
   }
 
   console.log(`\n══════════════════════════`);
