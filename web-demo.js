@@ -6897,7 +6897,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     --info-bg: rgba(37,99,235,0.06);
 
     /* Layout */
-    --sidebar-width: 220px;
+    --sidebar-width: 240px;
     --radius-sm: 6px;
     --radius-md: 8px;
     --radius-lg: 12px;
@@ -7139,7 +7139,7 @@ const WIKI_HTML = `<!DOCTYPE html>
 
   /* --- Right Entity Pipeline Panel --- */
   #rightPanel {
-    width: 380px; min-width: 380px;
+    width: 420px; min-width: 420px;
     border-left: none;
     background: #f4f2ee;
     overflow-y: auto;
@@ -7157,7 +7157,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   #rightPanelToggle:hover { background: #f5f5f5; }
   @media (max-width: 1200px) {
     #rightPanel { display: none; }
-    #rightPanel.force-show { display: flex; position: fixed; right: 0; top: 0; bottom: 0; z-index: 99; box-shadow: -4px 0 16px rgba(0,0,0,0.1); width: 380px; }
+    #rightPanel.force-show { display: flex; position: fixed; right: 0; top: 0; bottom: 0; z-index: 99; box-shadow: -4px 0 16px rgba(0,0,0,0.1); width: 420px; }
     #rightPanelToggle { display: block; }
   }
 
