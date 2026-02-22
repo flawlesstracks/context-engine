@@ -8208,6 +8208,63 @@ const WIKI_HTML = `<!DOCTYPE html>
   .cat-status-pill.pill-former { background: #FFF3E0; color: #E65100; }
   .cat-status-pill.pill-deceased { background: #F5F5F5; color: #616161; }
   .cat-status-pill.pill-complex { background: #FFF3E0; color: #E65100; }
+  /* People Hub - Facebook-style */
+  .people-hub { padding: 0 28px 40px; background: #fff; }
+  .people-hub-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 24px 0 16px;
+  }
+  .people-hub-title-row { display: flex; align-items: center; gap: 10px; }
+  .people-hub-title {
+    font-size: 1.5rem; font-weight: 700; color: var(--text-primary); margin: 0;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .people-hub-title svg { color: #666; }
+  .people-hub-count { font-size: 0.9rem; font-weight: 400; color: var(--text-muted); }
+  .people-hub-search {
+    padding: 8px 14px 8px 36px; border: 1px solid #ccc; border-radius: 20px;
+    font-size: 14px; width: 240px; outline: none; background: #f0f2f5;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .people-hub-search:focus { border-color: #0a66c2; background: #fff; }
+  .people-hub-search-wrap {
+    position: relative; display: flex; align-items: center;
+  }
+  .people-hub-search-wrap svg {
+    position: absolute; left: 12px; color: #999; pointer-events: none;
+  }
+  .people-hub-tabs {
+    display: flex; gap: 0; border-bottom: 1px solid #ddd; margin-bottom: 20px;
+  }
+  .people-hub-tab {
+    padding: 12px 20px; font-size: 15px; font-weight: 600; color: #65676b;
+    cursor: pointer; border: none; background: transparent; font-family: inherit;
+    position: relative; transition: color 0.15s;
+  }
+  .people-hub-tab:hover { background: #f0f2f5; border-radius: 8px 8px 0 0; }
+  .people-hub-tab.active { color: #0a66c2; }
+  .people-hub-tab.active::after {
+    content: ""; position: absolute; bottom: -1px; left: 0; right: 0;
+    height: 3px; background: #0a66c2; border-radius: 3px 3px 0 0;
+  }
+  .people-hub-tab-count {
+    font-size: 13px; font-weight: 400; color: #999; margin-left: 4px;
+  }
+  .people-hub-content { min-height: 200px; }
+  .people-hub-empty {
+    padding: 40px; text-align: center; color: var(--text-muted); font-size: 0.9rem;
+  }
+  .people-hub-tier-section { margin-bottom: 24px; }
+  .people-hub-tier-label {
+    font-size: 1rem; font-weight: 600; color: var(--text-primary);
+    margin-bottom: 12px; padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-subtle, #e0e0e0);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .people-hub-tier-dot {
+    width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+  }
+
   .cat-subsection { margin-bottom: 20px; }
   .cat-subsection-label {
     font-size: 0.9rem; font-weight: 600; color: var(--text-primary);
@@ -10289,22 +10346,9 @@ function renderIntelligenceBriefPlaceholder(data) {
 }
 
 function selectCategoryPage(category) {
-  selectedCategory = category;
-  selectedId = null;
-  selectedView = null;
-  var empty = document.getElementById('emptyState');
-  if (empty) empty.style.display = 'none';
-  var catLabels = { family: 'Family', friends: 'Friends', professional: 'Professional', community: 'Communities', other: 'Other' };
-  breadcrumbs = [
-    { label: 'People', action: '' },
-    { label: catLabels[category] || category }
-  ];
-  renderBreadcrumbs();
-  var data = buildSidebarData();
-  var people = data.people[category] || [];
-  renderCategoryPage(category, people);
-  renderRightPanel(null);
-  renderSidebar();
+  // Redirect to People Hub with the appropriate tab
+  var tabMap = { family: 'family', friends: 'friends', professional: 'professional', community: 'other', other: 'other' };
+  showPeopleHub(tabMap[category] || 'all');
 }
 
 function renderPeopleCards(people, category) {
@@ -10462,6 +10506,242 @@ function renderCategoryPage(category, people) {
   }
   html += '</div>';
   document.getElementById('main').innerHTML = html;
+}
+
+// --- People Hub: Facebook-style tab navigation ---
+
+var _peopleHubTab = 'all';
+var _peopleHubSearch = '';
+
+function showPeopleHub(tab) {
+  _peopleHubTab = tab || _peopleHubTab || 'all';
+  selectedCategory = 'people_hub';
+  selectedId = null;
+  selectedView = null;
+  var empty = document.getElementById('emptyState');
+  if (empty) empty.style.display = 'none';
+  breadcrumbs = [{ label: 'People' }];
+  renderBreadcrumbs();
+  renderPeopleHub();
+  renderRightPanel(null);
+  renderSidebar();
+}
+
+function renderPeopleHub() {
+  var data = buildSidebarData();
+  var allPeople = [];
+  var cats = ['family', 'friends', 'professional', 'community', 'other'];
+  for (var c = 0; c < cats.length; c++) {
+    var items = data.people[cats[c]] || [];
+    for (var i = 0; i < items.length; i++) {
+      items[i]._peopleCategory = cats[c];
+      allPeople.push(items[i]);
+    }
+  }
+
+  // Count per tab
+  var familyPeople = [], friendsPeople = [], proPeople = [], otherPeople = [];
+  for (var i = 0; i < allPeople.length; i++) {
+    var cat = allPeople[i]._peopleCategory;
+    if (cat === 'family') familyPeople.push(allPeople[i]);
+    else if (cat === 'friends') friendsPeople.push(allPeople[i]);
+    else if (cat === 'professional') proPeople.push(allPeople[i]);
+    else otherPeople.push(allPeople[i]);
+  }
+
+  var tabs = [
+    { id: 'all', label: 'All', count: allPeople.length },
+    { id: 'family', label: 'Family', count: familyPeople.length },
+    { id: 'friends', label: 'Friends', count: friendsPeople.length },
+    { id: 'professional', label: 'Professional', count: proPeople.length },
+    { id: 'other', label: 'Other', count: otherPeople.length }
+  ];
+
+  var h = '<div class="people-hub">';
+
+  // Header
+  h += '<div class="people-hub-header">';
+  h += '<div class="people-hub-title-row">';
+  h += '<h1 class="people-hub-title"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> People</h1>';
+  h += '<span class="people-hub-count">' + allPeople.length + ' people</span>';
+  h += '</div>';
+  h += '<div class="people-hub-search-wrap">';
+  h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
+  h += '<input class="people-hub-search" id="peopleHubSearch" placeholder="Search people..." oninput="filterPeopleHub()" value="' + esc(_peopleHubSearch) + '" />';
+  h += '</div></div>';
+
+  // Tab bar
+  h += '<div class="people-hub-tabs">';
+  for (var t = 0; t < tabs.length; t++) {
+    var tab = tabs[t];
+    if (tab.id !== 'all' && tab.count === 0) continue;
+    h += '<button class="people-hub-tab' + (tab.id === _peopleHubTab ? ' active' : '') + '" onclick="switchPeopleTab(\\'' + tab.id + '\\')">';
+    h += esc(tab.label);
+    h += '<span class="people-hub-tab-count">' + tab.count + '</span>';
+    h += '</button>';
+  }
+  h += '</div>';
+
+  // Content area
+  h += '<div class="people-hub-content" id="peopleHubContent">';
+
+  var searchQ = (_peopleHubSearch || '').toLowerCase().trim();
+  var activePeople;
+
+  if (_peopleHubTab === 'all') activePeople = allPeople;
+  else if (_peopleHubTab === 'family') activePeople = familyPeople;
+  else if (_peopleHubTab === 'friends') activePeople = friendsPeople;
+  else if (_peopleHubTab === 'professional') activePeople = proPeople;
+  else activePeople = otherPeople;
+
+  // Filter by search
+  if (searchQ) {
+    activePeople = activePeople.filter(function(p) {
+      return (p.name || '').toLowerCase().indexOf(searchQ) !== -1 ||
+             (p.descriptor || '').toLowerCase().indexOf(searchQ) !== -1 ||
+             (p.summary || '').toLowerCase().indexOf(searchQ) !== -1;
+    });
+  }
+
+  if (activePeople.length === 0) {
+    h += '<div class="people-hub-empty">' + (searchQ ? 'No people match your search' : 'No people in this category') + '</div>';
+  } else if (_peopleHubTab === 'all') {
+    h += renderPeopleHubAll(activePeople);
+  } else if (_peopleHubTab === 'family') {
+    h += renderPeopleHubFamily(activePeople);
+  } else if (_peopleHubTab === 'friends') {
+    h += renderPeopleHubFriends(activePeople);
+  } else if (_peopleHubTab === 'professional') {
+    h += renderPeopleHubProfessional(activePeople);
+  } else {
+    h += renderPeopleHubGeneric(activePeople);
+  }
+
+  h += '</div></div>';
+  document.getElementById('main').innerHTML = h;
+
+  // Focus search if it had text
+  if (_peopleHubSearch) {
+    var si = document.getElementById('peopleHubSearch');
+    if (si) { si.focus(); si.setSelectionRange(si.value.length, si.value.length); }
+  }
+}
+
+function switchPeopleTab(tab) {
+  _peopleHubTab = tab;
+  renderPeopleHub();
+}
+
+function filterPeopleHub() {
+  var si = document.getElementById('peopleHubSearch');
+  _peopleHubSearch = si ? si.value : '';
+  renderPeopleHub();
+}
+
+// ALL tab: grouped by relationship tier
+function renderPeopleHubAll(people) {
+  var tierDefs = [
+    { id: 5, label: 'Inner Circle', color: '#D4A017' },
+    { id: 4, label: 'Close Friends', color: '#22c55e' },
+    { id: 3, label: 'Friends', color: '#3b82f6' },
+    { id: 2, label: 'Colleagues', color: '#6b7280' },
+    { id: 1, label: 'Acquaintances', color: '#9ca3af' }
+  ];
+  var buckets = { 5: [], 4: [], 3: [], 2: [], 1: [] };
+  for (var i = 0; i < people.length; i++) {
+    var d = people[i].relationship_dimensions || {};
+    var str = d.strength || 0;
+    var tier;
+    if (str >= 0.85) tier = 5;
+    else if (str >= 0.65) tier = 4;
+    else if (str >= 0.40) tier = 3;
+    else if (str >= 0.20) tier = 2;
+    else tier = 1;
+    buckets[tier].push(people[i]);
+  }
+  var h = '';
+  for (var t = 0; t < tierDefs.length; t++) {
+    var td = tierDefs[t];
+    var bucket = buckets[td.id];
+    if (bucket.length === 0) continue;
+    // Sort by strength descending
+    bucket.sort(function(a, b) { return ((b.relationship_dimensions || {}).strength || 0) - ((a.relationship_dimensions || {}).strength || 0); });
+    h += '<div class="people-hub-tier-section">';
+    h += '<div class="people-hub-tier-label"><span class="people-hub-tier-dot" style="background:' + td.color + '"></span> ' + esc(td.label) + ' (' + bucket.length + ')</div>';
+    h += '<div class="cat-card-grid">';
+    h += renderPeopleCards(bucket, 'all');
+    h += '</div></div>';
+  }
+  return h;
+}
+
+// FAMILY tab: sub-sections
+function renderPeopleHubFamily(people) {
+  var spouse = [], children = [], parentsSiblings = [], extended = [];
+  for (var i = 0; i < people.length; i++) {
+    var section = getFamilySection(people[i]);
+    if (section === 'Spouse') spouse.push(people[i]);
+    else if (section === 'Children') children.push(people[i]);
+    else if (section === 'Parents & Siblings') parentsSiblings.push(people[i]);
+    else extended.push(people[i]);
+  }
+  spouse.sort(function(a, b) {
+    var da = (a.relationship_dimensions || {}); var db = (b.relationship_dimensions || {});
+    var aActive = (da.status === 'active' || da.status === 'stable') ? 0 : 1;
+    var bActive = (db.status === 'active' || db.status === 'stable') ? 0 : 1;
+    if (aActive !== bActive) return aActive - bActive;
+    return (db.strength || 0) - (da.strength || 0);
+  });
+  extended.sort(function(a, b) { return ((b.relationship_dimensions || {}).strength || 0) - ((a.relationship_dimensions || {}).strength || 0); });
+  var h = '';
+  h += renderSubSection('Spouse', spouse, 'family');
+  h += renderSubSection('Children', children, 'family');
+  h += renderParentsSiblingsSection(parentsSiblings, 'family');
+  h += renderSubSection('Extended Family', extended, 'family');
+  return h;
+}
+
+// FRIENDS tab: sub-sections by strength
+function renderPeopleHubFriends(people) {
+  var innerCircle = [], closeFriends = [], friends = [], acquaintances = [];
+  for (var i = 0; i < people.length; i++) {
+    var section = getFriendsSection(people[i]);
+    if (section === 'Inner Circle') innerCircle.push(people[i]);
+    else if (section === 'Close Friends') closeFriends.push(people[i]);
+    else if (section === 'Friends') friends.push(people[i]);
+    else acquaintances.push(people[i]);
+  }
+  var h = '';
+  h += renderSubSection('Inner Circle', innerCircle, 'friends');
+  h += renderSubSection('Close Friends', closeFriends, 'friends');
+  h += renderSubSection('Friends', friends, 'friends');
+  h += renderSubSection('Acquaintances', acquaintances, 'friends');
+  return h;
+}
+
+// PROFESSIONAL tab: sub-sections
+function renderPeopleHubProfessional(people) {
+  var partners = [], current = [], former = [];
+  for (var i = 0; i < people.length; i++) {
+    var section = getProfessionalSection(people[i]);
+    if (section === 'Partners') partners.push(people[i]);
+    else if (section === 'Current') current.push(people[i]);
+    else former.push(people[i]);
+  }
+  var h = '';
+  h += renderSubSection('Business Partners', partners, 'professional');
+  h += renderSubSection('Current Colleagues', current, 'professional');
+  h += renderSubSection('Former Colleagues', former, 'professional');
+  return h;
+}
+
+// OTHER/generic tab: flat grid sorted by strength
+function renderPeopleHubGeneric(people) {
+  people.sort(function(a, b) { return ((b.relationship_dimensions || {}).strength || 0) - ((a.relationship_dimensions || {}).strength || 0); });
+  var h = '<div class="cat-card-grid">';
+  h += renderPeopleCards(people, 'other');
+  h += '</div>';
+  return h;
 }
 
 function selectOrgCategoryPage(category) {
@@ -11232,34 +11512,17 @@ function renderSidebar() {
     totalCount++;
   }
 
-  // Section 2: People
+  // Section 2: People — single hub link
   var peopleCount = data.people.family.length + data.people.friends.length +
                     data.people.professional.length + data.people.community.length + data.people.other.length;
   if (peopleCount > 0 || !data.you) {
-    html += renderSidebarSection('people', '\uD83D\uDC65', 'People', peopleCount, function() {
-      var h = '';
-      var cats = [
-        { key: 'family', emoji: '\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC66', label: 'Family' },
-        { key: 'friends', emoji: '\uD83E\uDD1D', label: 'Friends' },
-        { key: 'professional', emoji: '\uD83D\uDCBC', label: 'Professional' },
-        { key: 'community', emoji: '\uD83C\uDFD8\uFE0F', label: 'Communities' },
-        { key: 'other', emoji: '\uD83D\uDC65', label: 'Other' }
-      ];
-      for (var g = 0; g < cats.length; g++) {
-        var items = data.people[cats[g].key] || [];
-        if (items.length === 0) continue;
-        var isActive = selectedCategory === cats[g].key;
-        h += '<div class="sidebar-cat-row' + (isActive ? ' active' : '') + '" onclick="selectCategoryPage(' + "'" + cats[g].key + "'" + ')">';
-        h += '<span class="cat-emoji">' + cats[g].emoji + '</span>';
-        h += '<span class="cat-label">' + esc(cats[g].label) + '</span>';
-        h += '<span class="cat-count">' + items.length + '</span>';
-        h += '</div>';
-      }
-      if (peopleCount === 0) {
-        h += '<div class="sidebar-empty-hint">No people found</div>';
-      }
-      return h;
-    }, false);
+    var isPeopleActive = selectedCategory === 'people_hub' || selectedCategory === 'family' || selectedCategory === 'friends' || selectedCategory === 'professional' || selectedCategory === 'community' || selectedCategory === 'other';
+    html += '<div class="sidebar-section">';
+    html += '<div class="sidebar-cat-row' + (isPeopleActive ? ' active' : '') + '" onclick="showPeopleHub(\\'all\\')" style="padding:10px 12px;">';
+    html += '<span class="cat-emoji">\uD83D\uDC65</span>';
+    html += '<span class="cat-label" style="font-weight:600;">People</span>';
+    html += '<span class="cat-count">' + peopleCount + '</span>';
+    html += '</div></div>';
     totalCount += peopleCount;
   }
 
