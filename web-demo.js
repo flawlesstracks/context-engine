@@ -2148,6 +2148,100 @@ app.get('/api/entity/:id/health', apiAuth, (req, res) => {
   res.json({ entity_id: req.params.id, ...health });
 });
 
+// GET /api/entity/:id/pipeline — Entity pipeline: Collect/Review/Confirm scoped to entity
+app.get('/api/entity/:id/pipeline', apiAuth, (req, res) => {
+  const entityId = req.params.id;
+  const entity = readEntity(entityId, req.graphDir);
+  if (!entity) return res.status(404).json({ error: 'Entity not found' });
+
+  const allClusters = getReviewQueue(req.graphDir);
+  // Filter clusters associated with this entity
+  const entityClusters = allClusters.filter(c => c.candidate_entity_id === entityId);
+
+  // Review: provisional or ambiguous clusters for this entity
+  const reviewClusters = entityClusters.filter(c =>
+    c.state === 'provisional' || c.ambiguous === true
+  );
+
+  // Confirm: high confidence, non-ambiguous provisional clusters ready for one-click
+  const confirmClusters = entityClusters.filter(c =>
+    c.state === 'provisional' && !c.ambiguous && (c.association_confidence || 0) > 0.6
+  );
+
+  // Low confidence attributes
+  const attrs = entity.attributes || [];
+  const lowConfAttrs = attrs.filter(a => a.confidence != null && a.confidence < 0.5);
+
+  // Active conflicts
+  const conflicts = entity.conflicts || [];
+
+  // Recent confirmations from provenance
+  const prov = entity.provenance_chain || {};
+  const merges = (prov.merge_history || []).slice(-3).reverse();
+
+  res.json({
+    entity_id: entityId,
+    collect: { pending_count: entityClusters.filter(c => c.state === 'unresolved').length },
+    review: {
+      clusters: reviewClusters.map(c => ({
+        cluster_id: c.cluster_id,
+        source_type: c.source?.type || 'unknown',
+        name: c.signals?.names?.[0] || c.candidate_entity_name || '',
+        association_confidence: c.association_confidence || 0,
+        quadrant: c.quadrant,
+        quadrant_label: c.quadrant_label || '',
+        ambiguous: c.ambiguous || false,
+        evidence: c.evidence || [],
+        match_zone: c.match_zone || '',
+        contradictions: c.contradictions || []
+      })),
+      conflict_count: conflicts.filter(c => c.conflict_type === 'FACTUAL').length,
+      low_confidence_count: lowConfAttrs.length,
+      low_confidence_attrs: lowConfAttrs.slice(0, 5).map(a => ({ key: a.key, value: a.value, confidence: a.confidence }))
+    },
+    confirm: {
+      ready_clusters: confirmClusters.map(c => ({
+        cluster_id: c.cluster_id,
+        source_type: c.source?.type || 'unknown',
+        name: c.signals?.names?.[0] || '',
+        signal_count: Object.values(c.confident_signals || {}).reduce((sum, v) => sum + (Array.isArray(v) ? v.length : (v ? 1 : 0)), 0),
+        association_confidence: c.association_confidence || 0,
+        quadrant_label: c.quadrant_label || ''
+      })),
+      recent_confirmations: merges.map(m => ({
+        merged_from: m.merged_from,
+        merged_at: m.merged_at,
+        changes: m.changes || []
+      }))
+    }
+  });
+});
+
+// GET /api/pipeline/global — Global pipeline: all entities
+app.get('/api/pipeline/global', apiAuth, (req, res) => {
+  const allClusters = getReviewQueue(req.graphDir);
+  const reviewClusters = allClusters.filter(c => c.state === 'provisional' || c.ambiguous);
+  const confirmClusters = allClusters.filter(c =>
+    c.state === 'provisional' && !c.ambiguous && (c.association_confidence || 0) > 0.6
+  );
+  res.json({
+    collect: { pending_count: allClusters.filter(c => c.state === 'unresolved').length },
+    review: { clusters: reviewClusters.map(c => ({
+      cluster_id: c.cluster_id, source_type: c.source?.type || 'unknown',
+      name: c.signals?.names?.[0] || c.candidate_entity_name || '',
+      candidate_entity_id: c.candidate_entity_id,
+      association_confidence: c.association_confidence || 0,
+      quadrant: c.quadrant, quadrant_label: c.quadrant_label || '',
+      ambiguous: c.ambiguous || false, evidence: c.evidence || []
+    })), count: reviewClusters.length },
+    confirm: { ready_clusters: confirmClusters.map(c => ({
+      cluster_id: c.cluster_id, source_type: c.source?.type || 'unknown',
+      name: c.signals?.names?.[0] || '', signal_count: Object.values(c.confident_signals || {}).reduce((sum, v) => sum + (Array.isArray(v) ? v.length : (v ? 1 : 0)), 0),
+      association_confidence: c.association_confidence || 0, quadrant_label: c.quadrant_label || ''
+    })), count: confirmClusters.length }
+  });
+});
+
 // POST /api/dedup-relationships — Retroactively deduplicate relationships across all entities
 app.post('/api/dedup-relationships', apiAuth, (req, res) => {
   const { similarity } = require('./merge-engine');
@@ -7043,7 +7137,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     line-height: 1.8; flex-direction: column; gap: 12px;
   }
 
-  /* --- Right Context Panel --- */
+  /* --- Right Entity Pipeline Panel --- */
   #rightPanel {
     width: 300px; min-width: 300px;
     border-left: 1px solid #e0e0e0;
@@ -7066,118 +7160,151 @@ const WIKI_HTML = `<!DOCTYPE html>
     #rightPanelToggle { display: block; }
   }
 
-  /* Right panel sections */
-  .rp-section { border-bottom: 1px solid #eee; padding: 16px; }
-  .rp-section:last-child { border-bottom: none; }
-  .rp-section-header {
+  /* Pipeline sections */
+  .pp-section { border-bottom: 1px solid #eee; }
+  .pp-section:last-child { border-bottom: none; }
+  .pp-accent { height: 3px; }
+  .pp-accent.collect { background: linear-gradient(90deg, #667eea, #764ba2); }
+  .pp-accent.review { background: linear-gradient(90deg, #f59e0b, #ef6c00); }
+  .pp-accent.confirm { background: linear-gradient(90deg, #10b981, #059669); }
+  .pp-header {
     display: flex; align-items: center; justify-content: space-between;
-    cursor: pointer; user-select: none;
+    padding: 10px 14px; cursor: pointer; user-select: none;
   }
-  .rp-section-title {
-    font-size: 11px; font-weight: 700; text-transform: uppercase;
-    color: #666; letter-spacing: 0.5px;
-    display: flex; align-items: center; gap: 6px;
+  .pp-header-left { display: flex; align-items: center; gap: 8px; }
+  .pp-header-icon { font-size: 14px; }
+  .pp-header-title {
+    font-size: 12px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px;
   }
-  .rp-section-title svg { opacity: 0.5; }
-  .rp-section-chevron { font-size: 10px; color: #999; transition: transform 0.15s; }
-  .rp-section-chevron.collapsed { transform: rotate(-90deg); }
-  .rp-section-body { margin-top: 12px; }
-  .rp-section-body.collapsed { display: none; }
+  .pp-section.collect .pp-header-title { color: #5b21b6; }
+  .pp-section.review .pp-header-title { color: #d97706; }
+  .pp-section.confirm .pp-header-title { color: #059669; }
+  .pp-badge {
+    min-width: 18px; height: 18px; border-radius: 9px;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: #fff; padding: 0 5px;
+  }
+  .pp-section.collect .pp-badge { background: #7c3aed; }
+  .pp-section.review .pp-badge { background: #f59e0b; }
+  .pp-section.confirm .pp-badge { background: #10b981; }
+  .pp-chevron { font-size: 10px; color: #999; transition: transform 0.15s; margin-left: 6px; }
+  .pp-chevron.collapsed { transform: rotate(-90deg); }
+  .pp-body { padding: 0 14px 14px; }
+  .pp-body.collapsed { display: none; }
 
-  /* Add Context section */
-  .rp-dropzone {
-    border: 2px dashed #d0d0d0; border-radius: 8px; padding: 16px;
-    text-align: center; font-size: 12px; color: #999; cursor: pointer;
+  /* Collect section */
+  .pp-dropzone {
+    border: 2px dashed #d0d0d0; border-radius: 8px; padding: 14px;
+    text-align: center; font-size: 11px; color: #999; cursor: pointer;
     transition: border-color 0.15s, background 0.15s;
   }
-  .rp-dropzone:hover, .rp-dropzone.dragover { border-color: #0a66c2; background: #f0f7ff; color: #0a66c2; }
-  .rp-dropzone svg { display: block; margin: 0 auto 6px; opacity: 0.4; }
-  .rp-url-row {
-    display: flex; gap: 6px; margin-top: 10px;
+  .pp-dropzone:hover, .pp-dropzone.dragover { border-color: #7c3aed; background: #f5f3ff; color: #7c3aed; }
+  .pp-dropzone svg { display: block; margin: 0 auto 4px; opacity: 0.4; }
+  .pp-url-row { display: flex; gap: 4px; margin-top: 8px; }
+  .pp-url-input {
+    flex: 1; padding: 6px 8px; font-size: 11px; border: 1px solid #ddd;
+    border-radius: 5px; outline: none; min-width: 0;
   }
-  .rp-url-input {
-    flex: 1; padding: 7px 10px; font-size: 12px; border: 1px solid #ddd;
-    border-radius: 6px; outline: none;
-  }
-  .rp-url-input:focus { border-color: #0a66c2; }
-  .rp-url-btn {
-    padding: 7px 12px; font-size: 11px; font-weight: 600;
-    background: #0a66c2; color: #fff; border: none; border-radius: 6px;
+  .pp-url-input:focus { border-color: #7c3aed; }
+  .pp-url-btn {
+    padding: 6px 10px; font-size: 10px; font-weight: 600;
+    background: #7c3aed; color: #fff; border: none; border-radius: 5px;
     cursor: pointer; white-space: nowrap;
   }
-  .rp-url-btn:hover { background: #004182; }
-  .rp-url-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .rp-discover-row { margin-top: 8px; }
-  .rp-discover-row input {
-    width: 100%; padding: 7px 10px; font-size: 12px; border: 1px solid #ddd;
-    border-radius: 6px; outline: none; box-sizing: border-box;
+  .pp-url-btn:hover { background: #6d28d9; }
+  .pp-url-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .pp-quick-actions {
+    display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap;
   }
-  .rp-discover-row input:focus { border-color: #0a66c2; }
-  .rp-discover-row .rp-discover-ctx {
-    margin-top: 4px; font-size: 11px; color: #999;
+  .pp-quick-btn {
+    display: flex; align-items: center; gap: 3px; padding: 4px 8px;
+    font-size: 10px; color: #666; background: #f5f5f5; border: 1px solid #e5e5e5;
+    border-radius: 4px; cursor: pointer;
   }
-
-  /* Sources section */
-  .rp-source-item {
-    display: flex; align-items: center; gap: 8px; padding: 5px 0;
-    font-size: 12px; color: #333; border-bottom: 1px solid #f5f5f5;
-  }
-  .rp-source-item:last-child { border-bottom: none; }
-  .rp-source-icon { font-size: 14px; flex-shrink: 0; }
-  .rp-source-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .rp-source-date { font-size: 10px; color: #999; flex-shrink: 0; }
-  .rp-source-conf {
-    font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 8px;
-    flex-shrink: 0;
-  }
-  .rp-source-conf.high { background: #e6f4ea; color: #1e7e34; }
-  .rp-source-conf.med { background: #fff8e1; color: #f9a825; }
-  .rp-source-conf.low { background: #fce4ec; color: #c62828; }
-
-  /* Intelligence section */
-  .rp-intel-row {
+  .pp-quick-btn:hover { background: #eee; color: #333; }
+  .pp-quick-btn svg { width: 12px; height: 12px; }
+  .pp-monitor {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 4px 0; font-size: 12px;
+    margin-top: 8px; padding: 6px 8px; background: #fafafa; border-radius: 5px;
+    font-size: 10px; color: #888;
   }
-  .rp-intel-label { color: #666; }
-  .rp-intel-value { font-weight: 600; color: #333; }
-  .rp-health-circle {
-    width: 36px; height: 36px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 11px; font-weight: 700; color: #fff;
-    float: right; margin: 0 0 8px 8px;
+  .pp-toggle {
+    width: 28px; height: 16px; border-radius: 8px; background: #ddd;
+    position: relative; cursor: pointer; transition: background 0.2s;
   }
-  .rp-health-circle.strong { background: #1e7e34; }
-  .rp-health-circle.developing { background: #f9a825; }
-  .rp-health-circle.thin { background: #c62828; }
-  .rp-missing { font-size: 11px; color: #999; margin-top: 6px; }
-  .rp-missing a { color: #0a66c2; cursor: pointer; text-decoration: none; }
-  .rp-missing a:hover { text-decoration: underline; }
-  .rp-conflicts-link { font-size: 11px; color: #e65100; margin-top: 4px; display: block; }
-  .rp-private-badge {
-    font-size: 9px; font-weight: 600; color: #999; background: #f5f5f5;
-    padding: 2px 6px; border-radius: 4px; text-transform: uppercase;
+  .pp-toggle::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 12px; height: 12px; border-radius: 50%; background: #fff;
+    transition: transform 0.2s;
   }
+  .pp-toggle.on { background: #7c3aed; }
+  .pp-toggle.on::after { transform: translateX(12px); }
 
-  /* Related section */
-  .rp-related-card {
-    display: flex; align-items: center; gap: 8px; padding: 6px 0;
-    cursor: pointer; border-bottom: 1px solid #f5f5f5;
+  /* Review section */
+  .pp-cluster-card {
+    padding: 8px; margin-bottom: 6px; background: #fafafa;
+    border: 1px solid #eee; border-radius: 6px; font-size: 11px;
   }
-  .rp-related-card:last-child { border-bottom: none; }
-  .rp-related-card:hover { background: #f9f9f9; margin: 0 -16px; padding: 6px 16px; }
-  .rp-related-avatar {
-    width: 28px; height: 28px; border-radius: 50%;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0;
+  .pp-cluster-top { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .pp-cluster-icon { font-size: 12px; flex-shrink: 0; }
+  .pp-cluster-name { flex: 1; font-weight: 600; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pp-cluster-quadrant {
+    font-size: 8px; font-weight: 700; padding: 1px 5px; border-radius: 3px;
+    text-transform: uppercase; flex-shrink: 0;
   }
-  .rp-related-avatar.org { border-radius: 6px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
-  .rp-related-info { flex: 1; min-width: 0; }
-  .rp-related-name { font-size: 12px; font-weight: 600; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .rp-related-type { font-size: 10px; color: #999; }
-  .rp-view-all { display: block; text-align: center; font-size: 11px; color: #0a66c2; margin-top: 8px; cursor: pointer; text-decoration: none; }
-  .rp-view-all:hover { text-decoration: underline; }
+  .pp-cluster-quadrant.q1 { background: #dbeafe; color: #1d4ed8; }
+  .pp-cluster-quadrant.q2 { background: #fef3c7; color: #d97706; }
+  .pp-cluster-quadrant.q3 { background: #e0e7ff; color: #4338ca; }
+  .pp-cluster-quadrant.q4 { background: #d1fae5; color: #059669; }
+  .pp-conf-bar { height: 3px; background: #eee; border-radius: 2px; margin: 4px 0; }
+  .pp-conf-fill { height: 100%; border-radius: 2px; background: #f59e0b; }
+  .pp-evidence { margin: 4px 0; }
+  .pp-evidence-item { font-size: 10px; padding: 1px 0; }
+  .pp-evidence-item.match { color: #059669; }
+  .pp-evidence-item.conflict { color: #dc2626; }
+  .pp-evidence-item.partial { color: #d97706; }
+  .pp-cluster-actions { display: flex; gap: 4px; margin-top: 4px; }
+  .pp-btn-accept {
+    flex: 1; padding: 4px 8px; font-size: 10px; font-weight: 600;
+    background: #10b981; color: #fff; border: none; border-radius: 4px; cursor: pointer;
+  }
+  .pp-btn-accept:hover { background: #059669; }
+  .pp-btn-reject {
+    flex: 1; padding: 4px 8px; font-size: 10px; font-weight: 600;
+    background: #f5f5f5; color: #666; border: 1px solid #ddd; border-radius: 4px; cursor: pointer;
+  }
+  .pp-btn-reject:hover { background: #eee; }
+  .pp-btn-accept-all {
+    width: 100%; padding: 6px; font-size: 11px; font-weight: 600;
+    background: #10b981; color: #fff; border: none; border-radius: 5px;
+    cursor: pointer; margin-bottom: 6px;
+  }
+  .pp-btn-accept-all:hover { background: #059669; }
+  .pp-low-conf {
+    font-size: 10px; color: #888; padding: 4px 0; border-top: 1px solid #eee; margin-top: 6px;
+  }
+  .pp-low-conf-item { display: flex; align-items: center; justify-content: space-between; padding: 2px 0; }
+  .pp-btn-enrich {
+    font-size: 9px; padding: 2px 6px; background: #fef3c7; color: #d97706;
+    border: none; border-radius: 3px; cursor: pointer; font-weight: 600;
+  }
+  .pp-btn-enrich:hover { background: #fde68a; }
+
+  /* Confirm section */
+  .pp-confirm-card {
+    padding: 8px; margin-bottom: 6px; background: #f0fdf4;
+    border: 1px solid #d1fae5; border-radius: 6px; font-size: 11px;
+  }
+  .pp-confirm-summary { color: #333; margin-bottom: 4px; }
+  .pp-confirm-health { font-size: 10px; color: #059669; }
+  .pp-recent { margin-top: 8px; border-top: 1px solid #eee; padding-top: 6px; }
+  .pp-recent-title { font-size: 10px; color: #999; font-weight: 600; margin-bottom: 4px; text-transform: uppercase; }
+  .pp-recent-item { font-size: 10px; color: #888; padding: 2px 0; }
+
+  /* Empty states */
+  .pp-empty { text-align: center; font-size: 11px; color: #999; padding: 12px 0; }
+  .pp-empty-check { color: #10b981; font-size: 14px; display: block; margin-bottom: 2px; }
 
   /* File input hidden */
   #rpFileInput { display: none; }
@@ -11569,8 +11696,8 @@ function calcDecay(observedAt) {
   return Math.exp(-0.03 * days);
 }
 
-/* --- Right Context Panel --- */
-var rpCollapsed = { sources: true };
+/* --- Entity Pipeline Panel (Collect / Review / Confirm) --- */
+var ppCollapsed = {};
 
 function toggleRightPanel() {
   var rp = document.getElementById('rightPanel');
@@ -11581,32 +11708,45 @@ function toggleRightPanel() {
   }
 }
 
-function toggleRpSection(secId) {
-  rpCollapsed[secId] = !rpCollapsed[secId];
-  var body = document.getElementById('rp-body-' + secId);
-  var chev = document.getElementById('rp-chev-' + secId);
-  if (body) body.classList.toggle('collapsed', !!rpCollapsed[secId]);
-  if (chev) chev.classList.toggle('collapsed', !!rpCollapsed[secId]);
+function togglePpSection(secId) {
+  ppCollapsed[secId] = !ppCollapsed[secId];
+  var body = document.getElementById('pp-body-' + secId);
+  var chev = document.getElementById('pp-chev-' + secId);
+  if (body) body.classList.toggle('collapsed', !!ppCollapsed[secId]);
+  if (chev) chev.classList.toggle('collapsed', !!ppCollapsed[secId]);
 }
 
 function renderRightPanel(data) {
   var rp = document.getElementById('rightPanelContent');
   if (!rp) return;
-  if (!data) {
-    // No entity selected — show generic Add Context only
-    rp.innerHTML = renderRpAddContext(null, null) + renderRpRecentActivity();
-    wireRpDropzone('');
+  var e = data ? (data.entity || {}) : {};
+  var entityId = e.entity_id || '';
+  var name = e.name ? (e.name.full || e.name.common || e.name.legal || '') : '';
+
+  if (!entityId) {
+    // Global pipeline — no specific entity
+    api('GET', '/api/pipeline/global').then(function(pipeline) {
+      rp.innerHTML = renderPpCollect('', '', pipeline.collect) + renderPpReview(pipeline.review, '') + renderPpConfirm(pipeline.confirm, '');
+      wirePpDropzone('');
+    }).catch(function() {
+      rp.innerHTML = renderPpCollect('', '', { pending_count: 0 }) + renderPpReview({ clusters: [], conflict_count: 0, low_confidence_count: 0, low_confidence_attrs: [] }, '') + renderPpConfirm({ ready_clusters: [], recent_confirmations: [] }, '');
+      wirePpDropzone('');
+    });
     return;
   }
-  var e = data.entity || {};
-  var entityId = e.entity_id || '';
-  var name = e.name?.full || e.name?.common || e.name?.legal || '';
-  rp.innerHTML = renderRpAddContext(entityId, name) + renderRpSources(data) + renderRpIntelligence(data) + renderRpRelated(data);
-  wireRpDropzone(entityId);
+
+  // Entity-scoped pipeline
+  api('GET', '/api/entity/' + entityId + '/pipeline').then(function(pipeline) {
+    rp.innerHTML = renderPpCollect(entityId, name, pipeline.collect) + renderPpReview(pipeline.review, entityId) + renderPpConfirm(pipeline.confirm, entityId);
+    wirePpDropzone(entityId);
+  }).catch(function() {
+    rp.innerHTML = renderPpCollect(entityId, name, { pending_count: 0 }) + renderPpReview({ clusters: [], conflict_count: 0, low_confidence_count: 0, low_confidence_attrs: [] }, entityId) + renderPpConfirm({ ready_clusters: [], recent_confirmations: [] }, entityId);
+    wirePpDropzone(entityId);
+  });
 }
 
-function wireRpDropzone(entityId) {
-  var dz = document.getElementById('rpDropzone');
+function wirePpDropzone(entityId) {
+  var dz = document.getElementById('ppDropzone');
   if (!dz) return;
   dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.classList.add('dragover'); });
   dz.addEventListener('dragleave', function() { dz.classList.remove('dragover'); });
@@ -11616,212 +11756,325 @@ function wireRpDropzone(entityId) {
   });
 }
 
-function renderRpAddContext(entityId, entityName) {
-  var h = '<div class="rp-section">';
-  h += '<div class="rp-section-header" onclick="toggleRpSection(' + "'" + 'addctx' + "'" + ')">';
-  h += '<span class="rp-section-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Context</span>';
-  h += '<span class="rp-section-chevron' + (rpCollapsed.addctx ? ' collapsed' : '') + '" id="rp-chev-addctx">&#9660;</span>';
+/* --- SECTION 1: COLLECT (purple/indigo) --- */
+function renderPpCollect(entityId, entityName, collectData) {
+  var pending = collectData ? (collectData.pending_count || 0) : 0;
+  var h = '<div class="pp-section collect">';
+  h += '<div class="pp-accent collect"></div>';
+  h += '<div class="pp-header" onclick="togglePpSection(' + "'" + 'collect' + "'" + ')">';
+  h += '<div class="pp-header-left">';
+  h += '<span class="pp-header-icon">\uD83D\uDCE5</span>';
+  h += '<span class="pp-header-title">Collect</span>';
+  if (pending > 0) h += '<span class="pp-badge">' + pending + '</span>';
   h += '</div>';
-  h += '<div class="rp-section-body' + (rpCollapsed.addctx ? ' collapsed' : '') + '" id="rp-body-addctx">';
+  h += '<span class="pp-chevron' + (ppCollapsed.collect ? ' collapsed' : '') + '" id="pp-chev-collect">&#9660;</span>';
+  h += '</div>';
+  h += '<div class="pp-body' + (ppCollapsed.collect ? ' collapsed' : '') + '" id="pp-body-collect">';
   if (entityName) {
-    h += '<div style="font-size:11px;color:#0a66c2;margin-bottom:8px;font-weight:600;">Adding to: ' + esc(entityName) + '</div>';
+    h += '<div style="font-size:11px;color:#5b21b6;margin-bottom:8px;font-weight:600;">Adding context for: ' + esc(entityName) + '</div>';
   }
   // Drop zone
-  h += '<div class="rp-dropzone" id="rpDropzone" onclick="document.getElementById(' + "'" + 'rpFileInput' + "'" + ').click()">';
+  h += '<div class="pp-dropzone" id="ppDropzone" onclick="document.getElementById(' + "'" + 'rpFileInput' + "'" + ').click()">';
   h += '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
-  h += 'Drop files or click to upload';
+  if (entityName) {
+    h += 'Drop files to add context for ' + esc(entityName);
+  } else {
+    h += 'Drop files or click to upload';
+  }
   h += '</div>';
-  h += '<input type="file" id="rpFileInput" multiple onchange="rpHandleFiles(this.files,' + "'" + esc(entityId || '') + "'" + ')" />';
+  h += '<input type="file" id="rpFileInput" multiple onchange="rpHandleFiles(this.files,' + "'" + esc(entityId || '') + "'" + ')" style="display:none" />';
   // URL input
-  h += '<div class="rp-url-row">';
-  h += '<input type="text" class="rp-url-input" id="rpUrlInput" placeholder="Paste URL..." />';
-  h += '<button class="rp-url-btn" onclick="rpExtractURL(' + "'" + esc(entityId || '') + "'" + ')" id="rpUrlBtn">Extract</button>';
+  h += '<div class="pp-url-row">';
+  h += '<input type="text" class="pp-url-input" id="rpUrlInput" placeholder="Paste URL..." />';
+  h += '<button class="pp-url-btn" onclick="rpExtractURL(' + "'" + esc(entityId || '') + "'" + ')" id="rpUrlBtn">Extract</button>';
   h += '</div>';
-  // Name discovery
-  h += '<div class="rp-discover-row">';
-  h += '<input type="text" id="rpDiscoverName" placeholder="Search by name..." onkeydown="if(event.keyCode===13)rpDiscover(' + "'" + esc(entityId || '') + "'" + ')" />';
-  h += '<div class="rp-discover-ctx"><input type="text" id="rpDiscoverCtx" placeholder="Optional context (company, city...)" style="width:100%;padding:5px 8px;font-size:11px;border:1px solid #ddd;border-radius:4px;margin-top:4px;" /></div>';
-  h += '</div>';
-  h += '</div></div>';
-  return h;
-}
-
-function renderRpSources(data) {
-  var prov = data.provenance_chain || {};
-  var docs = prov.source_documents || [];
-  var obs = data.observations || [];
-  // Also gather unique sources from observations
-  var srcMap = {};
-  for (var i = 0; i < docs.length; i++) {
-    var src = docs[i].source || '';
-    srcMap[src] = { source: src, url: docs[i].url || null, date: docs[i].ingested_at || '', conf: 0.9 };
-  }
-  for (var i = 0; i < obs.length; i++) {
-    var src = obs[i].source || '';
-    if (src && !srcMap[src]) {
-      srcMap[src] = { source: src, url: obs[i].source_url || null, date: obs[i].observed_at || '', conf: obs[i].confidence || 0.5 };
-    }
-  }
-  var sources = Object.values(srcMap);
-  var count = sources.length;
-  var isCollapsed = rpCollapsed.sources !== false;
-
-  var h = '<div class="rp-section">';
-  h += '<div class="rp-section-header" onclick="toggleRpSection(' + "'" + 'sources' + "'" + ')">';
-  h += '<span class="rp-section-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Sources (' + count + ')</span>';
-  h += '<span class="rp-section-chevron' + (isCollapsed ? ' collapsed' : '') + '" id="rp-chev-sources">&#9660;</span>';
-  h += '</div>';
-  h += '<div class="rp-section-body' + (isCollapsed ? ' collapsed' : '') + '" id="rp-body-sources">';
-  for (var i = 0; i < sources.length; i++) {
-    var s = sources[i];
-    var srcName = s.source.split(':')[0] || s.source;
-    var confCls = s.conf >= 0.8 ? 'high' : s.conf >= 0.5 ? 'med' : 'low';
-    var confLabel = s.conf >= 0.8 ? 'HIGH' : s.conf >= 0.5 ? 'MED' : 'LOW';
-    h += '<div class="rp-source-item">';
-    h += '<span class="rp-source-icon">' + getRpSourceIcon(srcName) + '</span>';
-    h += '<span class="rp-source-name" title="' + esc(s.source) + '">' + esc(s.source.length > 30 ? s.source.slice(0, 30) + '...' : s.source) + '</span>';
-    if (s.date) h += '<span class="rp-source-date">' + esc(s.date.slice(0, 10)) + '</span>';
-    h += '<span class="rp-source-conf ' + confCls + '">' + confLabel + '</span>';
+  // Quick actions
+  if (entityId) {
+    h += '<div class="pp-quick-actions">';
+    h += '<button class="pp-quick-btn" onclick="ppQuickFind(' + "'" + 'linkedin' + "'" + ',' + "'" + esc(entityName || '') + "'" + ',' + "'" + esc(entityId) + "'" + ')" title="Find LinkedIn profile">';
+    h += '<svg viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg>';
+    h += ' Find LinkedIn</button>';
+    h += '<button class="pp-quick-btn" onclick="ppQuickFind(' + "'" + 'x' + "'" + ',' + "'" + esc(entityName || '') + "'" + ',' + "'" + esc(entityId) + "'" + ')" title="Find X profile">';
+    h += '<svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>';
+    h += ' Find X</button>';
+    h += '<button class="pp-quick-btn" onclick="ppQuickDiscover(' + "'" + esc(entityName || '') + "'" + ',' + "'" + esc(entityId) + "'" + ')" title="Discover connection">';
+    h += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
+    h += ' Discover</button>';
     h += '</div>';
   }
-  if (sources.length === 0) {
-    h += '<div style="font-size:11px;color:#999;">No sources recorded</div>';
+  // Monitor toggle
+  h += '<div class="pp-monitor">';
+  h += '<span>Watch for updates</span>';
+  h += '<div class="pp-toggle" onclick="this.classList.toggle(' + "'" + 'on' + "'" + ')" title="Automatically search for new information about this entity"></div>';
+  h += '</div>';
+  if (pending === 0 && !entityName) {
+    h += '<div class="pp-empty">No pending extractions. Add context above.</div>';
   }
   h += '</div></div>';
   return h;
 }
 
-function getRpSourceIcon(srcType) {
-  if (/linkedin/i.test(srcType)) return '<svg width="14" height="14" viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg>';
+/* --- SECTION 2: REVIEW (amber/orange) --- */
+function renderPpReview(reviewData, entityId) {
+  var clusters = reviewData.clusters || [];
+  var conflictCount = reviewData.conflict_count || 0;
+  var lowConfCount = reviewData.low_confidence_count || 0;
+  var lowConfAttrs = reviewData.low_confidence_attrs || [];
+  var totalCount = clusters.length + conflictCount;
+
+  var h = '<div class="pp-section review">';
+  h += '<div class="pp-accent review"></div>';
+  h += '<div class="pp-header" onclick="togglePpSection(' + "'" + 'review' + "'" + ')">';
+  h += '<div class="pp-header-left">';
+  h += '<span class="pp-header-icon">\u2696\uFE0F</span>';
+  h += '<span class="pp-header-title">Review</span>';
+  if (totalCount > 0) h += '<span class="pp-badge">' + totalCount + '</span>';
+  h += '</div>';
+  h += '<span class="pp-chevron' + (ppCollapsed.review ? ' collapsed' : '') + '" id="pp-chev-review">&#9660;</span>';
+  h += '</div>';
+  h += '<div class="pp-body' + (ppCollapsed.review ? ' collapsed' : '') + '" id="pp-body-review">';
+
+  // Render cluster cards
+  for (var i = 0; i < clusters.length; i++) {
+    var c = clusters[i];
+    var srcIcon = getPpSourceIcon(c.source_type || '');
+    var confPct = Math.round((c.association_confidence || 0) * 100);
+    var qClass = (c.quadrant || '').toLowerCase().replace('_', '');
+    if (qClass === 'q1create' || qClass === 'q1_create') qClass = 'q1';
+    else if (qClass === 'q2enrich' || qClass === 'q2_enrich') qClass = 'q2';
+    else if (qClass === 'q3consolidate' || qClass === 'q3_consolidate') qClass = 'q3';
+    else if (qClass === 'q4confirm' || qClass === 'q4_confirm') qClass = 'q4';
+    var qLabel = c.quadrant_label || c.quadrant || '';
+
+    h += '<div class="pp-cluster-card">';
+    h += '<div class="pp-cluster-top">';
+    h += '<span class="pp-cluster-icon">' + srcIcon + '</span>';
+    h += '<span class="pp-cluster-name">' + esc(c.name || 'Unknown') + '</span>';
+    h += '<span class="pp-cluster-quadrant ' + qClass + '">' + esc(qLabel) + '</span>';
+    h += '</div>';
+    // Confidence bar
+    h += '<div class="pp-conf-bar"><div class="pp-conf-fill" style="width:' + confPct + '%;background:' + (confPct >= 60 ? '#10b981' : confPct >= 30 ? '#f59e0b' : '#ef4444') + '"></div></div>';
+
+    // Evidence panel for ambiguous matches
+    if (c.ambiguous && c.evidence && c.evidence.length > 0) {
+      h += '<div class="pp-evidence">';
+      for (var j = 0; j < c.evidence.length; j++) {
+        var ev = c.evidence[j];
+        var evClass = ev.match ? 'match' : (ev.conflict ? 'conflict' : 'partial');
+        var evIcon = ev.match ? '\u2713' : (ev.conflict ? '\u2717' : '\u26A0');
+        h += '<div class="pp-evidence-item ' + evClass + '">' + evIcon + ' ' + esc(ev.label || ev.field || '') + '</div>';
+      }
+      h += '</div>';
+    }
+
+    // Contradictions
+    if (c.contradictions && c.contradictions.length > 0) {
+      h += '<div class="pp-evidence">';
+      for (var j = 0; j < c.contradictions.length; j++) {
+        h += '<div class="pp-evidence-item conflict">\u2717 ' + esc(c.contradictions[j].field || '') + ': ' + esc(c.contradictions[j].message || '') + '</div>';
+      }
+      h += '</div>';
+    }
+
+    // Action buttons
+    h += '<div class="pp-cluster-actions">';
+    h += '<button class="pp-btn-accept" onclick="ppAcceptCluster(' + "'" + esc(c.cluster_id) + "'" + ',' + "'" + esc(entityId) + "'" + ')">Accept</button>';
+    h += '<button class="pp-btn-reject" onclick="ppRejectCluster(' + "'" + esc(c.cluster_id) + "'" + ',' + "'" + esc(entityId) + "'" + ')">Reject</button>';
+    h += '</div></div>';
+  }
+
+  // Low confidence attributes
+  if (lowConfAttrs.length > 0) {
+    h += '<div class="pp-low-conf">';
+    h += '<div style="font-size:10px;color:#d97706;font-weight:600;margin-bottom:4px;">Low Confidence Attributes</div>';
+    for (var i = 0; i < lowConfAttrs.length; i++) {
+      var attr = lowConfAttrs[i];
+      h += '<div class="pp-low-conf-item">';
+      h += '<span>' + esc((attr.key || '').replace(/_/g, ' ')) + ': ' + esc(String(attr.value || '').slice(0, 20)) + ' (' + Math.round((attr.confidence || 0) * 100) + '%)</span>';
+      h += '<button class="pp-btn-enrich" onclick="ppEnrich(' + "'" + esc(attr.key || '') + "'" + ')">Enrich</button>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  if (totalCount === 0) {
+    h += '<div class="pp-empty"><span class="pp-empty-check">\u2713</span>No items need review</div>';
+  }
+  h += '</div></div>';
+  return h;
+}
+
+/* --- SECTION 3: CONFIRM (green) --- */
+function renderPpConfirm(confirmData, entityId) {
+  var readyClusters = confirmData.ready_clusters || [];
+  var recent = confirmData.recent_confirmations || [];
+  var count = readyClusters.length;
+
+  var h = '<div class="pp-section confirm">';
+  h += '<div class="pp-accent confirm"></div>';
+  h += '<div class="pp-header" onclick="togglePpSection(' + "'" + 'confirm' + "'" + ')">';
+  h += '<div class="pp-header-left">';
+  h += '<span class="pp-header-icon">\u2713</span>';
+  h += '<span class="pp-header-title">Confirm</span>';
+  if (count > 0) h += '<span class="pp-badge">' + count + '</span>';
+  h += '</div>';
+  h += '<span class="pp-chevron' + (ppCollapsed.confirm ? ' collapsed' : '') + '" id="pp-chev-confirm">&#9660;</span>';
+  h += '</div>';
+  h += '<div class="pp-body' + (ppCollapsed.confirm ? ' collapsed' : '') + '" id="pp-body-confirm">';
+
+  // Accept All button
+  if (count > 1) {
+    h += '<button class="pp-btn-accept-all" onclick="ppAcceptAll(' + "'" + esc(entityId) + "'" + ')">Accept All (' + count + ')</button>';
+  }
+
+  // Ready cluster cards
+  for (var i = 0; i < readyClusters.length; i++) {
+    var c = readyClusters[i];
+    var srcIcon = getPpSourceIcon(c.source_type || '');
+    var sigCount = c.signal_count || 0;
+    var confPct = Math.round((c.association_confidence || 0) * 100);
+
+    h += '<div class="pp-confirm-card">';
+    h += '<div class="pp-confirm-summary">' + srcIcon + ' ' + esc(c.name || 'Data') + ': ' + sigCount + ' signal' + (sigCount !== 1 ? 's' : '') + '</div>';
+    h += '<div class="pp-confirm-health">Confidence: ' + confPct + '% \u2014 ' + esc(c.quadrant_label || '') + '</div>';
+    h += '<button class="pp-btn-accept" onclick="ppAcceptCluster(' + "'" + esc(c.cluster_id) + "'" + ',' + "'" + esc(entityId) + "'" + ')" style="margin-top:4px;width:100%">Accept</button>';
+    h += '</div>';
+  }
+
+  // Recent confirmations
+  if (recent.length > 0) {
+    h += '<div class="pp-recent">';
+    h += '<div class="pp-recent-title">Recent Confirmations</div>';
+    for (var i = 0; i < Math.min(recent.length, 3); i++) {
+      var r = recent[i];
+      var dateStr = r.merged_at ? new Date(r.merged_at).toLocaleDateString() : '';
+      var changeDesc = (r.changes && r.changes.length > 0) ? r.changes.join(', ') : 'Data merged';
+      h += '<div class="pp-recent-item">' + esc(changeDesc.slice(0, 40)) + (dateStr ? ' \u2014 ' + esc(dateStr) : '') + '</div>';
+    }
+    h += '</div>';
+  }
+
+  if (count === 0 && recent.length === 0) {
+    h += '<div class="pp-empty"><span class="pp-empty-check">\u2713</span>All data confirmed</div>';
+  }
+  h += '</div></div>';
+  return h;
+}
+
+function getPpSourceIcon(srcType) {
+  if (/linkedin/i.test(srcType)) return '<svg width="12" height="12" viewBox="0 0 24 24" fill="#0A66C2" style="vertical-align:middle"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg>';
   if (/file|pdf|doc/i.test(srcType)) return '\uD83D\uDCC4';
   if (/url|web|http/i.test(srcType)) return '\uD83C\uDF10';
-  if (/drive/i.test(srcType)) return '\uD83D\uDCC1';
-  if (/chatgpt|ai/i.test(srcType)) return '\uD83E\uDD16';
+  if (/social/i.test(srcType)) return '\uD83D\uDCF1';
   if (/user/i.test(srcType)) return '\u270D\uFE0F';
   return '\uD83D\uDCCB';
 }
 
-function renderRpIntelligence(data) {
-  var health = computeEntityHealth(data);
-  var density = getEntityDensity(data);
-  var attrs = data.attributes || [];
-  var obs = data.observations || [];
-  var e = data.entity || {};
-
-  // Coverage: % of key fields that have values
-  var keyFields = ['headline', 'location', 'email', 'phone', 'linkedin_url', 'x_handle', 'instagram_handle'];
-  var filled = 0;
-  var missing = [];
-  for (var i = 0; i < keyFields.length; i++) {
-    var found = false;
-    for (var j = 0; j < attrs.length; j++) {
-      if (attrs[j].key === keyFields[i] && attrs[j].value) { found = true; break; }
+/* --- Pipeline Actions --- */
+function ppAcceptCluster(clusterId, entityId) {
+  toast('Accepting cluster...');
+  var action = entityId ? 'merge' : 'create_new';
+  var payload = { action: action };
+  if (entityId) payload.target_entity_id = entityId;
+  api('POST', '/api/clusters/resolve', Object.assign({ cluster_id: clusterId }, payload)).then(function(res) {
+    toast(res.message || 'Cluster accepted');
+    refreshReviewQueueBadge();
+    // Refresh right panel
+    if (entityId && selectedId === entityId) {
+      api('GET', '/api/entity/' + entityId).then(function(data) {
+        selectedData = data;
+        renderDetail(data);
+        renderRightPanel(data);
+      });
+    } else {
+      renderRightPanel(selectedData);
     }
-    if (found) { filled++; }
-    else { missing.push(keyFields[i].replace(/_/g, ' ')); }
-  }
-  var cl = data.career_lite || {};
-  if (cl.linkedin_url) { filled++; var li = missing.indexOf('linkedin url'); if (li !== -1) missing.splice(li, 1); }
-  var coverage = Math.round((filled / keyFields.length) * 100);
-
-  // Avg confidence
-  var totalConf = 0; var confCount = 0;
-  for (var i = 0; i < obs.length; i++) {
-    if (obs[i].confidence) { totalConf += obs[i].confidence; confCount++; }
-  }
-  var avgConf = confCount > 0 ? Math.round((totalConf / confCount) * 100) : 0;
-
-  // Conflicts
-  var conflicts = data.conflicts || [];
-  var activeConflicts = conflicts.filter(function(c) { return c.conflict_type === 'FACTUAL'; });
-
-  var h = '<div class="rp-section">';
-  h += '<div class="rp-section-header">';
-  h += '<span class="rp-section-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Intelligence</span>';
-  h += '<span class="rp-private-badge">Private</span>';
-  h += '</div>';
-  h += '<div class="rp-section-body">';
-  // Health circle
-  h += '<div class="rp-health-circle ' + health.level + '">' + (health.score ? health.score.toFixed(1) : '0') + '</div>';
-  h += '<div class="rp-intel-row"><span class="rp-intel-label">Health</span><span class="rp-intel-value">' + esc(health.label) + '</span></div>';
-  h += '<div class="rp-intel-row"><span class="rp-intel-label">Coverage</span><span class="rp-intel-value">' + coverage + '%</span></div>';
-  h += '<div class="rp-intel-row"><span class="rp-intel-label">Avg Confidence</span><span class="rp-intel-value">' + avgConf + '%</span></div>';
-  h += '<div class="rp-intel-row"><span class="rp-intel-label">Density</span><span class="rp-intel-value">' + esc(density.level || 'Unknown') + '</span></div>';
-  if (missing.length > 0) {
-    h += '<div class="rp-missing">Missing: ';
-    for (var i = 0; i < Math.min(missing.length, 3); i++) {
-      if (i > 0) h += ', ';
-      h += '<a onclick="document.getElementById(' + "'" + 'rpUrlInput' + "'" + ').focus()">' + esc(missing[i]) + '</a>';
-    }
-    if (missing.length > 3) h += ' +' + (missing.length - 3) + ' more';
-    h += '</div>';
-  }
-  if (activeConflicts.length > 0) {
-    h += '<a class="rp-conflicts-link">' + activeConflicts.length + ' conflict' + (activeConflicts.length > 1 ? 's' : '') + ' need resolution</a>';
-  }
-  h += '</div></div>';
-  return h;
+  }).catch(function(err) { toast('Failed: ' + err.message); });
 }
 
-function renderRpRelated(data) {
-  var rels = data.relationships || [];
-  var connected = data.connected_objects || [];
-  var e = data.entity || {};
-  var entityId = e.entity_id || '';
-  var isPerson = (e.entity_type === 'person');
-
-  // Combine rels and connected objects, take top 5
-  var items = [];
-  for (var i = 0; i < rels.length && items.length < 5; i++) {
-    var r = rels[i];
-    items.push({ id: r.target_entity_id || '', name: r.name || r.target_entity_id || '', type: r.relationship_type || '', isOrg: false });
-  }
-  // Also check connected objects for orgs
-  for (var i = 0; i < connected.length && items.length < 5; i++) {
-    var c = connected[i];
-    var isOrg = ['organization', 'business', 'institution'].indexOf(c.entity_type) !== -1;
-    if (isPerson && isOrg) {
-      items.push({ id: c.entity_id || '', name: (c.name && (c.name.common || c.name.legal || c.name.full)) || '', type: c.entity_type || '', isOrg: true });
+function ppRejectCluster(clusterId, entityId) {
+  toast('Rejecting cluster...');
+  api('POST', '/api/clusters/resolve', { cluster_id: clusterId, action: 'skip' }).then(function(res) {
+    toast(res.message || 'Cluster rejected');
+    refreshReviewQueueBadge();
+    if (entityId && selectedId === entityId) {
+      api('GET', '/api/entity/' + entityId).then(function(data) {
+        selectedData = data;
+        renderDetail(data);
+        renderRightPanel(data);
+      });
+    } else {
+      renderRightPanel(selectedData);
     }
-  }
-  var totalCount = rels.length + connected.length;
-  var isCollapsed = rpCollapsed.related === true;
-
-  var h = '<div class="rp-section">';
-  h += '<div class="rp-section-header" onclick="toggleRpSection(' + "'" + 'related' + "'" + ')">';
-  h += '<span class="rp-section-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> Related Entities</span>';
-  h += '<span class="rp-section-chevron' + (isCollapsed ? ' collapsed' : '') + '" id="rp-chev-related">&#9660;</span>';
-  h += '</div>';
-  h += '<div class="rp-section-body' + (isCollapsed ? ' collapsed' : '') + '" id="rp-body-related">';
-  for (var i = 0; i < items.length; i++) {
-    var it = items[i];
-    var initials = (it.name || '??').split(/\\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
-    h += '<div class="rp-related-card" onclick="selectEntity(' + "'" + esc(it.id) + "'" + ')">';
-    h += '<div class="rp-related-avatar' + (it.isOrg ? ' org' : '') + '">' + esc(initials) + '</div>';
-    h += '<div class="rp-related-info">';
-    h += '<div class="rp-related-name">' + esc(it.name) + '</div>';
-    h += '<div class="rp-related-type">' + esc(it.type) + '</div>';
-    h += '</div></div>';
-  }
-  if (items.length === 0) {
-    h += '<div style="font-size:11px;color:#999;">No connections yet</div>';
-  }
-  if (totalCount > 5) {
-    h += '<a class="rp-view-all" onclick="showConnectionsPage(' + "'" + esc(entityId) + "'" + ')">View all ' + totalCount + ' connections \u2192</a>';
-  }
-  h += '</div></div>';
-  return h;
+  }).catch(function(err) { toast('Failed: ' + err.message); });
 }
 
-function renderRpRecentActivity() {
-  var h = '<div class="rp-section">';
-  h += '<div class="rp-section-header">';
-  h += '<span class="rp-section-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Recent Activity</span>';
-  h += '</div>';
-  h += '<div class="rp-section-body">';
-  h += '<div style="font-size:11px;color:#999;text-align:center;padding:12px 0;">Select an entity to see context</div>';
-  h += '</div></div>';
-  return h;
+function ppAcceptAll(entityId) {
+  toast('Accepting all ready clusters...');
+  var endpoint = entityId ? '/api/entity/' + entityId + '/pipeline' : '/api/pipeline/global';
+  api('GET', endpoint).then(function(pipeline) {
+    var readyClusters = (pipeline.confirm && pipeline.confirm.ready_clusters) || [];
+    if (readyClusters.length === 0) { toast('Nothing to accept'); return; }
+    var promises = readyClusters.map(function(c) {
+      var payload = { cluster_id: c.cluster_id, action: entityId ? 'merge' : 'create_new' };
+      if (entityId) payload.target_entity_id = entityId;
+      return api('POST', '/api/clusters/resolve', payload);
+    });
+    Promise.all(promises).then(function() {
+      toast('Accepted ' + readyClusters.length + ' cluster' + (readyClusters.length > 1 ? 's' : ''));
+      refreshReviewQueueBadge();
+      if (entityId && selectedId === entityId) {
+        api('GET', '/api/entity/' + entityId).then(function(data) {
+          selectedData = data;
+          renderDetail(data);
+          renderRightPanel(data);
+        });
+      } else {
+        renderRightPanel(selectedData);
+      }
+    });
+  }).catch(function(err) { toast('Failed: ' + err.message); });
+}
+
+function ppQuickFind(platform, name, entityId) {
+  if (!name) { toast('No entity name'); return; }
+  toast('Searching ' + platform + ' for ' + name + '...');
+  var payload = { name: name, context_for: entityId };
+  if (platform === 'linkedin') payload.context = 'LinkedIn';
+  if (platform === 'x') payload.context = 'Twitter/X';
+  api('POST', '/api/discover-entity', payload).then(function(data) {
+    if (data.candidates && data.candidates.length > 1) {
+      toast('Found ' + data.candidates.length + ' candidates — check Review');
+    } else if (data.found || data.status === 'staged') {
+      toast('Found profile — check Review');
+    } else {
+      toast('No profile found for ' + name);
+    }
+    refreshReviewQueueBadge();
+    renderRightPanel(selectedData);
+  }).catch(function(err) { toast('Discovery failed: ' + err.message); });
+}
+
+function ppQuickDiscover(name, entityId) {
+  if (!name) { toast('No entity name'); return; }
+  toast('Discovering connections for ' + name + '...');
+  api('POST', '/api/discover-entity', { name: name, context_for: entityId }).then(function(data) {
+    if (data.found || data.status === 'staged') {
+      toast('Found profile — check Review');
+    } else {
+      toast('No profile found');
+    }
+    refreshReviewQueueBadge();
+    renderRightPanel(selectedData);
+  }).catch(function(err) { toast('Discovery failed: ' + err.message); });
+}
+
+function ppEnrich(attrKey) {
+  var input = document.getElementById('rpUrlInput');
+  if (input) {
+    input.focus();
+    input.placeholder = 'Paste URL to enrich ' + attrKey.replace(/_/g, ' ') + '...';
+  }
 }
 
 // Right panel file upload with entity pre-association
@@ -11840,11 +12093,11 @@ function rpHandleFiles(fileList, entityId) {
     body: formData
   }).then(function(resp) { return resp.json(); }).then(function(result) {
     var count = (result.entities_created || []).length + (result.clusters_created || []).length;
-    var eName = entityId && selectedData ? (selectedData.entity?.name?.full || selectedData.entity?.name?.common || entityId) : '';
+    var eName = entityId && selectedData ? (selectedData.entity && (selectedData.entity.name.full || selectedData.entity.name.common) || entityId) : '';
     if (entityId && eName) {
       toast('Added ' + count + ' data points to ' + eName);
     } else {
-      toast('Extracted ' + count + ' items — check Review Queue');
+      toast('Extracted ' + count + ' items — check Review');
     }
     // Refresh current entity
     if (entityId && selectedId === entityId) {
@@ -11857,7 +12110,8 @@ function rpHandleFiles(fileList, entityId) {
     refreshReviewQueueBadge();
   }).catch(function(err) { toast('Upload failed: ' + err.message); });
   // Clear input
-  document.getElementById('rpFileInput').value = '';
+  var fi = document.getElementById('rpFileInput');
+  if (fi) fi.value = '';
 }
 
 // Right panel URL extraction with entity pre-association
@@ -11871,12 +12125,12 @@ function rpExtractURL(entityId) {
   if (entityId) payload.context_for = entityId;
   api('POST', '/api/extract-url', payload).then(function(data) {
     var clusters = data.scored_clusters || [];
-    var eName = entityId && selectedData ? (selectedData.entity?.name?.full || selectedData.entity?.name?.common || entityId) : '';
+    var eName = entityId && selectedData ? (selectedData.entity && (selectedData.entity.name.full || selectedData.entity.name.common) || entityId) : '';
     if (clusters.length > 0) {
       if (entityId && eName) {
-        toast('Extracted ' + clusters.length + ' signals for ' + eName + ' — check Review Queue');
+        toast('Extracted ' + clusters.length + ' signals for ' + eName + ' — check Review');
       } else {
-        toast('Extracted ' + clusters.length + ' signals — check Review Queue');
+        toast('Extracted ' + clusters.length + ' signals — check Review');
       }
     } else {
       toast('No new data found at that URL');
@@ -11884,13 +12138,15 @@ function rpExtractURL(entityId) {
     if (input) input.value = '';
     if (btn) { btn.disabled = false; btn.textContent = 'Extract'; }
     refreshReviewQueueBadge();
-    // Refresh entity if pre-associated
+    // Refresh pipeline
     if (entityId && selectedId === entityId) {
       api('GET', '/api/entity/' + entityId).then(function(d) {
         selectedData = d;
         renderDetail(d);
         renderRightPanel(d);
       });
+    } else {
+      renderRightPanel(selectedData);
     }
   }).catch(function(err) {
     toast('Extraction failed: ' + err.message);
@@ -11911,15 +12167,16 @@ function rpDiscover(entityId) {
   if (entityId) payload.context_for = entityId;
   api('POST', '/api/discover-entity', payload).then(function(data) {
     if (data.candidates && data.candidates.length > 1) {
-      toast('Found ' + data.candidates.length + ' candidates — check Review Queue');
+      toast('Found ' + data.candidates.length + ' candidates — check Review');
     } else if (data.found || data.status === 'staged') {
-      toast('Found profile — check Review Queue');
+      toast('Found profile — check Review');
     } else {
       toast('No LinkedIn profile found for ' + name);
     }
     if (nameInput) nameInput.value = '';
     if (ctxInput) ctxInput.value = '';
     refreshReviewQueueBadge();
+    renderRightPanel(selectedData);
   }).catch(function(err) { toast('Discovery failed: ' + err.message); });
 }
 
