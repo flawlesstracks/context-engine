@@ -87,6 +87,61 @@ async function testStep1Query() {
 }
 
 // ---------------------------------------------------------------------------
+// Step 2 Tests — buildRelationshipIndex
+// ---------------------------------------------------------------------------
+
+function testStep2() {
+  section('Step 2: buildRelationshipIndex — structure');
+  const index = buildRelationshipIndex(GRAPH_DIR);
+  assert(index && typeof index === 'object', 'returns an object');
+  assert(index.edges && typeof index.edges === 'object', 'has edges map');
+  assert(index.nameToId && typeof index.nameToId === 'object', 'has nameToId map');
+
+  section('Step 2: buildRelationshipIndex — entities indexed');
+  const entityIds = Object.keys(index.edges);
+  assert(entityIds.length > 0, 'edges map has entries');
+  assert(entityIds.includes('ENT-SH-052'), 'Steve Hughes in index');
+  assert(entityIds.includes('ENT-CM-001'), 'CJ Mitchell in index');
+
+  section('Step 2: buildRelationshipIndex — nameToId lookup');
+  // Steve Hughes should map
+  const steveId = index.nameToId['steve hughes'];
+  assert(steveId === 'ENT-SH-052', 'nameToId maps "steve hughes" → ENT-SH-052');
+  // CJ Mitchell should map
+  const cjId = index.nameToId['cj mitchell'];
+  assert(cjId === 'ENT-CM-001', 'nameToId maps "cj mitchell" → ENT-CM-001');
+
+  section('Step 2: buildRelationshipIndex — forward edges');
+  const steveEdges = index.edges['ENT-SH-052'] || [];
+  assert(steveEdges.length > 0, 'Steve has edges');
+  // Steve has relationship to CJ Mitchell (best friend)
+  const steveToCJ = steveEdges.find(e => e.targetName === 'CJ Mitchell');
+  assert(steveToCJ !== undefined, 'Steve has edge to CJ Mitchell');
+  assert(steveToCJ && steveToCJ.relationship, 'edge has relationship label');
+
+  section('Step 2: buildRelationshipIndex — reverse edges');
+  // CJ should have a reverse edge back to Steve (from Steve's relationship)
+  const cjEdges = index.edges['ENT-CM-001'] || [];
+  const cjHasSteve = cjEdges.some(e => e.targetName === 'Steve Hughes' || e.targetId === 'ENT-SH-052');
+  // CJ also has his own "Steven Hughes" relationship, so either direction works
+  const cjToSteve = cjEdges.find(e => e.targetName === 'Steve Hughes' || e.targetName === 'Steven Hughes' || e.targetId === 'ENT-SH-052');
+  assert(cjToSteve !== undefined, 'CJ has edge to Steve (forward or reverse)');
+
+  section('Step 2: buildRelationshipIndex — edge properties');
+  const sampleEdge = steveEdges[0];
+  assert(typeof sampleEdge.targetName === 'string', 'edge has targetName string');
+  assert(typeof sampleEdge.relationship === 'string', 'edge has relationship string');
+  assert(typeof sampleEdge.confidence === 'number', 'edge has confidence number');
+  assert(typeof sampleEdge.source === 'string', 'edge has source string');
+
+  section('Step 2: buildRelationshipIndex — performance');
+  const start = Date.now();
+  buildRelationshipIndex(GRAPH_DIR);
+  const elapsed = Date.now() - start;
+  assert(elapsed < 500, `index builds in < 500ms (took ${elapsed}ms)`);
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -99,6 +154,10 @@ async function main() {
   if (!step || step === 1) {
     testStep1();
     await testStep1Query();
+  }
+
+  if (!step || step === 2) {
+    testStep2();
   }
 
   console.log(`\n══════════════════════════`);
