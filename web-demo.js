@@ -4301,6 +4301,100 @@ app.post('/api/entity', apiAuth, (req, res) => {
   });
 });
 
+// POST /api/entity/:id/observe — Add observation via entity URL (DXT-friendly)
+app.post('/api/entity/:id/observe', apiAuth, (req, res) => {
+  const entityId = req.params.id;
+  const entity = readEntity(entityId, req.graphDir);
+  if (!entity) return res.status(404).json({ error: `Entity ${entityId} not found` });
+
+  const { attribute, value, observation, confidence, confidence_label, facts_layer, source, truth_level } = req.body;
+
+  // Accept either observation string or attribute+value pair
+  const obsText = observation || (attribute && value ? `${attribute}: ${value}` : null);
+  if (!obsText) return res.status(400).json({ error: 'Provide observation string or attribute+value pair' });
+
+  const confLabel = confidence_label || (confidence >= 0.8 ? 'STRONG' : confidence >= 0.6 ? 'MODERATE' : 'SPECULATIVE');
+  const layer = facts_layer || 'L1_OBJECTIVE';
+
+  const now = new Date().toISOString();
+  if (!entity.observations) entity.observations = [];
+  const seq = String(entity.observations.length + 1).padStart(3, '0');
+  const tsCompact = now.replace(/[-:T]/g, '').slice(0, 14);
+  const obsId = `OBS-${entityId}-${tsCompact}-${seq}`;
+
+  const obs = {
+    observation_id: obsId,
+    observation: obsText.trim(),
+    confidence: confidence || CONFIDENCE_MAP[confLabel] || 0.6,
+    confidence_label: confLabel,
+    facts_layer: layer,
+    layer_number: parseInt(layer.charAt(1)) || 1,
+    truth_level: truth_level || 'INFERRED',
+    observed_at: now,
+    observed_by: req.agentId,
+    source: source || 'conversation',
+  };
+
+  entity.observations.push(obs);
+  writeEntity(entityId, entity, req.graphDir);
+
+  res.status(201).json({ status: 'created', entity_id: entityId, observation: obs });
+});
+
+// POST /api/entity/:id/relationship — Add relationship to entity (DXT-friendly)
+app.post('/api/entity/:id/relationship', apiAuth, (req, res) => {
+  const entityId = req.params.id;
+  const entity = readEntity(entityId, req.graphDir);
+  if (!entity) return res.status(404).json({ error: `Entity ${entityId} not found` });
+
+  const { target_id, target_name, relationship, context, confidence, source } = req.body;
+  if (!relationship) return res.status(400).json({ error: 'Missing relationship type' });
+  if (!target_id && !target_name) return res.status(400).json({ error: 'Provide target_id or target_name' });
+
+  // Resolve target entity
+  let resolvedTargetId = target_id;
+  let resolvedTargetName = target_name || '';
+  if (!resolvedTargetId && target_name) {
+    const { similarity } = require('./merge-engine');
+    const entities = listEntities(req.graphDir);
+    for (const { data } of entities) {
+      const e = data.entity || {};
+      const eName = e.name?.full || e.name?.common || e.name?.preferred || '';
+      if (eName && similarity(target_name, eName) > 0.8) {
+        resolvedTargetId = e.entity_id;
+        resolvedTargetName = eName;
+        break;
+      }
+    }
+  }
+  if (!resolvedTargetId) return res.status(404).json({ error: `Target entity "${target_name}" not found` });
+
+  // Verify target exists
+  const targetEntity = readEntity(resolvedTargetId, req.graphDir);
+  if (!targetEntity) return res.status(404).json({ error: `Target entity ${resolvedTargetId} not found` });
+
+  if (!entity.relationships) entity.relationships = [];
+  const relSeq = String(entity.relationships.length + 1).padStart(3, '0');
+  const relId = `REL-${relSeq}`;
+
+  const rel = {
+    relationship_id: relId,
+    name: resolvedTargetName,
+    entity_id: resolvedTargetId,
+    relationship_type: relationship,
+    context: context || '',
+    sentiment: 'neutral',
+    confidence: confidence || 0.8,
+    confidence_label: confidence >= 0.8 ? 'STRONG' : 'MODERATE',
+    source: source || 'conversation',
+  };
+
+  entity.relationships.push(rel);
+  writeEntity(entityId, entity, req.graphDir);
+
+  res.status(201).json({ status: 'created', entity_id: entityId, relationship: rel });
+});
+
 // DELETE /api/observe/:id — Delete a specific observation
 app.delete('/api/observe/:id', apiAuth, (req, res) => {
   const obsId = req.params.id;

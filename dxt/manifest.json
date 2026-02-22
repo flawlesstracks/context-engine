@@ -1,0 +1,65 @@
+{
+  "mcpb_version": "0.1",
+  "name": "context-engine",
+  "version": "1.0.0",
+  "display_name": "Context Engine",
+  "description": "Knowledge graph superpowers for Claude. Extracts entities and relationships from your project files, then answers questions RAG can't — like 'How does Steve connect to Amazon?' with multi-hop graph traversal.",
+  "author": {
+    "name": "CJ Mitchell",
+    "url": "https://github.com/flawlesstracks/context-engine"
+  },
+  "repository": "https://github.com/flawlesstracks/context-engine",
+  "license": "MIT",
+  "keywords": ["knowledge-graph", "entities", "relationships", "context", "RAG"],
+
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": ["${__dirname}/server/index.js"],
+      "env": {
+        "CONTEXT_ENGINE_URL": "${user_config.api_url}",
+        "CONTEXT_ENGINE_KEY": "${user_config.api_key}"
+      }
+    }
+  },
+
+  "tools": [
+    {
+      "name": "build_graph",
+      "description": "Build or rebuild the knowledge graph from files. Extracts entities (people, organizations, concepts) and their relationships."
+    },
+    {
+      "name": "query",
+      "description": "Query the knowledge graph with natural language. Supports entity lookup, relationship traversal, aggregation, completeness checks, and contradiction detection."
+    },
+    {
+      "name": "update",
+      "description": "Add new observations or relationships to the knowledge graph from conversation context."
+    }
+  ],
+  "tools_generated": false,
+
+  "user_config": {
+    "api_url": {
+      "type": "string",
+      "title": "Context Engine API URL",
+      "description": "Your Render deployment URL (e.g., https://context-engine-xxxx.onrender.com)",
+      "required": true,
+      "default": "https://context-engine.onrender.com"
+    },
+    "api_key": {
+      "type": "string",
+      "title": "API Key",
+      "description": "Your Context Engine API key (starts with ctx-)",
+      "sensitive": true,
+      "required": true
+    }
+  },
+
+  "compatibility": {
+    "claude_desktop": ">=1.0.0",
+    "platforms": ["darwin", "win32", "linux"]
+  }
+}
