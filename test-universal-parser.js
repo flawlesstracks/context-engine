@@ -679,6 +679,15 @@ async function testStep6() {
   assert(typeof ent.attributes === 'object', 'Schema: entity.attributes is object');
   assert(typeof ent.confidence === 'number', 'Schema: entity.confidence is number');
 
+  // Validate network schema fields
+  assert(ent.ownership === 'referenced', 'Schema: entity.ownership defaults to referenced');
+  assert(typeof ent.access_rules === 'object', 'Schema: entity.access_rules is object');
+  assert(ent.access_rules.visibility === 'private', 'Schema: entity.access_rules.visibility defaults to private');
+  assert(Array.isArray(ent.access_rules.shared_with), 'Schema: entity.access_rules.shared_with is array');
+  assert(typeof ent.projection_config === 'object', 'Schema: entity.projection_config is object');
+  assert(Array.isArray(ent.projection_config.lenses), 'Schema: entity.projection_config.lenses is array');
+  assert(Array.isArray(ent.perspectives), 'Schema: entity.perspectives is array');
+
   // Validate relationship shape
   const rel = schema.relationships[0];
   assert(typeof rel.source === 'string' || rel.source === undefined, 'Schema: rel.source is string');

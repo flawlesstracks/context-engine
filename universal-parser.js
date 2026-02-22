@@ -393,6 +393,7 @@ function _directImport(text, fileContent) {
     attributes: attrs,
     confidence: 0.9,
     evidence: `Direct import from structured profile: ${name}`,
+    ownership: 'referenced',
   });
 
   // Extract relationships if present
@@ -842,6 +843,15 @@ async function parse(fileContent, filename) {
   const rawSize = Buffer.isBuffer(fileContent) ? fileContent.length : Buffer.byteLength(String(fileContent));
   const chunkCount = text.length > MAX_TEXT_LENGTH ? Math.ceil(text.length / CHUNK_SIZE) : 1;
 
+  // Stamp network schema defaults on all entities
+  const finalEntities = processed.entities.map(ent => ({
+    ...ent,
+    ownership: ent.ownership || 'referenced',
+    access_rules: ent.access_rules || { visibility: 'private', shared_with: [] },
+    projection_config: ent.projection_config || { lenses: ['default'] },
+    perspectives: ent.perspectives || [],
+  }));
+
   return {
     metadata: {
       filename: filename || 'unknown',
@@ -857,7 +867,7 @@ async function parse(fileContent, filename) {
       chunk_count: chunkCount,
       timestamp: new Date().toISOString(),
     },
-    entities: processed.entities,
+    entities: finalEntities,
     relationships: processed.relationships,
     summary: extracted.summary || '',
   };

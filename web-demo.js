@@ -3851,6 +3851,15 @@ app.post('/api/self-entity', apiAuth, (req, res) => {
   const config = { self_entity_id: entity_id, self_entity_name: entity_name || '', purpose: purpose || 'primary_user' };
   fs.writeFileSync(selfPath, JSON.stringify(config, null, 2));
   clearSelfEntityCache(req.graphDir);
+
+  // Update the entity's ownership to "self"
+  const selfEntityData = readEntity(entity_id, req.graphDir);
+  if (selfEntityData) {
+    selfEntityData.ownership = 'self';
+    selfEntityData.owner_tenant_id = req.tenantId || null;
+    writeEntity(entity_id, selfEntityData, req.graphDir);
+  }
+
   res.json({ success: true, ...config });
 });
 
@@ -4230,6 +4239,11 @@ app.post('/api/entity', apiAuth, (req, res) => {
     key_facts: [],
     constraints: [],
     observations: [],
+    ownership: 'owned',
+    owner_tenant_id: req.tenantId || null,
+    access_rules: { visibility: 'private', shared_with: [] },
+    projection_config: { lenses: ['default'] },
+    perspectives: [],
     provenance_chain: {
       created_at: now,
       created_by: req.agentId,

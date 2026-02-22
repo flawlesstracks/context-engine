@@ -1521,6 +1521,12 @@ function resolveCluster(clusterId, action, graphDir, agentId) {
 
     entityData.entity.entity_id = entityId;
 
+    // Network schema defaults
+    if (!entityData.ownership) entityData.ownership = 'referenced';
+    if (!entityData.access_rules) entityData.access_rules = { visibility: 'private', shared_with: [] };
+    if (!entityData.projection_config) entityData.projection_config = { lenses: ['default'] };
+    if (!entityData.perspectives) entityData.perspectives = [];
+
     // Set observation IDs
     const newObservations = (entityData.observations || []).map((obs, idx) => {
       const tsCompact = (obs.observed_at || now).replace(/[-:T]/g, '').slice(0, 14);
