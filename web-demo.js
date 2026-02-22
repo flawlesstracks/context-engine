@@ -9744,7 +9744,7 @@ const WIKI_HTML = `<!DOCTYPE html>
             <circle cx="6.5" cy="6.5" r="5"/>
             <path d="M14.5 14.5l-4-4"/>
           </svg>
-          <input type="text" id="searchInput" placeholder="Search..." oninput="onSearch()" />
+          <input type="text" id="searchInput" placeholder="Search or ask a question..." oninput="onSearch()" onkeydown="if(event.key==='Enter')onSearch(true)" />
         </div>
       </div>
     </div>
@@ -11606,8 +11606,16 @@ document.getElementById('apiKeyInput').addEventListener('keydown', function(e) {
 });
 
 /* --- Sidebar --- */
-function onSearch() {
+function isQuestion(q) {
+  var lower = q.toLowerCase().trim();
+  if (q.includes('?')) return true;
+  if (/^(who|what|how|tell me|describe|summarize|profile|list all|count|show all|find all|which|any)\\b/.test(lower)) return true;
+  return false;
+}
+
+function onSearch(immediate) {
   clearTimeout(searchTimeout);
+  var delay = immediate ? 0 : 250;
   searchTimeout = setTimeout(function() {
     var q = document.getElementById('searchInput').value.trim();
     if (!q) {
@@ -11627,6 +11635,23 @@ function onSearch() {
       }
       return;
     }
+
+    // Route to query engine if this looks like a question
+    if (isQuestion(q)) {
+      selectedCategory = null;
+      selectedId = null;
+      selectedView = null;
+      breadcrumbs = [{ label: 'Query: ' + q }];
+      renderBreadcrumbs();
+      document.getElementById('main').innerHTML = '<div style="padding:24px 28px;color:var(--text-muted);">Thinking...</div>';
+      api('GET', '/api/query?q=' + encodeURIComponent(q)).then(function(data) {
+        renderQueryResult(data, q);
+      }).catch(function(err) {
+        document.getElementById('main').innerHTML = '<div style="padding:24px 28px;color:#c0392b;">Query failed: ' + esc(err.message || 'Unknown error') + '</div>';
+      });
+      return;
+    }
+
     var url = '/api/search?q=' + encodeURIComponent(q);
     api('GET', url).then(function(data) {
       var results = data.results || [];
@@ -11639,7 +11664,7 @@ function onSearch() {
       renderSearchResults(results, q);
       renderSidebar();
     });
-  }, 250);
+  }, delay);
 }
 
 function renderSearchResults(results, query) {
@@ -11665,6 +11690,106 @@ function renderSearchResults(results, query) {
     }
     html += '</div>';
   }
+  html += '</div>';
+  document.getElementById('main').innerHTML = html;
+}
+
+function renderQueryResult(data, question) {
+  var html = '<div style="padding: 24px 28px;">';
+
+  // Header
+  html += '<div class="cat-page-header" style="margin-bottom:16px;">';
+  html += '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:8px;"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>';
+  html += esc(question);
+  html += '<span class="type-badge" style="margin-left:8px;font-size:11px;background:var(--bg-surface);padding:2px 8px;border-radius:4px;">' + esc(data.query.type) + '</span>';
+  html += '</div>';
+
+  // Answer card
+  html += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;">';
+  html += '<div style="font-size:15px;line-height:1.6;color:var(--text-primary);">' + esc(data.answer) + '</div>';
+  if (data.confidence > 0) {
+    var confPct = Math.round(data.confidence * 100);
+    var confColor = confPct >= 80 ? '#27ae60' : confPct >= 50 ? '#f39c12' : '#c0392b';
+    html += '<div style="margin-top:12px;font-size:12px;color:var(--text-muted);">Confidence: <span style="color:' + confColor + ';font-weight:600;">' + confPct + '%</span>';
+    html += ' &middot; ' + data.timing.total_ms + 'ms</div>';
+  }
+  html += '</div>';
+
+  // Paths (for RELATIONSHIP queries)
+  if (data.paths && data.paths.length > 0) {
+    html += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;">';
+    html += '<div style="font-weight:600;margin-bottom:12px;font-size:14px;">Connection Paths</div>';
+    for (var p = 0; p < data.paths.length && p < 3; p++) {
+      var path = data.paths[p];
+      html += '<div style="padding:8px 0;border-top:1px solid var(--border);font-size:13px;">';
+      html += '<span style="color:var(--text-muted);">Path ' + (p + 1) + ' (' + path.hops + ' hop' + (path.hops !== 1 ? 's' : '') + '):</span> ';
+      for (var s = 0; s < path.path.length; s++) {
+        var step = path.path[s];
+        if (s > 0) html += ' <span style="color:var(--text-muted);">' + esc(step.relationship) + ' &rarr;</span> ';
+        html += '<strong>' + esc(step.entity) + '</strong>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  // Entity cards
+  if (data.entities && data.entities.length > 0) {
+    html += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;">';
+    html += '<div style="font-weight:600;margin-bottom:12px;font-size:14px;">Entities (' + data.entities.length + ')</div>';
+    html += '<div class="cat-card-grid">';
+    var maxCards = Math.min(data.entities.length, 12);
+    for (var i = 0; i < maxCards; i++) {
+      var ent = data.entities[i];
+      var entId = ent.id || '';
+      var entName = ent.name || entId;
+      var entType = ent.type || ent.role || '';
+      html += '<div class="cat-card"' + (entId ? ' onclick="selectEntity(\\'' + esc(entId) + '\\')"' : '') + ' style="cursor:' + (entId ? 'pointer' : 'default') + ';">';
+      html += '<div class="cat-card-name">' + esc(entName);
+      if (entType) html += ' <span class="type-badge ' + esc(entType) + '">' + esc(entType) + '</span>';
+      html += '</div></div>';
+    }
+    if (data.entities.length > 12) {
+      html += '<div style="padding:8px;color:var(--text-muted);font-size:12px;">and ' + (data.entities.length - 12) + ' more...</div>';
+    }
+    html += '</div></div>';
+  }
+
+  // Gaps (for COMPLETENESS queries)
+  if (data.gaps && data.gaps.length > 0) {
+    html += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;">';
+    html += '<div style="font-weight:600;margin-bottom:12px;font-size:14px;">Gaps Found (' + data.gaps.length + ')</div>';
+    for (var g = 0; g < data.gaps.length; g++) {
+      var gap = data.gaps[g];
+      html += '<div style="padding:6px 0;font-size:13px;border-top:1px solid var(--border);">';
+      html += '<span style="font-weight:500;">' + esc(gap.field) + '</span>';
+      html += ' &mdash; <span style="color:var(--text-muted);">' + esc(gap.status) + '</span>';
+      if (gap.suggestion) html += ' <span style="color:#2980b9;">(' + esc(gap.suggestion) + ')</span>';
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  // Conflicts (for CONTRADICTION queries)
+  if (data.conflicts && data.conflicts.length > 0) {
+    html += '<div style="background:var(--bg-card);border:1px solid var(--border);border-radius:8px;padding:20px;margin-bottom:16px;">';
+    html += '<div style="font-weight:600;margin-bottom:12px;font-size:14px;color:#c0392b;">Conflicts (' + data.conflicts.length + ')</div>';
+    for (var c = 0; c < data.conflicts.length; c++) {
+      var conflict = data.conflicts[c];
+      html += '<div style="padding:6px 0;font-size:13px;border-top:1px solid var(--border);">';
+      html += '<span style="font-weight:500;">' + esc(conflict.field || conflict.type || 'conflict') + '</span>';
+      if (conflict.values) {
+        html += ': ';
+        for (var v = 0; v < conflict.values.length; v++) {
+          if (v > 0) html += ' vs ';
+          html += '<em>' + esc(String(conflict.values[v].value || '')) + '</em>';
+        }
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
   html += '</div>';
   document.getElementById('main').innerHTML = html;
 }

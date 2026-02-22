@@ -582,6 +582,23 @@ function testStep10() {
 }
 
 // ---------------------------------------------------------------------------
+// Step 11 Tests — Web UI search bar integration
+// ---------------------------------------------------------------------------
+
+function testStep11() {
+  section('Step 11: web-demo.js has query UI wiring');
+  const webDemo = require('fs').readFileSync(path.join(__dirname, 'web-demo.js'), 'utf8');
+  assert(webDemo.includes('isQuestion'), 'has isQuestion() function');
+  assert(webDemo.includes('renderQueryResult'), 'has renderQueryResult() function');
+  assert(webDemo.includes('/api/query?q='), 'search calls /api/query endpoint');
+  assert(webDemo.includes('Search or ask a question'), 'placeholder updated for query mode');
+  assert(webDemo.includes('Connection Paths'), 'renderQueryResult shows paths section');
+  assert(webDemo.includes('Gaps Found'), 'renderQueryResult shows gaps section');
+  assert(webDemo.includes('Conflicts'), 'renderQueryResult shows conflicts section');
+  assert(webDemo.includes('Thinking...'), 'shows loading state while query runs');
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -630,6 +647,10 @@ async function main() {
 
   if (!step || step === 10) {
     testStep10();
+  }
+
+  if (!step || step === 11) {
+    testStep11();
   }
 
   console.log(`\n══════════════════════════`);
