@@ -11639,7 +11639,7 @@ function renderRpAddContext(entityId, entityName) {
   h += '</div>';
   // Name discovery
   h += '<div class="rp-discover-row">';
-  h += '<input type="text" id="rpDiscoverName" placeholder="Search by name..." onkeydown="if(event.key===\'Enter\')rpDiscover(' + "'" + esc(entityId || '') + "'" + ')" />';
+  h += '<input type="text" id="rpDiscoverName" placeholder="Search by name..." onkeydown="if(event.keyCode===13)rpDiscover(' + "'" + esc(entityId || '') + "'" + ')" />';
   h += '<div class="rp-discover-ctx"><input type="text" id="rpDiscoverCtx" placeholder="Optional context (company, city...)" style="width:100%;padding:5px 8px;font-size:11px;border:1px solid #ddd;border-radius:4px;margin-top:4px;" /></div>';
   h += '</div>';
   h += '</div></div>';
