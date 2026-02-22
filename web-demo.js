@@ -10858,7 +10858,7 @@ function renderAffiliationsHub() {
       if (oType === 'institution') typeBadge = '<span style="font-size:0.7rem;background:#e0e7ff;color:#4338ca;padding:1px 6px;border-radius:8px;margin-left:6px;">Institution</span>';
       else if (oType === 'business') typeBadge = '<span style="font-size:0.7rem;background:#dcfce7;color:#166534;padding:1px 6px;border-radius:8px;margin-left:6px;">Business</span>';
       var cat = item._orgCategory || '';
-      h += '<div class="cat-card" onclick="selectEntity(\'' + esc(o.entity_id) + '\',\'org_' + cat + '\')">';
+      h += '<div class="cat-card" onclick="selectEntity(\\'' + esc(o.entity_id) + '\\',\\'org_' + cat + '\\')">';
       h += '<div class="cat-card-name">' + esc(oName) + typeBadge + '</div>';
       if (oSub) h += '<div class="cat-card-subtitle">' + esc(oSub) + '</div>';
       if (oSummary) h += '<div class="cat-card-summary">' + esc(oSummary) + '</div>';
