@@ -209,6 +209,59 @@ function testStep3() {
 }
 
 // ---------------------------------------------------------------------------
+// Step 4 Tests — findPaths
+// ---------------------------------------------------------------------------
+
+function testStep4() {
+  const index = buildRelationshipIndex(GRAPH_DIR);
+
+  section('Step 4: findPaths — Steve to CJ (1 hop)');
+  const steveToCJ = findPaths('ENT-SH-052', 'ENT-CM-001', index);
+  assert(steveToCJ.length > 0, 'finds path Steve → CJ');
+  if (steveToCJ.length > 0) {
+    assert(steveToCJ[0].length === 2, 'path is 1 hop (2 nodes)');
+    assert(steveToCJ[0][0].entityId === 'ENT-SH-052', 'path starts with Steve');
+    assert(steveToCJ[0][steveToCJ[0].length - 1].entityId === 'ENT-CM-001', 'path ends with CJ');
+  }
+
+  section('Step 4: findPaths — path node structure');
+  if (steveToCJ.length > 0 && steveToCJ[0].length >= 2) {
+    const hop = steveToCJ[0][1];
+    assert(typeof hop.entityId === 'string', 'path node has entityId');
+    assert(typeof hop.entityName === 'string', 'path node has entityName');
+    assert(typeof hop.relationship === 'string', 'path node has relationship');
+    assert(typeof hop.direction === 'string', 'path node has direction');
+  }
+
+  section('Step 4: findPaths — no path for same entity');
+  const selfPath = findPaths('ENT-SH-052', 'ENT-SH-052', index);
+  assert(selfPath.length === 0, 'no path from entity to itself');
+
+  section('Step 4: findPaths — no path for unknown entity');
+  const unknownPath = findPaths('ENT-SH-052', 'FAKE-999', index);
+  assert(unknownPath.length === 0, 'no path to unknown entity');
+
+  section('Step 4: findPaths — sorted shortest first');
+  // Find a multi-hop path if possible
+  const paths = findPaths('ENT-SH-052', 'ENT-CM-001', index, 4);
+  if (paths.length >= 2) {
+    assert(paths[0].length <= paths[1].length, 'shortest path is first');
+  } else {
+    assert(true, 'only one path found, sorted trivially');
+  }
+
+  section('Step 4: findPaths — maxDepth respected');
+  const shallow = findPaths('ENT-SH-052', 'ENT-CM-001', index, 0);
+  assert(shallow.length === 0, 'maxDepth=0 finds no paths');
+
+  section('Step 4: findPaths — performance');
+  const start = Date.now();
+  findPaths('ENT-SH-052', 'ENT-CM-001', index, 4);
+  const elapsed = Date.now() - start;
+  assert(elapsed < 500, `findPaths completes in < 500ms (took ${elapsed}ms)`);
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -229,6 +282,10 @@ async function main() {
 
   if (!step || step === 3) {
     testStep3();
+  }
+
+  if (!step || step === 4) {
+    testStep4();
   }
 
   console.log(`\n══════════════════════════`);
