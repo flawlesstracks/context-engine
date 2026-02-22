@@ -228,6 +228,125 @@ async function testStep2() {
 }
 
 // ---------------------------------------------------------------------------
+// Step 3 Tests — extractEntities (no-API paths: direct import + chat export)
+// ---------------------------------------------------------------------------
+
+async function testStep3() {
+  section('Step 3: extractEntities — Structured profile direct import (flat)');
+
+  const flatProfile = JSON.stringify({
+    entity_type: 'person',
+    name: 'Steve Hughes',
+    attributes: { age: '40', location: 'Atlanta, GA' },
+    relationships: [
+      { target: 'Meta', relationship: 'works_at', direction: 'A_TO_B' },
+      { target: 'CJ Mitchell', relationship: 'friend_of', direction: 'BIDIRECTIONAL' },
+    ],
+  });
+
+  const flatResult = await extractEntities(flatProfile, 'steve.json', {
+    fileType: 'structured_profile',
+    fileContent: flatProfile,
+  });
+
+  assert(flatResult.entities.length >= 1, 'Flat profile: at least 1 entity');
+  assert(flatResult.entities[0].name === 'Steve Hughes', 'Flat profile: name = Steve Hughes');
+  assert(flatResult.entities[0].type === 'PERSON', 'Flat profile: type = PERSON');
+  assert(flatResult.entities[0].attributes.age === '40', 'Flat profile: age attribute');
+  assert(flatResult.entities[0].attributes.location === 'Atlanta, GA', 'Flat profile: location attribute');
+  assert(flatResult.entities[0].confidence === 0.9, 'Flat profile: confidence = 0.9');
+  assert(flatResult.relationships.length === 2, 'Flat profile: 2 relationships');
+  assert(flatResult.relationships[0].target === 'Meta', 'Flat profile: works_at Meta');
+  assert(flatResult.relationships[0].relationship === 'works_at', 'Flat profile: relationship type');
+  assert(flatResult.summary.includes('Steve Hughes'), 'Flat profile: summary mentions name');
+
+  section('Step 3: extractEntities — Structured profile direct import (nested entity)');
+
+  const nestedProfile = JSON.stringify({
+    entity: {
+      entity_type: 'person',
+      entity_id: 'ENT-SH-052',
+      name: { full: 'Steven W. Hughes', preferred: 'Steve' },
+      headline: 'Engineer at Meta',
+      summary: 'A friend of CJ',
+    },
+    attributes: [
+      { key: 'role', value: 'Engineer', confidence: 0.8 },
+      { key: 'location', value: 'Atlanta, GA', confidence: 0.6 },
+    ],
+    relationships: [],
+  });
+
+  const nestedResult = await extractEntities(nestedProfile, 'ent-sh.json', {
+    fileType: 'structured_profile',
+    fileContent: nestedProfile,
+  });
+
+  assert(nestedResult.entities.length >= 1, 'Nested profile: at least 1 entity');
+  assert(nestedResult.entities[0].name === 'Steve', 'Nested profile: preferred name used');
+  assert(nestedResult.entities[0].type === 'PERSON', 'Nested profile: type = PERSON');
+  assert(nestedResult.entities[0].attributes.role === 'Engineer', 'Nested profile: role from attributes array');
+  assert(nestedResult.entities[0].attributes.location === 'Atlanta, GA', 'Nested profile: location from attributes array');
+
+  section('Step 3: extractEntities — Structured profile (name + type format)');
+
+  const nameTypeProfile = JSON.stringify({ name: 'Amazon', type: 'ORG', attributes: { industry: 'Technology' } });
+  const ntResult = await extractEntities(nameTypeProfile, 'amazon.json', {
+    fileType: 'structured_profile',
+    fileContent: nameTypeProfile,
+  });
+
+  assert(ntResult.entities[0].name === 'Amazon', 'name+type format: name = Amazon');
+  assert(ntResult.entities[0].type === 'ORG', 'name+type format: type = ORG');
+
+  section('Step 3: extractEntities — Chat export routing');
+
+  const chatContent = JSON.stringify({
+    mapping: { 'x': { message: { author: { role: 'user' }, content: { parts: ['hi'] } } } }
+  });
+  const chatResult = await extractEntities(chatContent, 'export.json', { fileType: 'chat_export' });
+
+  assert(chatResult.entities.length === 0, 'Chat export: returns empty entities (route to existing pipeline)');
+  assert(chatResult.summary.includes('ChatGPT'), 'Chat export: summary mentions ChatGPT routing');
+
+  section('Step 3: extractEntities — AI extraction (requires ANTHROPIC_API_KEY)');
+
+  if (process.env.ANTHROPIC_API_KEY) {
+    const sampleText = 'CJ Mitchell works at Amazon as a Principal Product Manager. He lives in Redmond, WA. His friend Steve Hughes works at Meta in Atlanta, GA.';
+    const aiResult = await extractEntities(sampleText, 'test-sample.txt', { fileType: 'plaintext' });
+
+    assert(aiResult.entities.length >= 2, 'AI extraction: found at least 2 entities');
+    const names = aiResult.entities.map(e => e.name.toLowerCase());
+    assert(names.some(n => n.includes('mitchell') || n.includes('cj')), 'AI extraction: found CJ Mitchell');
+    assert(names.some(n => n.includes('hughes') || n.includes('steve')), 'AI extraction: found Steve Hughes');
+    assert(aiResult.relationships.length >= 1, 'AI extraction: found at least 1 relationship');
+    assert(aiResult.summary.length > 0, 'AI extraction: summary non-empty');
+  } else {
+    console.log('  ⊘ Skipping AI extraction test (no ANTHROPIC_API_KEY)');
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Step 3: parse() integration with structured profile
+// ---------------------------------------------------------------------------
+
+async function testStep3Parse() {
+  section('Step 3: parse() full pipeline — structured profile');
+
+  const profile = JSON.stringify({
+    entity_type: 'person',
+    name: 'Test Person',
+    attributes: { role: 'Developer' },
+  });
+
+  const result = await parse(profile, 'test-person.json');
+  assert(result.metadata.parse_strategy === 'structured_import', 'parse() structured_import strategy');
+  assert(result.metadata.model_used === 'direct_import', 'parse() direct_import model');
+  assert(result.entities.length >= 1, 'parse() returns entities from direct import');
+  assert(result.entities[0].name === 'Test Person', 'parse() entity name correct');
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -244,6 +363,11 @@ async function main() {
 
   if (!step || step === 2) {
     await testStep2();
+  }
+
+  if (!step || step === 3) {
+    await testStep3();
+    await testStep3Parse();
   }
 
   console.log(`\n══════════════════════════`);
