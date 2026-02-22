@@ -15112,7 +15112,7 @@ function renderDynamicCardContent(sectionKey, sectionData) {
       h += '</div>';
     }
     if (rp.what_doesnt_work && rp.what_doesnt_work.length > 0) {
-      h += '<div class="li-sub-section"><div class="li-sub-title" style="color:#ef4444">&#10007; What Doesn\'t Work</div>';
+      h += '<div class="li-sub-section"><div class="li-sub-title" style="color:#ef4444">&#10007; What Doesn&#39;t Work</div>';
       h += renderLiBorderItems(rp.what_doesnt_work, 'li-border-red');
       h += '</div>';
     }
