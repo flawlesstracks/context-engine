@@ -7140,13 +7140,14 @@ const WIKI_HTML = `<!DOCTYPE html>
   /* --- Right Entity Pipeline Panel --- */
   #rightPanel {
     width: 340px; min-width: 340px;
-    border-left: 1px solid #e0e0e0;
-    background: #fafafa;
+    border-left: none;
+    background: #f4f2ee;
     overflow-y: auto;
     display: flex; flex-direction: column;
+    height: 100vh;
   }
   #rightPanel.hidden { display: none; }
-  #rightPanelContent { padding: 0; }
+  #rightPanelContent { padding: 36px 12px 24px; }
   #rightPanelToggle {
     display: none; position: fixed; right: 16px; top: 16px; z-index: 100;
     width: 36px; height: 36px; border-radius: 8px; border: 1px solid #e0e0e0;
@@ -7160,10 +7161,13 @@ const WIKI_HTML = `<!DOCTYPE html>
     #rightPanelToggle { display: block; }
   }
 
-  /* Pipeline sections */
-  .pp-section { border-bottom: 1px solid #e0e0e0; }
-  .pp-section:last-child { border-bottom: none; }
-  .pp-accent { height: 3px; }
+  /* Pipeline sections — separate cards */
+  .pp-section {
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+    margin-bottom: 8px; overflow: hidden;
+  }
+  .pp-section:last-child { margin-bottom: 0; }
+  .pp-accent { height: 3px; border-radius: 8px 8px 0 0; }
   .pp-accent.collect { background: linear-gradient(90deg, #667eea, #764ba2); }
   .pp-accent.review { background: linear-gradient(90deg, #f59e0b, #ef6c00); }
   .pp-accent.confirm { background: linear-gradient(90deg, #10b981, #059669); }
