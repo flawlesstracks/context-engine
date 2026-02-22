@@ -124,13 +124,135 @@ function _classifyJson(raw) {
 }
 
 // ---------------------------------------------------------------------------
-// P1.2 — Text Extraction (stub — Step 2)
+// P1.2 — Text Extraction
+// Each file type gets a specific extraction strategy.
 // ---------------------------------------------------------------------------
 
+/**
+ * Extract readable text from file content based on detected type.
+ * @param {string|Buffer} fileContent
+ * @param {string} fileType - Output of detectFileType()
+ * @returns {Promise<string>} Extracted text
+ */
 async function extractText(fileContent, fileType) {
-  // TODO: Step 2
-  const raw = Buffer.isBuffer(fileContent) ? fileContent.toString('utf-8') : String(fileContent);
-  return raw;
+  const buf = Buffer.isBuffer(fileContent) ? fileContent : Buffer.from(String(fileContent), 'utf-8');
+  const raw = buf.toString('utf-8');
+
+  switch (fileType) {
+    case 'pdf':
+      return _extractPdf(buf);
+
+    case 'json':
+    case 'structured_profile':
+    case 'chat_export':
+      return _extractJson(raw);
+
+    case 'markdown':
+      return _extractMarkdown(raw);
+
+    case 'docx':
+      return _extractDocx(buf);
+
+    case 'csv':
+      return _extractCsv(raw, ',');
+
+    case 'tsv':
+      return _extractCsv(raw, '\t');
+
+    case 'html':
+      return _extractHtml(raw);
+
+    case 'plaintext':
+    default:
+      return raw;
+  }
+}
+
+/** PDF: use pdf-parse */
+async function _extractPdf(buffer) {
+  const { PDFParse } = require('pdf-parse');
+  const parser = new PDFParse({ data: new Uint8Array(buffer), verbosity: 0 });
+  const result = await parser.getText();
+  return result.text || '';
+}
+
+/** JSON: pretty-print for readability */
+function _extractJson(raw) {
+  try {
+    const parsed = JSON.parse(raw);
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    return raw;
+  }
+}
+
+/** Markdown: strip formatting markers, keep structure */
+function _extractMarkdown(raw) {
+  return raw
+    // Remove image links ![alt](url)
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    // Convert [text](url) → text
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    // Strip bold/italic markers
+    .replace(/(\*\*|__)(.*?)\1/g, '$2')
+    .replace(/(\*|_)(.*?)\1/g, '$2')
+    // Strip inline code backticks
+    .replace(/`([^`]+)`/g, '$1')
+    // Convert headers: "# Title" → "Title"
+    .replace(/^#{1,6}\s+/gm, '')
+    // Strip horizontal rules
+    .replace(/^[-*_]{3,}\s*$/gm, '')
+    // Collapse multiple blank lines
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+/** DOCX: use mammoth */
+async function _extractDocx(buffer) {
+  const mammoth = require('mammoth');
+  const result = await mammoth.extractRawText({ buffer });
+  return result.value || '';
+}
+
+/** CSV/TSV: parse and convert to readable row descriptions */
+function _extractCsv(raw, delimiter) {
+  const lines = raw.split('\n').filter(l => l.trim().length > 0);
+  if (lines.length < 1) return raw;
+
+  // Parse header
+  const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
+
+  const rows = [];
+  for (let i = 1; i < lines.length; i++) {
+    const values = lines[i].split(delimiter).map(v => v.trim().replace(/^"|"$/g, ''));
+    const parts = [];
+    for (let j = 0; j < headers.length; j++) {
+      if (values[j] && values[j].length > 0) {
+        parts.push(`${headers[j]}=${values[j]}`);
+      }
+    }
+    if (parts.length > 0) {
+      rows.push(`Row ${i}: ${parts.join(', ')}`);
+    }
+  }
+
+  return rows.join('\n');
+}
+
+/** HTML: strip tags */
+function _extractHtml(raw) {
+  return raw
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 // ---------------------------------------------------------------------------

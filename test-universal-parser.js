@@ -163,6 +163,71 @@ async function testStep1Parse() {
 }
 
 // ---------------------------------------------------------------------------
+// Step 2 Tests — extractText
+// ---------------------------------------------------------------------------
+
+async function testStep2() {
+  section('Step 2: extractText — Plain Text');
+  const plainResult = await extractText('Hello world, this is plain text.', 'plaintext');
+  assert(plainResult === 'Hello world, this is plain text.', 'plaintext pass-through');
+
+  section('Step 2: extractText — JSON');
+  const jsonInput = '{"name":"Steve","age":40}';
+  const jsonResult = await extractText(jsonInput, 'json');
+  assert(jsonResult.includes('"name": "Steve"'), 'JSON pretty-printed');
+  assert(jsonResult.includes('"age": 40'), 'JSON values preserved');
+
+  // Structured profile also uses JSON extraction
+  const spResult = await extractText(jsonInput, 'structured_profile');
+  assert(spResult.includes('"name": "Steve"'), 'structured_profile uses JSON extraction');
+
+  section('Step 2: extractText — Markdown');
+  const mdInput = '# My Title\n\nSome **bold** text and *italic* here.\n\n- List item\n- [Link Text](http://example.com)\n\n![image](http://img.png)\n\n`inline code`\n\n---\n';
+  const mdResult = await extractText(mdInput, 'markdown');
+  assert(!mdResult.includes('# '),         'Markdown: headers stripped');
+  assert(!mdResult.includes('**'),          'Markdown: bold markers stripped');
+  assert(!mdResult.includes('*italic*'),    'Markdown: italic markers stripped');
+  assert(mdResult.includes('bold'),         'Markdown: bold text preserved');
+  assert(mdResult.includes('italic'),       'Markdown: italic text preserved');
+  assert(mdResult.includes('Link Text'),    'Markdown: link text preserved');
+  assert(!mdResult.includes('](http'),      'Markdown: link URLs removed');
+  assert(!mdResult.includes('!['),          'Markdown: image links removed');
+  assert(!mdResult.includes('`inline'),     'Markdown: backticks removed');
+  assert(mdResult.includes('inline code'),  'Markdown: code text preserved');
+
+  section('Step 2: extractText — CSV');
+  const csvInput = 'Name,Role,Company\nAlice,Engineer,Acme\nBob,Manager,Globex\n';
+  const csvResult = await extractText(csvInput, 'csv');
+  assert(csvResult.includes('Row 1:'),                   'CSV: row labels present');
+  assert(csvResult.includes('Name=Alice'),               'CSV: first row values');
+  assert(csvResult.includes('Role=Engineer'),             'CSV: attributes formatted');
+  assert(csvResult.includes('Row 2:'),                   'CSV: second row present');
+  assert(csvResult.includes('Company=Globex'),            'CSV: second row values');
+
+  section('Step 2: extractText — TSV');
+  const tsvInput = 'Name\tAge\tCity\nAlice\t30\tNYC\n';
+  const tsvResult = await extractText(tsvInput, 'tsv');
+  assert(tsvResult.includes('Name=Alice'), 'TSV: tab-separated values parsed');
+  assert(tsvResult.includes('Age=30'),     'TSV: numeric values preserved');
+
+  section('Step 2: extractText — HTML');
+  const htmlInput = '<html><head><title>Test</title><style>body{color:red}</style></head><body><h1>Hello</h1><p>World &amp; <b>bold</b></p><script>alert(1)</script></body></html>';
+  const htmlResult = await extractText(htmlInput, 'html');
+  assert(htmlResult.includes('Hello'),     'HTML: heading text extracted');
+  assert(htmlResult.includes('World'),     'HTML: paragraph text extracted');
+  assert(htmlResult.includes('bold'),      'HTML: inline text extracted');
+  assert(htmlResult.includes('&'),         'HTML: entities decoded');
+  assert(!htmlResult.includes('<h1>'),     'HTML: tags stripped');
+  assert(!htmlResult.includes('alert'),    'HTML: script content removed');
+  assert(!htmlResult.includes('color'),    'HTML: style content removed');
+
+  section('Step 2: extractText — Malformed JSON');
+  const badJson = '{ broken json [[[';
+  const badResult = await extractText(badJson, 'json');
+  assert(badResult === badJson, 'Malformed JSON returned as-is');
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -175,6 +240,10 @@ async function main() {
   if (!step || step === 1) {
     testStep1();
     await testStep1Parse();
+  }
+
+  if (!step || step === 2) {
+    await testStep2();
   }
 
   console.log(`\n══════════════════════════`);
