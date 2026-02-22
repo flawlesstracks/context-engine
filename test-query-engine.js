@@ -6,6 +6,7 @@ const path = require('path');
 const {
   query, classifyQuery, resolveEntities, buildRelationshipIndex,
   searchEntities, findPaths, getNeighborhood, filterEntities, synthesizeAnswer,
+  getSelfEntity, clearSelfEntityCache,
 } = require('./query-engine');
 
 const GRAPH_DIR = path.join(__dirname, 'watch-folder', 'graph', 'tenant-eefc79c7');
@@ -518,7 +519,7 @@ async function testStep9() {
   section('Step 9: query() — AGGREGATION "How many people are in my graph?"');
   const q4 = await query('How many people are in my graph?', GRAPH_DIR);
   assert(q4.query.type === 'AGGREGATION', 'classified as AGGREGATION');
-  assert(q4.answer.includes('Found'), 'answer has count');
+  assert(q4.answer.includes('Found') || q4.answer.includes('You have'), 'answer has count');
   assert(q4.entities.length > 0, 'has entities');
   assert(q4.confidence === 1.0, 'confidence is 1.0');
 
@@ -599,6 +600,52 @@ function testStep11() {
 }
 
 // ---------------------------------------------------------------------------
+// Self-Entity Awareness Tests
+// ---------------------------------------------------------------------------
+
+function testSelfEntity() {
+  section('Self-Entity: getSelfEntity()');
+  clearSelfEntityCache();
+  const self = getSelfEntity(GRAPH_DIR);
+  assert(self !== null, 'getSelfEntity returns a result');
+  assert(typeof self.entityId === 'string', 'self has entityId');
+  assert(typeof self.name === 'string', 'self has name');
+  assert(self.isSelf === true, 'self.isSelf is true');
+  // CJ Mitchell should be the self-entity (most relationships or from config)
+  assert(self.entityId === 'ENT-CM-001', 'self-entity is CJ Mitchell (ENT-CM-001)');
+
+  section('Self-Entity: getSelfEntity() caching');
+  const self2 = getSelfEntity(GRAPH_DIR);
+  assert(self2 === self, 'second call returns cached result');
+}
+
+async function testSelfEntityQueries() {
+  section('Self-Entity: "Who are my friends?" resolves self');
+  const q1 = await query('Who are my friends?', GRAPH_DIR);
+  assert(q1.query.entities_resolved.includes('ENT-CM-001'), '"my friends" resolves self-entity');
+
+  section('Self-Entity: "What am I missing?" uses "your" in answer');
+  const q2 = await query('What am I missing?', GRAPH_DIR);
+  assert(q2.query.type === 'COMPLETENESS', 'classified as COMPLETENESS');
+  assert(q2.answer.includes('Your profile') || q2.answer.includes('your'), 'answer uses "your" for self-entity');
+  assert(q2.query.entities_resolved.includes('ENT-CM-001'), 'resolves self-entity');
+
+  section('Self-Entity: "How do I connect to Howard?" resolves self');
+  const q3 = await query('How do I connect to Howard University?', GRAPH_DIR);
+  assert(q3.query.type === 'RELATIONSHIP', 'classified as RELATIONSHIP');
+  assert(q3.query.entities_resolved.includes('ENT-CM-001'), 'resolves self-entity from "I"');
+
+  section('Self-Entity: "How many people are in my graph?" uses "You have"');
+  const q4 = await query('How many people are in my graph?', GRAPH_DIR);
+  assert(q4.answer.includes('You have'), 'answer uses "You have" for self-entity');
+
+  section('Self-Entity: non-self queries still use entity name');
+  const q5 = await query('Who is Steve Hughes?', GRAPH_DIR);
+  assert(q5.answer.includes('Steve Hughes'), 'non-self query uses entity name');
+  assert(!q5.answer.startsWith('You'), 'non-self query does not start with "You"');
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -651,6 +698,11 @@ async function main() {
 
   if (!step || step === 11) {
     testStep11();
+  }
+
+  if (!step || step === 12) {
+    testSelfEntity();
+    await testSelfEntityQueries();
   }
 
   console.log(`\n══════════════════════════`);

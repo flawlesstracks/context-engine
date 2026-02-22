@@ -17,7 +17,7 @@ const { mapContactRows } = require('./src/parsers/contacts');
 const { scrapeLinkedInProfile, transformScrapingDogProfile } = require('./src/scrapingdog');
 const { analyzeEntityHealth, getRelationshipTier, getTierInfo } = require('./src/health-analyzer');
 const { parse: universalParse } = require('./universal-parser');
-const { query: queryEngine } = require('./query-engine');
+const { query: queryEngine, getSelfEntity, clearSelfEntityCache } = require('./query-engine');
 const auth = require('./src/auth');
 const drive = require('./src/drive');
 const helmet = require('helmet');
@@ -3833,6 +3833,25 @@ app.get('/api/query', apiAuth, async (req, res) => {
     console.error('Query engine error:', err);
     res.status(500).json({ error: 'Query failed', message: err.message });
   }
+});
+
+// GET /api/self-entity — Get current self-entity config
+app.get('/api/self-entity', apiAuth, (req, res) => {
+  const selfEntity = getSelfEntity(req.graphDir);
+  if (!selfEntity) return res.json({ configured: false });
+  res.json({ configured: true, ...selfEntity });
+});
+
+// POST /api/self-entity — Set self-entity for this tenant
+app.post('/api/self-entity', apiAuth, (req, res) => {
+  const { entity_id, entity_name, purpose } = req.body || {};
+  if (!entity_id) return res.status(400).json({ error: 'Missing entity_id' });
+
+  const selfPath = path.join(req.graphDir, 'self-entity.json');
+  const config = { self_entity_id: entity_id, self_entity_name: entity_name || '', purpose: purpose || 'primary_user' };
+  fs.writeFileSync(selfPath, JSON.stringify(config, null, 2));
+  clearSelfEntityCache(req.graphDir);
+  res.json({ success: true, ...config });
 });
 
 // GET /api/search?q=&type= — Fuzzy search entities with optional type filter
@@ -11794,12 +11813,44 @@ function renderQueryResult(data, question) {
   document.getElementById('main').innerHTML = html;
 }
 
+function promptSetSelfEntity() {
+  var name = prompt('Enter the name of your primary entity (e.g., your name):');
+  if (!name) return;
+  // Search for the entity
+  api('GET', '/api/search?q=' + encodeURIComponent(name)).then(function(data) {
+    var results = data.results || [];
+    if (results.length === 0) { alert('No entity found matching "' + name + '"'); return; }
+    var entity = results[0];
+    var entName = entity.name || entity.entity_id;
+    if (!confirm('Set "' + entName + '" as your primary user?')) return;
+    api('POST', '/api/self-entity', { entity_id: entity.entity_id, entity_name: entName }).then(function() {
+      primaryEntityId = entity.entity_id;
+      api('GET', '/api/entity/' + entity.entity_id).then(function(fullData) {
+        primaryEntityData = fullData;
+        renderSidebar();
+        selectView('overview');
+      });
+    });
+  });
+}
+
 function renderSidebar() {
   var data = buildSidebarData();
   var html = '';
 
   // ── ME section ──
-  html += '<div class="sb-section-label">Me</div>';
+  if (primaryEntityId && primaryEntityData) {
+    var selfName = (primaryEntityData.entity && primaryEntityData.entity.name) ? (primaryEntityData.entity.name.preferred || primaryEntityData.entity.name.full || primaryEntityData.entity.name) : '';
+    if (typeof selfName === 'object') selfName = selfName.full || selfName.preferred || '';
+    html += '<div class="sb-section-label" style="display:flex;align-items:center;gap:6px;">';
+    html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="#f1c40f" stroke="#f1c40f" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg>';
+    html += esc(selfName || 'Me');
+    html += '</div>';
+  } else {
+    html += '<div class="sb-section-label" style="cursor:pointer;color:var(--text-muted);" onclick="promptSetSelfEntity()">';
+    html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg> ';
+    html += 'Set primary user</div>';
+  }
 
   // About
   var aboutActive = (selectedId === primaryEntityId && window._liActiveTab === 'overview');

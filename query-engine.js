@@ -3,7 +3,80 @@
 const fs = require('fs');
 const path = require('path');
 const { similarity } = require('./merge-engine');
-const { listEntities, readEntity } = require('./src/graph-ops');
+const { listEntities, readEntity, getSelfEntityId } = require('./src/graph-ops');
+
+// ---------------------------------------------------------------------------
+// Self-Entity Awareness
+// ---------------------------------------------------------------------------
+
+const _selfEntityCache = {};
+
+/**
+ * Get the self (main character) entity for a graph directory.
+ * Checks self-entity.json first, then tenants.config.json, then falls back to most-connected entity.
+ * @param {string} graphDir
+ * @returns {{ entityId: string, name: string, isSelf: boolean } | null}
+ */
+function getSelfEntity(graphDir) {
+  if (_selfEntityCache[graphDir]) return _selfEntityCache[graphDir];
+
+  // 1. Check self-entity.json in graphDir
+  const selfPath = path.join(graphDir, 'self-entity.json');
+  try {
+    if (fs.existsSync(selfPath)) {
+      const cfg = JSON.parse(fs.readFileSync(selfPath, 'utf-8'));
+      if (cfg.self_entity_id) {
+        const data = readEntity(cfg.self_entity_id, graphDir);
+        const name = cfg.self_entity_name || _getEntityName(data) || cfg.self_entity_id;
+        const result = { entityId: cfg.self_entity_id, name, isSelf: true };
+        _selfEntityCache[graphDir] = result;
+        return result;
+      }
+    }
+  } catch {}
+
+  // 2. Check tenants.config.json via graph-ops
+  const selfId = getSelfEntityId(graphDir);
+  if (selfId) {
+    const data = readEntity(selfId, graphDir);
+    const name = _getEntityName(data) || selfId;
+    const result = { entityId: selfId, name, isSelf: true };
+    _selfEntityCache[graphDir] = result;
+    return result;
+  }
+
+  // 3. Fallback: entity with most relationships
+  const allEntities = listEntities(graphDir);
+  let bestId = null;
+  let bestName = '';
+  let bestRelCount = 0;
+  for (const { data } of allEntities) {
+    const rels = data.relationships || [];
+    if (rels.length > bestRelCount) {
+      bestRelCount = rels.length;
+      bestId = _getEntityId(data);
+      bestName = _getEntityName(data);
+    }
+  }
+  if (bestId) {
+    const result = { entityId: bestId, name: bestName, isSelf: true };
+    _selfEntityCache[graphDir] = result;
+    return result;
+  }
+
+  return null;
+}
+
+/**
+ * Clear cached self-entity (call after POST /api/self-entity).
+ */
+function clearSelfEntityCache(graphDir) {
+  if (graphDir) {
+    delete _selfEntityCache[graphDir];
+  } else {
+    for (const key of Object.keys(_selfEntityCache)) delete _selfEntityCache[key];
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Q1: Query Classification
@@ -457,7 +530,7 @@ function filterEntities(filters, graphDir) {
 // ---------------------------------------------------------------------------
 
 // Q3.1: Entity Lookup
-function _synthesizeEntityAnswer(entityData) {
+function _synthesizeEntityAnswer(entityData, isSelf) {
   if (!entityData) return { answer: 'Entity not found.', entities: [], paths: [], gaps: [], conflicts: [], confidence: 0 };
 
   const name = _getEntityName(entityData);
@@ -467,7 +540,9 @@ function _synthesizeEntityAnswer(entityData) {
   const summary = (entityData.entity && entityData.entity.summary && entityData.entity.summary.value) || '';
   const rels = entityData.relationships || [];
 
-  let answer = `${name} is a ${entityType}.`;
+  const subj = isSelf ? 'You' : name;
+  const verb = isSelf ? 'are' : 'is';
+  let answer = `${subj} ${verb} a ${entityType}.`;
   if (summary) answer += ` ${summary}`;
 
   // Key attributes
@@ -481,7 +556,7 @@ function _synthesizeEntityAnswer(entityData) {
   // Relationship count
   if (rels.length > 0) {
     const relNames = rels.slice(0, 3).map(r => `${r.name} (${r.relationship_type || r.relationship || 'related'})`);
-    answer += ` Connected to ${rels.length} other entities`;
+    answer += isSelf ? ` You're connected to ${rels.length} other entities` : ` Connected to ${rels.length} other entities`;
     answer += rels.length > 0 ? ` including ${relNames.join(', ')}.` : '.';
   }
 
@@ -503,10 +578,13 @@ function _synthesizeEntityAnswer(entityData) {
 }
 
 // Q3.2: Path Narrative
-function _synthesizePathAnswer(paths, sourceName, targetName) {
+function _synthesizePathAnswer(paths, sourceName, targetName, sourceIsSelf, targetIsSelf) {
+  const srcDisplay = sourceIsSelf ? 'You' : sourceName;
+  const tgtDisplay = targetIsSelf ? 'you' : targetName;
+
   if (!paths || paths.length === 0) {
     return {
-      answer: `No connection found between ${sourceName} and ${targetName} within 4 hops.`,
+      answer: `No connection found between ${srcDisplay} and ${tgtDisplay} within 4 hops.`,
       entities: [],
       paths: [],
       gaps: [],
@@ -524,7 +602,9 @@ function _synthesizePathAnswer(paths, sourceName, targetName) {
     const node = shortest[i];
     steps.push(`${node.relationship} → ${node.entityName}`);
   }
-  let answer = `${sourceName} is connected to ${targetName} in ${hops} hop${hops !== 1 ? 's' : ''}: ${sourceName} → ${steps.join(' → ')}.`;
+  const srcLabel = sourceIsSelf ? 'You' : sourceName;
+  const verb = sourceIsSelf ? "'re" : ' is';
+  let answer = `${srcLabel}${verb} connected to ${tgtDisplay} in ${hops} hop${hops !== 1 ? 's' : ''}: ${sourceName} → ${steps.join(' → ')}.`;
 
   if (paths.length > 1) {
     answer += ` There are ${paths.length} connection paths. The shortest has ${hops} hop${hops !== 1 ? 's' : ''}.`;
@@ -559,7 +639,7 @@ function _synthesizePathAnswer(paths, sourceName, targetName) {
 }
 
 // Q3.3: Completeness / Gap Report
-function _synthesizeCompletenessAnswer(entityData) {
+function _synthesizeCompletenessAnswer(entityData, isSelf) {
   if (!entityData) return { answer: 'Entity not found.', entities: [], paths: [], gaps: [], conflicts: [], confidence: 0 };
 
   const name = _getEntityName(entityData);
@@ -607,7 +687,8 @@ function _synthesizeCompletenessAnswer(entityData) {
   const gapCount = gaps.length;
   const coverage = totalChecks > 0 ? Math.round(((totalChecks - gapCount) / totalChecks) * 100) : 0;
 
-  let answer = `${name} has ${coverage}% coverage.`;
+  const subj = isSelf ? 'Your profile' : name;
+  let answer = `${subj} has ${coverage}% coverage.`;
   const missingFields = gaps.filter(g => g.status === 'missing').map(g => g.field);
   if (missingFields.length > 0) answer += ` Missing: ${missingFields.join(', ')}.`;
   const lowConfFields = gaps.filter(g => g.status === 'low_confidence').map(g => g.field);
@@ -625,7 +706,7 @@ function _synthesizeCompletenessAnswer(entityData) {
 }
 
 // Q3.4: Aggregation
-function _synthesizeAggregationAnswer(entities, question) {
+function _synthesizeAggregationAnswer(entities, question, isSelf) {
   if (!entities || entities.length === 0) {
     return { answer: 'No entities found matching your criteria.', entities: [], paths: [], gaps: [], conflicts: [], confidence: 1.0 };
   }
@@ -638,7 +719,7 @@ function _synthesizeAggregationAnswer(entities, question) {
     byType[t].push(e);
   }
 
-  let answer = `Found ${entities.length} entities.`;
+  let answer = isSelf ? `You have ${entities.length} entities in your graph.` : `Found ${entities.length} entities.`;
 
   // Type breakdown
   const typeBreakdown = Object.entries(byType).map(([t, arr]) => `${arr.length} ${t}`).join(', ');
@@ -663,7 +744,7 @@ function _synthesizeAggregationAnswer(entities, question) {
 }
 
 // Q3.5: Contradiction
-function _synthesizeContradictionAnswer(entityData) {
+function _synthesizeContradictionAnswer(entityData, isSelf) {
   if (!entityData) return { answer: 'Entity not found.', entities: [], paths: [], gaps: [], conflicts: [], confidence: 0 };
 
   const name = _getEntityName(entityData);
@@ -700,9 +781,10 @@ function _synthesizeContradictionAnswer(entityData) {
 
   let answer;
   if (conflicts.length === 0) {
-    answer = `No conflicts found for ${name}. All data is consistent.`;
+    answer = isSelf ? 'No conflicts found in your data. All data is consistent.' : `No conflicts found for ${name}. All data is consistent.`;
   } else {
-    answer = `Found ${conflicts.length} conflict${conflicts.length !== 1 ? 's' : ''} for ${name}: `;
+    const forWhom = isSelf ? 'in your data' : `for ${name}`;
+    answer = `Found ${conflicts.length} conflict${conflicts.length !== 1 ? 's' : ''} ${forWhom}: `;
     const parts = conflicts.map((c, i) => {
       if (c.field && c.values) {
         return `(${i + 1}) ${c.field} has conflicting values: ${c.values.map(v => v.value).join(' vs ')}`;
@@ -726,15 +808,15 @@ function _synthesizeContradictionAnswer(entityData) {
 function synthesizeAnswer(queryType, data) {
   switch (queryType) {
     case 'ENTITY_LOOKUP':
-      return _synthesizeEntityAnswer(data.entity);
+      return _synthesizeEntityAnswer(data.entity, data.isSelf);
     case 'RELATIONSHIP':
-      return _synthesizePathAnswer(data.paths, data.sourceName, data.targetName);
+      return _synthesizePathAnswer(data.paths, data.sourceName, data.targetName, data.sourceIsSelf, data.targetIsSelf);
     case 'AGGREGATION':
-      return _synthesizeAggregationAnswer(data.entities, data.question);
+      return _synthesizeAggregationAnswer(data.entities, data.question, data.isSelf);
     case 'COMPLETENESS':
-      return _synthesizeCompletenessAnswer(data.entity);
+      return _synthesizeCompletenessAnswer(data.entity, data.isSelf);
     case 'CONTRADICTION':
-      return _synthesizeContradictionAnswer(data.entity);
+      return _synthesizeContradictionAnswer(data.entity, data.isSelf);
     default:
       return { answer: "I'm not sure how to answer that question. Try asking about a specific person, organization, or relationship.", entities: [], paths: [], gaps: [], conflicts: [], confidence: 0 };
   }
@@ -759,14 +841,27 @@ const STOP_WORDS = new Set([
   'graph', 'entities', 'people', 'organizations', 'there',
 ]);
 
+const SELF_PRONOUNS = /\b(my|i|me|mine|myself|our|i'm|i've|i'd)\b/gi;
+
 /**
  * Extract entity names from a question and resolve to entity IDs.
+ * Substitutes self-pronouns ("my", "I", "me") with the self-entity name.
  * @param {string} question
  * @param {string} graphDir
- * @returns {Array<{entityId, name, score}>}
+ * @returns {Array<{entityId, name, score, isSelf?: boolean}>}
  */
 function resolveEntities(question, graphDir) {
-  const q = question.replace(/[?!.,;:'"]/g, ' ').trim();
+  let q = question.replace(/[?!.,;:'"]/g, ' ').trim();
+
+  // Substitute self-pronouns with self-entity name
+  const selfEntity = getSelfEntity(graphDir);
+  let hasSelfPronoun = false;
+  if (selfEntity && SELF_PRONOUNS.test(q)) {
+    hasSelfPronoun = true;
+    // Replace pronouns with self name for entity matching
+    q = q.replace(SELF_PRONOUNS, selfEntity.name);
+  }
+
   const words = q.split(/\s+/).filter(w => w.length > 0);
 
   // Build candidate phrases: try multi-word combos (longest first)
@@ -797,10 +892,16 @@ function resolveEntities(question, graphDir) {
       const match = results[0];
       // Avoid duplicate entity IDs
       if (!resolved.some(r => r.entityId === match.entityId)) {
-        resolved.push({ entityId: match.entityId, name: match.name, score: match.score });
+        const isSelf = selfEntity && match.entityId === selfEntity.entityId;
+        resolved.push({ entityId: match.entityId, name: match.name, score: match.score, isSelf });
         usedRanges.push({ start: cand.start, end: cand.end });
       }
     }
+  }
+
+  // If self-pronoun was in the question and self-entity wasn't already resolved, inject it
+  if (hasSelfPronoun && selfEntity && !resolved.some(r => r.entityId === selfEntity.entityId)) {
+    resolved.unshift({ entityId: selfEntity.entityId, name: selfEntity.name, score: 1.0, isSelf: true });
   }
 
   return resolved;
@@ -825,11 +926,14 @@ async function query(question, graphDir) {
   let synthesisData = {};
   let result;
 
+  // Determine if the primary resolved entity is the self-entity
+  const primaryIsSelf = resolved.length > 0 && resolved[0].isSelf;
+
   switch (queryType) {
     case 'ENTITY_LOOKUP': {
       if (resolved.length > 0) {
         const entityData = readEntity(resolved[0].entityId, graphDir);
-        synthesisData = { entity: entityData };
+        synthesisData = { entity: entityData, isSelf: primaryIsSelf };
       } else {
         synthesisData = { entity: null };
       }
@@ -843,36 +947,36 @@ async function query(question, graphDir) {
           paths,
           sourceName: resolved[0].name,
           targetName: resolved[1].name,
+          sourceIsSelf: resolved[0].isSelf,
+          targetIsSelf: resolved[1].isSelf,
         };
       } else if (resolved.length === 1) {
-        // Show neighborhood if only one entity found
         const index = buildRelationshipIndex(graphDir);
         const hood = getNeighborhood(resolved[0].entityId, index, 2);
         const neighbors = hood.rings.flatMap(r => r.entities);
-        synthesisData = { paths: [], sourceName: resolved[0].name, targetName: 'unknown' };
+        synthesisData = { paths: [], sourceName: resolved[0].name, targetName: 'unknown', sourceIsSelf: resolved[0].isSelf };
       } else {
         synthesisData = { paths: [], sourceName: 'unknown', targetName: 'unknown' };
       }
       break;
     }
     case 'AGGREGATION': {
-      // Parse type from question if possible
       const q = question.toLowerCase();
       let typeFilter = null;
-      if (/people|person/.test(q)) typeFilter = 'person';
+      if (/people|person|friend/.test(q)) typeFilter = 'person';
       else if (/organization|org|company|companies/.test(q)) typeFilter = 'organization';
       else if (/business/.test(q)) typeFilter = 'business';
       else if (/institution/.test(q)) typeFilter = 'institution';
 
       const filters = typeFilter ? { type: typeFilter } : {};
       const entities = typeFilter ? filterEntities(filters, graphDir) : filterEntities({}, graphDir);
-      synthesisData = { entities, question };
+      synthesisData = { entities, question, isSelf: SELF_PRONOUNS.test(question) };
       break;
     }
     case 'COMPLETENESS': {
       if (resolved.length > 0) {
         const entityData = readEntity(resolved[0].entityId, graphDir);
-        synthesisData = { entity: entityData };
+        synthesisData = { entity: entityData, isSelf: primaryIsSelf };
       } else {
         synthesisData = { entity: null };
       }
@@ -881,7 +985,7 @@ async function query(question, graphDir) {
     case 'CONTRADICTION': {
       if (resolved.length > 0) {
         const entityData = readEntity(resolved[0].entityId, graphDir);
-        synthesisData = { entity: entityData };
+        synthesisData = { entity: entityData, isSelf: primaryIsSelf };
       } else {
         synthesisData = { entity: null };
       }
@@ -936,4 +1040,6 @@ module.exports = {
   getNeighborhood,
   filterEntities,
   synthesizeAnswer,
+  getSelfEntity,
+  clearSelfEntityCache,
 };
