@@ -319,6 +319,59 @@ function testStep5() {
 }
 
 // ---------------------------------------------------------------------------
+// Step 6 Tests — filterEntities
+// ---------------------------------------------------------------------------
+
+function testStep6() {
+  section('Step 6: filterEntities — type filter');
+  const people = filterEntities({ type: 'person' }, GRAPH_DIR);
+  assert(people.length > 0, 'finds person entities');
+  assert(people.every(e => e.type === 'person'), 'all results are person type');
+
+  section('Step 6: filterEntities — type filter (business)');
+  const biz = filterEntities({ type: 'business' }, GRAPH_DIR);
+  assert(biz.length > 0, 'finds business entities');
+  assert(biz.every(e => e.type === 'business'), 'all results are business type');
+
+  section('Step 6: filterEntities — name filter');
+  const steves = filterEntities({ name: 'steve' }, GRAPH_DIR);
+  assert(steves.length > 0, 'finds entities with "steve" in name');
+  const hasSteve = steves.some(e => e.entityId === 'ENT-SH-052');
+  assert(hasSteve, 'finds Steve Hughes');
+
+  section('Step 6: filterEntities — attribute filter with dot notation');
+  const atlanta = filterEntities({ 'attributes.location': 'Atlanta' }, GRAPH_DIR);
+  assert(atlanta.length > 0, 'finds entities in Atlanta');
+  // ENT-AB-051 (Andre Burgin) is in Atlanta
+  const hasAndre = atlanta.some(e => e.entityId === 'ENT-AB-051');
+  assert(hasAndre, 'Atlanta filter finds Andre Burgin');
+
+  section('Step 6: filterEntities — combined filters');
+  const personInAtlanta = filterEntities({ type: 'person', 'attributes.location': 'Atlanta' }, GRAPH_DIR);
+  assert(personInAtlanta.length > 0, 'finds people in Atlanta');
+  assert(personInAtlanta.every(e => e.type === 'person'), 'combined filter: all are person');
+
+  section('Step 6: filterEntities — result structure');
+  if (people.length > 0) {
+    const first = people[0];
+    assert(typeof first.entityId === 'string', 'result has entityId');
+    assert(first.name !== undefined, 'result has name');
+    assert(typeof first.type === 'string', 'result has type');
+    assert(first.data !== undefined, 'result has data');
+    assert(typeof first.file === 'string', 'result has file');
+  }
+
+  section('Step 6: filterEntities — no matches');
+  const none = filterEntities({ type: 'xyzfaketype' }, GRAPH_DIR);
+  assert(none.length === 0, 'no results for fake type');
+
+  section('Step 6: filterEntities — case insensitive');
+  const upper = filterEntities({ type: 'PERSON' }, GRAPH_DIR);
+  const lower = filterEntities({ type: 'person' }, GRAPH_DIR);
+  assert(upper.length === lower.length, 'type filter is case insensitive');
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -347,6 +400,10 @@ async function main() {
 
   if (!step || step === 5) {
     testStep5();
+  }
+
+  if (!step || step === 6) {
+    testStep6();
   }
 
   console.log(`\n══════════════════════════`);
