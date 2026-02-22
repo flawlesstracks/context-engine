@@ -7034,6 +7034,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     flex: 1; overflow-y: auto;
     padding: 32px 40px;
     background: var(--bg-primary);
+    min-width: 0;
   }
   .empty-state {
     display: flex; align-items: center; justify-content: center;
@@ -7041,6 +7042,145 @@ const WIKI_HTML = `<!DOCTYPE html>
     font-size: 0.95rem; text-align: center;
     line-height: 1.8; flex-direction: column; gap: 12px;
   }
+
+  /* --- Right Context Panel --- */
+  #rightPanel {
+    width: 300px; min-width: 300px;
+    border-left: 1px solid #e0e0e0;
+    background: #fff;
+    overflow-y: auto;
+    display: flex; flex-direction: column;
+  }
+  #rightPanel.hidden { display: none; }
+  #rightPanelContent { padding: 0; }
+  #rightPanelToggle {
+    display: none; position: fixed; right: 16px; top: 16px; z-index: 100;
+    width: 36px; height: 36px; border-radius: 8px; border: 1px solid #e0e0e0;
+    background: #fff; cursor: pointer; font-size: 16px; color: #666;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+  #rightPanelToggle:hover { background: #f5f5f5; }
+  @media (max-width: 1200px) {
+    #rightPanel { display: none; }
+    #rightPanel.force-show { display: flex; position: fixed; right: 0; top: 0; bottom: 0; z-index: 99; box-shadow: -4px 0 16px rgba(0,0,0,0.1); }
+    #rightPanelToggle { display: block; }
+  }
+
+  /* Right panel sections */
+  .rp-section { border-bottom: 1px solid #eee; padding: 16px; }
+  .rp-section:last-child { border-bottom: none; }
+  .rp-section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; user-select: none;
+  }
+  .rp-section-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    color: #666; letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .rp-section-title svg { opacity: 0.5; }
+  .rp-section-chevron { font-size: 10px; color: #999; transition: transform 0.15s; }
+  .rp-section-chevron.collapsed { transform: rotate(-90deg); }
+  .rp-section-body { margin-top: 12px; }
+  .rp-section-body.collapsed { display: none; }
+
+  /* Add Context section */
+  .rp-dropzone {
+    border: 2px dashed #d0d0d0; border-radius: 8px; padding: 16px;
+    text-align: center; font-size: 12px; color: #999; cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .rp-dropzone:hover, .rp-dropzone.dragover { border-color: #0a66c2; background: #f0f7ff; color: #0a66c2; }
+  .rp-dropzone svg { display: block; margin: 0 auto 6px; opacity: 0.4; }
+  .rp-url-row {
+    display: flex; gap: 6px; margin-top: 10px;
+  }
+  .rp-url-input {
+    flex: 1; padding: 7px 10px; font-size: 12px; border: 1px solid #ddd;
+    border-radius: 6px; outline: none;
+  }
+  .rp-url-input:focus { border-color: #0a66c2; }
+  .rp-url-btn {
+    padding: 7px 12px; font-size: 11px; font-weight: 600;
+    background: #0a66c2; color: #fff; border: none; border-radius: 6px;
+    cursor: pointer; white-space: nowrap;
+  }
+  .rp-url-btn:hover { background: #004182; }
+  .rp-url-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .rp-discover-row { margin-top: 8px; }
+  .rp-discover-row input {
+    width: 100%; padding: 7px 10px; font-size: 12px; border: 1px solid #ddd;
+    border-radius: 6px; outline: none; box-sizing: border-box;
+  }
+  .rp-discover-row input:focus { border-color: #0a66c2; }
+  .rp-discover-row .rp-discover-ctx {
+    margin-top: 4px; font-size: 11px; color: #999;
+  }
+
+  /* Sources section */
+  .rp-source-item {
+    display: flex; align-items: center; gap: 8px; padding: 5px 0;
+    font-size: 12px; color: #333; border-bottom: 1px solid #f5f5f5;
+  }
+  .rp-source-item:last-child { border-bottom: none; }
+  .rp-source-icon { font-size: 14px; flex-shrink: 0; }
+  .rp-source-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rp-source-date { font-size: 10px; color: #999; flex-shrink: 0; }
+  .rp-source-conf {
+    font-size: 9px; font-weight: 600; padding: 1px 5px; border-radius: 8px;
+    flex-shrink: 0;
+  }
+  .rp-source-conf.high { background: #e6f4ea; color: #1e7e34; }
+  .rp-source-conf.med { background: #fff8e1; color: #f9a825; }
+  .rp-source-conf.low { background: #fce4ec; color: #c62828; }
+
+  /* Intelligence section */
+  .rp-intel-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 0; font-size: 12px;
+  }
+  .rp-intel-label { color: #666; }
+  .rp-intel-value { font-weight: 600; color: #333; }
+  .rp-health-circle {
+    width: 36px; height: 36px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: #fff;
+    float: right; margin: 0 0 8px 8px;
+  }
+  .rp-health-circle.strong { background: #1e7e34; }
+  .rp-health-circle.developing { background: #f9a825; }
+  .rp-health-circle.thin { background: #c62828; }
+  .rp-missing { font-size: 11px; color: #999; margin-top: 6px; }
+  .rp-missing a { color: #0a66c2; cursor: pointer; text-decoration: none; }
+  .rp-missing a:hover { text-decoration: underline; }
+  .rp-conflicts-link { font-size: 11px; color: #e65100; margin-top: 4px; display: block; }
+  .rp-private-badge {
+    font-size: 9px; font-weight: 600; color: #999; background: #f5f5f5;
+    padding: 2px 6px; border-radius: 4px; text-transform: uppercase;
+  }
+
+  /* Related section */
+  .rp-related-card {
+    display: flex; align-items: center; gap: 8px; padding: 6px 0;
+    cursor: pointer; border-bottom: 1px solid #f5f5f5;
+  }
+  .rp-related-card:last-child { border-bottom: none; }
+  .rp-related-card:hover { background: #f9f9f9; margin: 0 -16px; padding: 6px 16px; }
+  .rp-related-avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0;
+  }
+  .rp-related-avatar.org { border-radius: 6px; background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }
+  .rp-related-info { flex: 1; min-width: 0; }
+  .rp-related-name { font-size: 12px; font-weight: 600; color: #333; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rp-related-type { font-size: 10px; color: #999; }
+  .rp-view-all { display: block; text-align: center; font-size: 11px; color: #0a66c2; margin-top: 8px; cursor: pointer; text-decoration: none; }
+  .rp-view-all:hover { text-decoration: underline; }
+
+  /* File input hidden */
+  #rpFileInput { display: none; }
 
   /* --- Detail Header --- */
   .detail-header { margin-bottom: 28px; }
@@ -9302,6 +9442,10 @@ const WIKI_HTML = `<!DOCTYPE html>
       <div>Select an entity from the sidebar<br/>to view its knowledge graph profile</div>
     </div>
   </div>
+  <div id="rightPanel">
+    <div id="rightPanelContent"></div>
+  </div>
+  <button id="rightPanelToggle" onclick="toggleRightPanel()" title="Toggle context panel">&#9776;</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -9952,6 +10096,7 @@ function selectCategoryPage(category) {
   var data = buildSidebarData();
   var people = data.people[category] || [];
   renderCategoryPage(category, people);
+  renderRightPanel(null);
   renderSidebar();
 }
 
@@ -10127,6 +10272,7 @@ function selectOrgCategoryPage(category) {
   var data = buildSidebarData();
   var orgs = data.organizations[category] || [];
   renderOrgCategoryPage(category, orgs);
+  renderRightPanel(null);
   renderSidebar();
 }
 
@@ -11053,6 +11199,7 @@ function selectEntity(id, fromCategory) {
     if (type === 'organization' || type === 'business' || type === 'institution') {
       return api('GET', '/api/entity/' + id + '/dossier').then(function(dossier) {
         renderOrgDossier(dossier);
+        renderRightPanel(data);
         renderSidebar();
       });
     }
@@ -11422,6 +11569,360 @@ function calcDecay(observedAt) {
   return Math.exp(-0.03 * days);
 }
 
+/* --- Right Context Panel --- */
+var rpCollapsed = { sources: true };
+
+function toggleRightPanel() {
+  var rp = document.getElementById('rightPanel');
+  if (rp.classList.contains('force-show')) {
+    rp.classList.remove('force-show');
+  } else {
+    rp.classList.add('force-show');
+  }
+}
+
+function toggleRpSection(secId) {
+  rpCollapsed[secId] = !rpCollapsed[secId];
+  var body = document.getElementById('rp-body-' + secId);
+  var chev = document.getElementById('rp-chev-' + secId);
+  if (body) body.classList.toggle('collapsed', !!rpCollapsed[secId]);
+  if (chev) chev.classList.toggle('collapsed', !!rpCollapsed[secId]);
+}
+
+function renderRightPanel(data) {
+  var rp = document.getElementById('rightPanelContent');
+  if (!rp) return;
+  if (!data) {
+    // No entity selected — show generic Add Context only
+    rp.innerHTML = renderRpAddContext(null, null) + renderRpRecentActivity();
+    wireRpDropzone('');
+    return;
+  }
+  var e = data.entity || {};
+  var entityId = e.entity_id || '';
+  var name = e.name?.full || e.name?.common || e.name?.legal || '';
+  rp.innerHTML = renderRpAddContext(entityId, name) + renderRpSources(data) + renderRpIntelligence(data) + renderRpRelated(data);
+  wireRpDropzone(entityId);
+}
+
+function wireRpDropzone(entityId) {
+  var dz = document.getElementById('rpDropzone');
+  if (!dz) return;
+  dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', function() { dz.classList.remove('dragover'); });
+  dz.addEventListener('drop', function(e) {
+    e.preventDefault(); dz.classList.remove('dragover');
+    rpHandleFiles(e.dataTransfer.files, entityId || '');
+  });
+}
+
+function renderRpAddContext(entityId, entityName) {
+  var h = '<div class="rp-section">';
+  h += '<div class="rp-section-header" onclick="toggleRpSection(' + "'" + 'addctx' + "'" + ')">';
+  h += '<span class="rp-section-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Add Context</span>';
+  h += '<span class="rp-section-chevron' + (rpCollapsed.addctx ? ' collapsed' : '') + '" id="rp-chev-addctx">&#9660;</span>';
+  h += '</div>';
+  h += '<div class="rp-section-body' + (rpCollapsed.addctx ? ' collapsed' : '') + '" id="rp-body-addctx">';
+  if (entityName) {
+    h += '<div style="font-size:11px;color:#0a66c2;margin-bottom:8px;font-weight:600;">Adding to: ' + esc(entityName) + '</div>';
+  }
+  // Drop zone
+  h += '<div class="rp-dropzone" id="rpDropzone" onclick="document.getElementById(' + "'" + 'rpFileInput' + "'" + ').click()">';
+  h += '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
+  h += 'Drop files or click to upload';
+  h += '</div>';
+  h += '<input type="file" id="rpFileInput" multiple onchange="rpHandleFiles(this.files,' + "'" + esc(entityId || '') + "'" + ')" />';
+  // URL input
+  h += '<div class="rp-url-row">';
+  h += '<input type="text" class="rp-url-input" id="rpUrlInput" placeholder="Paste URL..." />';
+  h += '<button class="rp-url-btn" onclick="rpExtractURL(' + "'" + esc(entityId || '') + "'" + ')" id="rpUrlBtn">Extract</button>';
+  h += '</div>';
+  // Name discovery
+  h += '<div class="rp-discover-row">';
+  h += '<input type="text" id="rpDiscoverName" placeholder="Search by name..." onkeydown="if(event.key===\'Enter\')rpDiscover(' + "'" + esc(entityId || '') + "'" + ')" />';
+  h += '<div class="rp-discover-ctx"><input type="text" id="rpDiscoverCtx" placeholder="Optional context (company, city...)" style="width:100%;padding:5px 8px;font-size:11px;border:1px solid #ddd;border-radius:4px;margin-top:4px;" /></div>';
+  h += '</div>';
+  h += '</div></div>';
+  return h;
+}
+
+function renderRpSources(data) {
+  var prov = data.provenance_chain || {};
+  var docs = prov.source_documents || [];
+  var obs = data.observations || [];
+  // Also gather unique sources from observations
+  var srcMap = {};
+  for (var i = 0; i < docs.length; i++) {
+    var src = docs[i].source || '';
+    srcMap[src] = { source: src, url: docs[i].url || null, date: docs[i].ingested_at || '', conf: 0.9 };
+  }
+  for (var i = 0; i < obs.length; i++) {
+    var src = obs[i].source || '';
+    if (src && !srcMap[src]) {
+      srcMap[src] = { source: src, url: obs[i].source_url || null, date: obs[i].observed_at || '', conf: obs[i].confidence || 0.5 };
+    }
+  }
+  var sources = Object.values(srcMap);
+  var count = sources.length;
+  var isCollapsed = rpCollapsed.sources !== false;
+
+  var h = '<div class="rp-section">';
+  h += '<div class="rp-section-header" onclick="toggleRpSection(' + "'" + 'sources' + "'" + ')">';
+  h += '<span class="rp-section-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Sources (' + count + ')</span>';
+  h += '<span class="rp-section-chevron' + (isCollapsed ? ' collapsed' : '') + '" id="rp-chev-sources">&#9660;</span>';
+  h += '</div>';
+  h += '<div class="rp-section-body' + (isCollapsed ? ' collapsed' : '') + '" id="rp-body-sources">';
+  for (var i = 0; i < sources.length; i++) {
+    var s = sources[i];
+    var srcName = s.source.split(':')[0] || s.source;
+    var confCls = s.conf >= 0.8 ? 'high' : s.conf >= 0.5 ? 'med' : 'low';
+    var confLabel = s.conf >= 0.8 ? 'HIGH' : s.conf >= 0.5 ? 'MED' : 'LOW';
+    h += '<div class="rp-source-item">';
+    h += '<span class="rp-source-icon">' + getRpSourceIcon(srcName) + '</span>';
+    h += '<span class="rp-source-name" title="' + esc(s.source) + '">' + esc(s.source.length > 30 ? s.source.slice(0, 30) + '...' : s.source) + '</span>';
+    if (s.date) h += '<span class="rp-source-date">' + esc(s.date.slice(0, 10)) + '</span>';
+    h += '<span class="rp-source-conf ' + confCls + '">' + confLabel + '</span>';
+    h += '</div>';
+  }
+  if (sources.length === 0) {
+    h += '<div style="font-size:11px;color:#999;">No sources recorded</div>';
+  }
+  h += '</div></div>';
+  return h;
+}
+
+function getRpSourceIcon(srcType) {
+  if (/linkedin/i.test(srcType)) return '<svg width="14" height="14" viewBox="0 0 24 24" fill="#0A66C2"><path d="M20.5 2h-17A1.5 1.5 0 002 3.5v17A1.5 1.5 0 003.5 22h17a1.5 1.5 0 001.5-1.5v-17A1.5 1.5 0 0020.5 2zM8 19H5v-9h3zM6.5 8.25A1.75 1.75 0 118.3 6.5a1.78 1.78 0 01-1.8 1.75zM19 19h-3v-4.74c0-1.42-.6-1.93-1.38-1.93A1.74 1.74 0 0013 14.19V19h-3v-9h2.9v1.3a3.11 3.11 0 012.7-1.4c1.55 0 3.36.86 3.36 3.66z"/></svg>';
+  if (/file|pdf|doc/i.test(srcType)) return '\uD83D\uDCC4';
+  if (/url|web|http/i.test(srcType)) return '\uD83C\uDF10';
+  if (/drive/i.test(srcType)) return '\uD83D\uDCC1';
+  if (/chatgpt|ai/i.test(srcType)) return '\uD83E\uDD16';
+  if (/user/i.test(srcType)) return '\u270D\uFE0F';
+  return '\uD83D\uDCCB';
+}
+
+function renderRpIntelligence(data) {
+  var health = computeEntityHealth(data);
+  var density = getEntityDensity(data);
+  var attrs = data.attributes || [];
+  var obs = data.observations || [];
+  var e = data.entity || {};
+
+  // Coverage: % of key fields that have values
+  var keyFields = ['headline', 'location', 'email', 'phone', 'linkedin_url', 'x_handle', 'instagram_handle'];
+  var filled = 0;
+  var missing = [];
+  for (var i = 0; i < keyFields.length; i++) {
+    var found = false;
+    for (var j = 0; j < attrs.length; j++) {
+      if (attrs[j].key === keyFields[i] && attrs[j].value) { found = true; break; }
+    }
+    if (found) { filled++; }
+    else { missing.push(keyFields[i].replace(/_/g, ' ')); }
+  }
+  var cl = data.career_lite || {};
+  if (cl.linkedin_url) { filled++; var li = missing.indexOf('linkedin url'); if (li !== -1) missing.splice(li, 1); }
+  var coverage = Math.round((filled / keyFields.length) * 100);
+
+  // Avg confidence
+  var totalConf = 0; var confCount = 0;
+  for (var i = 0; i < obs.length; i++) {
+    if (obs[i].confidence) { totalConf += obs[i].confidence; confCount++; }
+  }
+  var avgConf = confCount > 0 ? Math.round((totalConf / confCount) * 100) : 0;
+
+  // Conflicts
+  var conflicts = data.conflicts || [];
+  var activeConflicts = conflicts.filter(function(c) { return c.conflict_type === 'FACTUAL'; });
+
+  var h = '<div class="rp-section">';
+  h += '<div class="rp-section-header">';
+  h += '<span class="rp-section-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Intelligence</span>';
+  h += '<span class="rp-private-badge">Private</span>';
+  h += '</div>';
+  h += '<div class="rp-section-body">';
+  // Health circle
+  h += '<div class="rp-health-circle ' + health.level + '">' + (health.score ? health.score.toFixed(1) : '0') + '</div>';
+  h += '<div class="rp-intel-row"><span class="rp-intel-label">Health</span><span class="rp-intel-value">' + esc(health.label) + '</span></div>';
+  h += '<div class="rp-intel-row"><span class="rp-intel-label">Coverage</span><span class="rp-intel-value">' + coverage + '%</span></div>';
+  h += '<div class="rp-intel-row"><span class="rp-intel-label">Avg Confidence</span><span class="rp-intel-value">' + avgConf + '%</span></div>';
+  h += '<div class="rp-intel-row"><span class="rp-intel-label">Density</span><span class="rp-intel-value">' + esc(density.level || 'Unknown') + '</span></div>';
+  if (missing.length > 0) {
+    h += '<div class="rp-missing">Missing: ';
+    for (var i = 0; i < Math.min(missing.length, 3); i++) {
+      if (i > 0) h += ', ';
+      h += '<a onclick="document.getElementById(' + "'" + 'rpUrlInput' + "'" + ').focus()">' + esc(missing[i]) + '</a>';
+    }
+    if (missing.length > 3) h += ' +' + (missing.length - 3) + ' more';
+    h += '</div>';
+  }
+  if (activeConflicts.length > 0) {
+    h += '<a class="rp-conflicts-link">' + activeConflicts.length + ' conflict' + (activeConflicts.length > 1 ? 's' : '') + ' need resolution</a>';
+  }
+  h += '</div></div>';
+  return h;
+}
+
+function renderRpRelated(data) {
+  var rels = data.relationships || [];
+  var connected = data.connected_objects || [];
+  var e = data.entity || {};
+  var entityId = e.entity_id || '';
+  var isPerson = (e.entity_type === 'person');
+
+  // Combine rels and connected objects, take top 5
+  var items = [];
+  for (var i = 0; i < rels.length && items.length < 5; i++) {
+    var r = rels[i];
+    items.push({ id: r.target_entity_id || '', name: r.name || r.target_entity_id || '', type: r.relationship_type || '', isOrg: false });
+  }
+  // Also check connected objects for orgs
+  for (var i = 0; i < connected.length && items.length < 5; i++) {
+    var c = connected[i];
+    var isOrg = ['organization', 'business', 'institution'].indexOf(c.entity_type) !== -1;
+    if (isPerson && isOrg) {
+      items.push({ id: c.entity_id || '', name: (c.name && (c.name.common || c.name.legal || c.name.full)) || '', type: c.entity_type || '', isOrg: true });
+    }
+  }
+  var totalCount = rels.length + connected.length;
+  var isCollapsed = rpCollapsed.related === true;
+
+  var h = '<div class="rp-section">';
+  h += '<div class="rp-section-header" onclick="toggleRpSection(' + "'" + 'related' + "'" + ')">';
+  h += '<span class="rp-section-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg> Related Entities</span>';
+  h += '<span class="rp-section-chevron' + (isCollapsed ? ' collapsed' : '') + '" id="rp-chev-related">&#9660;</span>';
+  h += '</div>';
+  h += '<div class="rp-section-body' + (isCollapsed ? ' collapsed' : '') + '" id="rp-body-related">';
+  for (var i = 0; i < items.length; i++) {
+    var it = items[i];
+    var initials = (it.name || '??').split(/\\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
+    h += '<div class="rp-related-card" onclick="selectEntity(' + "'" + esc(it.id) + "'" + ')">';
+    h += '<div class="rp-related-avatar' + (it.isOrg ? ' org' : '') + '">' + esc(initials) + '</div>';
+    h += '<div class="rp-related-info">';
+    h += '<div class="rp-related-name">' + esc(it.name) + '</div>';
+    h += '<div class="rp-related-type">' + esc(it.type) + '</div>';
+    h += '</div></div>';
+  }
+  if (items.length === 0) {
+    h += '<div style="font-size:11px;color:#999;">No connections yet</div>';
+  }
+  if (totalCount > 5) {
+    h += '<a class="rp-view-all" onclick="showConnectionsPage(' + "'" + esc(entityId) + "'" + ')">View all ' + totalCount + ' connections \u2192</a>';
+  }
+  h += '</div></div>';
+  return h;
+}
+
+function renderRpRecentActivity() {
+  var h = '<div class="rp-section">';
+  h += '<div class="rp-section-header">';
+  h += '<span class="rp-section-title"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Recent Activity</span>';
+  h += '</div>';
+  h += '<div class="rp-section-body">';
+  h += '<div style="font-size:11px;color:#999;text-align:center;padding:12px 0;">Select an entity to see context</div>';
+  h += '</div></div>';
+  return h;
+}
+
+// Right panel file upload with entity pre-association
+function rpHandleFiles(fileList, entityId) {
+  if (!fileList || fileList.length === 0) return;
+  var formData = new FormData();
+  for (var i = 0; i < fileList.length; i++) {
+    formData.append('files', fileList[i]);
+  }
+  var url = '/api/ingest/files?preview=false';
+  if (entityId) url += '&context_for=' + encodeURIComponent(entityId);
+  toast('Uploading ' + fileList.length + ' file(s)...');
+  fetch(url, {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: formData
+  }).then(function(resp) { return resp.json(); }).then(function(result) {
+    var count = (result.entities_created || []).length + (result.clusters_created || []).length;
+    var eName = entityId && selectedData ? (selectedData.entity?.name?.full || selectedData.entity?.name?.common || entityId) : '';
+    if (entityId && eName) {
+      toast('Added ' + count + ' data points to ' + eName);
+    } else {
+      toast('Extracted ' + count + ' items — check Review Queue');
+    }
+    // Refresh current entity
+    if (entityId && selectedId === entityId) {
+      api('GET', '/api/entity/' + entityId).then(function(data) {
+        selectedData = data;
+        renderDetail(data);
+        renderRightPanel(data);
+      });
+    }
+    refreshReviewQueueBadge();
+  }).catch(function(err) { toast('Upload failed: ' + err.message); });
+  // Clear input
+  document.getElementById('rpFileInput').value = '';
+}
+
+// Right panel URL extraction with entity pre-association
+function rpExtractURL(entityId) {
+  var input = document.getElementById('rpUrlInput');
+  var url = (input && input.value || '').trim();
+  if (!url) { toast('Enter a URL first'); return; }
+  var btn = document.getElementById('rpUrlBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  var payload = { url: url };
+  if (entityId) payload.context_for = entityId;
+  api('POST', '/api/extract-url', payload).then(function(data) {
+    var clusters = data.scored_clusters || [];
+    var eName = entityId && selectedData ? (selectedData.entity?.name?.full || selectedData.entity?.name?.common || entityId) : '';
+    if (clusters.length > 0) {
+      if (entityId && eName) {
+        toast('Extracted ' + clusters.length + ' signals for ' + eName + ' — check Review Queue');
+      } else {
+        toast('Extracted ' + clusters.length + ' signals — check Review Queue');
+      }
+    } else {
+      toast('No new data found at that URL');
+    }
+    if (input) input.value = '';
+    if (btn) { btn.disabled = false; btn.textContent = 'Extract'; }
+    refreshReviewQueueBadge();
+    // Refresh entity if pre-associated
+    if (entityId && selectedId === entityId) {
+      api('GET', '/api/entity/' + entityId).then(function(d) {
+        selectedData = d;
+        renderDetail(d);
+        renderRightPanel(d);
+      });
+    }
+  }).catch(function(err) {
+    toast('Extraction failed: ' + err.message);
+    if (btn) { btn.disabled = false; btn.textContent = 'Extract'; }
+  });
+}
+
+// Right panel name discovery with entity pre-association
+function rpDiscover(entityId) {
+  var nameInput = document.getElementById('rpDiscoverName');
+  var ctxInput = document.getElementById('rpDiscoverCtx');
+  var name = (nameInput && nameInput.value || '').trim();
+  var ctx = (ctxInput && ctxInput.value || '').trim();
+  if (!name || name.length < 2) { toast('Name too short'); return; }
+  toast('Searching for ' + name + '...');
+  var payload = { name: name };
+  if (ctx) payload.context = ctx;
+  if (entityId) payload.context_for = entityId;
+  api('POST', '/api/discover-entity', payload).then(function(data) {
+    if (data.candidates && data.candidates.length > 1) {
+      toast('Found ' + data.candidates.length + ' candidates — check Review Queue');
+    } else if (data.found || data.status === 'staged') {
+      toast('Found profile — check Review Queue');
+    } else {
+      toast('No LinkedIn profile found for ' + name);
+    }
+    if (nameInput) nameInput.value = '';
+    if (ctxInput) ctxInput.value = '';
+    refreshReviewQueueBadge();
+  }).catch(function(err) { toast('Discovery failed: ' + err.message); });
+}
+
 /* --- File Upload --- */
 var uploadFiles = [];
 var uploadInProgress = false;
@@ -11429,6 +11930,7 @@ var uploadInProgress = false;
 function showUploadView() {
   selectedId = null;
   selectedView = null;
+  renderRightPanel(null);
   uploadFiles = [];
   uploadInProgress = false;
   var h = '<div class="upload-view active">';
@@ -14091,6 +14593,7 @@ function renderDetail(data) {
     var renderedContent = mainEl.innerHTML;
     mainEl.className = 'li-profile-bg';
     mainEl.innerHTML = headerHtml + '<div class="li-tab-content">' + renderedContent + '</div></div>';
+    renderRightPanel(data);
     return;
   }
 
@@ -14540,6 +15043,7 @@ function renderDetail(data) {
   h += '</div>'; // li-profile
   mainEl.innerHTML = h;
   window._liActiveTab = 'overview';
+  renderRightPanel(data);
 }
 
 function renderOrgDossier(data) {
