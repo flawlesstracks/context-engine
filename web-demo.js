@@ -1593,19 +1593,31 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
 });
 
 // POST /api/ingest/universal — Universal parser: upload any file, get entities + relationships
+// Supports TWO input modes:
+//   1. Multipart upload: field "file" (for web UI)
+//   2. JSON body: { filename: "doc.pdf", content: "<base64_encoded>" } (for Render API / programmatic)
 const universalUpload = multer({ storage: multer.memoryStorage(), limits: { files: 1, fileSize: 50 * 1024 * 1024 } });
 app.post('/api/ingest/universal', apiAuth, universalUpload.single('file'), async (req, res) => {
   try {
-    const file = req.file;
-    if (!file) {
-      return res.status(400).json({ error: 'No file uploaded. Send file via multipart field "file".' });
-    }
+    let fileBuffer, filename;
 
-    const filename = file.originalname;
-    console.log(`[universal-parser] Processing: ${filename} (${file.size} bytes)`);
+    if (req.file) {
+      // Mode 1: Multipart file upload
+      fileBuffer = req.file.buffer;
+      filename = req.file.originalname;
+    } else if (req.body && req.body.filename && req.body.content) {
+      // Mode 2: JSON body with base64 content
+      filename = req.body.filename;
+      fileBuffer = Buffer.from(req.body.content, 'base64');
+    } else {
+      return res.status(400).json({
+        error: 'No file provided. Either upload via multipart field "file" or send JSON { filename, content (base64) }.',
+      });
+    }
+    console.log(`[universal-parser] Processing: ${filename} (${fileBuffer.length} bytes)`);
 
     // Run universal parser
-    const result = await universalParse(file.buffer, filename);
+    const result = await universalParse(fileBuffer, filename);
 
     // If structured profile or chat export, we can stage directly
     // For AI-extracted entities, convert to signal staging format
