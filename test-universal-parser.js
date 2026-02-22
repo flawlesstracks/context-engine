@@ -1,5 +1,7 @@
 'use strict';
 
+require('dotenv').config();
+
 /**
  * Test runner for universal-parser.js
  * Usage: node test-universal-parser.js [step]
@@ -13,6 +15,7 @@
  */
 
 const { detectFileType, extractText, extractEntities, assignConfidence, postProcess, parse } = require('./universal-parser');
+const HAS_API_KEY = !!process.env.ANTHROPIC_API_KEY;
 
 let passed = 0;
 let failed = 0;
@@ -517,6 +520,174 @@ function testStep5() {
 }
 
 // ---------------------------------------------------------------------------
+// Step 6 Tests — Integration: full parse() pipeline with multiple file types
+// ---------------------------------------------------------------------------
+
+async function testStep6() {
+  section('Step 6: Integration — Structured JSON profile (full pipeline)');
+
+  const structuredJson = JSON.stringify({
+    entity_type: 'person',
+    name: 'Steve Hughes',
+    attributes: {
+      age: '40',
+      location: 'Atlanta, GA',
+      date_of_birth: '1985-05-24',
+      zodiac: 'Gemini',
+    },
+    relationships: [
+      { target: 'Meta', relationship: 'works_at', direction: 'A_TO_B' },
+      { target: 'CJ Mitchell', relationship: 'friend_of', direction: 'BIDIRECTIONAL' },
+    ],
+  });
+
+  const r1 = await parse(structuredJson, 'steve-hughes-profile.json');
+  assert(r1.metadata.file_type === 'structured_profile', 'Structured JSON: file_type correct');
+  assert(r1.metadata.parse_strategy === 'structured_import', 'Structured JSON: strategy correct');
+  assert(r1.metadata.model_used === 'direct_import', 'Structured JSON: model_used correct');
+  assert(r1.entities.length >= 1, 'Structured JSON: entities extracted');
+  assert(r1.entities[0].name === 'Steve Hughes', 'Structured JSON: entity name correct');
+  assert(r1.entities[0].type === 'PERSON', 'Structured JSON: entity type correct');
+  assert(r1.entities[0].confidence === 0.9, 'Structured JSON: confidence = 0.9');
+  assert(r1.relationships.length === 2, 'Structured JSON: 2 relationships');
+  assert(r1.summary.length > 0, 'Structured JSON: summary non-empty');
+
+  section('Step 6: Integration — Nested entity JSON (real entity format)');
+
+  const nestedJson = JSON.stringify({
+    schema_version: '2.0',
+    entity: {
+      entity_type: 'person',
+      entity_id: 'ENT-SH-052',
+      name: { full: 'Steve Hughes', preferred: 'Steve' },
+      summary: 'Howard alum from the godparent circle.',
+    },
+    attributes: [
+      { key: 'role', value: 'Engineer', confidence: 0.6 },
+      { key: 'location', value: 'Atlanta, GA', confidence: 0.6 },
+    ],
+    relationships: [
+      { target: 'BDAT Group', relationship: 'member_of', direction: 'A_TO_B' },
+    ],
+  });
+
+  const r2 = await parse(nestedJson, 'ENT-SH-052.json');
+  assert(r2.metadata.parse_strategy === 'structured_import', 'Nested entity: structured_import');
+  assert(r2.entities[0].name === 'Steve', 'Nested entity: preferred name used');
+  assert(r2.entities[0].attributes.role === 'Engineer', 'Nested entity: attributes mapped');
+  assert(r2.relationships.length === 1, 'Nested entity: 1 relationship');
+
+  section('Step 6: Integration — Plain text');
+
+  if (HAS_API_KEY) {
+    const plainText = 'CJ Mitchell works at Amazon as a Principal Product Manager. His friend Steve Hughes works at Meta in Atlanta.';
+    const r3 = await parse(plainText, 'notes.txt');
+    assert(r3.metadata.file_type === 'plaintext', 'Plain text: file_type correct');
+    assert(r3.metadata.parse_strategy === 'ai_extraction', 'Plain text: ai_extraction strategy');
+    assert(Array.isArray(r3.entities), 'Plain text: entities is array');
+    assert(Array.isArray(r3.relationships), 'Plain text: relationships is array');
+    assert(r3.entities.length >= 2, `Plain text: found ${r3.entities.length} entities (expected 2+)`);
+    const names = r3.entities.map(e => e.name.toLowerCase());
+    assert(names.some(n => n.includes('mitchell') || n.includes('cj')), 'Plain text: found CJ');
+    assert(names.some(n => n.includes('hughes') || n.includes('steve')), 'Plain text: found Steve');
+    assert(r3.relationships.length >= 1, 'Plain text: at least 1 relationship');
+  } else {
+    console.log('  ⊘ Skipping plain text AI test (no ANTHROPIC_API_KEY)');
+  }
+
+  section('Step 6: Integration — CSV');
+
+  if (HAS_API_KEY) {
+    const csvContent = 'Name,Role,Company,Location\nAlice Smith,Engineer,Acme Inc,NYC\nBob Jones,Manager,Globex Corp,LA\n';
+    const r4 = await parse(csvContent, 'team.csv');
+    assert(r4.metadata.file_type === 'csv', 'CSV: file_type correct');
+    assert(r4.metadata.parse_strategy === 'ai_extraction', 'CSV: ai_extraction strategy');
+    assert(r4.entities.length >= 2, `CSV: found ${r4.entities.length} entities (expected 2+)`);
+  } else {
+    console.log('  ⊘ Skipping CSV AI test (no ANTHROPIC_API_KEY)');
+  }
+
+  section('Step 6: Integration — HTML');
+
+  if (HAS_API_KEY) {
+    const htmlContent = '<html><body><h1>About Us</h1><p>Acme Corp was founded by Jane Doe in 2020. Bob Smith is the CTO.</p></body></html>';
+    const r5 = await parse(htmlContent, 'about.html');
+    assert(r5.metadata.file_type === 'html', 'HTML: file_type correct');
+    assert(r5.metadata.parse_strategy === 'ai_extraction', 'HTML: ai_extraction strategy');
+    assert(r5.entities.length >= 2, `HTML: found ${r5.entities.length} entities (expected 2+)`);
+  } else {
+    console.log('  ⊘ Skipping HTML AI test (no ANTHROPIC_API_KEY)');
+  }
+
+  section('Step 6: Integration — Markdown');
+
+  if (HAS_API_KEY) {
+    const mdContent = '# Team Overview\n\n**CJ Mitchell** leads the Context Architecture project at Amazon.\n\n## Members\n\n- Steve Hughes (Engineering Lead at Meta)\n- Lola Mafe (Design Lead)\n';
+    const r6 = await parse(mdContent, 'team.md');
+    assert(r6.metadata.file_type === 'markdown', 'Markdown: file_type correct');
+    assert(r6.metadata.parse_strategy === 'ai_extraction', 'Markdown: ai_extraction strategy');
+    assert(r6.entities.length >= 3, `Markdown: found ${r6.entities.length} entities (expected 3+)`);
+  } else {
+    console.log('  ⊘ Skipping Markdown AI test (no ANTHROPIC_API_KEY)');
+  }
+
+  section('Step 6: Integration — ChatGPT export');
+
+  const chatContent = JSON.stringify({
+    title: 'Chat about context architecture',
+    mapping: {
+      'msg-1': { id: 'msg-1', message: { author: { role: 'user' }, content: { parts: ['Tell me about context architecture'] } } },
+    },
+  });
+  const r7 = await parse(chatContent, 'chatgpt-export.json');
+  assert(r7.metadata.file_type === 'chat_export', 'Chat export: file_type correct');
+  assert(r7.metadata.parse_strategy === 'chat_import', 'Chat export: chat_import strategy');
+
+  section('Step 6: Integration — Generic JSON');
+
+  const genericJson = JSON.stringify({ projects: [{ name: 'Alpha', status: 'active' }], count: 1 });
+  const r8 = await parse(genericJson, 'projects.json');
+  assert(r8.metadata.file_type === 'json', 'Generic JSON: file_type correct');
+  assert(r8.metadata.parse_strategy === 'ai_extraction', 'Generic JSON: ai_extraction strategy');
+
+  section('Step 6: Integration — TSV');
+
+  const tsvContent = 'Name\tAge\tCity\nAlice\t30\tNYC\nBob\t25\tLA\n';
+  const r9 = await parse(tsvContent, 'data.tsv');
+  assert(r9.metadata.file_type === 'tsv', 'TSV: file_type correct');
+
+  section('Step 6: Integration — Output schema validation');
+
+  // Validate the complete output schema matches spec
+  const schema = r1; // Use structured JSON result (has real data)
+  assert(typeof schema.metadata === 'object', 'Schema: metadata is object');
+  assert(typeof schema.metadata.filename === 'string', 'Schema: metadata.filename is string');
+  assert(typeof schema.metadata.file_type === 'string', 'Schema: metadata.file_type is string');
+  assert(typeof schema.metadata.file_size === 'number', 'Schema: metadata.file_size is number');
+  assert(typeof schema.metadata.parse_strategy === 'string', 'Schema: metadata.parse_strategy is string');
+  assert(typeof schema.metadata.parse_duration_ms === 'number', 'Schema: metadata.parse_duration_ms is number');
+  assert(typeof schema.metadata.chunk_count === 'number', 'Schema: metadata.chunk_count is number');
+  assert(typeof schema.metadata.timestamp === 'string', 'Schema: metadata.timestamp is string');
+  assert(Array.isArray(schema.entities), 'Schema: entities is array');
+  assert(Array.isArray(schema.relationships), 'Schema: relationships is array');
+  assert(typeof schema.summary === 'string', 'Schema: summary is string');
+
+  // Validate entity shape
+  const ent = schema.entities[0];
+  assert(typeof ent.name === 'string', 'Schema: entity.name is string');
+  assert(typeof ent.type === 'string', 'Schema: entity.type is string');
+  assert(typeof ent.attributes === 'object', 'Schema: entity.attributes is object');
+  assert(typeof ent.confidence === 'number', 'Schema: entity.confidence is number');
+
+  // Validate relationship shape
+  const rel = schema.relationships[0];
+  assert(typeof rel.source === 'string' || rel.source === undefined, 'Schema: rel.source is string');
+  assert(typeof rel.target === 'string', 'Schema: rel.target is string');
+  assert(typeof rel.relationship === 'string', 'Schema: rel.relationship is string');
+  assert(typeof rel.confidence === 'number', 'Schema: rel.confidence is number');
+}
+
+// ---------------------------------------------------------------------------
 // Runner
 // ---------------------------------------------------------------------------
 
@@ -546,6 +717,10 @@ async function main() {
 
   if (!step || step === 5) {
     testStep5();
+  }
+
+  if (!step || step === 6) {
+    await testStep6();
   }
 
   console.log(`\n══════════════════════════`);
