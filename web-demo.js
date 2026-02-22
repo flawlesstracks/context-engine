@@ -6897,7 +6897,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     --info-bg: rgba(37,99,235,0.06);
 
     /* Layout */
-    --sidebar-width: 240px;
+    --sidebar-width: 280px;
     --radius-sm: 6px;
     --radius-md: 8px;
     --radius-lg: 12px;
@@ -7036,7 +7036,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     display: flex; align-items: center; gap: 8px;
     padding: 8px 10px; border: none; border-radius: var(--radius-sm);
     background: transparent; color: var(--text-tertiary);
-    font-size: 0.82rem; font-weight: 500; cursor: pointer;
+    font-size: 14px; font-weight: 500; cursor: pointer;
     transition: all var(--transition-fast);
     font-family: var(--font-sans);
     text-align: left; width: 100%;
@@ -7081,8 +7081,8 @@ const WIKI_HTML = `<!DOCTYPE html>
 
   /* --- Sidebar Count --- */
   .sidebar-count {
-    padding: 10px 20px; font-size: 0.68rem; color: var(--text-muted);
-    letter-spacing: 0.06em; font-weight: 600;
+    padding: 10px 20px; font-size: 13px; color: var(--text-muted);
+    letter-spacing: 0.06em; font-weight: 600; text-transform: uppercase;
     border-bottom: 1px solid var(--border-primary);
     display: flex; align-items: baseline; gap: 6px;
   }
@@ -7139,7 +7139,7 @@ const WIKI_HTML = `<!DOCTYPE html>
 
   /* --- Right Entity Pipeline Panel --- */
   #rightPanel {
-    width: 480px; min-width: 480px;
+    width: 560px; min-width: 560px;
     border-left: none;
     background: #f4f2ee;
     overflow-y: auto;
@@ -7157,7 +7157,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   #rightPanelToggle:hover { background: #f5f5f5; }
   @media (max-width: 1200px) {
     #rightPanel { display: none; }
-    #rightPanel.force-show { display: flex; position: fixed; right: 0; top: 0; bottom: 0; z-index: 99; box-shadow: -4px 0 16px rgba(0,0,0,0.1); width: 480px; }
+    #rightPanel.force-show { display: flex; position: fixed; right: 0; top: 0; bottom: 0; z-index: 99; box-shadow: -4px 0 16px rgba(0,0,0,0.1); width: 560px; }
     #rightPanelToggle { display: block; }
   }
 
@@ -7173,40 +7173,54 @@ const WIKI_HTML = `<!DOCTYPE html>
   .pp-accent.confirm { background: linear-gradient(90deg, #10b981, #059669); }
   .pp-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 18px 24px; cursor: pointer; user-select: none;
+    padding: 20px 28px; cursor: pointer; user-select: none;
   }
   .pp-header-left { display: flex; align-items: center; gap: 8px; }
   .pp-header-icon { font-size: 16px; line-height: 1; }
   .pp-header-title {
-    font-size: 16px; font-weight: 700; text-transform: uppercase;
+    font-size: 17px; font-weight: 700; text-transform: uppercase;
     letter-spacing: 0.5px;
   }
   .pp-section.collect .pp-header-title { color: #5b21b6; }
   .pp-section.review .pp-header-title { color: #d97706; }
   .pp-section.confirm .pp-header-title { color: #059669; }
   .pp-badge {
-    min-width: 20px; height: 20px; border-radius: 10px;
+    min-width: 22px; height: 22px; border-radius: 11px;
     display: inline-flex; align-items: center; justify-content: center;
-    font-size: 11px; font-weight: 700; color: #fff; padding: 0 6px;
+    font-size: 12px; font-weight: 700; color: #fff; padding: 0 6px;
   }
   .pp-section.collect .pp-badge { background: #7c3aed; }
   .pp-section.review .pp-badge { background: #f59e0b; }
   .pp-section.confirm .pp-badge { background: #10b981; }
   .pp-chevron { font-size: 12px; color: #999; transition: transform 0.15s; margin-left: 6px; }
   .pp-chevron.collapsed { transform: rotate(-90deg); }
-  .pp-body { padding: 0 24px 24px; font-size: 15px; color: #333; line-height: 1.5; }
+  .pp-body { padding: 0 28px 28px; font-size: 15px; color: #333; line-height: 1.5; }
   .pp-body.collapsed { display: none; }
 
   /* Collect section */
   .pp-dropzone {
-    border: 2px dashed #d0d0d0; border-radius: 8px; padding: 24px;
+    border: 2px dashed #d0d0d0; border-radius: 8px; padding: 28px;
     text-align: center; font-size: 15px; color: #999; cursor: pointer;
     transition: border-color 0.15s, background 0.15s;
-    min-height: 100px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    min-height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px;
   }
   .pp-dropzone:hover, .pp-dropzone.dragover { border-color: #7c3aed; background: #f5f3ff; color: #7c3aed; }
-  .pp-dropzone svg { display: block; margin: 0 auto 6px; opacity: 0.4; }
-  .pp-url-row { display: flex; gap: 8px; margin-top: 12px; }
+  .pp-dropzone .pp-drop-icon { font-size: 32px; color: #ccc; margin-bottom: 4px; }
+  .pp-dropzone .pp-drop-sub { font-size: 13px; color: #bbb; }
+  .pp-files-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 16px; padding-bottom: 8px; border-bottom: 1px solid #eee;
+  }
+  .pp-files-title { font-size: 14px; font-weight: 600; color: #333; }
+  .pp-files-add {
+    width: 24px; height: 24px; border-radius: 6px; border: 1px solid #ddd;
+    background: #fff; cursor: pointer; font-size: 16px; color: #999;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .pp-files-add:hover { background: #f5f5f5; color: #333; }
+  .pp-files-empty { font-size: 14px; color: #999; padding: 12px 0; }
+  .pp-url-row { display: flex; gap: 8px; margin-top: 14px; }
   .pp-url-input {
     flex: 3; padding: 10px 12px; font-size: 15px; border: 1px solid #ddd;
     border-radius: 6px; outline: none; min-width: 0;
@@ -11776,18 +11790,23 @@ function renderPpCollect(entityId, entityName, collectData) {
   h += '</div>';
   h += '<div class="pp-body' + (ppCollapsed.collect ? ' collapsed' : '') + '" id="pp-body-collect">';
   if (entityName) {
-    h += '<div style="font-size:11px;color:#5b21b6;margin-bottom:8px;font-weight:600;">Adding context for: ' + esc(entityName) + '</div>';
+    h += '<div style="font-size:14px;color:#5b21b6;margin-bottom:10px;font-weight:600;">Adding context for: ' + esc(entityName) + '</div>';
   }
-  // Drop zone
+  // Drop zone with large plus icon
   h += '<div class="pp-dropzone" id="ppDropzone" onclick="document.getElementById(' + "'" + 'rpFileInput' + "'" + ').click()">';
-  h += '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
+  h += '<div class="pp-drop-icon">+</div>';
+  h += '<div>Drop files to add context</div>';
   if (entityName) {
-    h += 'Drop files to add context for ' + esc(entityName);
-  } else {
-    h += 'Drop files or click to upload';
+    h += '<div class="pp-drop-sub">for ' + esc(entityName) + '</div>';
   }
   h += '</div>';
   h += '<input type="file" id="rpFileInput" multiple onchange="rpHandleFiles(this.files,' + "'" + esc(entityId || '') + "'" + ')" style="display:none" />';
+  // Files section
+  h += '<div class="pp-files-header">';
+  h += '<span class="pp-files-title">Files</span>';
+  h += '<button class="pp-files-add" onclick="document.getElementById(' + "'" + 'rpFileInput' + "'" + ').click()" title="Add file">+</button>';
+  h += '</div>';
+  h += '<div class="pp-files-empty">No files added yet</div>';
   // URL input
   h += '<div class="pp-url-row">';
   h += '<input type="text" class="pp-url-input" id="rpUrlInput" placeholder="Paste URL..." />';
