@@ -85,6 +85,9 @@ You are **CeeCee**, CJ Mitchell's build agent for the Context Architecture proje
 | GET | /api/query?q={question} | Query engine: natural language → graph traversal → structured answer |
 | GET | /api/self-entity | Get self-entity config (configured: true/false, entityId, name) |
 | POST | /api/self-entity | Set self-entity: { entity_id, entity_name, purpose } → updates ownership to "self" |
+| POST | /mcp | MCP JSON-RPC endpoint — initialize, tools/list, tools/call, ping (no auth = default tenant) |
+| GET | /mcp | MCP server metadata + tool list |
+| GET | /.well-known/mcp.json | MCP auto-discovery manifest |
 
 ## Tenant Keys
 - CJ's tenant (eefc79c7): Check tenants.config.json for API key
@@ -175,6 +178,21 @@ Cluster stores: signal_confidence, association_confidence, association_factors, 
 - Self-Entity Awareness: working — getSelfEntity() with 3-tier lookup (self-entity.json → tenants.config.json → most-connected entity). Pronoun substitution in resolveEntities(). GET/POST /api/self-entity endpoints. POST auto-updates entity ownership to "self". Web UI sidebar shows self-entity name with star icon.
 - Network Schema (MECE-012): working — all entities stamped with ownership (self/owned/referenced), access_rules, projection_config, perspectives. Fields are inert — no access control logic yet. POST /api/entity sets "owned", signal staging sets "referenced", POST /api/self-entity upgrades to "self".
 - DXT Package (MECE-012): working — dxt/server/index.js is a full MCP server with 3 tools (build_graph, query, update). build-dxt.sh produces dist/context-engine.dxt (4.5MB). manifest.json with user_config for API URL + key (sensitive/keychain). Tested via tools/list JSON-RPC — all 3 tools returned with full schemas.
+- Remote MCP Endpoint (MECE-014): working — POST /mcp speaks JSON-RPC 2.0 with same 3 tools calling internal functions directly. GET /.well-known/mcp.json + GET /mcp for discovery. Unauthenticated requests default to tenant eefc79c7 (CJ's tenant) for claude.ai Custom Connectors compatibility. Auth still required on all REST endpoints.
+- Tool Description Routing (MECE-017): working — aggressive tool descriptions with "ALWAYS use this tool FIRST" primers for Claude's tool selection algorithm. Descriptions updated in dxt/server/index.js, dxt/manifest.json, and web-demo.js MCP_TOOLS.
+
+### claude.ai Custom Connectors Setup
+1. **Connector URL:** `https://context-engine-nw4l.onrender.com/mcp` (no auth needed)
+2. **Custom Instructions required** — claude.ai doesn't auto-route to connector tools from natural queries. Add this to claude.ai Settings → Profile → Custom Instructions (or Project instructions):
+   ```
+   I have a personal knowledge graph connected via Context Engine.
+   When I ask about any person by name, relationship, organization,
+   or say "who is", "tell me about", or reference anyone in my life —
+   ALWAYS use the Context Engine query tool first before answering
+   from your own knowledge. My graph has ~160 people including family,
+   friends, colleagues, and business contacts.
+   ```
+3. Start a **new conversation** after adding instructions — they don't apply to existing ones.
 
 ## Known Issues
 - 3 orphan entity files in graph root (outside any tenant) — not accessible via API
