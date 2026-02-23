@@ -9,5 +9,6 @@ watch-folder/output/
 watch-folder/errors/
 **/tenants.state.json
 **/tenants.json
+**/connections.json
 dist/
 dxt/node_modules/

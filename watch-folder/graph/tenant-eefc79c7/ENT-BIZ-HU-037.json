@@ -686,5 +686,8 @@
     "org_descriptor": "undergraduate alma mater, BBA International Business"
   },
   "descriptor": "undergraduate alma mater, BBA International Business",
-  "entity_tier": "outer"
+  "entity_tier": "outer",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

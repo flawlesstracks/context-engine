@@ -440,5 +440,8 @@
     "visual_tier": "green"
   },
   "descriptor": "youngest sister, spiritual entrepreneur abroad",
-  "entity_tier": "inner"
+  "entity_tier": "inner",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

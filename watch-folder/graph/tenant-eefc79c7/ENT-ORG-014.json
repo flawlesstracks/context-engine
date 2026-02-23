@@ -15,7 +15,8 @@
     "name": {
       "full": "Friends of FAM, Inc.",
       "common": "Friends of FAM, Inc.",
-      "aliases": []
+      "aliases": [],
+      "confidence": 0.6
     },
     "summary": {
       "value": "",
@@ -27,8 +28,32 @@
     "name": "Friends of FAM, Inc."
   },
   "attributes": [],
-  "relationships": [],
-  "observations": [],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "Andre Burgin",
+      "relationship_type": "employed",
+      "context": "Andre Burgin worked at Friends of FAM, Inc. as Board Member (Volunteer)",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "observations": [
+    {
+      "observation": "Andre Burgin worked here as Board Member (Volunteer) (Mar 2023 - Present)",
+      "observed_at": "2026-02-21T18:46:45.988Z",
+      "source": "linkedin_import",
+      "source_url": "https://www.linkedin.com/in/andreburgin/",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "truth_level": "INFERRED",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "observation_id": "OBS-ENT-ORG-014-20260221184645-001"
+    }
+  ],
   "provenance_chain": {
     "created_at": "2026-02-21T18:50:23.651Z",
     "created_by": "object-decomposer",
@@ -36,8 +61,34 @@
       {
         "source": "decomposed from ENT-AB-051",
         "ingested_at": "2026-02-21T18:50:23.651Z"
+      },
+      {
+        "source": "linkedin_api:https://www.linkedin.com/in/andreburgin/",
+        "url": "https://www.linkedin.com/in/andreburgin/",
+        "ingested_at": "2026-02-22T02:16:26.663Z"
       }
     ],
-    "merge_history": []
-  }
+    "merge_history": [
+      {
+        "merged_at": "2026-02-22T02:16:26.664Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "linkedin_api:https://www.linkedin.com/in/andreburgin/",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-22T02:16:26.663Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "Signal cluster SIG-ad403cea-e92: merged data and 1 observations"
+        ]
+      }
+    ]
+  },
+  "key_facts": [],
+  "values": [],
+  "constraints": [],
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

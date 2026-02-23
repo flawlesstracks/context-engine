@@ -131,5 +131,8 @@
     "visual_tier": "neutral"
   },
   "descriptor": "Ro's wife, sweet and supportive",
-  "entity_tier": "outer"
+  "entity_tier": "outer",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

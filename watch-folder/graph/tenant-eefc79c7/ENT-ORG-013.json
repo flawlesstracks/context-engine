@@ -66,6 +66,21 @@
         "source": "linkedin_api:https://www.linkedin.com/in/andreburgin/",
         "url": "https://www.linkedin.com/in/andreburgin/",
         "ingested_at": "2026-02-21T18:58:16.262Z"
+      },
+      {
+        "source": "linkedin_api:https://www.linkedin.com/in/andreburgin/",
+        "url": "https://www.linkedin.com/in/andreburgin/",
+        "ingested_at": "2026-02-22T02:16:26.646Z"
+      },
+      {
+        "source": "linkedin_api:https://www.linkedin.com/in/andreburgin/",
+        "url": "https://www.linkedin.com/in/andreburgin/",
+        "ingested_at": "2026-02-22T02:16:26.656Z"
+      },
+      {
+        "source": "linkedin_api:https://www.linkedin.com/in/andreburgin/",
+        "url": "https://www.linkedin.com/in/andreburgin/",
+        "ingested_at": "2026-02-22T02:16:26.657Z"
       }
     ],
     "merge_history": [
@@ -82,10 +97,55 @@
         "changes": [
           "Signal cluster SIG-e3bb4730-8d9: merged data and 1 observations"
         ]
+      },
+      {
+        "merged_at": "2026-02-22T02:16:26.653Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "linkedin_api:https://www.linkedin.com/in/andreburgin/",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-22T02:16:26.646Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "Signal cluster SIG-1bd52111-6b8: merged data and 0 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-22T02:16:26.656Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "linkedin_api:https://www.linkedin.com/in/andreburgin/",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-22T02:16:26.656Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "Signal cluster SIG-70876262-5f7: merged data and 0 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-22T02:16:26.658Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "linkedin_api:https://www.linkedin.com/in/andreburgin/",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-22T02:16:26.657Z",
+        "merged_by": "Clarence Mitchell",
+        "changes": [
+          "Signal cluster SIG-ea307b02-6ca: merged data and 0 observations"
+        ]
       }
     ]
   },
   "key_facts": [],
   "values": [],
-  "constraints": []
+  "constraints": [],
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

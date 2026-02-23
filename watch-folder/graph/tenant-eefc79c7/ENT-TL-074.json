@@ -206,5 +206,8 @@
     "visual_tier": "neutral"
   },
   "descriptor": "older neighbor, bridged Jeff to Indianapolis",
-  "entity_tier": "outer"
+  "entity_tier": "outer",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

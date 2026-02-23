@@ -172,5 +172,8 @@
     "org_descriptor": "former employer, consulting in data science and AI"
   },
   "descriptor": "former employer, consulting in data science and AI",
-  "entity_tier": "outer"
+  "entity_tier": "outer",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

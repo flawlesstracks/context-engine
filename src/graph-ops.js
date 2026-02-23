@@ -63,21 +63,30 @@ function readEntity(entityId, dir) {
 function writeEntity(entityId, data, dir) {
   const d = dir || LOCAL_GRAPH_DIR;
   if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true });
+  // Ensure spoke fields are present (default spoke if missing)
+  if (!data.spoke_id) data.spoke_id = 'default';
+  if (data.source === undefined) data.source = null;
+  if (data.source_ref === undefined) data.source_ref = null;
   fs.writeFileSync(path.join(d, `${entityId}.json`), JSON.stringify(data, null, 2) + '\n');
 }
 
-function listEntities(dir) {
+function listEntities(dir, opts) {
   const d = dir || LOCAL_GRAPH_DIR;
   if (!fs.existsSync(d)) return [];
+  const spokeFilter = opts && opts.spokeId ? opts.spokeId : null;
   return fs.readdirSync(d)
-    .filter(f => f.endsWith('.json') && f !== '_counter.json' && f !== 'tenants.json' && f !== 'tenants.config.json' && f !== 'tenants.state.json' && f !== 'shares.json')
+    .filter(f => f.endsWith('.json') && f !== '_counter.json' && f !== 'tenants.json' && f !== 'tenants.config.json' && f !== 'tenants.state.json' && f !== 'shares.json' && f !== 'spokes.json' && f !== 'self-entity.json')
     .map(f => {
       try {
         const data = JSON.parse(fs.readFileSync(path.join(d, f), 'utf-8'));
         return { file: f, data };
       } catch { return null; }
     })
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter(({ data }) => {
+      if (!spokeFilter) return true;
+      return (data.spoke_id || 'default') === spokeFilter;
+    });
 }
 
 function getNextCounter(dir, entityType) {
@@ -93,8 +102,8 @@ function getNextCounter(dir, entityType) {
   return seq;
 }
 
-function listEntitiesByType(dir, type) {
-  return listEntities(dir).filter(({ data }) => {
+function listEntitiesByType(dir, type, opts) {
+  return listEntities(dir, opts).filter(({ data }) => {
     return (data.entity || {}).entity_type === type;
   });
 }

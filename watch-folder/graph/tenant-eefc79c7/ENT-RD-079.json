@@ -136,5 +136,8 @@
     "visual_tier": "muted"
   },
   "descriptor": "Roger's sister from the block",
-  "entity_tier": "outer"
+  "entity_tier": "outer",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

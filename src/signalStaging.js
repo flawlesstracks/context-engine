@@ -67,6 +67,11 @@ const SOURCE_WEIGHTS = {
   instagram: 0.6,
   social: 0.6,
   social_media: 0.6,
+  sharefile: 0.75,          // ShareFile documents — parsed through universal parser
+  sharefile_document: 0.75,
+  clio: 0.85,              // Clio (future) — structured attorney-entered data
+  clio_contact: 0.85,
+  clio_document: 0.75,
   web: 0.5,                // Generic scraped page
   url_extract: 0.5,
   scraped_web_page: 0.5,

@@ -249,5 +249,8 @@
     "visual_tier": "neutral"
   },
   "descriptor": "Nina's daughter, named after Mom",
-  "entity_tier": "outer"
+  "entity_tier": "outer",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

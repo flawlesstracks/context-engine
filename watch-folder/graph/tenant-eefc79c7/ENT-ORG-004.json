@@ -80,5 +80,8 @@
     "org_descriptor": "former employer, AI and data science leadership"
   },
   "descriptor": "former employer, AI and data science leadership",
-  "entity_tier": "outer"
+  "entity_tier": "outer",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

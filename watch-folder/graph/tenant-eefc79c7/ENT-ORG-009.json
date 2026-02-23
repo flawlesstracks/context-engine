@@ -80,5 +80,8 @@
     "org_descriptor": "graduate business school"
   },
   "descriptor": "graduate business school",
-  "entity_tier": "outer"
+  "entity_tier": "outer",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

@@ -172,5 +172,8 @@
     "visual_tier": "neutral"
   },
   "descriptor": "Rusty from the block, saved his life",
-  "entity_tier": "outer"
+  "entity_tier": "outer",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

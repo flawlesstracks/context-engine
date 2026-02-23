@@ -141,5 +141,8 @@
   "descriptor": "aunt Melissa's husband in Markham",
   "wiki_page": "family",
   "wiki_section": "Extended Family",
-  "entity_tier": "outer"
+  "entity_tier": "outer",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

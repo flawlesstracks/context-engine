@@ -409,5 +409,8 @@
     "org_descriptor": "alma mater, MBA in Finance & Product Management"
   },
   "descriptor": "alma mater, MBA in Finance & Product Management",
-  "entity_tier": "outer"
+  "entity_tier": "outer",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

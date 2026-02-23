@@ -255,5 +255,8 @@
   "descriptor": "late best friend Honeyman, defining loss",
   "wiki_page": "friends",
   "wiki_section": "Close Friends",
-  "entity_tier": "outer"
+  "entity_tier": "outer",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

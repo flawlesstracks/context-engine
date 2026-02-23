@@ -167,5 +167,8 @@
     "visual_tier": "muted"
   },
   "descriptor": "Tiffany's best friend since childhood",
-  "entity_tier": "outer"
+  "entity_tier": "outer",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

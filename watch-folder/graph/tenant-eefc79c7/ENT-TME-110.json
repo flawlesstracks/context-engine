@@ -1,0 +1,71 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-22T22:08:14.446Z",
+    "updated_at": "2026-02-22T22:08:14.446Z",
+    "source_description": "MCP update tool",
+    "extraction_model": "conversation",
+    "extraction_confidence": 0.8,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "entity_id": "ENT-TME-110",
+    "name": {
+      "full": "Test MCP Entity",
+      "preferred": "Test",
+      "confidence": 0.9,
+      "facts_layer": 1
+    },
+    "summary": {
+      "value": "",
+      "confidence": 0,
+      "facts_layer": 2
+    }
+  },
+  "attributes": [],
+  "relationships": [],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation_id": "OBS-ENT-TME-110-20260222220814-001",
+      "observation": "test: MCP endpoint test",
+      "confidence": 0.8,
+      "confidence_label": "STRONG",
+      "facts_layer": "L1_OBJECTIVE",
+      "layer_number": 1,
+      "truth_level": "INFERRED",
+      "observed_at": "2026-02-22T22:08:14.447Z",
+      "observed_by": "mcp-update",
+      "source": "conversation"
+    }
+  ],
+  "ownership": "owned",
+  "access_rules": {
+    "visibility": "private",
+    "shared_with": []
+  },
+  "projection_config": {
+    "lenses": [
+      "default"
+    ]
+  },
+  "perspectives": [],
+  "provenance_chain": {
+    "created_at": "2026-02-22T22:08:14.446Z",
+    "created_by": "mcp-update",
+    "source_documents": [
+      {
+        "source": "conversation",
+        "ingested_at": "2026-02-22T22:08:14.446Z"
+      }
+    ],
+    "merge_history": []
+  },
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
+}

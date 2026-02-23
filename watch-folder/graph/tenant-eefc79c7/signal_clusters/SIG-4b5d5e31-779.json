@@ -1,0 +1,178 @@
+{
+  "cluster_id": "SIG-4b5d5e31-779",
+  "entity_type": "person",
+  "source": {
+    "type": "file",
+    "url": "",
+    "extracted_at": "2026-02-22T22:12:09.507Z",
+    "description": "MCP build_graph: test-note.txt",
+    "weight": 0.75
+  },
+  "state": "unresolved",
+  "confidence": 0.2,
+  "signal_confidence": 0.75,
+  "candidate_entity_id": null,
+  "candidate_entity_name": null,
+  "quadrant": 1,
+  "match_type": "name_partial",
+  "signals": {
+    "names": [
+      "Dr. Maria Santos",
+      "Dr."
+    ],
+    "handles": {
+      "x": null,
+      "instagram": null,
+      "linkedin": null
+    },
+    "titles": [],
+    "organizations": [],
+    "locations": [],
+    "bios": [
+      "Dr. Maria Santos is a neurosurgeon at Johns Hopkins Hospital in Baltimore. She graduated from Harvard Medical School in 2010."
+    ],
+    "skills": [],
+    "education": [],
+    "raw_text": ""
+  },
+  "confident_signals": {
+    "names": [
+      {
+        "value": "Dr. Maria Santos",
+        "confidence": 0.75,
+        "sources": [
+          "SIG-4b5d5e31-779"
+        ],
+        "projected_confidence": 0.75
+      },
+      {
+        "value": "Dr.",
+        "confidence": 0.75,
+        "sources": [
+          "SIG-4b5d5e31-779"
+        ],
+        "projected_confidence": 0.75
+      }
+    ],
+    "handles": {
+      "x": null,
+      "instagram": null,
+      "linkedin": null
+    },
+    "titles": [],
+    "organizations": [],
+    "locations": [],
+    "bios": [
+      {
+        "value": "Dr. Maria Santos is a neurosurgeon at Johns Hopkins Hospital in Baltimore. She graduated from Harvard Medical School in 2010.",
+        "confidence": 0.675,
+        "sources": [
+          "SIG-4b5d5e31-779"
+        ],
+        "projected_confidence": 0.75
+      }
+    ],
+    "skills": [],
+    "education": [],
+    "raw_text": ""
+  },
+  "_entity_data": {
+    "schema_version": "2.0",
+    "schema_type": "context_architecture_entity",
+    "extraction_metadata": {
+      "extracted_at": "2026-02-22T22:12:09.507Z",
+      "source_description": "MCP build_graph: test-note.txt",
+      "extraction_model": "universal-parser",
+      "extraction_confidence": 0.95,
+      "schema_version": "2.0"
+    },
+    "entity": {
+      "entity_type": "person",
+      "name": {
+        "full": "Dr. Maria Santos",
+        "preferred": "Dr.",
+        "confidence": 0.95,
+        "facts_layer": 1
+      },
+      "summary": {
+        "value": "Dr. Maria Santos is a neurosurgeon at Johns Hopkins Hospital in Baltimore. She graduated from Harvard Medical School in 2010.",
+        "confidence": 0.95,
+        "facts_layer": 2
+      }
+    },
+    "attributes": [
+      {
+        "attribute_id": "ATTR-001",
+        "key": "title",
+        "value": "Dr.",
+        "confidence": 0.95
+      },
+      {
+        "attribute_id": "ATTR-002",
+        "key": "occupation",
+        "value": "neurosurgeon",
+        "confidence": 0.95
+      },
+      {
+        "attribute_id": "ATTR-003",
+        "key": "workplace",
+        "value": "Johns Hopkins Hospital",
+        "confidence": 0.95
+      },
+      {
+        "attribute_id": "ATTR-004",
+        "key": "education",
+        "value": "Harvard Medical School",
+        "confidence": 0.95
+      },
+      {
+        "attribute_id": "ATTR-005",
+        "key": "graduation_year",
+        "value": "2010",
+        "confidence": 0.95
+      }
+    ],
+    "relationships": [],
+    "values": [],
+    "key_facts": [],
+    "constraints": [],
+    "observations": [],
+    "ownership": "referenced",
+    "access_rules": {
+      "visibility": "private",
+      "shared_with": []
+    },
+    "projection_config": {
+      "lenses": [
+        "default"
+      ]
+    },
+    "perspectives": []
+  },
+  "created_at": "2026-02-22T22:12:09.507Z",
+  "resolved_at": null,
+  "association_confidence": 0.2,
+  "association_raw_score": 0.2,
+  "association_factors": {
+    "name": 0.5,
+    "handle": 0,
+    "org_title": 0,
+    "location": 0,
+    "bio": 0
+  },
+  "contradiction_penalty": 0,
+  "contradictions": [],
+  "match_zone": "NO_MATCH",
+  "name_rarity": "standard",
+  "rarity_threshold": 0.3,
+  "ambiguous": false,
+  "evidence": null,
+  "quadrant_label": "Q1_CREATE",
+  "data_novelty_ratio": 1,
+  "data_novelty": {
+    "ratio": 1,
+    "new_signals": 0,
+    "duplicate_signals": 0,
+    "details": []
+  }
+}

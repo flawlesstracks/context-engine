@@ -112,5 +112,8 @@
     "confidence": 0.9
   },
   "descriptor": "Children's swim camp facility",
-  "entity_tier": "outer"
+  "entity_tier": "outer",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

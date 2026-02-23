@@ -358,5 +358,8 @@
     ],
     "mission": "Amazon aims to be Earth's most customer-centric company, leveraging innovation and technology to build stronger communities through infrastructure investment, education, and sustainability initiatives. The company focuses on delivering fast, reliable services while advancing AI capabilities and meeting ambitious environmental goals."
   },
-  "entity_tier": "inner"
+  "entity_tier": "inner",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

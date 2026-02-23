@@ -445,5 +445,8 @@
     "visual_tier": "neutral"
   },
   "descriptor": "oldest brother Jeffrey in Indianapolis",
-  "entity_tier": "outer"
+  "entity_tier": "outer",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

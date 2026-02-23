@@ -95,5 +95,8 @@
     "org_descriptor": "former employer, business technology consulting"
   },
   "descriptor": "former employer, business technology consulting",
-  "entity_tier": "outer"
+  "entity_tier": "outer",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

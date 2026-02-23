@@ -275,5 +275,8 @@
     "visual_tier": "green"
   },
   "descriptor": "Howard brother since 2002",
-  "entity_tier": "outer"
+  "entity_tier": "outer",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

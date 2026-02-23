@@ -1,0 +1,14 @@
+{
+  "default": {
+    "id": "default",
+    "name": "Default (Personal)",
+    "description": "Personal knowledge graph — the default spoke",
+    "centered_entity_id": null,
+    "centered_entity_name": null,
+    "source": "manual",
+    "external_id": null,
+    "sync_status": null,
+    "created_at": "2026-02-23T17:42:35.019Z",
+    "updated_at": "2026-02-23T17:42:35.019Z"
+  }
+}

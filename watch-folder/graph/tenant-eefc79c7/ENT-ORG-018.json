@@ -1,0 +1,46 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-22T02:16:00.564Z",
+    "source_description": "decomposed from ENT-BG-106",
+    "extraction_model": "object-decomposer",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "organization",
+    "entity_id": "ENT-ORG-018",
+    "parent_entity_id": "ENT-BG-106",
+    "name": {
+      "full": "Breakthrough Energy",
+      "common": "Breakthrough Energy",
+      "aliases": []
+    },
+    "summary": {
+      "value": "",
+      "confidence": 0.6,
+      "facts_layer": 2
+    }
+  },
+  "organization_data": {
+    "name": "Breakthrough Energy"
+  },
+  "attributes": [],
+  "relationships": [],
+  "observations": [],
+  "provenance_chain": {
+    "created_at": "2026-02-22T02:16:00.564Z",
+    "created_by": "object-decomposer",
+    "source_documents": [
+      {
+        "source": "decomposed from ENT-BG-106",
+        "ingested_at": "2026-02-22T02:16:00.564Z"
+      }
+    ],
+    "merge_history": []
+  },
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
+}

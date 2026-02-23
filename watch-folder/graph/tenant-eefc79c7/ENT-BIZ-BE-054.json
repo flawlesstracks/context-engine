@@ -1,0 +1,78 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-21T17:42:03.030Z",
+    "updated_at": "2026-02-21T17:42:03.030Z",
+    "source_description": "linkedin_import:https://www.linkedin.com/in/williamhgates",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "business",
+    "name": {
+      "common": "Breakthrough Energy",
+      "legal": "Breakthrough Energy",
+      "aliases": [],
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "Breakthrough Energy — employer of Bill Gates",
+      "confidence": 0.5,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-BIZ-BE-054"
+  },
+  "attributes": [],
+  "relationships": [
+    {
+      "relationship_id": "REL-001",
+      "name": "Bill Gates",
+      "relationship_type": "employed",
+      "context": "Bill Gates worked at Breakthrough Energy as Founder",
+      "sentiment": "neutral",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE"
+    }
+  ],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "Bill Gates worked here as Founder (2015 - Present)",
+      "observed_at": "2026-02-21T17:42:03.030Z",
+      "source": "linkedin_import",
+      "source_url": "https://www.linkedin.com/in/williamhgates",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "truth_level": "INFERRED",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "observation_id": "OBS-ENT-BIZ-BE-054-20260221174203-001"
+    }
+  ],
+  "org_dimensions": {
+    "relationship_to_primary": "employer",
+    "org_category": "career",
+    "org_status": "former",
+    "primary_user_role": "Founder"
+  },
+  "provenance_chain": {
+    "created_at": "2026-02-21T17:42:03.030Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "linkedin_import:https://www.linkedin.com/in/williamhgates",
+        "ingested_at": "2026-02-21T17:42:03.030Z"
+      }
+    ],
+    "merge_history": []
+  },
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
+}

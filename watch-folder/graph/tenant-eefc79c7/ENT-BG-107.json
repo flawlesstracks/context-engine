@@ -1,0 +1,294 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-21T17:42:03.030Z",
+    "updated_at": "2026-02-21T17:42:03.030Z",
+    "source_description": "linkedin_import:https://www.linkedin.com/in/williamhgates",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.6,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Bill Gates",
+      "preferred": "Bill",
+      "aliases": [],
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "Chair of the Gates Foundation. Founder of Breakthrough Energy. Co-founder of Microsoft. Voracious reader. Avid traveler. Active blogger.",
+      "confidence": 0.6,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-BG-107"
+  },
+  "career_lite": {
+    "interface": "career-lite",
+    "implements": [
+      "Contactable",
+      "Identifiable",
+      "Experienceable"
+    ],
+    "name": "Bill Gates",
+    "email": "",
+    "location": "Seattle, Washington, United States",
+    "linkedin_url": "https://www.linkedin.com/in/williamhgates",
+    "phone": "",
+    "headline": "Chair, Gates Foundation and Founder, Breakthrough Energy",
+    "summary": "Chair of the Gates Foundation. Founder of Breakthrough Energy. Co-founder of Microsoft. Voracious reader. Avid traveler. Active blogger.",
+    "current_title": "Co-chair",
+    "current_company": "Gates Foundation",
+    "current_role": "Co-chair",
+    "work_history": [
+      {
+        "company": "Gates Foundation",
+        "title": "Co-chair",
+        "start_date": "2000",
+        "end_date": "Present",
+        "description": ""
+      },
+      {
+        "company": "Breakthrough Energy",
+        "title": "Founder",
+        "start_date": "2015",
+        "end_date": "Present",
+        "description": ""
+      },
+      {
+        "company": "Microsoft",
+        "title": "Co-founder",
+        "start_date": "1975",
+        "end_date": "Present",
+        "description": ""
+      }
+    ],
+    "experience": [
+      {
+        "title": "Co-chair",
+        "company": "Gates Foundation",
+        "start_date": "2000",
+        "end_date": "Present",
+        "description": ""
+      },
+      {
+        "title": "Founder",
+        "company": "Breakthrough Energy",
+        "start_date": "2015",
+        "end_date": "Present",
+        "description": ""
+      },
+      {
+        "title": "Co-founder",
+        "company": "Microsoft",
+        "start_date": "1975",
+        "end_date": "Present",
+        "description": ""
+      }
+    ],
+    "education": [
+      {
+        "institution": "",
+        "degree": "",
+        "field": "",
+        "year": "",
+        "start_year": "",
+        "end_year": ""
+      },
+      {
+        "institution": "",
+        "degree": "",
+        "field": "",
+        "year": "",
+        "start_year": "",
+        "end_year": ""
+      }
+    ],
+    "skills": []
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "headline",
+      "value": "Chair, Gates Foundation and Founder, Breakthrough Energy",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-21"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      },
+      "_base_confidence": 0.85,
+      "_source_clusters": [
+        "SIG-8d55d8e1-ff6"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "location",
+      "value": "Seattle, Washington, United States",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-21"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      },
+      "_base_confidence": 0.85,
+      "_source_clusters": [
+        "SIG-8d55d8e1-ff6"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "role",
+      "value": "Co-chair",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-21"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      },
+      "_base_confidence": 0.85,
+      "_source_clusters": [
+        "SIG-8d55d8e1-ff6"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "company",
+      "value": "Gates Foundation",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "semi_stable",
+        "captured_date": "2026-02-21"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      },
+      "_base_confidence": 0.85,
+      "_source_clusters": [
+        "SIG-8d55d8e1-ff6"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "linkedin_url",
+      "value": "https://www.linkedin.com/in/williamhgates",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "time_decay": {
+        "stability": "stable",
+        "captured_date": "2026-02-21"
+      },
+      "source_attribution": {
+        "facts_layer": 2,
+        "layer_label": "group"
+      },
+      "_base_confidence": 0.85,
+      "_source_clusters": [
+        "SIG-8d55d8e1-ff6"
+      ]
+    }
+  ],
+  "relationships": [],
+  "values": [],
+  "key_facts": [
+    {
+      "fact_id": "FACT-001",
+      "fact": "Co-chair at Gates Foundation at 2000 - Present",
+      "confidence": 0.85,
+      "confidence_label": "HIGH",
+      "source": "https://www.linkedin.com/in/williamhgates"
+    },
+    {
+      "fact_id": "FACT-002",
+      "fact": "Founder at Breakthrough Energy at 2015 - Present",
+      "confidence": 0.85,
+      "confidence_label": "HIGH",
+      "source": "https://www.linkedin.com/in/williamhgates"
+    },
+    {
+      "fact_id": "FACT-003",
+      "fact": "Co-founder at Microsoft at 1975 - Present",
+      "confidence": 0.85,
+      "confidence_label": "HIGH",
+      "source": "https://www.linkedin.com/in/williamhgates"
+    }
+  ],
+  "constraints": [],
+  "observations": [
+    {
+      "observation": "LinkedIn profile imported from https://www.linkedin.com/in/williamhgates",
+      "observed_at": "2026-02-21T17:42:03.030Z",
+      "source": "linkedin_import",
+      "confidence": 0.6,
+      "confidence_label": "MODERATE",
+      "truth_level": "INFERRED",
+      "facts_layer": "L2_GROUP",
+      "layer_number": 2,
+      "observed_by": "Clarence Mitchell",
+      "observation_id": "OBS-ENT-BG-107-20260221174203-001"
+    }
+  ],
+  "provenance_chain": {
+    "created_at": "2026-02-21T17:42:03.030Z",
+    "created_by": "Clarence Mitchell",
+    "source_documents": [
+      {
+        "source": "linkedin_import:https://www.linkedin.com/in/williamhgates",
+        "ingested_at": "2026-02-21T17:42:03.030Z"
+      }
+    ],
+    "merge_history": []
+  },
+  "connected_objects": [
+    {
+      "entity_id": "ENT-ORG-017",
+      "entity_type": "organization",
+      "label": "Gates Foundation"
+    },
+    {
+      "entity_id": "ENT-ORG-018",
+      "entity_type": "organization",
+      "label": "Breakthrough Energy"
+    },
+    {
+      "entity_id": "ENT-BIZ-M-051",
+      "entity_type": "business",
+      "label": "Microsoft"
+    },
+    {
+      "entity_id": "ENT-ROLE-265",
+      "entity_type": "role",
+      "label": "Co-chair at Gates Foundation"
+    },
+    {
+      "entity_id": "ENT-ROLE-266",
+      "entity_type": "role",
+      "label": "Founder at Breakthrough Energy"
+    },
+    {
+      "entity_id": "ENT-ROLE-267",
+      "entity_type": "role",
+      "label": "Co-founder at Microsoft"
+    }
+  ],
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
+}

@@ -18,6 +18,10 @@ const { scrapeLinkedInProfile, transformScrapingDogProfile } = require('./src/sc
 const { analyzeEntityHealth, getRelationshipTier, getTierInfo } = require('./src/health-analyzer');
 const { parse: universalParse } = require('./universal-parser');
 const { query: queryEngine, getSelfEntity, clearSelfEntityCache } = require('./query-engine');
+const { loadSpokes, createSpoke, getSpoke, updateSpoke, setCenteredEntity, deleteSpoke, listSpokesWithCounts, migrateEntitiesToSpokes } = require('./src/spoke-ops');
+const { createConnection, getConnection, getConnectionDecrypted, updateConnection, deleteConnection: deleteConn, listConnections } = require('./src/connector-ops');
+const { getRegisteredProviders, getConnectorClass } = require('./src/connectors/base-connector');
+const { buildAuthorizeUrl, validateState, exchangeCodeForTokens, OAUTH_STATE_COOKIE } = require('./src/connectors/oauth-handler');
 const auth = require('./src/auth');
 const drive = require('./src/drive');
 const helmet = require('helmet');
@@ -3861,6 +3865,365 @@ app.post('/api/self-entity', apiAuth, (req, res) => {
   }
 
   res.json({ success: true, ...config });
+});
+
+// ---------------------------------------------------------------------------
+// Spoke Endpoints — Heliocentric Hub-Spoke Architecture (MECE-015)
+// ---------------------------------------------------------------------------
+
+// POST /api/spoke — Create a new spoke
+app.post('/api/spoke', apiAuth, (req, res) => {
+  try {
+    const { name, description, source, centered_entity_id, external_id, sync_status } = req.body || {};
+    if (!name) return res.status(400).json({ error: 'Missing spoke name' });
+
+    const spoke = createSpoke(req.graphDir, { name, description, source, centered_entity_id, external_id, sync_status });
+    res.status(201).json({ status: 'created', spoke });
+  } catch (err) {
+    if (err.message.includes('already exists')) {
+      return res.status(409).json({ error: err.message });
+    }
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// GET /api/spokes — List all spokes with entity counts. Optional ?source= filter.
+app.get('/api/spokes', apiAuth, (req, res) => {
+  const sourceFilter = req.query.source || null;
+  const spokes = listSpokesWithCounts(req.graphDir, sourceFilter);
+  res.json({ spokes, total: spokes.length });
+});
+
+// GET /api/spoke/:id — Spoke detail with entity summary
+app.get('/api/spoke/:id', apiAuth, (req, res) => {
+  const spoke = getSpoke(req.graphDir, req.params.id);
+  if (!spoke) return res.status(404).json({ error: 'Spoke not found' });
+
+  // Get entities in this spoke for the summary
+  const entities = listEntities(req.graphDir, { spokeId: req.params.id });
+  const entitySummary = entities.slice(0, 20).map(({ data }) => {
+    const e = data.entity || {};
+    return {
+      entity_id: e.entity_id,
+      name: e.name?.full || e.name?.preferred || e.name?.common || e.entity_id,
+      entity_type: e.entity_type,
+    };
+  });
+
+  res.json({
+    spoke: { ...spoke, entity_count: entities.length },
+    entity_summary: entitySummary,
+    total_entities: entities.length,
+  });
+});
+
+// PUT /api/spoke/:id — Update spoke (name, description, source, etc.)
+app.put('/api/spoke/:id', apiAuth, (req, res) => {
+  const updates = req.body || {};
+  const spoke = updateSpoke(req.graphDir, req.params.id, updates);
+  if (!spoke) return res.status(404).json({ error: 'Spoke not found' });
+  res.json({ status: 'updated', spoke });
+});
+
+// PUT /api/spoke/:id/center — Set or change the centered entity for a spoke
+app.put('/api/spoke/:id/center', apiAuth, (req, res) => {
+  const { entity_id } = req.body || {};
+  if (!entity_id) return res.status(400).json({ error: 'Missing entity_id' });
+
+  // Verify entity exists
+  const entityData = readEntity(entity_id, req.graphDir);
+  if (!entityData) return res.status(404).json({ error: `Entity ${entity_id} not found` });
+
+  const spoke = setCenteredEntity(req.graphDir, req.params.id, entity_id);
+  if (!spoke) return res.status(404).json({ error: 'Spoke not found' });
+
+  res.json({ status: 'centered', spoke });
+});
+
+// DELETE /api/spoke/:id — Delete spoke (reject if entities exist unless ?force=true)
+app.delete('/api/spoke/:id', apiAuth, (req, res) => {
+  try {
+    const force = req.query.force === 'true';
+    const deleted = deleteSpoke(req.graphDir, req.params.id, force);
+    if (!deleted) return res.status(404).json({ error: 'Spoke not found' });
+    res.json({ status: 'deleted', spoke: deleted });
+  } catch (err) {
+    if (err.message.includes('Cannot delete the default spoke')) {
+      return res.status(403).json({ error: err.message });
+    }
+    res.status(409).json({ error: err.message });
+  }
+});
+
+// POST /api/spokes/migrate — Run spoke migration on existing entities (one-time)
+app.post('/api/spokes/migrate', apiAuth, (req, res) => {
+  const count = migrateEntitiesToSpokes(req.graphDir);
+  // Ensure spokes.json exists (loadSpokes bootstraps default spoke)
+  loadSpokes(req.graphDir);
+  res.json({ status: 'migrated', entities_updated: count });
+});
+
+// ---------------------------------------------------------------------------
+// Connector Framework Endpoints (MECE-018)
+// ---------------------------------------------------------------------------
+
+// GET /api/connectors — List available providers + active connections
+app.get('/api/connectors', apiAuth, (req, res) => {
+  const providers = getRegisteredProviders();
+  const connections = listConnections(req.graphDir);
+  res.json({ providers, connections });
+});
+
+// POST /api/connect/:provider — Start OAuth flow, return authorize URL
+app.post('/api/connect/:provider', apiAuth, (req, res) => {
+  try {
+    const { provider } = req.params;
+    const providers = getRegisteredProviders();
+    const providerInfo = providers.find(p => p.provider === provider);
+
+    if (!providerInfo) return res.status(404).json({ error: `Unknown provider: ${provider}` });
+    if (!providerInfo.configured) {
+      return res.status(503).json({
+        error: `${provider} not configured. Set environment variables: ${providerInfo.provider.toUpperCase()}_CLIENT_ID, ${providerInfo.provider.toUpperCase()}_CLIENT_SECRET`,
+      });
+    }
+
+    const proto = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+    const redirectUri = `${proto}://${host}/api/connect/callback`;
+
+    const { url, state } = buildAuthorizeUrl(provider, redirectUri, req.tenantId);
+
+    // Store state in httpOnly cookie (pattern from src/auth.js)
+    const isSecure = req.secure || req.headers['x-forwarded-proto'] === 'https' || process.env.NODE_ENV === 'production';
+    res.cookie(OAUTH_STATE_COOKIE, state, {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: 'lax',
+      maxAge: 10 * 60 * 1000, // 10 minutes
+    });
+
+    res.json({ authorize_url: url });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// GET /api/connect/callback — OAuth callback (universal for all providers)
+// No apiAuth — this is a redirect from the external provider.
+// Authentication comes from the HMAC-signed state parameter.
+app.get('/api/connect/callback', async (req, res) => {
+  try {
+    const { code, state: stateParam } = req.query;
+    const savedState = req.cookies[OAUTH_STATE_COOKIE];
+
+    if (!stateParam || !savedState || stateParam !== savedState) {
+      return res.status(403).send('Invalid OAuth state. <a href="/wiki">Go back</a>');
+    }
+    res.clearCookie(OAUTH_STATE_COOKIE);
+
+    if (!code) return res.status(400).send('Missing authorization code. <a href="/wiki">Go back</a>');
+
+    // Decode state to get provider + tenant_id
+    const { provider, tenant_id } = validateState(stateParam);
+
+    // Resolve tenant graphDir
+    const tenantDir = path.join(GRAPH_DIR, `tenant-${tenant_id}`);
+    if (!fs.existsSync(tenantDir)) fs.mkdirSync(tenantDir, { recursive: true });
+
+    // Exchange code for tokens
+    const proto = req.headers['x-forwarded-proto'] || req.protocol;
+    const host = req.headers['x-forwarded-host'] || req.get('host');
+    const redirectUri = `${proto}://${host}/api/connect/callback`;
+
+    const tokens = await exchangeCodeForTokens(provider, code, redirectUri);
+
+    // Build config from token response (ShareFile returns subdomain/apicp)
+    const config = {};
+    if (tokens.subdomain) config.subdomain = tokens.subdomain;
+    if (tokens.apicp) config.apicp = tokens.apicp;
+    if (provider === 'sharefile' && !config.subdomain) {
+      config.subdomain = process.env.SHAREFILE_SUBDOMAIN;
+      config.apicp = 'sf-api.com';
+    }
+
+    // Create connection record with encrypted tokens
+    const connection = createConnection(tenantDir, {
+      provider,
+      tokens: {
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token,
+        token_type: tokens.token_type || 'Bearer',
+        expires_in: tokens.expires_in,
+      },
+      display_name: `${provider} connection`,
+      config,
+    });
+
+    // Validate connection (call "who am I" on the provider)
+    const ConnectorClass = getConnectorClass(provider);
+    if (ConnectorClass) {
+      const connector = new ConnectorClass(tenantDir, connection.id);
+      try {
+        const info = await connector.connect();
+        if (info.user_name) {
+          updateConnection(tenantDir, connection.id, { display_name: info.user_name });
+        }
+      } catch (connectErr) {
+        console.warn(`[connector] ${provider} validation warning:`, connectErr.message);
+      }
+    }
+
+    // Redirect back to wiki with connection info
+    res.redirect('/wiki?tab=connectors&connected=' + provider + '&connection_id=' + connection.id);
+  } catch (err) {
+    console.error('Connector OAuth callback error:', err.message);
+    res.status(500).send('Connection failed: ' + err.message + '<br/><a href="/wiki">Go back</a>');
+  }
+});
+
+// GET /api/connections — List active connections for this tenant
+app.get('/api/connections', apiAuth, (req, res) => {
+  const connections = listConnections(req.graphDir);
+  res.json({ connections });
+});
+
+// GET /api/connection/:id/folders — Browse folders for spoke mapping (ShareFile)
+app.get('/api/connection/:id/folders', apiAuth, async (req, res) => {
+  const conn = getConnection(req.graphDir, req.params.id);
+  if (!conn) return res.status(404).json({ error: 'Connection not found' });
+
+  const ConnectorClass = getConnectorClass(conn.provider);
+  if (!ConnectorClass) return res.status(400).json({ error: `No connector for: ${conn.provider}` });
+
+  const connector = new ConnectorClass(req.graphDir, conn.id);
+  if (typeof connector.browseFolders !== 'function') {
+    return res.status(400).json({ error: `${conn.provider} does not support folder browsing` });
+  }
+
+  try {
+    const parentId = req.query.parent || 'home';
+    const folders = await connector.browseFolders(parentId);
+    res.json({ folders, parent: parentId });
+  } catch (err) {
+    console.error(`[connector] Folder browse error:`, err.message);
+    res.status(500).json({ error: 'Failed to browse folders: ' + err.message });
+  }
+});
+
+// POST /api/connection/:id/map-folders — Map selected folders to spokes
+app.post('/api/connection/:id/map-folders', apiAuth, (req, res) => {
+  const conn = getConnection(req.graphDir, req.params.id);
+  if (!conn) return res.status(404).json({ error: 'Connection not found' });
+
+  const ConnectorClass = getConnectorClass(conn.provider);
+  if (!ConnectorClass) return res.status(400).json({ error: `No connector for: ${conn.provider}` });
+
+  const connector = new ConnectorClass(req.graphDir, conn.id);
+  if (typeof connector.mapFoldersToSpokes !== 'function') {
+    return res.status(400).json({ error: `${conn.provider} does not support folder mapping` });
+  }
+
+  try {
+    const { folders } = req.body || {};
+    if (!folders || !Array.isArray(folders) || folders.length === 0) {
+      return res.status(400).json({ error: 'Missing folders array in body' });
+    }
+    const result = connector.mapFoldersToSpokes(folders);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// POST /api/sync/:connection_id — Trigger sync with NDJSON streaming
+app.post('/api/sync/:connection_id', apiAuth, async (req, res) => {
+  const conn = getConnection(req.graphDir, req.params.connection_id);
+  if (!conn) return res.status(404).json({ error: 'Connection not found' });
+
+  const ConnectorClass = getConnectorClass(conn.provider);
+  if (!ConnectorClass) return res.status(400).json({ error: `No connector for: ${conn.provider}` });
+
+  const connector = new ConnectorClass(req.graphDir, conn.id);
+
+  // Set up NDJSON streaming response
+  res.setHeader('Content-Type', 'application/x-ndjson');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no'); // Disable Nginx buffering
+
+  const writeEvent = (event) => {
+    try {
+      res.write(JSON.stringify(event) + '\n');
+    } catch {}
+  };
+
+  try {
+    const results = await connector.sync(req.body || {}, writeEvent);
+    // Final event already written by sync(), just end the stream
+    res.end();
+  } catch (err) {
+    writeEvent({ type: 'error', message: err.message });
+    res.end();
+  }
+});
+
+// DELETE /api/connection/:id — Disconnect and remove a connection
+app.delete('/api/connection/:id', apiAuth, async (req, res) => {
+  const conn = getConnection(req.graphDir, req.params.id);
+  if (!conn) return res.status(404).json({ error: 'Connection not found' });
+
+  const ConnectorClass = getConnectorClass(conn.provider);
+  if (ConnectorClass) {
+    const connector = new ConnectorClass(req.graphDir, conn.id);
+    try {
+      await connector.disconnect();
+    } catch (err) {
+      console.warn(`[connector] Disconnect warning:`, err.message);
+      // Still delete the connection even if revoke fails
+      deleteConn(req.graphDir, req.params.id);
+    }
+  } else {
+    deleteConn(req.graphDir, req.params.id);
+  }
+
+  res.json({ status: 'disconnected', provider: conn.provider });
+});
+
+// POST /api/webhook/:provider — Receive webhooks from external providers
+// No apiAuth — webhooks come from external systems
+app.post('/api/webhook/:provider', async (req, res) => {
+  const { provider } = req.params;
+
+  try {
+    // Iterate tenant directories to find connections for this provider
+    const tenantDirs = fs.readdirSync(GRAPH_DIR)
+      .filter(d => d.startsWith('tenant-') && fs.statSync(path.join(GRAPH_DIR, d)).isDirectory());
+
+    for (const dir of tenantDirs) {
+      const tenantPath = path.join(GRAPH_DIR, dir);
+      const connections = listConnections(tenantPath);
+      const providerConns = connections.filter(c => c.provider === provider && c.status === 'connected');
+
+      for (const conn of providerConns) {
+        const ConnectorClass = getConnectorClass(provider);
+        if (!ConnectorClass) continue;
+        const connector = new ConnectorClass(tenantPath, conn.id);
+        const result = await connector.handleWebhook(req.headers, req.body);
+
+        // Handle webhook handshake (e.g., Clio X-Hook-Secret)
+        if (result && result.handshake && result.hookSecret) {
+          res.set('X-Hook-Secret', result.hookSecret);
+          return res.status(200).json({ ok: true });
+        }
+      }
+    }
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(`[webhook] ${provider} error:`, err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // GET /api/search?q=&type= — Fuzzy search entities with optional type filter
@@ -17442,6 +17805,24 @@ async function handleMcpRequest(req, res) {
 // --- Start server ---
 
 const PORT = process.env.PORT || 3000;
+
+// --- Spoke Migration (runs once on startup) ---
+// Ensures all tenant directories have spokes.json and entities have spoke_id
+try {
+  const tenantDirs = fs.readdirSync(GRAPH_DIR).filter(d => d.startsWith('tenant-') && fs.statSync(path.join(GRAPH_DIR, d)).isDirectory());
+  for (const dir of tenantDirs) {
+    const tenantPath = path.join(GRAPH_DIR, dir);
+    const spokesPath = path.join(tenantPath, 'spokes.json');
+    if (!fs.existsSync(spokesPath)) {
+      const migrated = migrateEntitiesToSpokes(tenantPath);
+      loadSpokes(tenantPath); // bootstrap default spoke
+      if (migrated > 0) console.log(`  Spoke migration: ${dir} — ${migrated} entities updated`);
+    }
+  }
+} catch (err) {
+  console.error('Spoke migration warning:', err.message);
+}
+
 app.listen(PORT, () => {
   console.log('');
   console.log('  Context Engine - Web Demo + API');
@@ -17453,5 +17834,6 @@ app.listen(PORT, () => {
   console.log('  Share:  http://localhost:' + PORT + '/shared/:shareId');
   console.log('  Auth:   http://localhost:' + PORT + '/auth/google' + (process.env.GOOGLE_CLIENT_ID ? '' : ' (not configured)'));
   console.log('  Graph:  ' + GRAPH_DIR + (GRAPH_IS_PERSISTENT ? ' (persistent disk)' : ' (local)'));
+  console.log('  Spokes: Heliocentric Hub-Spoke v1 (MECE-015)');
   console.log('');
 });

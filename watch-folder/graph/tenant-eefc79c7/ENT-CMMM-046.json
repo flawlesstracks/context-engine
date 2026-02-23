@@ -508,5 +508,8 @@
     "visual_tier": "green"
   },
   "descriptor": "ex-wife, London's mother, high-conflict history",
-  "entity_tier": "outer"
+  "entity_tier": "outer",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

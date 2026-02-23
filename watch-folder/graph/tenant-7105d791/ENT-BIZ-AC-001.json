@@ -78,5 +78,8 @@
       }
     ],
     "merge_history": []
-  }
+  },
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

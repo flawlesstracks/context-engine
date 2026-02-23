@@ -207,5 +207,8 @@
   "descriptor": "late father-in-law, asked his blessing",
   "wiki_page": "family",
   "wiki_section": "Extended Family",
-  "entity_tier": "outer"
+  "entity_tier": "outer",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }

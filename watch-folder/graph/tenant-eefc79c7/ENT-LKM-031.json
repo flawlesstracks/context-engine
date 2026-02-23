@@ -698,5 +698,8 @@
     "visual_tier": "gold"
   },
   "descriptor": "son London, sacred bond always",
-  "entity_tier": "inner"
+  "entity_tier": "inner",
+  "spoke_id": "default",
+  "source": null,
+  "source_ref": null
 }
