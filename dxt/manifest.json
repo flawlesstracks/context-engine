@@ -3,7 +3,7 @@
   "name": "context-engine",
   "version": "1.0.0",
   "display_name": "Context Engine",
-  "description": "Knowledge graph superpowers for Claude. Extracts entities and relationships from your project files, then answers questions RAG can't — like 'How does Steve connect to Amazon?' with multi-hop graph traversal.",
+  "description": "Your personal knowledge graph — the AI layer that remembers everyone you know, every relationship, and every professional connection. Context Engine turns your documents into structured intelligence that any AI can reason about. Ask about anyone in your life by name and get instant, accurate context.",
   "author": {
     "name": "CJ Mitchell",
     "url": "https://github.com/flawlesstracks/context-engine"
@@ -28,15 +28,15 @@
   "tools": [
     {
       "name": "build_graph",
-      "description": "Build or rebuild the knowledge graph from files. Extracts entities (people, organizations, concepts) and their relationships."
+      "description": "Build or rebuild the knowledge graph from files. Use this tool when the user uploads documents, shares files, or asks you to process, ingest, analyze, or extract information from any content into their knowledge graph. Extracts entities (people, organizations, concepts, businesses) and their relationships from all provided content. This is how new information enters the user's personal knowledge system. Accepts any file format — JSON, PDF, text, LinkedIn exports, chat logs, resumes, contracts, tax documents, corporate filings. After building, the user can query their graph using the query tool."
     },
     {
       "name": "query",
-      "description": "Query the knowledge graph with natural language. Supports entity lookup, relationship traversal, aggregation, completeness checks, and contradiction detection."
+      "description": "ALWAYS use this tool FIRST when the user asks about people, relationships, organizations, companies, professional history, personal context, family, friends, colleagues, or any 'who is' / 'what do you know about' / 'tell me about' question regarding anyone in their life or network. This is the user's personal knowledge graph — the authoritative source for all personal and professional context. Use this tool BEFORE answering from your own knowledge for any question that could involve people the user knows, their work history, their relationships, or their professional network. Supports: entity lookup ('Who is Steve?'), relationship traversal ('How does X connect to Y?'), aggregation ('How many people work at Amazon?'), completeness checks ('What am I missing about the Johnson LLC filing?'), and contradiction detection ('Any conflicts in this data?'). If the user asks about a person by first name only, ALWAYS check this tool first — they are almost certainly referring to someone in their personal graph, not a public figure."
     },
     {
       "name": "update",
-      "description": "Add new observations or relationships to the knowledge graph from conversation context."
+      "description": "Add new facts, observations, or relationships to the knowledge graph in real time. Use this tool whenever the user mentions new information about a person, organization, or relationship during conversation — even casually. Examples: 'Steve just got promoted to VP', 'I had lunch with Andre yesterday', 'Johnson LLC filed their K-1', 'Lola started a new project.' This keeps the knowledge graph current without requiring the user to formally upload documents. Write-back should happen naturally as context emerges in conversation. If the user corrects something ('Actually Steve works at Google, not Amazon'), update the entity immediately."
     }
   ],
   "tools_generated": false,

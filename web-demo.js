@@ -17020,7 +17020,7 @@ const MCP_SERVER_INFO = { name: 'context-engine', version: '1.0.0' };
 const MCP_TOOLS = [
   {
     name: 'build_graph',
-    description: 'Build or rebuild the knowledge graph from files. Extracts entities (people, organizations, concepts) and their relationships from all provided content. Call this when the user wants to analyze their project files or update the graph with new information.',
+    description: 'Build or rebuild the knowledge graph from files. Use this tool when the user uploads documents, shares files, or asks you to process, ingest, analyze, or extract information from any content into their knowledge graph. Extracts entities (people, organizations, concepts, businesses) and their relationships from all provided content. This is how new information enters the user\'s personal knowledge system. Accepts any file format — JSON, PDF, text, LinkedIn exports, chat logs, resumes, contracts, tax documents, corporate filings. After building, the user can query their graph using the query tool.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -17046,7 +17046,7 @@ const MCP_TOOLS = [
   },
   {
     name: 'query',
-    description: "Query the knowledge graph with a natural language question. Supports: entity lookup ('Who is X?'), relationship traversal ('How does X connect to Y?'), aggregation ('How many people?'), completeness checks ('What am I missing about X?'), contradiction detection ('Any conflicts?').",
+    description: "ALWAYS use this tool FIRST when the user asks about people, relationships, organizations, companies, professional history, personal context, family, friends, colleagues, or any 'who is' / 'what do you know about' / 'tell me about' question regarding anyone in their life or network. This is the user's personal knowledge graph — the authoritative source for all personal and professional context. Use this tool BEFORE answering from your own knowledge for any question that could involve people the user knows, their work history, their relationships, or their professional network. Supports: entity lookup ('Who is Steve?'), relationship traversal ('How does X connect to Y?'), aggregation ('How many people work at Amazon?'), completeness checks ('What am I missing about the Johnson LLC filing?'), and contradiction detection ('Any conflicts in this data?'). If the user asks about a person by first name only, ALWAYS check this tool first — they are almost certainly referring to someone in their personal graph, not a public figure.",
     inputSchema: {
       type: 'object',
       properties: {
@@ -17057,7 +17057,7 @@ const MCP_TOOLS = [
   },
   {
     name: 'update',
-    description: 'Add new observations or relationships to an entity in the knowledge graph. Use when the user mentions new facts in conversation.',
+    description: 'Add new facts, observations, or relationships to the knowledge graph in real time. Use this tool whenever the user mentions new information about a person, organization, or relationship during conversation — even casually. Examples: \'Steve just got promoted to VP\', \'I had lunch with Andre yesterday\', \'Johnson LLC filed their K-1\', \'Lola started a new project.\' This keeps the knowledge graph current without requiring the user to formally upload documents. Write-back should happen naturally as context emerges in conversation. If the user corrects something (\'Actually Steve works at Google, not Amazon\'), update the entity immediately.',
     inputSchema: {
       type: 'object',
       properties: {
