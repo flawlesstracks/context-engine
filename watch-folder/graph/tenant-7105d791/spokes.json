@@ -10,5 +10,346 @@
     "sync_status": null,
     "created_at": "2026-02-23T17:42:35.019Z",
     "updated_at": "2026-02-23T17:42:35.019Z"
+  },
+  "spoke-41825c0315b96cda": {
+    "id": "spoke-41825c0315b96cda",
+    "name": "Acme Consulting LLC",
+    "description": "Auto-created from ingest",
+    "centered_entity_id": null,
+    "centered_entity_name": null,
+    "source": "manual",
+    "external_id": null,
+    "sync_status": null,
+    "created_at": "2026-02-24T19:14:45.347Z",
+    "updated_at": "2026-02-24T21:22:54.535Z",
+    "template_type": "tax_preparation",
+    "gap_analysis": {
+      "spoke_id": "spoke-41825c0315b96cda",
+      "spoke_name": "Acme Consulting LLC",
+      "template_type": "tax_preparation",
+      "template_name": "Business Tax Preparation",
+      "overall_score": 0.5,
+      "document_score": 0.53,
+      "entity_score": 0.38,
+      "relationship_score": 0.67,
+      "missing_documents": [
+        {
+          "category": "incorporation",
+          "item": "state_registration",
+          "priority": "high"
+        },
+        {
+          "category": "financial_statements",
+          "item": "cashflow_statement",
+          "priority": "high"
+        },
+        {
+          "category": "payroll",
+          "item": "w2_forms",
+          "priority": "high"
+        },
+        {
+          "category": "payroll",
+          "item": "payroll_register",
+          "priority": "high"
+        },
+        {
+          "category": "prior_returns",
+          "item": "extension_filing",
+          "priority": "medium"
+        },
+        {
+          "category": "identification",
+          "item": "government_id",
+          "priority": "high"
+        },
+        {
+          "category": "identification",
+          "item": "ein_confirmation",
+          "priority": "high"
+        }
+      ],
+      "missing_entity_fields": [
+        {
+          "role": "business_entity",
+          "entity": null,
+          "missing": "legal_name"
+        },
+        {
+          "role": "business_entity",
+          "entity": null,
+          "missing": "ein"
+        },
+        {
+          "role": "business_entity",
+          "entity": null,
+          "missing": "entity_type"
+        },
+        {
+          "role": "business_entity",
+          "entity": null,
+          "missing": "state_of_formation"
+        },
+        {
+          "role": "business_entity",
+          "entity": null,
+          "missing": "fiscal_year_end"
+        },
+        {
+          "role": "owner_member",
+          "entity": "David Park",
+          "missing": "ssn"
+        },
+        {
+          "role": "owner_member",
+          "entity": "David Park",
+          "missing": "ownership_percentage"
+        },
+        {
+          "role": "tax_preparer",
+          "entity": "David Park",
+          "missing": "ptin"
+        }
+      ],
+      "missing_relationships": [
+        {
+          "from": "matter",
+          "expected": "business entity",
+          "to": "(not found)"
+        }
+      ],
+      "found_documents": [
+        {
+          "category": "incorporation",
+          "item": "articles_of_incorporation",
+          "source_file": "acme_articles_of_incorporation.txt"
+        },
+        {
+          "category": "incorporation",
+          "item": "operating_agreement",
+          "source_file": "acme_operating_agreement.txt"
+        },
+        {
+          "category": "incorporation",
+          "item": "ein_letter",
+          "source_file": "acme_ein_letter.txt"
+        },
+        {
+          "category": "financial_statements",
+          "item": "profit_and_loss",
+          "source_file": "acme_profit_and_loss_2025.txt"
+        },
+        {
+          "category": "financial_statements",
+          "item": "balance_sheet",
+          "source_file": "acme_balance_sheet_2025.txt"
+        },
+        {
+          "category": "payroll",
+          "item": "w9_or_w8",
+          "source_file": "acme_w9_john_smith.txt"
+        },
+        {
+          "category": "payroll",
+          "item": "1099_forms",
+          "source_file": "acme_1099_contractor.txt"
+        },
+        {
+          "category": "prior_returns",
+          "item": "prior_year_return",
+          "source_file": "acme_prior_year_return_2024.txt"
+        }
+      ],
+      "suggestions": [
+        "Request State Registration from client",
+        "Request Cashflow Statement from client",
+        "Request W2 Forms from client",
+        "Request Payroll Register from client",
+        "Request Extension Filing from client",
+        "Obtain Legal Name for business entity",
+        "Obtain Ein for business entity",
+        "Obtain Entity Type for business entity",
+        "Obtain State Of Formation for business entity",
+        "Obtain Fiscal Year End for business entity",
+        "Identify and add business entity to the matter"
+      ],
+      "source_documents": [
+        "acme_1099_contractor.txt",
+        "acme_articles_of_incorporation.txt",
+        "acme_balance_sheet_2025.txt",
+        "acme_operating_agreement.txt",
+        "acme_profit_and_loss_2025.txt",
+        "acme_ein_letter.txt",
+        "acme_prior_year_return_2024.txt",
+        "acme_w9_john_smith.txt"
+      ],
+      "entity_count": 14,
+      "analyzed_at": "2026-02-24T21:22:54.535Z"
+    },
+    "document_classification": null,
+    "files": [
+      {
+        "file_id": "file-007d5913",
+        "original_name": "acme_1099_contractor.txt",
+        "mime_type": "text/plain",
+        "size_bytes": 1346,
+        "uploaded_at": "2026-02-24T19:14:45.350Z",
+        "sha256": "7af7293c256e5322217dfe97eda4855108b1742cb6cf07b7ba29ff7d066ee1d7",
+        "stored_as": "file-007d5913.txt"
+      },
+      {
+        "file_id": "file-25de8461",
+        "original_name": "acme_articles_of_incorporation.txt",
+        "mime_type": "text/plain",
+        "size_bytes": 1349,
+        "uploaded_at": "2026-02-24T19:15:13.665Z",
+        "sha256": "088dfd07918f5fa2618d5be10e30c105e674a1322679160fb37f1fa8d2057e39",
+        "stored_as": "file-25de8461.txt"
+      },
+      {
+        "file_id": "file-1ba2527e",
+        "original_name": "acme_balance_sheet_2025.txt",
+        "mime_type": "text/plain",
+        "size_bytes": 2788,
+        "uploaded_at": "2026-02-24T19:15:43.743Z",
+        "sha256": "718a5d8d908851b89db64468156d03fd63ccb83054bd81de7590c7178d51248b",
+        "stored_as": "file-1ba2527e.txt"
+      },
+      {
+        "file_id": "file-4bb955e0",
+        "original_name": "acme_ein_letter.txt",
+        "mime_type": "text/plain",
+        "size_bytes": 1599,
+        "uploaded_at": "2026-02-24T19:17:08.473Z",
+        "sha256": "170478654e4b01be31ec7f529eb96d12c7ae8ffb4fd7e85b363083cdc35be503",
+        "stored_as": "file-4bb955e0.txt"
+      },
+      {
+        "file_id": "file-db4427e9",
+        "original_name": "acme_operating_agreement.txt",
+        "mime_type": "text/plain",
+        "size_bytes": 2842,
+        "uploaded_at": "2026-02-24T19:17:40.818Z",
+        "sha256": "1361a906f5fcde43d06ab3043335f7fa21030e77b965ad6539d0da5df46f96c3",
+        "stored_as": "file-db4427e9.txt"
+      },
+      {
+        "file_id": "file-26278267",
+        "original_name": "acme_prior_year_return_2024.txt",
+        "mime_type": "text/plain",
+        "size_bytes": 2544,
+        "uploaded_at": "2026-02-24T19:18:20.896Z",
+        "sha256": "131ef6d85ad8cf8020396f0ed52462fe8a8e3ebe6d790f1b1a09240caa8cc864",
+        "stored_as": "file-26278267.txt"
+      },
+      {
+        "file_id": "file-6c63bc41",
+        "original_name": "acme_profit_and_loss_2025.txt",
+        "mime_type": "text/plain",
+        "size_bytes": 3308,
+        "uploaded_at": "2026-02-24T19:18:53.514Z",
+        "sha256": "3953d9d8b5cf3e06685cd07f6f89eb8d1a63d8f6c8343df597b39daa9ab19377",
+        "stored_as": "file-6c63bc41.txt"
+      },
+      {
+        "file_id": "file-fa18ead6",
+        "original_name": "acme_w9_john_smith.txt",
+        "mime_type": "text/plain",
+        "size_bytes": 1480,
+        "uploaded_at": "2026-02-24T19:19:28.880Z",
+        "sha256": "d9ab8960c808e6dfcb6b2c103ce9ff137a397d2bd83018e10c5c094d65038cc8",
+        "stored_as": "file-fa18ead6.txt"
+      },
+      {
+        "file_id": "file-38e12417",
+        "original_name": "acme_1099_contractor.txt",
+        "mime_type": "text/plain",
+        "size_bytes": 1346,
+        "uploaded_at": "2026-02-24T21:14:00.739Z",
+        "sha256": "7af7293c256e5322217dfe97eda4855108b1742cb6cf07b7ba29ff7d066ee1d7",
+        "stored_as": "file-38e12417.txt"
+      },
+      {
+        "file_id": "file-7db05b46",
+        "original_name": "acme_articles_of_incorporation.txt",
+        "mime_type": "text/plain",
+        "size_bytes": 1349,
+        "uploaded_at": "2026-02-24T21:14:29.971Z",
+        "sha256": "088dfd07918f5fa2618d5be10e30c105e674a1322679160fb37f1fa8d2057e39",
+        "stored_as": "file-7db05b46.txt"
+      },
+      {
+        "file_id": "file-1332a297",
+        "original_name": "acme_1099_contractor.txt",
+        "mime_type": "text/plain",
+        "size_bytes": 1346,
+        "uploaded_at": "2026-02-24T21:17:33.255Z",
+        "sha256": "7af7293c256e5322217dfe97eda4855108b1742cb6cf07b7ba29ff7d066ee1d7",
+        "stored_as": "file-1332a297.txt"
+      },
+      {
+        "file_id": "file-3026f605",
+        "original_name": "acme_articles_of_incorporation.txt",
+        "mime_type": "text/plain",
+        "size_bytes": 1349,
+        "uploaded_at": "2026-02-24T21:18:02.375Z",
+        "sha256": "088dfd07918f5fa2618d5be10e30c105e674a1322679160fb37f1fa8d2057e39",
+        "stored_as": "file-3026f605.txt"
+      },
+      {
+        "file_id": "file-11247329",
+        "original_name": "acme_balance_sheet_2025.txt",
+        "mime_type": "text/plain",
+        "size_bytes": 2788,
+        "uploaded_at": "2026-02-24T21:18:30.691Z",
+        "sha256": "718a5d8d908851b89db64468156d03fd63ccb83054bd81de7590c7178d51248b",
+        "stored_as": "file-11247329.txt"
+      },
+      {
+        "file_id": "file-458f82f2",
+        "original_name": "acme_ein_letter.txt",
+        "mime_type": "text/plain",
+        "size_bytes": 1599,
+        "uploaded_at": "2026-02-24T21:19:53.585Z",
+        "sha256": "170478654e4b01be31ec7f529eb96d12c7ae8ffb4fd7e85b363083cdc35be503",
+        "stored_as": "file-458f82f2.txt"
+      },
+      {
+        "file_id": "file-01f8f22a",
+        "original_name": "acme_operating_agreement.txt",
+        "mime_type": "text/plain",
+        "size_bytes": 2842,
+        "uploaded_at": "2026-02-24T21:20:25.531Z",
+        "sha256": "1361a906f5fcde43d06ab3043335f7fa21030e77b965ad6539d0da5df46f96c3",
+        "stored_as": "file-01f8f22a.txt"
+      },
+      {
+        "file_id": "file-c665910f",
+        "original_name": "acme_prior_year_return_2024.txt",
+        "mime_type": "text/plain",
+        "size_bytes": 2544,
+        "uploaded_at": "2026-02-24T21:21:06.823Z",
+        "sha256": "131ef6d85ad8cf8020396f0ed52462fe8a8e3ebe6d790f1b1a09240caa8cc864",
+        "stored_as": "file-c665910f.txt"
+      },
+      {
+        "file_id": "file-35448417",
+        "original_name": "acme_profit_and_loss_2025.txt",
+        "mime_type": "text/plain",
+        "size_bytes": 3308,
+        "uploaded_at": "2026-02-24T21:21:41.800Z",
+        "sha256": "3953d9d8b5cf3e06685cd07f6f89eb8d1a63d8f6c8343df597b39daa9ab19377",
+        "stored_as": "file-35448417.txt"
+      },
+      {
+        "file_id": "file-1351aca6",
+        "original_name": "acme_w9_john_smith.txt",
+        "mime_type": "text/plain",
+        "size_bytes": 1480,
+        "uploaded_at": "2026-02-24T21:22:22.207Z",
+        "sha256": "d9ab8960c808e6dfcb6b2c103ce9ff137a397d2bd83018e10c5c094d65038cc8",
+        "stored_as": "file-1351aca6.txt"
+      }
+    ]
   }
 }

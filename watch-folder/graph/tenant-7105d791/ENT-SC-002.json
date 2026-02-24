@@ -6,7 +6,7 @@
     "updated_at": "2026-02-16T18:08:24.262Z",
     "source_description": "linkedin_import:test-linkedin-profile.txt",
     "extraction_model": "claude-sonnet-4-5-20250929",
-    "extraction_confidence": 0.6,
+    "extraction_confidence": 0.7,
     "schema_version": "2.0"
   },
   "entity": {
@@ -15,12 +15,12 @@
       "full": "Sarah Chen",
       "preferred": "Sarah",
       "aliases": [],
-      "confidence": 0.6,
+      "confidence": 0.7,
       "facts_layer": 2
     },
     "summary": {
-      "value": "Passionate engineering leader with 12+ years of experience building scalable distributed systems. Currently leading a team of 25 engineers at Google Cloud, focused on Kubernetes and container orchestration. Previously built core infrastructure at Stripe and early-stage startups.",
-      "confidence": 0.6,
+      "value": "Sarah Chen",
+      "confidence": 0.7,
       "facts_layer": 2
     },
     "entity_id": "ENT-SC-002"
@@ -133,10 +133,10 @@
       }
     },
     {
-      "attribute_id": "ATTR-003",
+      "attribute_id": "ATTR-001",
       "key": "role",
-      "value": "Software Engineering Manager",
-      "confidence": 0.6,
+      "value": "Registered Agent",
+      "confidence": 1,
       "confidence_label": "MODERATE",
       "time_decay": {
         "stability": "semi_stable",
@@ -145,7 +145,21 @@
       "source_attribution": {
         "facts_layer": 2,
         "layer_label": "group"
-      }
+      },
+      "provenance": {
+        "file_id": "file-25de8461",
+        "original_filename": "acme_articles_of_incorporation.txt",
+        "snippet": "REGISTERED AGENT: Name: Sarah Chen",
+        "location": "section 3",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T19:15:43.718Z"
+      },
+      "_source_clusters": [
+        "SIG-0d87786f-484",
+        "SIG-8ec7feb0-882",
+        "SIG-caeacdac-919"
+      ]
     },
     {
       "attribute_id": "ATTR-004",
@@ -176,6 +190,27 @@
         "facts_layer": 2,
         "layer_label": "group"
       }
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "address",
+      "value": "1847 Peachtree Road NE, Suite 310, Atlanta, Georgia 30309",
+      "confidence": 1,
+      "confidence_label": "MODERATE",
+      "provenance": {
+        "file_id": "file-25de8461",
+        "original_filename": "acme_articles_of_incorporation.txt",
+        "snippet": "REGISTERED AGENT: Name: Sarah Chen Address: 1847 Peachtree Road NE, Suite 310, Atlanta, Georgia 30309",
+        "location": "section 3",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T19:15:43.718Z"
+      },
+      "_source_clusters": [
+        "SIG-0d87786f-484",
+        "SIG-8ec7feb0-882",
+        "SIG-caeacdac-919"
+      ]
     }
   ],
   "relationships": [
@@ -274,9 +309,78 @@
       {
         "source": "linkedin_import:test-linkedin-profile.txt",
         "ingested_at": "2026-02-16T18:08:24.262Z"
+      },
+      {
+        "source": "Demo: acme_articles_of_incorporation.txt",
+        "url": "",
+        "ingested_at": "2026-02-24T19:15:43.725Z"
+      },
+      {
+        "source": "Demo: acme_articles_of_incorporation.txt",
+        "url": "",
+        "ingested_at": "2026-02-24T21:18:30.670Z"
+      },
+      {
+        "source": "Demo: acme_operating_agreement.txt",
+        "url": "",
+        "ingested_at": "2026-02-24T21:21:06.803Z"
       }
     ],
-    "merge_history": []
+    "merge_history": [
+      {
+        "merged_at": "2026-02-24T19:15:43.726Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_articles_of_incorporation.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced",
+            "attribute_id": "ATTR-003",
+            "key": "role",
+            "old_value": "Software Engineering Manager",
+            "old_confidence": 0.6,
+            "new_value": "Registered Agent",
+            "new_confidence": 0.7,
+            "timestamp": "2026-02-24T19:15:43.726Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-24T19:15:43.725Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-0d87786f-484: merged data and 0 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-24T21:18:30.670Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_articles_of_incorporation.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-24T21:18:30.670Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-8ec7feb0-882: merged data and 0 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-24T21:21:06.804Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_operating_agreement.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-24T21:21:06.803Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-caeacdac-919: merged data and 0 observations"
+        ]
+      }
+    ]
   },
   "connected_objects": [
     {
@@ -310,32 +414,32 @@
       "label": "University of California, Berkeley"
     },
     {
-      "entity_id": "ENT-ROLE-009",
+      "entity_id": "ENT-ROLE-021",
       "entity_type": "role",
       "label": "Software Engineering Manager at Google"
     },
     {
-      "entity_id": "ENT-ROLE-010",
+      "entity_id": "ENT-ROLE-022",
       "entity_type": "role",
       "label": "Senior Software Engineer at Stripe"
     },
     {
-      "entity_id": "ENT-ROLE-011",
+      "entity_id": "ENT-ROLE-023",
       "entity_type": "role",
       "label": "Software Engineer at Dropbox"
     },
     {
-      "entity_id": "ENT-ROLE-012",
+      "entity_id": "ENT-ROLE-024",
       "entity_type": "role",
       "label": "Junior Developer at TechStart Inc."
     },
     {
-      "entity_id": "ENT-CRED-005",
+      "entity_id": "ENT-CRED-011",
       "entity_type": "credential",
       "label": "Master of Science Computer Science, Stanford University"
     },
     {
-      "entity_id": "ENT-CRED-006",
+      "entity_id": "ENT-CRED-012",
       "entity_type": "credential",
       "label": "Bachelor of Science Electrical Engineering and Computer Science, University of California, Berkeley"
     },
@@ -417,5 +521,24 @@
   ],
   "spoke_id": "default",
   "source": null,
-  "source_ref": null
+  "source_ref": null,
+  "conflicts": [
+    {
+      "conflict_id": "CONF-8ce3f411",
+      "entity_id": "ENT-SC-002",
+      "attribute": "title",
+      "value_a": "Software Engineering Manager",
+      "source_a": "linkedin_import:test-linkedin-profile.txt",
+      "date_a": "2026-02-16",
+      "value_b": "Registered Agent",
+      "source_b": "Demo: acme_articles_of_incorporation.txt",
+      "date_b": "2026-02-24T19:15:43.718Z",
+      "conflict_type": "FACTUAL",
+      "auto_resolved": false,
+      "resolution": null,
+      "detected_at": "2026-02-24T19:15:43.725Z"
+    }
+  ],
+  "active_projects": [],
+  "translations": []
 }
