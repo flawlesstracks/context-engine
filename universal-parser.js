@@ -272,6 +272,7 @@ INSTRUCTIONS:
 3. For each entity, extract all attributes mentioned (role, location, age, description, dates, etc)
 4. For every pair of entities that have a relationship, describe the connection
 5. Assign confidence to each extraction based on how explicitly it appears in the text
+6. For EVERY attribute, provide evidence: the verbatim snippet, location in the document, and extraction type
 
 RESPOND IN THIS EXACT JSON FORMAT:
 {
@@ -279,9 +280,17 @@ RESPOND IN THIS EXACT JSON FORMAT:
     {
       "name": "Full Name or Title",
       "type": "PERSON | ORG | CONCEPT",
-      "attributes": {
-        "key": "value"
-      },
+      "attributes": [
+        {
+          "key": "attribute_name",
+          "value": "attribute_value",
+          "evidence": {
+            "snippet": "The verbatim 1-3 sentences from the source containing this fact",
+            "location": "paragraph 2",
+            "type": "direct"
+          }
+        }
+      ],
       "evidence": "The exact text that mentions this entity"
     }
   ],
@@ -304,7 +313,22 @@ RULES:
 - Relationships should be specific: "works_at" not "is related to"
 - If unsure about a fact, still extract it but note uncertainty in evidence
 - Do NOT invent entities or relationships not present in the text
-- Return valid JSON only, no markdown formatting`;
+- Return valid JSON only, no markdown formatting
+
+EVIDENCE RULES:
+- Every attribute MUST include an evidence object with snippet, location, and type
+- snippet: Copy 1-3 verbatim sentences from the source that contain or support this fact. Do NOT paraphrase.
+- location: Where in the document this fact appears:
+  - For prose/paragraphs: "paragraph N" or "section: Section Title"
+  - For tabular/structured data (CSV, TSV, spreadsheets, tables): "Row N, Column Header" (e.g. "Row 3, EIN")
+  - For lists: "item N" or "list item N under Section Title"
+  - For line-based content: "line N"
+- type: Classification of how this fact was obtained:
+  - "direct" — the fact is explicitly stated verbatim in the source text
+  - "inferred" — the fact is derived or calculated from source content (e.g. age from birth date)
+  - "ocr" — the source content was produced by OCR or image processing (use this when the filename or content indicates scanned/image origin)
+- When the source is clearly tabular or structured data, ALWAYS use cell references for location
+- When the source filename or content metadata indicates OCR or image-processed origin (e.g. .tiff, .png, scan, OCR header), set type to "ocr"`;
 
 const CHUNK_SIZE = 80000;
 const MAX_TEXT_LENGTH = 100000;
@@ -456,8 +480,28 @@ async function _callClaudeExtraction(text, filename) {
     // Strip any markdown code fences if present
     const cleaned = rawResponse.replace(/^```json?\s*\n?/m, '').replace(/\n?```\s*$/m, '').trim();
     const parsed = JSON.parse(cleaned);
+
+    // Normalize attributes: support both new array format and old object format
+    const entities = (parsed.entities || []).map(ent => {
+      if (Array.isArray(ent.attributes)) {
+        // New format: [{key, value, evidence}, ...] — pass through
+        return ent;
+      } else if (ent.attributes && typeof ent.attributes === 'object') {
+        // Old format: {key: value} — convert to array with null evidence
+        ent.attributes = Object.entries(ent.attributes).map(([key, value]) => ({
+          key,
+          value: String(value),
+          evidence: null,
+        }));
+        return ent;
+      }
+      // No attributes
+      ent.attributes = [];
+      return ent;
+    });
+
     return {
-      entities: parsed.entities || [],
+      entities,
       relationships: parsed.relationships || [],
       summary: parsed.file_summary || '',
     };
@@ -675,7 +719,30 @@ function postProcess(entities, relationships) {
       const sim = _dice(normed[i].name, normed[j].name);
       if (sim > 0.8) {
         // Merge j into i: combine attributes, keep higher confidence
-        primary.attributes = { ...primary.attributes, ...normed[j].attributes };
+        if (Array.isArray(primary.attributes) && Array.isArray(normed[j].attributes)) {
+          // New array format: merge by appending unique keys
+          const existingKeys = new Set(primary.attributes.map(a => a.key));
+          for (const attr of normed[j].attributes) {
+            if (!existingKeys.has(attr.key)) {
+              primary.attributes.push(attr);
+              existingKeys.add(attr.key);
+            }
+          }
+        } else if (Array.isArray(primary.attributes)) {
+          // Primary is array, secondary is object — convert and merge
+          if (normed[j].attributes && typeof normed[j].attributes === 'object') {
+            const existingKeys = new Set(primary.attributes.map(a => a.key));
+            for (const [k, v] of Object.entries(normed[j].attributes)) {
+              if (!existingKeys.has(k)) {
+                primary.attributes.push({ key: k, value: String(v), evidence: null });
+                existingKeys.add(k);
+              }
+            }
+          }
+        } else {
+          // Both are objects (old format)
+          primary.attributes = { ...primary.attributes, ...normed[j].attributes };
+        }
         primary.confidence = Math.max(primary.confidence || 0, normed[j].confidence || 0);
         if ((normed[j].evidence || '').length > (primary.evidence || '').length) {
           primary.evidence = normed[j].evidence;
@@ -705,18 +772,35 @@ function postProcess(entities, relationships) {
   }
   let mergedRels = Array.from(relMap.values());
 
+  // Helper: get attribute value from either array or object format
+  function _getAttrVal(attrs, ...keys) {
+    if (Array.isArray(attrs)) {
+      for (const k of keys) {
+        const found = attrs.find(a => a.key === k);
+        if (found) return found.value;
+      }
+      return undefined;
+    }
+    if (attrs && typeof attrs === 'object') {
+      for (const k of keys) {
+        if (attrs[k]) return attrs[k];
+      }
+    }
+    return undefined;
+  }
+
   // Step 4: Promote PLACE/EVENT attributes if referenced by 3+ entities
   const placeCount = new Map();
   const eventCount = new Map();
 
   for (const ent of merged) {
     if (!ent.attributes) continue;
-    const loc = ent.attributes.location || ent.attributes.city || ent.attributes.place;
+    const loc = _getAttrVal(ent.attributes, 'location', 'city', 'place');
     if (loc) {
       const key = loc.toLowerCase().trim();
       placeCount.set(key, (placeCount.get(key) || 0) + 1);
     }
-    const evt = ent.attributes.event || ent.attributes.meeting;
+    const evt = _getAttrVal(ent.attributes, 'event', 'meeting');
     if (evt) {
       const key = evt.toLowerCase().trim();
       eventCount.set(key, (eventCount.get(key) || 0) + 1);
@@ -730,16 +814,16 @@ function postProcess(entities, relationships) {
       if (!alreadyEntity) {
         // Find first entity that has this location for the canonical name
         const ref = merged.find(e =>
-          e.attributes && (e.attributes.location || e.attributes.city || e.attributes.place || '')
+          e.attributes && (_getAttrVal(e.attributes, 'location', 'city', 'place') || '')
             .toLowerCase().trim() === placeKey);
         const placeName = ref
-          ? (ref.attributes.location || ref.attributes.city || ref.attributes.place)
+          ? _getAttrVal(ref.attributes, 'location', 'city', 'place')
           : _titleCase(placeKey);
 
         merged.push({
           name: placeName,
           type: 'PLACE',
-          attributes: {},
+          attributes: [],
           confidence: 0.6,
           evidence: `Referenced by ${count} entities`,
         });
@@ -747,7 +831,7 @@ function postProcess(entities, relationships) {
         // Add relationships from entities to this place
         for (const ent of merged) {
           if (!ent.attributes) continue;
-          const loc = (ent.attributes.location || ent.attributes.city || ent.attributes.place || '').toLowerCase().trim();
+          const loc = (_getAttrVal(ent.attributes, 'location', 'city', 'place') || '').toLowerCase().trim();
           if (loc === placeKey) {
             mergedRels.push({
               source: ent.name,
@@ -769,23 +853,23 @@ function postProcess(entities, relationships) {
       const alreadyEntity = merged.some(e => e.name.toLowerCase().trim() === eventKey);
       if (!alreadyEntity) {
         const ref = merged.find(e =>
-          e.attributes && (e.attributes.event || e.attributes.meeting || '')
+          e.attributes && (_getAttrVal(e.attributes, 'event', 'meeting') || '')
             .toLowerCase().trim() === eventKey);
         const eventName = ref
-          ? (ref.attributes.event || ref.attributes.meeting)
+          ? _getAttrVal(ref.attributes, 'event', 'meeting')
           : _titleCase(eventKey);
 
         merged.push({
           name: eventName,
           type: 'EVENT',
-          attributes: {},
+          attributes: [],
           confidence: 0.6,
           evidence: `Referenced by ${count} entities`,
         });
 
         for (const ent of merged) {
           if (!ent.attributes) continue;
-          const evt = (ent.attributes.event || ent.attributes.meeting || '').toLowerCase().trim();
+          const evt = (_getAttrVal(ent.attributes, 'event', 'meeting') || '').toLowerCase().trim();
           if (evt === eventKey) {
             mergedRels.push({
               source: ent.name,

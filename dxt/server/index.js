@@ -154,6 +154,18 @@ const TOOLS = [
       },
       required: ["spoke"]
     }
+  },
+  {
+    name: "get_provenance",
+    description: "Get the source attribution for any fact about an entity. Shows which file, what text, and where in the document each piece of information was extracted from. Use when the user asks \"where did that come from?\" or \"show me the source\" or wants to verify any fact.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        entity: { type: "string", description: "Entity name or ID" },
+        field: { type: "string", description: "Optional specific field to check provenance for" }
+      },
+      required: ["entity"]
+    }
   }
 ];
 
@@ -330,12 +342,31 @@ async function handleAnalyzeGaps({ spoke, template, refresh }) {
   return report;
 }
 
+async function handleGetProvenance({ entity, field }) {
+  if (!entity) throw new Error('entity is required');
+
+  // Search for entity by name or ID
+  const searchResults = await api.get(`/api/search?q=${encodeURIComponent(entity)}&limit=5`);
+  const results = searchResults.results || searchResults || [];
+  if (results.length === 0) throw new Error(`No entity found matching "${entity}"`);
+
+  // Use best match
+  const entityId = results[0].entity_id || results[0].id;
+  const provUrl = field
+    ? `/api/entity/${encodeURIComponent(entityId)}/provenance/${encodeURIComponent(field)}`
+    : `/api/entity/${encodeURIComponent(entityId)}/provenance`;
+
+  const report = await api.get(provUrl);
+  return report;
+}
+
 const HANDLERS = {
   build_graph: handleBuildGraph,
   query: handleQuery,
   update: handleUpdate,
   sync: handleSync,
-  analyze_gaps: handleAnalyzeGaps
+  analyze_gaps: handleAnalyzeGaps,
+  get_provenance: handleGetProvenance
 };
 
 // --- MCP Server ---

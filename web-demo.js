@@ -1100,6 +1100,47 @@ function resolveOrCreateSpoke(graphDir, spokeId) {
   return spokeId;
 }
 
+// --- Provenance: Preserve original source files ---
+
+const MIME_MAP = {
+  '.txt': 'text/plain', '.md': 'text/markdown', '.json': 'application/json',
+  '.pdf': 'application/pdf', '.csv': 'text/csv', '.tsv': 'text/tab-separated-values',
+  '.html': 'text/html', '.htm': 'text/html', '.xml': 'application/xml',
+  '.doc': 'application/msword', '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.xls': 'application/vnd.ms-excel', '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif',
+  '.tiff': 'image/tiff', '.tif': 'image/tiff', '.bmp': 'image/bmp', '.webp': 'image/webp',
+};
+
+function preserveSourceFile(graphDir, spokeId, filename, fileBuffer) {
+  const ext = path.extname(filename).toLowerCase();
+  const fileId = 'file-' + crypto.createHash('sha256').update(filename + Date.now()).digest('hex').slice(0, 8);
+  const sha256 = crypto.createHash('sha256').update(fileBuffer).digest('hex');
+  const mimeType = MIME_MAP[ext] || 'application/octet-stream';
+  const storedAs = fileId + ext;
+  const dir = path.join(graphDir, 'spoke_files', spokeId);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(path.join(dir, storedAs), fileBuffer);
+
+  const manifest = {
+    file_id: fileId,
+    original_name: filename,
+    mime_type: mimeType,
+    size_bytes: fileBuffer.length,
+    uploaded_at: new Date().toISOString(),
+    sha256,
+    stored_as: storedAs,
+  };
+
+  // Append to spoke files manifest
+  const spoke = getSpoke(graphDir, spokeId);
+  const files = (spoke && spoke.files) || [];
+  files.push(manifest);
+  updateSpoke(graphDir, spokeId, { files });
+
+  return fileId;
+}
+
 // POST /api/ingest/files — Upload files for entity extraction
 const upload = multer({ storage: multer.memoryStorage(), limits: { files: 20, fileSize: 50 * 1024 * 1024 } });
 const ALLOWED_EXTENSIONS = new Set(['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv', '.txt', '.md', '.json']);
@@ -1187,11 +1228,18 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
                   observations: (ext.observations || []).map(o => ({ observation: (o.text || '').trim(), observed_at: now, source: filename, confidence: 0.6, confidence_label: 'MODERATE', facts_layer: 'L2_GROUP', layer_number: 2, observed_by: req.agentId, truth_level: 'INFERRED' })).filter(o => o.observation),
                   provenance_chain: { created_at: now, created_by: req.agentId, source_documents: [{ source: filename, ingested_at: now }], merge_history: [] },
                 };
-                if (ext.attributes && typeof ext.attributes === 'object') {
+                if (Array.isArray(ext.attributes)) {
+                  let seq = 1;
+                  for (const attr of ext.attributes) {
+                    const sv = String(attr.value || '');
+                    const evidence = attr.evidence || null;
+                    if (sv) v2.attributes.push({ attribute_id: 'ATTR-' + String(seq++).padStart(3, '0'), key: attr.key, value: sv, confidence: 0.6, confidence_label: 'MODERATE', time_decay: { stability: 'stable', captured_date: now.slice(0, 10) }, source_attribution: { facts_layer: 2, layer_label: 'group' }, provenance: evidence ? { file_id: null, original_filename: filename, snippet: evidence.snippet, location: evidence.location, extraction_model: 'claude-sonnet-4-5-20250929', extraction_type: evidence.type || 'direct', extracted_at: now } : null });
+                  }
+                } else if (ext.attributes && typeof ext.attributes === 'object') {
                   let seq = 1;
                   for (const [k, val] of Object.entries(ext.attributes)) {
                     const sv = Array.isArray(val) ? val.join(', ') : String(val);
-                    if (sv) v2.attributes.push({ attribute_id: 'ATTR-' + String(seq++).padStart(3, '0'), key: k, value: sv, confidence: 0.6, confidence_label: 'MODERATE', time_decay: { stability: 'stable', captured_date: now.slice(0, 10) }, source_attribution: { facts_layer: 2, layer_label: 'group' } });
+                    if (sv) v2.attributes.push({ attribute_id: 'ATTR-' + String(seq++).padStart(3, '0'), key: k, value: sv, confidence: 0.6, confidence_label: 'MODERATE', time_decay: { stability: 'stable', captured_date: now.slice(0, 10) }, source_attribution: { facts_layer: 2, layer_label: 'group' }, provenance: null });
                   }
                 }
                 if (Array.isArray(ext.relationships)) {
@@ -1705,6 +1753,13 @@ app.post('/api/ingest/universal', apiAuth, universalUpload.single('file'), async
 
     console.log(`[universal-parser] Processing: ${filename} (${fileBuffer.length} bytes) → spoke: ${spokeId}`);
 
+    // Preserve original source file for provenance
+    let fileId = null;
+    if (spokeId !== 'default') {
+      fileId = preserveSourceFile(req.graphDir, spokeId, filename, fileBuffer);
+      console.log(`[provenance] Preserved ${filename} → ${fileId}`);
+    }
+
     // Run universal parser
     const result = await universalParse(fileBuffer, filename);
 
@@ -1750,8 +1805,34 @@ app.post('/api/ingest/universal', apiAuth, universalUpload.single('file'), async
           source_ref: filename,
         };
 
-        // Map attributes
-        if (ent.attributes && typeof ent.attributes === 'object') {
+        // Map attributes — handle both new array format and old object format
+        if (Array.isArray(ent.attributes)) {
+          let seq = 1;
+          for (const attr of ent.attributes) {
+            const sv = String(attr.value || '');
+            if (sv) {
+              const evidence = attr.evidence || null;
+              v2.attributes.push({
+                attribute_id: 'ATTR-' + String(seq++).padStart(3, '0'),
+                key: attr.key,
+                value: sv,
+                confidence: ent.confidence || 0.7,
+                confidence_label: ent.confidence >= 0.8 ? 'HIGH' : 'MODERATE',
+                time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+                source_attribution: { facts_layer: 2, layer_label: 'group' },
+                provenance: evidence ? {
+                  file_id: fileId,
+                  original_filename: filename,
+                  snippet: evidence.snippet,
+                  location: evidence.location,
+                  extraction_model: result.metadata.model_used || 'claude-sonnet-4-5-20250929',
+                  extraction_type: evidence.type || 'direct',
+                  extracted_at: now,
+                } : null,
+              });
+            }
+          }
+        } else if (ent.attributes && typeof ent.attributes === 'object') {
           let seq = 1;
           for (const [k, val] of Object.entries(ent.attributes)) {
             const sv = String(val);
@@ -1764,6 +1845,7 @@ app.post('/api/ingest/universal', apiAuth, universalUpload.single('file'), async
                 confidence_label: ent.confidence >= 0.8 ? 'HIGH' : 'MODERATE',
                 time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
                 source_attribution: { facts_layer: 2, layer_label: 'group' },
+                provenance: null,
               });
             }
           }
@@ -4171,6 +4253,26 @@ app.get('/api/spoke/:id/gaps', apiAuth, async (req, res) => {
   }
 });
 
+// GET /api/spoke/:spokeId/files — Return file manifest for a spoke
+app.get('/api/spoke/:spokeId/files', apiAuth, (req, res) => {
+  const spoke = getSpoke(req.graphDir, req.params.spokeId);
+  if (!spoke) return res.status(404).json({ error: `Spoke ${req.params.spokeId} not found` });
+  res.json({ spoke_id: req.params.spokeId, files: spoke.files || [] });
+});
+
+// GET /api/spoke/:spokeId/file/:fileId — Serve original source file
+app.get('/api/spoke/:spokeId/file/:fileId', apiAuth, (req, res) => {
+  const spoke = getSpoke(req.graphDir, req.params.spokeId);
+  if (!spoke) return res.status(404).json({ error: `Spoke ${req.params.spokeId} not found` });
+  const manifest = (spoke.files || []).find(f => f.file_id === req.params.fileId);
+  if (!manifest) return res.status(404).json({ error: `File ${req.params.fileId} not found in spoke` });
+  const filePath = path.join(req.graphDir, 'spoke_files', req.params.spokeId, manifest.stored_as);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File not found on disk' });
+  res.setHeader('Content-Type', manifest.mime_type || 'application/octet-stream');
+  res.setHeader('Content-Disposition', `inline; filename="${manifest.original_name}"`);
+  fs.createReadStream(filePath).pipe(res);
+});
+
 // POST /api/demo/tax-client — One-button demo: create spoke, ingest sample docs, run gap analysis
 app.post('/api/demo/tax-client', apiAuth, async (req, res) => {
   try {
@@ -4198,6 +4300,11 @@ app.post('/api/demo/tax-client', apiAuth, async (req, res) => {
     for (const filename of files) {
       const filePath = path.join(samplesDir, filename);
       const content = fs.readFileSync(filePath);
+
+      // Preserve original source file for provenance
+      const demoFileId = preserveSourceFile(req.graphDir, spokeId, filename, content);
+      console.log(`[demo] Preserved ${filename} → ${demoFileId}`);
+
       try {
         const result = await universalParse(content, filename);
         const now = new Date().toISOString();
@@ -4223,9 +4330,25 @@ app.post('/api/demo/tax-client', apiAuth, async (req, res) => {
                 name: { full: ent.name, confidence: ent.confidence || 0.7, facts_layer: 2 },
                 summary: { value: ent.evidence || '', confidence: ent.confidence || 0.7, facts_layer: 2 },
               },
-              attributes: Object.entries(ent.attributes || {}).map(([key, value], i) => ({
-                attribute_id: `ATTR-${String(i + 1).padStart(3, '0')}`, key, value: String(value), confidence: ent.confidence || 0.7
-              })),
+              attributes: (Array.isArray(ent.attributes) ? ent.attributes : Object.entries(ent.attributes || {}).map(([key, value]) => ({ key, value: String(value), evidence: null }))).map((attr, i) => {
+                const evidence = attr.evidence || null;
+                return {
+                  attribute_id: `ATTR-${String(i + 1).padStart(3, '0')}`,
+                  key: attr.key,
+                  value: String(attr.value || ''),
+                  confidence: ent.confidence || 0.7,
+                  confidence_label: (ent.confidence || 0.7) >= 0.8 ? 'HIGH' : 'MODERATE',
+                  provenance: evidence ? {
+                    file_id: demoFileId,
+                    original_filename: filename,
+                    snippet: evidence.snippet,
+                    location: evidence.location,
+                    extraction_model: result.metadata.model_used || 'claude-sonnet-4-5-20250929',
+                    extraction_type: evidence.type || 'direct',
+                    extracted_at: now,
+                  } : null,
+                };
+              }),
               relationships: [],
               values: [], key_facts: [], constraints: [], observations: [],
               provenance_chain: {
@@ -4994,7 +5117,7 @@ app.post('/api/entity/:id/observe', apiAuth, (req, res) => {
   const entity = readEntity(entityId, req.graphDir);
   if (!entity) return res.status(404).json({ error: `Entity ${entityId} not found` });
 
-  const { attribute, value, observation, confidence, confidence_label, facts_layer, source, truth_level } = req.body;
+  const { attribute, value, observation, confidence, confidence_label, facts_layer, source, truth_level, provenance } = req.body;
 
   // Accept either observation string or attribute+value pair
   const obsText = observation || (attribute && value ? `${attribute}: ${value}` : null);
@@ -5020,12 +5143,119 @@ app.post('/api/entity/:id/observe', apiAuth, (req, res) => {
     observed_at: now,
     observed_by: req.agentId,
     source: source || 'conversation',
+    provenance: provenance || null,
   };
 
   entity.observations.push(obs);
   writeEntity(entityId, entity, req.graphDir);
 
   res.status(201).json({ status: 'created', entity_id: entityId, observation: obs });
+});
+
+// --- Provenance Query Helper ---
+function buildProvenanceReport(entity) {
+  const fields = {};
+  // Gather provenance from attributes
+  for (const attr of (entity.attributes || [])) {
+    const key = attr.key;
+    if (!fields[key]) {
+      fields[key] = { value: attr.value, confidence: attr.confidence, sources: [], conflict: false, values: [attr.value] };
+    } else {
+      if (!fields[key].values.includes(attr.value)) {
+        fields[key].values.push(attr.value);
+        fields[key].conflict = true;
+      }
+    }
+    if (attr.provenance) {
+      fields[key].sources.push({
+        file_id: attr.provenance.file_id,
+        filename: attr.provenance.original_filename,
+        snippet: attr.provenance.snippet,
+        location: attr.provenance.location,
+        extraction_type: attr.provenance.extraction_type,
+        extracted_at: attr.provenance.extracted_at,
+      });
+    }
+  }
+  // Gather provenance from observations that match attribute patterns
+  for (const obs of (entity.observations || [])) {
+    if (obs.provenance) {
+      // Try to match observation to attribute key via "key: value" pattern
+      const match = (obs.observation || '').match(/^([^:]+):\s*(.+)$/);
+      if (match) {
+        const key = match[1].trim().toLowerCase();
+        const val = match[2].trim();
+        if (!fields[key]) {
+          fields[key] = { value: val, confidence: obs.confidence, sources: [], conflict: false, values: [val] };
+        } else {
+          if (!fields[key].values.includes(val)) {
+            fields[key].values.push(val);
+            fields[key].conflict = true;
+          }
+        }
+        fields[key].sources.push({
+          file_id: obs.provenance.file_id,
+          filename: obs.provenance.original_filename,
+          snippet: obs.provenance.snippet,
+          location: obs.provenance.location,
+          extraction_type: obs.provenance.extraction_type,
+          extracted_at: obs.provenance.extracted_at,
+        });
+      }
+    }
+  }
+  // Clean up temporary values array
+  for (const key of Object.keys(fields)) {
+    delete fields[key].values;
+  }
+  return fields;
+}
+
+// GET /api/entity/:id/provenance — Full provenance report for entity
+app.get('/api/entity/:id/provenance', apiAuth, (req, res) => {
+  const entity = readEntity(req.params.id, req.graphDir);
+  if (!entity) return res.status(404).json({ error: `Entity ${req.params.id} not found` });
+  const eName = entity.entity?.name?.full || entity.entity?.name?.common || req.params.id;
+  const fields = buildProvenanceReport(entity);
+  res.json({ entity_id: req.params.id, entity_name: eName, fields });
+});
+
+// GET /api/entity/:id/provenance/:attribute — Single attribute provenance
+app.get('/api/entity/:id/provenance/:attribute', apiAuth, (req, res) => {
+  const entity = readEntity(req.params.id, req.graphDir);
+  if (!entity) return res.status(404).json({ error: `Entity ${req.params.id} not found` });
+  const eName = entity.entity?.name?.full || entity.entity?.name?.common || req.params.id;
+  const fields = buildProvenanceReport(entity);
+  const attrKey = req.params.attribute.toLowerCase();
+  const field = fields[attrKey];
+  if (!field) return res.status(404).json({ error: `No provenance found for attribute "${req.params.attribute}"` });
+  res.json({ entity_id: req.params.id, entity_name: eName, attribute: attrKey, ...field });
+});
+
+// GET /api/spoke/:id/conflicts — Detect conflicting sources across spoke entities
+app.get('/api/spoke/:id/conflicts', apiAuth, (req, res) => {
+  const spoke = getSpoke(req.graphDir, req.params.id);
+  if (!spoke) return res.status(404).json({ error: `Spoke ${req.params.id} not found` });
+  const allEnts = listEntities(req.graphDir);
+  const conflicts = [];
+  for (const { id: entId, data } of allEnts) {
+    if (data.spoke_id !== req.params.id) continue;
+    const eName = data.entity?.name?.full || data.entity?.name?.common || entId;
+    const fields = buildProvenanceReport(data);
+    for (const [attrKey, field] of Object.entries(fields)) {
+      if (field.conflict) {
+        // Rebuild values list for conflict report
+        const values = [];
+        for (const attr of (data.attributes || [])) {
+          if (attr.key === attrKey && attr.provenance) {
+            values.push({ value: attr.value, file: attr.provenance.original_filename, snippet: attr.provenance.snippet });
+          }
+        }
+        conflicts.push({ entity: eName, entity_id: entId, attribute: attrKey, values });
+      }
+    }
+  }
+  res.json({ spoke_id: req.params.id, conflicts, conflict_count: conflicts.length });
 });
 
 // POST /api/entity/:id/relationship — Add relationship to entity (DXT-friendly)
@@ -18236,6 +18466,18 @@ const MCP_TOOLS = [
       },
       required: ['spoke']
     }
+  },
+  {
+    name: 'get_provenance',
+    description: 'Get the source attribution for any fact about an entity. Shows which file, what text, and where in the document each piece of information was extracted from. Use when the user asks "where did that come from?" or "show me the source" or wants to verify any fact.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        entity: { type: 'string', description: 'Entity name or ID' },
+        field: { type: 'string', description: 'Optional specific field to check provenance for' }
+      },
+      required: ['entity']
+    }
   }
 ];
 
@@ -18538,12 +18780,87 @@ async function mcpAnalyzeGaps(args, graphDir) {
   return { ...report, message: msg };
 }
 
+async function mcpGetProvenance(args, graphDir) {
+  const { entity: entityRef, field } = args || {};
+  if (!entityRef) throw new Error('entity is required');
+
+  // Resolve entity by name or ID
+  const { similarity } = require('./merge-engine');
+  const allEnts = listEntities(graphDir);
+  let entityId = null;
+  let entityData = null;
+  let bestScore = 0;
+
+  // Try direct ID match first
+  for (const { id, data } of allEnts) {
+    if (id === entityRef || (data.entity?.entity_id === entityRef)) {
+      entityId = id;
+      entityData = data;
+      break;
+    }
+  }
+
+  // If no direct ID match, fuzzy match on name
+  if (!entityId) {
+    for (const { id, data } of allEnts) {
+      const e = data.entity || {};
+      const eName = e.name?.full || e.name?.common || e.name?.preferred || '';
+      const score = similarity(entityRef, eName);
+      if (score > bestScore) { bestScore = score; entityId = id; entityData = data; }
+    }
+    if (bestScore < 0.5) throw new Error(`No entity found matching "${entityRef}"`);
+  }
+
+  const eName = entityData.entity?.name?.full || entityData.entity?.name?.common || entityId;
+  const fields = buildProvenanceReport(entityData);
+
+  // If specific field requested, filter
+  if (field) {
+    const fKey = field.toLowerCase();
+    const fData = fields[fKey];
+    if (!fData) return { entity_id: entityId, entity_name: eName, message: `No provenance found for "${field}".` };
+
+    let msg = `The ${field} "${fData.value}" for ${eName}`;
+    if (fData.sources.length > 0) {
+      const s = fData.sources[0];
+      msg += ` was extracted ${s.extraction_type === 'direct' ? 'directly' : s.extraction_type === 'ocr' ? 'via OCR' : 'by inference'} from ${s.filename}`;
+      if (s.location) msg += `, ${s.location}`;
+      if (s.snippet) msg += `: "${s.snippet}"`;
+      if (fData.sources.length > 1) {
+        msg += `. Also found in: ${fData.sources.slice(1).map(ss => ss.filename).join(', ')}`;
+      }
+    } else {
+      msg += ' has no source provenance recorded.';
+    }
+    if (fData.conflict) msg += ' WARNING: Conflicting values detected from different sources.';
+    return { entity_id: entityId, entity_name: eName, field, ...fData, message: msg };
+  }
+
+  // Full provenance report
+  const summaryParts = [];
+  for (const [key, fData] of Object.entries(fields)) {
+    if (fData.sources.length > 0) {
+      const s = fData.sources[0];
+      let part = `${key}="${fData.value}" from ${s.filename}`;
+      if (s.location) part += ` (${s.location})`;
+      if (fData.conflict) part += ' [CONFLICT]';
+      summaryParts.push(part);
+    }
+  }
+  const message = summaryParts.length > 0
+    ? `Provenance for ${eName}:\n${summaryParts.map(p => '- ' + p).join('\n')}`
+    : `No provenance data recorded for ${eName}.`;
+
+  return { entity_id: entityId, entity_name: eName, fields, message };
+}
+
 const MCP_HANDLERS = {
   build_graph: mcpBuildGraph,
   query: mcpQuery,
   update: mcpUpdate,
   sync: mcpSync,
-  analyze_gaps: mcpAnalyzeGaps
+  analyze_gaps: mcpAnalyzeGaps,
+  get_provenance: mcpGetProvenance
 };
 
 // --- JSON-RPC helpers ---
