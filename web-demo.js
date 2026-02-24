@@ -8427,10 +8427,9 @@ const WIKI_HTML = `<!DOCTYPE html>
   #app { display: none; height: 100vh; }
   #sidebar {
     width: var(--sidebar-width); min-width: var(--sidebar-width);
-    border-right: none;
+    border: 0; outline: 0; box-shadow: none;
     display: flex; flex-direction: column;
     background: #fafafa;
-    box-shadow: none;
   }
 
   /* --- Sidebar Brand --- */
@@ -8608,7 +8607,8 @@ const WIKI_HTML = `<!DOCTYPE html>
   #main {
     flex: 1; overflow-y: auto;
     padding: 32px 40px;
-    background: var(--bg-primary);
+    background: #ffffff;
+    border: 0; outline: 0;
     min-width: 0;
   }
   .empty-state {
@@ -8621,7 +8621,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   /* --- Right Entity Pipeline Panel --- */
   #rightPanel {
     width: 560px; min-width: 560px;
-    border-left: none;
+    border: 0; outline: 0; box-shadow: none;
     background: #f4f2ee;
     overflow-y: auto;
     display: flex; flex-direction: column;
@@ -11257,8 +11257,8 @@ const WIKI_HTML = `<!DOCTYPE html>
       <span id="logoutLink"></span>
     </div>
   </div>
-  <div id="breadcrumbs"></div>
   <div id="main">
+    <div id="breadcrumbs"></div>
     <div class="empty-state" id="emptyState">
       <svg width="48" height="48" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.2">
         <circle cx="24" cy="24" r="20"/>
