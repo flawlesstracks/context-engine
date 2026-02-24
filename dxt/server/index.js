@@ -166,6 +166,17 @@ const TOOLS = [
       },
       required: ["entity"]
     }
+  },
+  {
+    name: "export_spoke",
+    description: "Export all extracted data from a client spoke as a structured table with source attribution. Returns a natural language summary showing which required fields are verified, missing, or conflicting. Use when the user asks to \"export\", \"show all data\", \"give me a spreadsheet\", or wants a complete overview of what has been extracted for a client matter.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        spoke: { type: "string", description: "Spoke ID or name to export" }
+      },
+      required: ["spoke"]
+    }
   }
 ];
 
@@ -360,13 +371,29 @@ async function handleGetProvenance({ entity, field }) {
   return report;
 }
 
+async function handleExportSpoke({ spoke }) {
+  if (!spoke) throw new Error('spoke is required');
+
+  // Resolve spoke by ID or name
+  const spokes = await api.get('/api/spokes');
+  const spokeList = spokes.spokes || [];
+  const spokeObj = spokeList.find(s =>
+    s.id === spoke || (s.name && s.name.toLowerCase() === spoke.toLowerCase())
+  );
+  if (!spokeObj) throw new Error(`Spoke not found: ${spoke}. Available: ${spokeList.map(s => s.name).join(', ')}`);
+
+  const exportData = await api.get(`/api/spoke/${encodeURIComponent(spokeObj.id)}/export`);
+  return exportData;
+}
+
 const HANDLERS = {
   build_graph: handleBuildGraph,
   query: handleQuery,
   update: handleUpdate,
   sync: handleSync,
   analyze_gaps: handleAnalyzeGaps,
-  get_provenance: handleGetProvenance
+  get_provenance: handleGetProvenance,
+  export_spoke: handleExportSpoke
 };
 
 // --- MCP Server ---

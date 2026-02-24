@@ -529,5 +529,7 @@ module.exports = {
   saveTemplates,
   extractSourceDocuments,
   classifyDocuments,
-  analyzeGaps
+  analyzeGaps,
+  FIELD_ALIASES,
+  TYPE_ALIASES,
 };

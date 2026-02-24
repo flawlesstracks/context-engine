@@ -19,7 +19,7 @@ const { analyzeEntityHealth, getRelationshipTier, getTierInfo } = require('./src
 const { parse: universalParse } = require('./universal-parser');
 const { query: queryEngine, getSelfEntity, clearSelfEntityCache } = require('./query-engine');
 const { loadSpokes, createSpoke, getSpoke, updateSpoke, setCenteredEntity, deleteSpoke, listSpokesWithCounts, migrateEntitiesToSpokes } = require('./src/spoke-ops');
-const { loadTemplates, getTemplate, saveTemplates, analyzeGaps } = require('./src/gap-analysis');
+const { loadTemplates, getTemplate, saveTemplates, analyzeGaps, FIELD_ALIASES, TYPE_ALIASES } = require('./src/gap-analysis');
 const { createConnection, getConnection, getConnectionDecrypted, updateConnection, deleteConnection: deleteConn, listConnections } = require('./src/connector-ops');
 const { getRegisteredProviders, getConnectorClass } = require('./src/connectors/base-connector');
 const { buildAuthorizeUrl, validateState, exchangeCodeForTokens, OAUTH_STATE_COOKIE } = require('./src/connectors/oauth-handler');
@@ -5256,6 +5256,175 @@ app.get('/api/spoke/:id/conflicts', apiAuth, (req, res) => {
     }
   }
   res.json({ spoke_id: req.params.id, conflicts, conflict_count: conflicts.length });
+});
+
+// --- Export Helper: match entities to template roles ---
+function _exportMatchEntityToRole(role, entities) {
+  const validTypes = TYPE_ALIASES[role.type] || [role.type];
+  const candidates = entities.filter(ent => {
+    const eType = ent.entity?.entity_type || ent.entity_type || '';
+    return validTypes.includes(eType);
+  });
+  if (candidates.length === 0) return [];
+  const roleKeywords = [role.role.replace(/_/g, ' ')];
+  const matched = candidates.filter(ent => {
+    const rels = ent.relationships || [];
+    const obs = ent.observations || [];
+    const allText = [
+      ...rels.map(r => (r.relationship || '') + ' ' + (r.context || '')),
+      ...obs.map(o => (o.observation || '') + ' ' + (o.value || ''))
+    ].join(' ').toLowerCase();
+    return roleKeywords.some(kw => allText.includes(kw));
+  });
+  return matched.length > 0 ? matched : [candidates[0]];
+}
+
+// --- Export Helper: find field value + provenance from report ---
+function _exportFindField(provenanceReport, entity, fieldName) {
+  const aliases = FIELD_ALIASES[fieldName] || [fieldName];
+  // Check provenance report keys (alias match)
+  for (const alias of aliases) {
+    if (provenanceReport[alias]) return provenanceReport[alias];
+  }
+  // For name fields, check entity.entity.name
+  if (fieldName === 'full_name' || fieldName === 'legal_name') {
+    const name = entity.entity?.name || {};
+    const nameVal = name.full || name.common || name.preferred;
+    if (nameVal) {
+      return { value: nameVal, confidence: name.confidence || 0.9, sources: [], conflict: false };
+    }
+  }
+  return null;
+}
+
+// GET /api/spoke/:id/export — Structured data export with provenance table
+app.get('/api/spoke/:id/export', apiAuth, (req, res) => {
+  const spoke = getSpoke(req.graphDir, req.params.id);
+  if (!spoke) return res.status(404).json({ error: `Spoke ${req.params.id} not found` });
+
+  const templateType = spoke.template_type;
+  if (!templateType) {
+    return res.status(400).json({
+      error: 'No template assigned to this spoke. Assign one with PUT /api/spoke/:id/template first.',
+      available_templates: Object.keys(loadTemplates())
+    });
+  }
+
+  const template = getTemplate(templateType);
+  if (!template) return res.status(404).json({ error: `Template "${templateType}" not found` });
+
+  // Get all entities in this spoke
+  const allEnts = listEntities(req.graphDir);
+  const spokeEntities = allEnts
+    .filter(e => e.data.spoke_id === req.params.id)
+    .map(e => ({ ...e.data, _id: e.id }));
+
+  const roles = [];
+  let totalFields = 0, verified = 0, lowConf = 0, missing = 0, conflictCount = 0;
+
+  for (const role of (template.required_entities || [])) {
+    const matched = _exportMatchEntityToRole(role, spokeEntities);
+    const roleData = { role: role.role, entities: [] };
+
+    if (matched.length === 0 && !role.optional) {
+      // All fields missing for this unfilled role
+      const fields = (role.required_fields || []).map(f => {
+        totalFields++;
+        missing++;
+        return { field: f, value: null, status: 'missing', confidence: null, provenance: null };
+      });
+      roleData.entities.push({ entity_id: null, entity_name: '(not found)', fields });
+    } else {
+      for (const entity of matched) {
+        const entityId = entity._id || entity.entity?.entity_id;
+        const entityName = entity.entity?.name?.full || entity.entity?.name?.common || entityId || '(unknown)';
+        const provenanceReport = buildProvenanceReport(entity);
+        const fields = [];
+
+        for (const fieldName of (role.required_fields || [])) {
+          totalFields++;
+          const fieldData = _exportFindField(provenanceReport, entity, fieldName);
+
+          if (!fieldData) {
+            missing++;
+            fields.push({ field: fieldName, value: null, status: 'missing', confidence: null, provenance: null });
+          } else if (fieldData.conflict) {
+            conflictCount++;
+            const src = fieldData.sources && fieldData.sources[0];
+            fields.push({
+              field: fieldName,
+              value: fieldData.value,
+              status: 'conflict',
+              confidence: fieldData.confidence,
+              provenance: src ? { file_id: src.file_id, filename: src.filename, snippet: src.snippet, location: src.location } : null,
+              all_sources: fieldData.sources
+            });
+          } else if (fieldData.confidence != null && fieldData.confidence < 0.8) {
+            lowConf++;
+            const src = fieldData.sources && fieldData.sources[0];
+            fields.push({
+              field: fieldName,
+              value: fieldData.value,
+              status: 'low_confidence',
+              confidence: fieldData.confidence,
+              provenance: src ? { file_id: src.file_id, filename: src.filename, snippet: src.snippet, location: src.location } : null
+            });
+          } else {
+            verified++;
+            const src = fieldData.sources && fieldData.sources[0];
+            fields.push({
+              field: fieldName,
+              value: fieldData.value,
+              status: 'verified',
+              confidence: fieldData.confidence,
+              provenance: src ? { file_id: src.file_id, filename: src.filename, snippet: src.snippet, location: src.location } : null
+            });
+          }
+        }
+
+        roleData.entities.push({ entity_id: entityId, entity_name: entityName, fields });
+      }
+    }
+
+    roles.push(roleData);
+  }
+
+  const exportData = {
+    spoke_id: spoke.id,
+    spoke_name: spoke.name,
+    template_type: templateType,
+    exported_at: new Date().toISOString(),
+    roles,
+    summary: { total_fields: totalFields, verified, low_confidence: lowConf, missing, conflicts: conflictCount }
+  };
+
+  // CSV format
+  if (req.query.format === 'csv') {
+    const csvRows = [['Role', 'Entity', 'Field', 'Value', 'Confidence', 'Status', 'Source File', 'Source Location', 'Snippet']];
+    for (const role of roles) {
+      for (const ent of role.entities) {
+        for (const f of ent.fields) {
+          csvRows.push([
+            role.role,
+            ent.entity_name,
+            f.field,
+            f.value || '',
+            f.confidence != null ? String(f.confidence) : '',
+            f.status,
+            f.provenance?.filename || '',
+            f.provenance?.location || '',
+            f.provenance?.snippet || ''
+          ]);
+        }
+      }
+    }
+    const csv = csvRows.map(row => row.map(cell => '"' + String(cell).replace(/"/g, '""') + '"').join(',')).join('\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${(spoke.name || 'export').replace(/[^a-zA-Z0-9 ]/g, '')}-export.csv"`);
+    return res.send(csv);
+  }
+
+  res.json(exportData);
 });
 
 // POST /api/entity/:id/relationship — Add relationship to entity (DXT-friendly)
@@ -10833,6 +11002,127 @@ const WIKI_HTML = `<!DOCTYPE html>
     font-size: 12px; color: #065F46; margin: 3px;
   }
 
+  /* --- Export View (Build 6) --- */
+  .export-view { padding: 24px 28px; }
+  .export-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+  }
+  .export-title {
+    font-size: 1.3rem; font-weight: 700; color: var(--text-primary);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .export-summary {
+    display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .export-stat {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; color: var(--text-secondary);
+  }
+  .export-stat-count {
+    font-weight: 700; font-size: 18px; line-height: 1;
+  }
+  .export-btn-csv {
+    padding: 8px 16px; border: 1px solid #0a66c2; border-radius: 6px;
+    background: #0a66c2; color: #fff; font-size: 13px; cursor: pointer;
+    font-weight: 600; display: flex; align-items: center; gap: 6px;
+    transition: background 0.15s;
+  }
+  .export-btn-csv:hover { background: #004182; }
+  .export-role-section { margin-bottom: 20px; }
+  .export-role-header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; background: #f8f9fa; border: 1px solid #e0e0e0;
+    border-radius: 8px 8px 0 0; cursor: pointer; user-select: none;
+  }
+  .export-role-header:hover { background: #eef0f2; }
+  .export-role-name {
+    font-size: 14px; font-weight: 700; color: var(--text-primary);
+    flex: 1;
+  }
+  .export-role-chevron {
+    transition: transform 0.2s; font-size: 12px; color: #666;
+  }
+  .export-role-chevron.collapsed { transform: rotate(-90deg); }
+  .export-role-body {
+    border: 1px solid #e0e0e0; border-top: none;
+    border-radius: 0 0 8px 8px; overflow: hidden;
+  }
+  .export-role-body.collapsed { display: none; }
+  .export-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .export-table th {
+    padding: 8px 12px; text-align: left; font-weight: 600;
+    color: var(--text-secondary); font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.03em; background: #fafafa; border-bottom: 1px solid #e0e0e0;
+  }
+  .export-table td {
+    padding: 10px 12px; border-bottom: 1px solid #f0f0f0;
+    color: var(--text-primary); vertical-align: top;
+  }
+  .export-table tr:last-child td { border-bottom: none; }
+  .export-table tr:hover td { background: #f8f9fa; }
+  .export-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 10px;
+    font-size: 11px; font-weight: 600; white-space: nowrap;
+  }
+  .export-badge.verified { background: #DCFCE7; color: #166534; }
+  .export-badge.low_confidence { background: #FEF9C3; color: #854D0E; }
+  .export-badge.conflict { background: #FEE2E2; color: #991B1B; }
+  .export-badge.missing { background: #F3F4F6; color: #6B7280; }
+  .export-source-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; background: #EFF6FF; border: 1px solid #BFDBFE;
+    border-radius: 12px; font-size: 11px; color: #1D4ED8;
+    cursor: pointer; max-width: 200px; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap;
+    transition: background 0.15s;
+  }
+  .export-source-pill:hover { background: #DBEAFE; }
+  .export-source-popover {
+    position: fixed; z-index: 1000; background: #fff;
+    border: 1px solid #d0d0d0; border-radius: 10px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.15); max-width: 440px;
+    padding: 16px; font-size: 13px;
+  }
+  .export-source-popover-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .export-source-popover-title {
+    font-weight: 700; font-size: 13px; color: var(--text-primary);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .export-source-popover-close {
+    background: none; border: none; font-size: 18px; cursor: pointer;
+    color: #999; padding: 0 4px; line-height: 1;
+  }
+  .export-source-popover-close:hover { color: #333; }
+  .export-snippet {
+    background: #FFFBEB; border-left: 3px solid #F59E0B;
+    padding: 10px 12px; border-radius: 0 6px 6px 0;
+    font-size: 13px; line-height: 1.6; color: #191919;
+    margin-bottom: 10px; font-style: italic;
+  }
+  .export-source-meta {
+    font-size: 12px; color: #666; margin-bottom: 10px;
+  }
+  .export-source-meta span { font-weight: 600; color: #333; }
+  .export-btn-view-original {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 5px 12px; background: #f0f0f0; border: 1px solid #d0d0d0;
+    border-radius: 6px; font-size: 12px; color: #333; cursor: pointer;
+    text-decoration: none;
+  }
+  .export-btn-view-original:hover { background: #e0e0e0; }
+  .export-entity-name {
+    font-size: 12px; font-weight: 600; color: #0a66c2;
+    padding: 2px 0; margin-bottom: 4px;
+  }
+  .export-missing-value {
+    color: #9CA3AF; font-style: italic;
+  }
+
 </style>
 </head>
 <body>
@@ -13203,6 +13493,258 @@ function promptSetSelfEntity() {
   });
 }
 
+// --- Export View (Build 6) ---
+var _exportData = null;
+var _exportPopover = null;
+
+function showExportView() {
+  selectedView = 'export';
+  selectedId = null;
+  selectedCategory = null;
+  breadcrumbs = [{ label: 'Export View' }];
+  renderBreadcrumbs();
+  renderSidebar();
+  document.getElementById('main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Loading export data...</div>';
+  var spokeParam = _selectedSpoke ? _selectedSpoke : '';
+  if (!spokeParam) { document.getElementById('main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Select a spoke first</div>'; return; }
+  api('GET', '/api/spoke/' + encodeURIComponent(spokeParam) + '/export').then(function(data) {
+    _exportData = data;
+    renderExportView(data);
+  }).catch(function(err) {
+    if (err.message && err.message.indexOf('No template') >= 0) {
+      document.getElementById('main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Assign a template first via Completeness dashboard.</div>';
+    } else {
+      document.getElementById('main').innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Failed to load export data') + '</div>';
+    }
+  });
+}
+
+function _exportBadgeHtml(status) {
+  var labels = { verified: 'Verified', low_confidence: 'Low Confidence', conflict: 'Conflict', missing: 'Missing' };
+  var icons = {
+    verified: '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>',
+    low_confidence: '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>',
+    conflict: '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    missing: '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
+  };
+  return '<span class="export-badge ' + esc(status) + '">' + (icons[status] || '') + ' ' + (labels[status] || status) + '</span>';
+}
+
+function _exportFormatLabel(item) {
+  return (item || '').replace(/_/g, ' ').replace(/\\b[a-z]/g, function(l) { return l.toUpperCase(); });
+}
+
+function renderExportView(data) {
+  var s = data.summary || {};
+  var h = '<div class="export-view">';
+
+  // Header
+  h += '<div class="export-header">';
+  h += '<div class="export-title">';
+  h += '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
+  h += ' ' + esc(data.spoke_name || 'Export') + ' — Data Export</div>';
+  h += '<button class="export-btn-csv" onclick="downloadExportCsv()">';
+  h += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+  h += ' Download CSV</button>';
+  h += '</div>';
+
+  // Summary stats
+  h += '<div class="export-summary">';
+  h += '<div class="export-stat"><div class="export-stat-count" style="color:#191919;">' + (s.total_fields || 0) + '</div> Total Fields</div>';
+  h += '<div class="export-stat"><div class="export-stat-count" style="color:#16A34A;">' + (s.verified || 0) + '</div> Verified</div>';
+  h += '<div class="export-stat"><div class="export-stat-count" style="color:#CA8A04;">' + (s.low_confidence || 0) + '</div> Low Confidence</div>';
+  h += '<div class="export-stat"><div class="export-stat-count" style="color:#DC2626;">' + (s.conflicts || 0) + '</div> Conflicts</div>';
+  h += '<div class="export-stat"><div class="export-stat-count" style="color:#6B7280;">' + (s.missing || 0) + '</div> Missing</div>';
+  h += '</div>';
+
+  // Role sections
+  var roles = data.roles || [];
+  for (var ri = 0; ri < roles.length; ri++) {
+    var role = roles[ri];
+    h += '<div class="export-role-section" id="exportRole' + ri + '">';
+
+    // Collapsible header
+    h += '<div class="export-role-header" onclick="toggleExportRole(' + ri + ')">';
+    h += '<span class="export-role-chevron" id="exportChevron' + ri + '">&#9660;</span>';
+    h += '<span class="export-role-name">' + esc(_exportFormatLabel(role.role)) + '</span>';
+    var roleVerified = 0, roleTotal = 0;
+    for (var ei = 0; ei < (role.entities || []).length; ei++) {
+      var ent = role.entities[ei];
+      for (var fi = 0; fi < (ent.fields || []).length; fi++) {
+        roleTotal++;
+        if (ent.fields[fi].status === 'verified') roleVerified++;
+      }
+    }
+    h += '<span style="font-size:12px;color:#666;">' + roleVerified + '/' + roleTotal + ' fields</span>';
+    h += '</div>';
+
+    // Table body
+    h += '<div class="export-role-body" id="exportBody' + ri + '">';
+    h += '<table class="export-table">';
+    h += '<thead><tr><th>Field</th><th>Value</th><th>Confidence</th><th>Source</th></tr></thead>';
+    h += '<tbody>';
+
+    for (var ei = 0; ei < (role.entities || []).length; ei++) {
+      var ent = role.entities[ei];
+      // Entity name row if multiple entities in role
+      if (role.entities.length > 1 || ent.entity_name !== '(not found)') {
+        h += '<tr><td colspan="4" class="export-entity-name">' + esc(ent.entity_name || '') + (ent.entity_id ? ' <span style="color:#999;font-weight:400;">(' + esc(ent.entity_id) + ')</span>' : '') + '</td></tr>';
+      }
+
+      for (var fi = 0; fi < (ent.fields || []).length; fi++) {
+        var f = ent.fields[fi];
+        h += '<tr>';
+        // Field name
+        h += '<td style="font-weight:500;">' + esc(_exportFormatLabel(f.field)) + '</td>';
+        // Value
+        if (f.value) {
+          h += '<td>' + esc(String(f.value)) + '</td>';
+        } else {
+          h += '<td><span class="export-missing-value">—</span></td>';
+        }
+        // Confidence badge
+        h += '<td>' + _exportBadgeHtml(f.status) + '</td>';
+        // Source
+        if (f.provenance && f.provenance.filename) {
+          var popId = 'pop_' + ri + '_' + ei + '_' + fi;
+          h += '<td><span class="export-source-pill" onclick="showExportPopover(event, ' + ri + ',' + ei + ',' + fi + ')">';
+          h += '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+          h += esc(f.provenance.filename);
+          h += '</span></td>';
+        } else {
+          h += '<td><span style="color:#ccc;font-size:11px;">—</span></td>';
+        }
+        h += '</tr>';
+      }
+    }
+
+    h += '</tbody></table></div></div>';
+  }
+
+  h += '</div>';
+  document.getElementById('main').innerHTML = h;
+}
+
+function toggleExportRole(idx) {
+  var body = document.getElementById('exportBody' + idx);
+  var chevron = document.getElementById('exportChevron' + idx);
+  if (!body) return;
+  var isCollapsed = body.classList.contains('collapsed');
+  if (isCollapsed) {
+    body.classList.remove('collapsed');
+    chevron.classList.remove('collapsed');
+  } else {
+    body.classList.add('collapsed');
+    chevron.classList.add('collapsed');
+  }
+}
+
+function showExportPopover(event, ri, ei, fi) {
+  event.stopPropagation();
+  closeExportPopover();
+  if (!_exportData) return;
+  var role = _exportData.roles[ri];
+  if (!role) return;
+  var ent = role.entities[ei];
+  if (!ent) return;
+  var f = ent.fields[fi];
+  if (!f || !f.provenance) return;
+
+  var prov = f.provenance;
+  var div = document.createElement('div');
+  div.className = 'export-source-popover';
+  div.id = 'exportPopover';
+
+  var html = '<div class="export-source-popover-header">';
+  html += '<div class="export-source-popover-title">';
+  html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0a66c2" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+  html += esc(prov.filename || 'Source');
+  html += '</div>';
+  html += '<button class="export-source-popover-close" onclick="closeExportPopover()">&times;</button>';
+  html += '</div>';
+
+  if (prov.snippet) {
+    html += '<div class="export-snippet">"' + esc(prov.snippet) + '"</div>';
+  }
+
+  html += '<div class="export-source-meta">';
+  if (prov.location) html += '<div>Location: <span>' + esc(prov.location) + '</span></div>';
+  html += '<div>File: <span>' + esc(prov.filename) + '</span></div>';
+  html += '</div>';
+
+  if (prov.file_id && _selectedSpoke) {
+    html += '<a class="export-btn-view-original" href="/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/file/' + encodeURIComponent(prov.file_id) + '" target="_blank">';
+    html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+    html += ' View Original</a>';
+  }
+
+  // Show conflict sources if status is conflict
+  if (f.status === 'conflict' && f.all_sources && f.all_sources.length > 1) {
+    html += '<div style="margin-top:12px;padding-top:10px;border-top:1px solid #eee;">';
+    html += '<div style="font-weight:600;font-size:12px;color:#991B1B;margin-bottom:6px;">Conflicting Sources</div>';
+    for (var si = 0; si < f.all_sources.length; si++) {
+      var src = f.all_sources[si];
+      html += '<div style="padding:6px 0;border-bottom:1px solid #f5f5f5;font-size:12px;">';
+      html += '<div style="font-weight:600;">' + esc(src.filename || '') + '</div>';
+      if (src.snippet) html += '<div style="font-style:italic;color:#666;margin-top:2px;">"' + esc(src.snippet) + '"</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+  }
+
+  div.innerHTML = html;
+  document.body.appendChild(div);
+
+  // Position near click
+  var rect = event.target.getBoundingClientRect();
+  var top = rect.bottom + 8;
+  var left = rect.left;
+  if (left + 440 > window.innerWidth) left = window.innerWidth - 460;
+  if (top + 300 > window.innerHeight) top = rect.top - 310;
+  div.style.top = Math.max(10, top) + 'px';
+  div.style.left = Math.max(10, left) + 'px';
+
+  _exportPopover = div;
+  setTimeout(function() {
+    document.addEventListener('click', _exportPopoverClickAway);
+  }, 50);
+}
+
+function closeExportPopover() {
+  if (_exportPopover) {
+    _exportPopover.remove();
+    _exportPopover = null;
+  }
+  document.removeEventListener('click', _exportPopoverClickAway);
+}
+
+function _exportPopoverClickAway(e) {
+  if (_exportPopover && !_exportPopover.contains(e.target)) {
+    closeExportPopover();
+  }
+}
+
+function downloadExportCsv() {
+  if (!_selectedSpoke) return;
+  var url = '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/export?format=csv';
+  // Use fetch with auth headers then trigger download
+  fetch(url, { headers: getAuthHeaders() })
+    .then(function(resp) {
+      if (!resp.ok) throw new Error('Download failed');
+      return resp.blob();
+    })
+    .then(function(blob) {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (_exportData && _exportData.spoke_name ? _exportData.spoke_name.replace(/[^a-zA-Z0-9 ]/g, '') : 'export') + '-export.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(a.href);
+    })
+    .catch(function(err) { toast('CSV download failed: ' + err.message); });
+}
+
 // --- Spoke Selector ---
 
 function loadSpokes() {
@@ -13325,6 +13867,10 @@ function renderSidebar() {
     html += '<div class="sb-nav-item' + (compActive ? ' active' : '') + '" onclick="showCompletenessDashboard()">';
     html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>';
     html += 'Completeness</div>';
+    var exportActive = (selectedView === 'export');
+    html += '<div class="sb-nav-item' + (exportActive ? ' active' : '') + '" onclick="showExportView()">';
+    html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>';
+    html += 'Export View</div>';
   }
 
   // ── PROJECTS section ──
@@ -18478,6 +19024,17 @@ const MCP_TOOLS = [
       },
       required: ['entity']
     }
+  },
+  {
+    name: 'export_spoke',
+    description: 'Export all extracted data from a client spoke as a structured table with source attribution. Returns a natural language summary showing which required fields are verified, missing, or conflicting. Use when the user asks to "export", "show all data", "give me a spreadsheet", or wants a complete overview of what has been extracted for a client matter.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        spoke: { type: 'string', description: 'Spoke ID or name to export' }
+      },
+      required: ['spoke']
+    }
   }
 ];
 
@@ -18854,13 +19411,88 @@ async function mcpGetProvenance(args, graphDir) {
   return { entity_id: entityId, entity_name: eName, fields, message };
 }
 
+async function mcpExportSpoke(args, graphDir) {
+  const { spoke } = args || {};
+  if (!spoke) throw new Error('spoke is required');
+
+  // Resolve spoke by ID or name
+  let spokeObj = getSpoke(graphDir, spoke);
+  if (!spokeObj) {
+    const spokes = loadSpokes(graphDir);
+    spokeObj = Object.values(spokes).find(s => s.name && s.name.toLowerCase() === spoke.toLowerCase());
+  }
+  if (!spokeObj) throw new Error(`Spoke not found: ${spoke}`);
+
+  const templateType = spokeObj.template_type;
+  if (!templateType) throw new Error(`No template assigned to spoke "${spokeObj.name}". Assign one first.`);
+
+  const template = getTemplate(templateType);
+  if (!template) throw new Error(`Template "${templateType}" not found`);
+
+  const allEnts = listEntities(graphDir);
+  const spokeEntities = allEnts
+    .filter(e => e.data.spoke_id === spokeObj.id)
+    .map(e => ({ ...e.data, _id: e.id }));
+
+  // Build natural language summary
+  const parts = [];
+  let totalFields = 0, verifiedCount = 0;
+
+  for (const role of (template.required_entities || [])) {
+    const matched = _exportMatchEntityToRole(role, spokeEntities);
+    const roleParts = [];
+
+    if (matched.length === 0 && !role.optional) {
+      for (const f of (role.required_fields || [])) {
+        totalFields++;
+        roleParts.push(f.replace(/_/g, ' ') + ' \u2717 (missing)');
+      }
+      parts.push(`${role.role.replace(/_/g, ' ')}: (no entity found) — ${roleParts.join(', ')}`);
+    } else {
+      for (const entity of matched) {
+        const entityName = entity.entity?.name?.full || entity.entity?.name?.common || '(unknown)';
+        const provReport = buildProvenanceReport(entity);
+        const fieldParts = [];
+
+        for (const fieldName of (role.required_fields || [])) {
+          totalFields++;
+          const fieldData = _exportFindField(provReport, entity, fieldName);
+          if (fieldData && fieldData.value) {
+            verifiedCount++;
+            fieldParts.push(fieldName.replace(/_/g, ' ') + ' \u2713');
+          } else {
+            fieldParts.push(fieldName.replace(/_/g, ' ') + ' \u2717 (missing)');
+          }
+        }
+
+        const roleLabel = role.role.replace(/_/g, ' ');
+        parts.push(`${roleLabel}: ${entityName} — ${fieldParts.join(', ')}`);
+      }
+    }
+  }
+
+  const spokeName = spokeObj.name || spoke;
+  const message = `${spokeName} export: ${verifiedCount} of ${totalFields} required fields verified.\n${parts.join('\n')}`;
+
+  return {
+    spoke_id: spokeObj.id,
+    spoke_name: spokeName,
+    template_type: templateType,
+    total_fields: totalFields,
+    verified: verifiedCount,
+    missing: totalFields - verifiedCount,
+    message
+  };
+}
+
 const MCP_HANDLERS = {
   build_graph: mcpBuildGraph,
   query: mcpQuery,
   update: mcpUpdate,
   sync: mcpSync,
   analyze_gaps: mcpAnalyzeGaps,
-  get_provenance: mcpGetProvenance
+  get_provenance: mcpGetProvenance,
+  export_spoke: mcpExportSpoke
 };
 
 // --- JSON-RPC helpers ---
