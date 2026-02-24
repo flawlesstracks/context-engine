@@ -3944,13 +3944,24 @@ app.get('/api/entity/:id/context', apiAuth, (req, res) => {
   });
 });
 
-// GET /api/query?q= — Natural language graph query (MECE-011)
+// GET /api/query?q=&spoke_id= — Natural language graph query (MECE-011)
 app.get('/api/query', apiAuth, async (req, res) => {
   const q = (req.query.q || '').trim();
   if (!q) return res.status(400).json({ error: 'Missing query parameter q' });
 
+  const spokeId = req.query.spoke_id || null;
+  let queryOpts = null;
+  if (spokeId) {
+    const spoke = getSpoke(req.graphDir, spokeId);
+    queryOpts = {
+      spokeId,
+      spokeName: spoke?.name || spokeId,
+      centeredEntityName: spoke?.centered_entity_name || null,
+    };
+  }
+
   try {
-    const result = await queryEngine(q, req.graphDir);
+    const result = await queryEngine(q, req.graphDir, queryOpts);
     res.json(result);
   } catch (err) {
     console.error('Query engine error:', err);
@@ -4345,7 +4356,7 @@ app.post('/api/webhook/:provider', async (req, res) => {
   }
 });
 
-// GET /api/search?q=&type= — Fuzzy search entities with optional type filter
+// GET /api/search?q=&type=&spoke_id= — Fuzzy search entities with optional type/spoke filter
 app.get('/api/search', apiAuth, (req, res) => {
   const q = (req.query.q || '').toLowerCase().trim();
   if (!q) return res.status(400).json({ error: 'Missing query parameter q' });
@@ -4353,9 +4364,10 @@ app.get('/api/search', apiAuth, (req, res) => {
   const typeFilter = req.query.type
     ? req.query.type.split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
     : null;
+  const spokeFilter = req.query.spoke_id || null;
 
   const { similarity } = require('./merge-engine');
-  let entities = listEntities(req.graphDir);
+  let entities = listEntities(req.graphDir, spokeFilter ? { spokeId: spokeFilter } : undefined);
 
   // Apply type filter if specified
   if (typeFilter) {
@@ -5939,7 +5951,7 @@ app.post('/api/extract-linkedin', apiAuth, async (req, res) => {
   }
 });
 
-// GET /api/entities/category/:category — List entities by wiki category
+// GET /api/entities/category/:category?spoke_id= — List entities by wiki category
 app.get('/api/entities/category/:category', apiAuth, (req, res) => {
   const category = req.params.category.toLowerCase();
   const validCategories = ['family', 'friends', 'professional', 'other', 'career', 'education', 'affiliations', 'services'];
@@ -5947,7 +5959,8 @@ app.get('/api/entities/category/:category', apiAuth, (req, res) => {
     return res.status(400).json({ error: `Invalid category. Valid: ${validCategories.join(', ')}` });
   }
 
-  const entities = listEntities(req.graphDir);
+  const spokeFilter = req.query.spoke_id || null;
+  const entities = listEntities(req.graphDir, spokeFilter ? { spokeId: spokeFilter } : undefined);
   const results = [];
 
   for (const { data } of entities) {
@@ -7870,6 +7883,26 @@ const WIKI_HTML = `<!DOCTYPE html>
     background: #e0e0e0; font-size: 10px; font-weight: 600;
     display: flex; align-items: center; justify-content: center;
     color: #666;
+  }
+
+  /* --- Spoke Selector --- */
+  .spoke-selector-wrap {
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border-primary);
+  }
+  .spoke-selector-wrap select {
+    width: 100%; padding: 6px 8px;
+    border: 1px solid var(--border); border-radius: 6px;
+    background: var(--bg-surface); color: var(--text-primary);
+    font-size: 0.82rem; cursor: pointer;
+    outline: none;
+  }
+  .spoke-selector-wrap select:focus {
+    border-color: var(--accent-primary);
+  }
+  .spoke-centered-label {
+    display: flex; align-items: center; gap: 4px;
+    margin-top: 4px; font-size: 0.75rem; color: var(--text-muted);
   }
 
   /* --- Sidebar Bottom --- */
@@ -10357,6 +10390,8 @@ const WIKI_HTML = `<!DOCTYPE html>
         </div>
       </div>
     </div>
+    <!-- Spoke selector -->
+    <div id="spokeSelector"></div>
     <!-- Dynamic content -->
     <div id="entityList"></div>
     <!-- Bottom user section -->
@@ -10401,6 +10436,8 @@ var selectedCategory = null;
 var breadcrumbs = [];
 var recentEntities = [];
 var _sbProjectsExpanded = false;
+var _selectedSpoke = null;  // null = "All", or spoke ID
+var _spokesList = [];       // [{id, name, centered_entity_name, entity_count}]
 
 function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
@@ -12167,6 +12204,8 @@ function enterApp(user) {
   });
   // Load review queue badge count
   refreshReviewQueueBadge();
+  // Load spoke selector
+  loadSpokes();
 }
 
 function logout() {
@@ -12204,6 +12243,7 @@ function login() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
     renderSidebar();
+    loadSpokes();
   }).catch(function(err) {
     var el = document.getElementById('loginError');
     el.textContent = err.message; el.classList.add('active');
@@ -12253,7 +12293,7 @@ function onSearch(immediate) {
       breadcrumbs = [{ label: 'Query: ' + q }];
       renderBreadcrumbs();
       document.getElementById('main').innerHTML = '<div style="padding:24px 28px;color:var(--text-muted);">Thinking...</div>';
-      api('GET', '/api/query?q=' + encodeURIComponent(q)).then(function(data) {
+      api('GET', '/api/query?q=' + encodeURIComponent(q) + spokeParam()).then(function(data) {
         renderQueryResult(data, q);
       }).catch(function(err) {
         document.getElementById('main').innerHTML = '<div style="padding:24px 28px;color:#c0392b;">Query failed: ' + esc(err.message || 'Unknown error') + '</div>';
@@ -12261,7 +12301,7 @@ function onSearch(immediate) {
       return;
     }
 
-    var url = '/api/search?q=' + encodeURIComponent(q);
+    var url = '/api/search?q=' + encodeURIComponent(q) + spokeParam();
     api('GET', url).then(function(data) {
       var results = data.results || [];
       entities = results;
@@ -12421,6 +12461,73 @@ function promptSetSelfEntity() {
         selectView('overview');
       });
     });
+  });
+}
+
+// --- Spoke Selector ---
+
+function loadSpokes() {
+  api('GET', '/api/spokes').then(function(data) {
+    _spokesList = data.spokes || [];
+    renderSpokeSelector();
+  }).catch(function() {
+    _spokesList = [];
+  });
+}
+
+function spokeParam() {
+  return _selectedSpoke ? '&spoke_id=' + encodeURIComponent(_selectedSpoke) : '';
+}
+
+function renderSpokeSelector() {
+  var el = document.getElementById('spokeSelector');
+  if (!el) return;
+  // Hide if only default spoke (or no spokes)
+  if (_spokesList.length <= 1) { el.innerHTML = ''; return; }
+
+  var html = '<div class="spoke-selector-wrap">';
+  html += '<select id="spokeSelect" onchange="onSpokeChange()">';
+  html += '<option value="">All Spokes</option>';
+  for (var i = 0; i < _spokesList.length; i++) {
+    var s = _spokesList[i];
+    var sel = (_selectedSpoke === s.id) ? ' selected' : '';
+    var label = s.name + ' (' + (s.entity_count || 0) + ')';
+    html += '<option value="' + esc(s.id) + '"' + sel + '>' + esc(label) + '</option>';
+  }
+  html += '</select>';
+
+  // Show centered entity when a spoke is selected
+  if (_selectedSpoke) {
+    var spoke = null;
+    for (var i = 0; i < _spokesList.length; i++) {
+      if (_spokesList[i].id === _selectedSpoke) { spoke = _spokesList[i]; break; }
+    }
+    if (spoke && spoke.centered_entity_name) {
+      html += '<div class="spoke-centered-label">';
+      html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="#f1c40f" stroke="#f1c40f" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg> ';
+      html += esc(spoke.centered_entity_name);
+      html += '</div>';
+    }
+  }
+
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function onSpokeChange() {
+  var sel = document.getElementById('spokeSelect');
+  _selectedSpoke = sel ? (sel.value || null) : null;
+  renderSpokeSelector();
+  refreshEntityList();
+}
+
+function refreshEntityList(callback) {
+  var url = '/api/search?q=*' + spokeParam();
+  api('GET', url).then(function(data) {
+    allEntities = data.results || [];
+    entities = allEntities.slice();
+    renderSidebar();
+    if (callback) callback();
   });
 }
 
@@ -17555,7 +17662,8 @@ const MCP_TOOLS = [
     inputSchema: {
       type: 'object',
       properties: {
-        question: { type: 'string', description: 'Natural language question about entities, relationships, or the knowledge graph' }
+        question: { type: 'string', description: 'Natural language question about entities, relationships, or the knowledge graph' },
+        spoke: { type: 'string', description: 'Optional spoke ID or name to scope the query to a specific client, project, or matter. When provided, only entities in that spoke are searched.' }
       },
       required: ['question']
     }
@@ -17676,12 +17784,30 @@ async function mcpBuildGraph(args, graphDir) {
 }
 
 async function mcpQuery(args, graphDir) {
-  const { question } = args || {};
+  const { question, spoke } = args || {};
   if (!question) throw new Error('question is required');
-  const response = await queryEngine(question, graphDir);
+
+  let queryOpts = null;
+  if (spoke) {
+    // Resolve spoke by ID or name
+    const spokeObj = getSpoke(graphDir, spoke);
+    if (spokeObj) {
+      queryOpts = { spokeId: spokeObj.id, spokeName: spokeObj.name, centeredEntityName: spokeObj.centered_entity_name };
+    } else {
+      // Try by name
+      const spokes = loadSpokes(graphDir);
+      const byName = Object.values(spokes).find(s => s.name.toLowerCase() === spoke.toLowerCase());
+      if (byName) {
+        queryOpts = { spokeId: byName.id, spokeName: byName.name, centeredEntityName: byName.centered_entity_name };
+      }
+    }
+  }
+
+  const response = await queryEngine(question, graphDir, queryOpts);
   return {
     answer: response.answer,
     query_type: response.query?.type,
+    spoke_id: response.query?.spoke_id || null,
     entities: response.entities || [],
     paths: response.paths || [],
     gaps: response.gaps || [],

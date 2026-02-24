@@ -98,7 +98,8 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
-        question: { type: "string", description: "Natural language question about entities, relationships, or the knowledge graph" }
+        question: { type: "string", description: "Natural language question about entities, relationships, or the knowledge graph" },
+        spoke: { type: "string", description: "Optional spoke ID or name to scope the query to a specific client, project, or matter. When provided, only entities in that spoke are searched." }
       },
       required: ["question"]
     }
@@ -178,8 +179,9 @@ async function handleBuildGraph({ files, set_self_entity, spoke }) {
   };
 }
 
-async function handleQuery({ question }) {
-  const response = await api.get(`/api/query?q=${encodeURIComponent(question)}`);
+async function handleQuery({ question, spoke }) {
+  const params = spoke ? `&spoke_id=${encodeURIComponent(spoke)}` : '';
+  const response = await api.get(`/api/query?q=${encodeURIComponent(question)}${params}`);
   return {
     answer: response.answer,
     query_type: response.query?.type,

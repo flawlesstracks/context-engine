@@ -189,11 +189,11 @@ function _flattenObj(obj, prefix = '') {
  * @returns {Array} matching entities sorted by relevance
  */
 function searchEntities(queryStr, graphDir, options = {}) {
-  const { type, limit = 10, minConfidence = 0 } = options;
+  const { type, limit = 10, minConfidence = 0, spokeId } = options;
   const q = queryStr.toLowerCase().trim();
   if (!q) return [];
 
-  const allEntities = listEntities(graphDir);
+  const allEntities = listEntities(graphDir, spokeId ? { spokeId } : undefined);
   const results = [];
 
   for (const { file, data } of allEntities) {
@@ -308,8 +308,9 @@ function _reverseLabel(label) {
  * Returns: { entityId: [{ targetId, targetName, relationship, confidence, source }] }
  * Also includes a name→id lookup map.
  */
-function buildRelationshipIndex(graphDir) {
-  const allEntities = listEntities(graphDir);
+function buildRelationshipIndex(graphDir, opts) {
+  const spokeId = opts?.spokeId;
+  const allEntities = listEntities(graphDir, spokeId ? { spokeId } : undefined);
   const edges = {};   // entityId → array of edges
   const nameToId = {}; // lowercase name → entityId
 
@@ -487,8 +488,9 @@ function getNeighborhood(entityId, index, depth = 2) {
  * @param {string} graphDir
  * @returns {Array} matching entities
  */
-function filterEntities(filters, graphDir) {
-  const allEntities = listEntities(graphDir);
+function filterEntities(filters, graphDir, opts) {
+  const spokeId = opts?.spokeId;
+  const allEntities = listEntities(graphDir, spokeId ? { spokeId } : undefined);
   const results = [];
 
   for (const { file, data } of allEntities) {
@@ -850,7 +852,7 @@ const SELF_PRONOUNS = /\b(my|i|me|mine|myself|our|i'm|i've|i'd)\b/gi;
  * @param {string} graphDir
  * @returns {Array<{entityId, name, score, isSelf?: boolean}>}
  */
-function resolveEntities(question, graphDir) {
+function resolveEntities(question, graphDir, opts) {
   let q = question.replace(/[?!.,;:'"]/g, ' ').trim();
 
   // Substitute self-pronouns with self-entity name
@@ -887,7 +889,7 @@ function resolveEntities(question, graphDir) {
     // Skip if overlaps with already-matched range
     if (usedRanges.some(r => cand.start < r.end && cand.end > r.start)) continue;
 
-    const results = searchEntities(cand.phrase, graphDir, { limit: 1, minConfidence: 0.6 });
+    const results = searchEntities(cand.phrase, graphDir, { limit: 1, minConfidence: 0.6, spokeId: opts?.spokeId });
     if (results.length > 0) {
       const match = results[0];
       // Avoid duplicate entity IDs
@@ -911,8 +913,9 @@ function resolveEntities(question, graphDir) {
 // Main entry point — Step 9
 // ---------------------------------------------------------------------------
 
-async function query(question, graphDir) {
+async function query(question, graphDir, opts) {
   const startTime = Date.now();
+  const spokeId = opts?.spokeId;
 
   // Q1: Classify
   const classStart = Date.now();
@@ -921,7 +924,7 @@ async function query(question, graphDir) {
 
   // Q2: Resolve entities + graph operations
   const graphStart = Date.now();
-  const resolved = resolveEntities(question, graphDir);
+  const resolved = resolveEntities(question, graphDir, { spokeId });
 
   let synthesisData = {};
   let result;
@@ -941,7 +944,7 @@ async function query(question, graphDir) {
     }
     case 'RELATIONSHIP': {
       if (resolved.length >= 2) {
-        const index = buildRelationshipIndex(graphDir);
+        const index = buildRelationshipIndex(graphDir, { spokeId });
         const paths = findPaths(resolved[0].entityId, resolved[1].entityId, index, 4);
         synthesisData = {
           paths,
@@ -951,7 +954,7 @@ async function query(question, graphDir) {
           targetIsSelf: resolved[1].isSelf,
         };
       } else if (resolved.length === 1) {
-        const index = buildRelationshipIndex(graphDir);
+        const index = buildRelationshipIndex(graphDir, { spokeId });
         const hood = getNeighborhood(resolved[0].entityId, index, 2);
         const neighbors = hood.rings.flatMap(r => r.entities);
         synthesisData = { paths: [], sourceName: resolved[0].name, targetName: 'unknown', sourceIsSelf: resolved[0].isSelf };
@@ -969,7 +972,7 @@ async function query(question, graphDir) {
       else if (/institution/.test(q)) typeFilter = 'institution';
 
       const filters = typeFilter ? { type: typeFilter } : {};
-      const entities = typeFilter ? filterEntities(filters, graphDir) : filterEntities({}, graphDir);
+      const entities = filterEntities(filters, graphDir, { spokeId });
       synthesisData = { entities, question, isSelf: SELF_PRONOUNS.test(question) };
       break;
     }
@@ -1004,13 +1007,23 @@ async function query(question, graphDir) {
   result = synthesizeAnswer(queryType, synthesisData);
   const synthesisMs = Date.now() - synthStart;
 
+  // Add spoke context to answer if scoped
+  let answer = result.answer;
+  if (spokeId && opts?.spokeName && answer) {
+    const spokePrefix = opts.centeredEntityName
+      ? `[Context: ${opts.spokeName}, centered on ${opts.centeredEntityName}] `
+      : `[Context: ${opts.spokeName}] `;
+    answer = spokePrefix + answer;
+  }
+
   return {
-    answer: result.answer,
+    answer,
     query: {
       original: question,
       type: queryType,
       classified_by: 'keyword',
       entities_resolved: resolved.map(r => r.entityId),
+      spoke_id: spokeId || null,
     },
     entities: result.entities,
     paths: result.paths,
