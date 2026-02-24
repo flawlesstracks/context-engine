@@ -19,6 +19,7 @@ const { analyzeEntityHealth, getRelationshipTier, getTierInfo } = require('./src
 const { parse: universalParse } = require('./universal-parser');
 const { query: queryEngine, getSelfEntity, clearSelfEntityCache } = require('./query-engine');
 const { loadSpokes, createSpoke, getSpoke, updateSpoke, setCenteredEntity, deleteSpoke, listSpokesWithCounts, migrateEntitiesToSpokes } = require('./src/spoke-ops');
+const { loadTemplates, getTemplate, saveTemplates, analyzeGaps } = require('./src/gap-analysis');
 const { createConnection, getConnection, getConnectionDecrypted, updateConnection, deleteConnection: deleteConn, listConnections } = require('./src/connector-ops');
 const { getRegisteredProviders, getConnectorClass } = require('./src/connectors/base-connector');
 const { buildAuthorizeUrl, validateState, exchangeCodeForTokens, OAUTH_STATE_COOKIE } = require('./src/connectors/oauth-handler');
@@ -4091,6 +4092,83 @@ app.post('/api/spokes/migrate', apiAuth, (req, res) => {
   // Ensure spokes.json exists (loadSpokes bootstraps default spoke)
   loadSpokes(req.graphDir);
   res.json({ status: 'migrated', entities_updated: count });
+});
+
+// ---------------------------------------------------------------------------
+// Gap Analysis Endpoints (MECE-019)
+// ---------------------------------------------------------------------------
+
+// GET /api/templates — List all matter templates (id, label, category count)
+app.get('/api/templates', apiAuth, (req, res) => {
+  const templates = loadTemplates();
+  const list = Object.entries(templates).map(([id, t]) => ({
+    id,
+    label: t.label,
+    category_count: (t.required_documents || []).length,
+    entity_roles: (t.required_entities || []).length
+  }));
+  res.json({ templates: list });
+});
+
+// GET /api/templates/:type — Full template detail
+app.get('/api/templates/:type', apiAuth, (req, res) => {
+  const template = getTemplate(req.params.type);
+  if (!template) return res.status(404).json({ error: 'Template not found', available: Object.keys(loadTemplates()) });
+  res.json({ id: req.params.type, ...template });
+});
+
+// POST /api/templates/custom — Create custom template (reject overwriting built-ins)
+app.post('/api/templates/custom', apiAuth, (req, res) => {
+  const { id, label, required_documents, required_entities } = req.body || {};
+  if (!id || !label) return res.status(400).json({ error: 'id and label are required' });
+  const builtIns = ['estate_planning', 'corporate_formation', 'tax_preparation', 'personal_injury', 'general'];
+  if (builtIns.includes(id)) return res.status(409).json({ error: `Cannot overwrite built-in template: ${id}` });
+  const templates = loadTemplates();
+  templates[id] = { label, required_documents: required_documents || [], required_entities: required_entities || [] };
+  saveTemplates(templates);
+  res.json({ status: 'created', id, label });
+});
+
+// PUT /api/spoke/:id/template — Assign template to spoke, clear cached analysis
+app.put('/api/spoke/:id/template', apiAuth, (req, res) => {
+  const { template_type } = req.body || {};
+  if (!template_type) return res.status(400).json({ error: 'template_type is required' });
+  const template = getTemplate(template_type);
+  if (!template) return res.status(404).json({ error: 'Template not found', available_templates: Object.keys(loadTemplates()) });
+  const spoke = getSpoke(req.graphDir, req.params.id);
+  if (!spoke) return res.status(404).json({ error: 'Spoke not found' });
+  const updated = updateSpoke(req.graphDir, req.params.id, { template_type, gap_analysis: null, document_classification: null });
+  res.json({ status: 'assigned', spoke_id: req.params.id, template_type, spoke: updated });
+});
+
+// GET /api/spoke/:id/gaps — Run gap analysis (cached unless ?refresh=true)
+app.get('/api/spoke/:id/gaps', apiAuth, async (req, res) => {
+  try {
+    const spoke = getSpoke(req.graphDir, req.params.id);
+    if (!spoke) return res.status(404).json({ error: 'Spoke not found' });
+
+    const templateType = req.query.template || spoke.template_type;
+    if (!templateType) {
+      return res.status(400).json({
+        error: 'No template assigned to this spoke. Assign one with PUT /api/spoke/:id/template or pass ?template=type',
+        available_templates: Object.keys(loadTemplates())
+      });
+    }
+
+    // Return cached if available and not refreshing
+    if (spoke.gap_analysis && !req.query.refresh) {
+      return res.json({ ...spoke.gap_analysis, cached: true });
+    }
+
+    const report = await analyzeGaps(req.params.id, req.graphDir, templateType);
+
+    // Cache on spoke
+    updateSpoke(req.graphDir, req.params.id, { gap_analysis: report, template_type: templateType });
+
+    res.json(report);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -10319,6 +10397,97 @@ const WIKI_HTML = `<!DOCTYPE html>
   .li-people-name { font-size: 14px; font-weight: 600; color: #191919; }
   .li-people-role { font-size: 13px; color: #666; }
 
+  /* --- Gap Analysis Dashboard (MECE-019) --- */
+  .gap-dashboard { padding: 24px 28px; }
+  .gap-dashboard-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+  }
+  .gap-dashboard-title {
+    font-size: 1.3rem; font-weight: 700; color: var(--text-primary);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .gap-dashboard-controls { display: flex; align-items: center; gap: 10px; }
+  .gap-dashboard-controls select {
+    padding: 6px 12px; border: 1px solid #d0d0d0; border-radius: 6px;
+    font-size: 13px; background: #fff; cursor: pointer;
+  }
+  .gap-dashboard-controls button {
+    padding: 6px 14px; border: 1px solid #0a66c2; border-radius: 6px;
+    background: #0a66c2; color: #fff; font-size: 13px; cursor: pointer;
+    transition: background 0.15s;
+  }
+  .gap-dashboard-controls button:hover { background: #004182; }
+  .gap-ring-container {
+    display: flex; align-items: center; justify-content: center;
+    gap: 40px; margin-bottom: 28px; flex-wrap: wrap;
+  }
+  .gap-ring {
+    position: relative; width: 160px; height: 160px;
+    border-radius: 50%;
+  }
+  .gap-ring-label {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    text-align: center;
+  }
+  .gap-ring-pct { font-size: 2rem; font-weight: 700; line-height: 1; }
+  .gap-ring-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+  .gap-score-bars { flex: 1; min-width: 260px; }
+  .gap-score-bar {
+    margin-bottom: 14px;
+  }
+  .gap-score-bar-header {
+    display: flex; justify-content: space-between; font-size: 13px;
+    margin-bottom: 4px; color: var(--text-primary);
+  }
+  .gap-score-bar-track {
+    height: 10px; background: #e8e8e8; border-radius: 5px; overflow: hidden;
+  }
+  .gap-score-bar-fill {
+    height: 100%; border-radius: 5px; transition: width 0.4s ease;
+  }
+  .gap-category {
+    margin-bottom: 20px;
+  }
+  .gap-category-title {
+    font-size: 0.95rem; font-weight: 600; color: var(--text-primary);
+    margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+  }
+  .gap-category-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 10px;
+  }
+  .gap-missing-item {
+    display: flex; align-items: flex-start; gap: 8px; padding: 10px 14px;
+    border: 1px solid #e0e0e0; border-radius: 8px; background: #fff;
+    font-size: 13px;
+  }
+  .gap-missing-item svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+  .gap-missing-item .gap-item-name { font-weight: 500; color: var(--text-primary); }
+  .gap-missing-item .gap-item-detail { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .gap-priority-badge {
+    font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 8px;
+    text-transform: uppercase; letter-spacing: 0.3px; margin-left: auto; flex-shrink: 0;
+  }
+  .gap-priority-badge.high { background: #FEE2E2; color: #991B1B; }
+  .gap-priority-badge.medium { background: #FEF3C7; color: #92400E; }
+  .gap-priority-badge.low { background: #E0E7FF; color: #3730A3; }
+  .gap-suggestions {
+    margin-top: 20px; padding: 16px; background: #F0F9FF;
+    border: 1px solid #BAE6FD; border-radius: 8px;
+  }
+  .gap-suggestions-title {
+    font-size: 0.9rem; font-weight: 600; color: #0369A1; margin-bottom: 8px;
+  }
+  .gap-suggestions ul { margin: 0; padding-left: 20px; }
+  .gap-suggestions li { font-size: 13px; color: #0C4A6E; margin-bottom: 4px; }
+  .gap-found-section { margin-top: 20px; }
+  .gap-found-item {
+    display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px;
+    background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 6px;
+    font-size: 12px; color: #065F46; margin: 3px;
+  }
+
 </style>
 </head>
 <body>
@@ -11618,6 +11787,231 @@ function filterAffiliationsHub() {
   renderAffiliationsHub();
 }
 
+// --- Gap Analysis / Completeness Dashboard (MECE-019) ---
+var _gapData = null;
+
+function showCompletenessDashboard() {
+  selectedView = 'completeness';
+  selectedId = null;
+  selectedCategory = null;
+  breadcrumbs = [{ label: 'Completeness' }];
+  renderBreadcrumbs();
+  renderSidebar();
+  document.getElementById('main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Loading gap analysis...</div>';
+  var spokeParam = _selectedSpoke ? _selectedSpoke : '';
+  if (!spokeParam) { document.getElementById('main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Select a spoke first</div>'; return; }
+  api('GET', '/api/spoke/' + encodeURIComponent(spokeParam) + '/gaps').then(function(data) {
+    _gapData = data;
+    renderCompletenessDashboard(data);
+  }).catch(function(err) {
+    // May need template assignment
+    if (err.message && err.message.indexOf('No template') >= 0) {
+      renderTemplateSelector();
+    } else {
+      document.getElementById('main').innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Failed to load gap analysis') + '</div>';
+    }
+  });
+}
+
+function renderTemplateSelector() {
+  api('GET', '/api/templates').then(function(data) {
+    var templates = data.templates || [];
+    var h = '<div class="gap-dashboard"><div class="gap-dashboard-title">';
+    h += '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>';
+    h += ' Completeness Analysis</div>';
+    h += '<p style="color:var(--text-muted);margin:16px 0 24px;">Select a matter type to begin analyzing completeness for this spoke.</p>';
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;">';
+    for (var i = 0; i < templates.length; i++) {
+      var t = templates[i];
+      h += '<div class="gap-missing-item" style="cursor:pointer;transition:border-color 0.15s;" onclick="setMatterType(\\'' + esc(t.id) + '\\')" onmouseover="this.style.borderColor=\\'#0a66c2\\'" onmouseout="this.style.borderColor=\\'#e0e0e0\\'">';
+      h += '<svg viewBox="0 0 24 24" fill="none" stroke="#0a66c2" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+      h += '<div><div class="gap-item-name">' + esc(t.label) + '</div>';
+      h += '<div class="gap-item-detail">' + t.category_count + ' categories &middot; ' + t.entity_roles + ' roles</div></div>';
+      h += '</div>';
+    }
+    h += '</div></div>';
+    document.getElementById('main').innerHTML = h;
+  });
+}
+
+function setMatterType(templateType) {
+  if (!_selectedSpoke) return;
+  api('PUT', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/template', { template_type: templateType }).then(function() {
+    refreshGapAnalysis();
+  }).catch(function(err) {
+    toast('Failed to set template: ' + (err.message || err));
+  });
+}
+
+function refreshGapAnalysis() {
+  if (!_selectedSpoke) return;
+  document.getElementById('main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Analyzing completeness...</div>';
+  api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/gaps?refresh=true').then(function(data) {
+    _gapData = data;
+    renderCompletenessDashboard(data);
+  }).catch(function(err) {
+    document.getElementById('main').innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Analysis failed') + '</div>';
+  });
+}
+
+function _gapScoreColor(score) {
+  if (score >= 0.8) return '#16A34A';
+  if (score >= 0.5) return '#CA8A04';
+  return '#DC2626';
+}
+
+function _gapFormatLabel(item) {
+  return (item || '').replace(/_/g, ' ').replace(/\\b[a-z]/g, function(l) { return l.toUpperCase(); });
+}
+
+function renderCompletenessDashboard(data) {
+  var pct = Math.round((data.overall_score || 0) * 100);
+  var color = _gapScoreColor(data.overall_score || 0);
+  var h = '<div class="gap-dashboard">';
+
+  // Header
+  h += '<div class="gap-dashboard-header">';
+  h += '<div class="gap-dashboard-title">';
+  h += '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>';
+  h += ' ' + esc(data.template_name || 'Completeness') + '</div>';
+  h += '<div class="gap-dashboard-controls">';
+  h += '<select id="gapTemplateSelect" onchange="setMatterType(this.value)">';
+  // Load templates list inline
+  h += '<option value="' + esc(data.template_type || '') + '">' + esc(data.template_name || '') + '</option>';
+  h += '</select>';
+  h += '<button onclick="refreshGapAnalysis()">Refresh Analysis</button>';
+  h += '</div></div>';
+
+  // Score ring + bars
+  h += '<div class="gap-ring-container">';
+  var deg = Math.round(pct * 3.6);
+  h += '<div class="gap-ring" style="background: conic-gradient(' + color + ' 0deg, ' + color + ' ' + deg + 'deg, #e8e8e8 ' + deg + 'deg);">';
+  h += '<div class="gap-ring-label" style="background:#fff;width:120px;height:120px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;">';
+  h += '<div class="gap-ring-pct" style="color:' + color + ';">' + pct + '%</div>';
+  h += '<div class="gap-ring-sub">Complete</div>';
+  h += '</div></div>';
+
+  // Score bars
+  h += '<div class="gap-score-bars">';
+  var bars = [
+    { label: 'Documents', score: data.document_score || 0, weight: '40%' },
+    { label: 'Entities', score: data.entity_score || 0, weight: '40%' },
+    { label: 'Relationships', score: data.relationship_score || 0, weight: '20%' }
+  ];
+  for (var b = 0; b < bars.length; b++) {
+    var bar = bars[b];
+    var bPct = Math.round(bar.score * 100);
+    var bColor = _gapScoreColor(bar.score);
+    h += '<div class="gap-score-bar">';
+    h += '<div class="gap-score-bar-header"><span>' + bar.label + ' <span style="color:var(--text-muted);font-size:11px;">(' + bar.weight + ' weight)</span></span><span style="font-weight:600;color:' + bColor + ';">' + bPct + '%</span></div>';
+    h += '<div class="gap-score-bar-track"><div class="gap-score-bar-fill" style="width:' + bPct + '%;background:' + bColor + ';"></div></div>';
+    h += '</div>';
+  }
+  h += '</div></div>';
+
+  // Missing Documents
+  var missingDocs = data.missing_documents || [];
+  if (missingDocs.length > 0) {
+    h += '<div class="gap-category">';
+    h += '<div class="gap-category-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Missing Documents (' + missingDocs.length + ')</div>';
+    h += '<div class="gap-category-grid">';
+    for (var d = 0; d < missingDocs.length; d++) {
+      var doc = missingDocs[d];
+      h += '<div class="gap-missing-item">';
+      h += '<svg viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+      h += '<div><div class="gap-item-name">' + esc(_gapFormatLabel(doc.item)) + '</div>';
+      h += '<div class="gap-item-detail">' + esc(_gapFormatLabel(doc.category)) + '</div></div>';
+      h += '<span class="gap-priority-badge ' + (doc.priority || 'medium') + '">' + (doc.priority || 'medium') + '</span>';
+      h += '</div>';
+    }
+    h += '</div></div>';
+  }
+
+  // Missing Entity Fields
+  var missingFields = data.missing_entity_fields || [];
+  if (missingFields.length > 0) {
+    h += '<div class="gap-category">';
+    h += '<div class="gap-category-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#CA8A04" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg> Missing Entity Fields (' + missingFields.length + ')</div>';
+    h += '<div class="gap-category-grid">';
+    for (var f = 0; f < missingFields.length; f++) {
+      var field = missingFields[f];
+      h += '<div class="gap-missing-item">';
+      h += '<svg viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>';
+      h += '<div><div class="gap-item-name">' + esc(_gapFormatLabel(field.missing)) + '</div>';
+      h += '<div class="gap-item-detail">' + esc(_gapFormatLabel(field.role)) + (field.entity ? ' &middot; ' + esc(field.entity) : '') + '</div></div>';
+      h += '</div>';
+    }
+    h += '</div></div>';
+  }
+
+  // Missing Relationships
+  var missingRels = data.missing_relationships || [];
+  if (missingRels.length > 0) {
+    h += '<div class="gap-category">';
+    h += '<div class="gap-category-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg> Missing Relationships (' + missingRels.length + ')</div>';
+    h += '<div class="gap-category-grid">';
+    for (var r = 0; r < missingRels.length; r++) {
+      var rel = missingRels[r];
+      h += '<div class="gap-missing-item">';
+      h += '<svg viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>';
+      h += '<div><div class="gap-item-name">' + esc(_gapFormatLabel(rel.expected)) + '</div>';
+      h += '<div class="gap-item-detail">Expected connection</div></div>';
+      h += '</div>';
+    }
+    h += '</div></div>';
+  }
+
+  // Found Documents
+  var foundDocs = data.found_documents || [];
+  if (foundDocs.length > 0) {
+    h += '<div class="gap-found-section">';
+    h += '<div class="gap-category-title" style="color:#065F46;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Found Documents (' + foundDocs.length + ')</div>';
+    h += '<div>';
+    for (var fd = 0; fd < foundDocs.length; fd++) {
+      var fdoc = foundDocs[fd];
+      h += '<span class="gap-found-item"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> ' + esc(_gapFormatLabel(fdoc.item)) + '</span>';
+    }
+    h += '</div></div>';
+  }
+
+  // Suggestions
+  var suggestions = data.suggestions || [];
+  if (suggestions.length > 0) {
+    h += '<div class="gap-suggestions">';
+    h += '<div class="gap-suggestions-title">Suggested Next Steps</div>';
+    h += '<ul>';
+    for (var s = 0; s < suggestions.length; s++) {
+      h += '<li>' + esc(suggestions[s]) + '</li>';
+    }
+    h += '</ul></div>';
+  }
+
+  // Meta
+  h += '<div style="margin-top:20px;font-size:11px;color:var(--text-muted);">';
+  h += (data.entity_count || 0) + ' entities &middot; ' + (data.source_documents || []).length + ' source documents';
+  if (data.cached) h += ' &middot; <span style="color:#CA8A04;">cached</span>';
+  if (data.analyzed_at) h += ' &middot; analyzed ' + new Date(data.analyzed_at).toLocaleString();
+  h += '</div>';
+
+  h += '</div>';
+  document.getElementById('main').innerHTML = h;
+
+  // Populate template selector async
+  api('GET', '/api/templates').then(function(tData) {
+    var sel = document.getElementById('gapTemplateSelect');
+    if (!sel) return;
+    var templates = tData.templates || [];
+    sel.innerHTML = '';
+    for (var i = 0; i < templates.length; i++) {
+      var opt = document.createElement('option');
+      opt.value = templates[i].id;
+      opt.textContent = templates[i].label;
+      if (templates[i].id === data.template_type) opt.selected = true;
+      sel.appendChild(opt);
+    }
+  });
+}
+
 function selectOrgCategoryPage(category) {
   selectedCategory = 'org_' + category;
   selectedId = null;
@@ -12578,6 +12972,15 @@ function renderSidebar() {
   html += '<div class="sb-nav-item' + (affilActive ? ' active' : '') + '" onclick="showAffiliationsHub()">';
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>';
   html += 'Affiliations</div>';
+
+  // ── MATTER section (only when spoke is selected) ──
+  if (_selectedSpoke) {
+    html += '<div class="sb-section-label">Matter</div>';
+    var compActive = (selectedView === 'completeness');
+    html += '<div class="sb-nav-item' + (compActive ? ' active' : '') + '" onclick="showCompletenessDashboard()">';
+    html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>';
+    html += 'Completeness</div>';
+  }
 
   // ── PROJECTS section ──
   var allProjects = [].concat(data.projects.active || [], data.projects.rnd || [], data.projects.archive || []);
@@ -17705,6 +18108,19 @@ const MCP_TOOLS = [
       },
       required: ['entity_name']
     }
+  },
+  {
+    name: 'analyze_gaps',
+    description: 'Analyze completeness of a client matter against a legal template. Shows missing documents, incomplete entity fields, and missing relationships. Use when user asks "what\'s missing?" or "how complete is this matter?"',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        spoke: { type: 'string', description: 'Spoke ID or name to analyze' },
+        template: { type: 'string', description: 'Optional matter type override (e.g. estate_planning, corporate_formation, tax_preparation, personal_injury, general)' },
+        refresh: { type: 'boolean', description: 'Force fresh analysis instead of using cached results' }
+      },
+      required: ['spoke']
+    }
   }
 ];
 
@@ -17961,11 +18377,58 @@ async function mcpSync(args, graphDir) {
   };
 }
 
+async function mcpAnalyzeGaps(args, graphDir) {
+  const { spoke, template, refresh } = args || {};
+  if (!spoke) throw new Error('spoke is required');
+
+  // Resolve spoke by ID or name (same pattern as mcpQuery)
+  let spokeObj = getSpoke(graphDir, spoke);
+  if (!spokeObj) {
+    const spokes = loadSpokes(graphDir);
+    spokeObj = Object.values(spokes).find(s => s.name.toLowerCase() === spoke.toLowerCase());
+  }
+  if (!spokeObj) throw new Error(`Spoke not found: ${spoke}`);
+
+  const templateType = template || spokeObj.template_type;
+  if (!templateType) {
+    const available = Object.keys(loadTemplates());
+    throw new Error(`No template assigned to spoke "${spokeObj.name}". Assign one first or pass template parameter. Available: ${available.join(', ')}`);
+  }
+
+  // Check cache
+  if (spokeObj.gap_analysis && !refresh) {
+    const cached = spokeObj.gap_analysis;
+    const spokeName = spokeObj.name || spoke;
+    const pct = Math.round((cached.overall_score || 0) * 100);
+    const missingDocs = (cached.missing_documents || []).slice(0, 3).map(d => d.item.replace(/_/g, ' ')).join(', ');
+    const missingFields = (cached.missing_entity_fields || []).slice(0, 3).map(f => `${f.entity || f.role} needs ${f.missing.replace(/_/g, ' ')}`).join(', ');
+    let msg = `${spokeName} is ${pct}% complete.`;
+    if (missingDocs) msg += ` Missing: ${missingDocs}.`;
+    if (missingFields) msg += ` ${missingFields}.`;
+    return { ...cached, cached: true, message: msg };
+  }
+
+  const report = await analyzeGaps(spokeObj.id, graphDir, templateType);
+
+  // Cache on spoke
+  updateSpoke(graphDir, spokeObj.id, { gap_analysis: report, template_type: templateType });
+
+  const pct = Math.round((report.overall_score || 0) * 100);
+  const missingDocs = (report.missing_documents || []).slice(0, 3).map(d => d.item.replace(/_/g, ' ')).join(', ');
+  const missingFields = (report.missing_entity_fields || []).slice(0, 3).map(f => `${f.entity || f.role} needs ${f.missing.replace(/_/g, ' ')}`).join(', ');
+  let msg = `${spokeObj.name} is ${pct}% complete.`;
+  if (missingDocs) msg += ` Missing: ${missingDocs}.`;
+  if (missingFields) msg += ` ${missingFields}.`;
+
+  return { ...report, message: msg };
+}
+
 const MCP_HANDLERS = {
   build_graph: mcpBuildGraph,
   query: mcpQuery,
   update: mcpUpdate,
-  sync: mcpSync
+  sync: mcpSync,
+  analyze_gaps: mcpAnalyzeGaps
 };
 
 // --- JSON-RPC helpers ---

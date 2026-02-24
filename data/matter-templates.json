@@ -1,0 +1,82 @@
+{
+  "estate_planning": {
+    "label": "Estate Planning",
+    "required_documents": [
+      { "category": "identification", "items": ["government_id", "ssn_card", "birth_certificate"] },
+      { "category": "property", "items": ["deed", "mortgage_statement", "property_tax_record", "homeowners_insurance"] },
+      { "category": "financial", "items": ["bank_statements", "investment_accounts", "retirement_accounts", "life_insurance_policy"] },
+      { "category": "legal", "items": ["existing_will", "existing_trust", "power_of_attorney", "healthcare_directive"] },
+      { "category": "family", "items": ["marriage_certificate", "divorce_decree", "beneficiary_designations"] }
+    ],
+    "required_entities": [
+      { "role": "primary_client", "type": "person", "required_fields": ["full_name", "date_of_birth", "ssn", "address"] },
+      { "role": "spouse", "type": "person", "required_fields": ["full_name", "date_of_birth"], "optional": true },
+      { "role": "beneficiary", "type": "person", "required_fields": ["full_name", "relationship"], "min_count": 1 },
+      { "role": "executor", "type": "person", "required_fields": ["full_name", "relationship", "contact_info"] }
+    ]
+  },
+  "corporate_formation": {
+    "label": "Corporate Formation",
+    "required_documents": [
+      { "category": "identification", "items": ["government_id", "ssn_card"] },
+      { "category": "formation", "items": ["articles_of_incorporation", "operating_agreement", "bylaws", "ein_letter"] },
+      { "category": "financial", "items": ["initial_capital_contribution", "bank_account_setup", "funding_agreements"] },
+      { "category": "regulatory", "items": ["business_license", "state_registration", "registered_agent_designation"] },
+      { "category": "agreements", "items": ["shareholder_agreement", "partnership_agreement", "non_compete", "ip_assignment"] }
+    ],
+    "required_entities": [
+      { "role": "primary_client", "type": "person", "required_fields": ["full_name", "ssn", "address"] },
+      { "role": "business_entity", "type": "business", "required_fields": ["full_name", "ein", "address"], "min_count": 1 },
+      { "role": "officer", "type": "person", "required_fields": ["full_name", "relationship", "contact_info"], "min_count": 1 },
+      { "role": "shareholder", "type": "person", "required_fields": ["full_name", "ownership_percentage"], "min_count": 1 },
+      { "role": "registered_agent", "type": "person", "required_fields": ["full_name", "address", "contact_info"] }
+    ]
+  },
+  "tax_preparation": {
+    "label": "Tax Preparation",
+    "required_documents": [
+      { "category": "identification", "items": ["government_id", "ssn_card"] },
+      { "category": "income", "items": ["w2_forms", "1099_forms", "k1_forms", "business_income_records"] },
+      { "category": "deductions", "items": ["mortgage_interest_statement", "property_tax_records", "charitable_donations", "medical_expenses"] },
+      { "category": "financial", "items": ["bank_statements", "investment_statements", "retirement_contributions"] },
+      { "category": "prior_returns", "items": ["prior_year_federal_return", "prior_year_state_return"] }
+    ],
+    "required_entities": [
+      { "role": "primary_client", "type": "person", "required_fields": ["full_name", "ssn", "address", "filing_status"] },
+      { "role": "spouse", "type": "person", "required_fields": ["full_name", "ssn"], "optional": true },
+      { "role": "dependent", "type": "person", "required_fields": ["full_name", "date_of_birth", "ssn", "relationship"], "optional": true },
+      { "role": "employer", "type": "business", "required_fields": ["full_name", "ein"], "optional": true }
+    ]
+  },
+  "personal_injury": {
+    "label": "Personal Injury",
+    "required_documents": [
+      { "category": "identification", "items": ["government_id", "insurance_card"] },
+      { "category": "incident", "items": ["police_report", "incident_report", "witness_statements", "photos_videos"] },
+      { "category": "medical", "items": ["medical_records", "treatment_plans", "prescription_records", "medical_bills"] },
+      { "category": "financial", "items": ["lost_wage_documentation", "pay_stubs", "tax_returns"] },
+      { "category": "insurance", "items": ["insurance_policy", "claim_correspondence", "settlement_offers"] }
+    ],
+    "required_entities": [
+      { "role": "primary_client", "type": "person", "required_fields": ["full_name", "date_of_birth", "address", "contact_info"] },
+      { "role": "opposing_party", "type": "person", "required_fields": ["full_name"], "min_count": 1 },
+      { "role": "witness", "type": "person", "required_fields": ["full_name", "contact_info"], "optional": true },
+      { "role": "medical_provider", "type": "business", "required_fields": ["full_name", "contact_info"], "min_count": 1 },
+      { "role": "insurance_company", "type": "business", "required_fields": ["full_name", "contact_info"] }
+    ]
+  },
+  "general": {
+    "label": "General Matter",
+    "required_documents": [
+      { "category": "identification", "items": ["government_id"] },
+      { "category": "legal", "items": ["relevant_contracts", "correspondence", "court_filings"] },
+      { "category": "financial", "items": ["financial_statements", "invoices", "payment_records"] },
+      { "category": "supporting", "items": ["supporting_documentation", "evidence", "exhibits"] }
+    ],
+    "required_entities": [
+      { "role": "primary_client", "type": "person", "required_fields": ["full_name", "contact_info"] },
+      { "role": "opposing_party", "type": "person", "required_fields": ["full_name"], "optional": true },
+      { "role": "related_entity", "type": "business", "required_fields": ["full_name"], "optional": true }
+    ]
+  }
+}

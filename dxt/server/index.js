@@ -141,6 +141,19 @@ const TOOLS = [
       },
       required: ["entity_name"]
     }
+  },
+  {
+    name: "analyze_gaps",
+    description: "Analyze completeness of a client matter against a legal template. Shows missing documents, incomplete entity fields, and missing relationships. Use when user asks \"what's missing?\" or \"how complete is this matter?\"",
+    inputSchema: {
+      type: "object",
+      properties: {
+        spoke: { type: "string", description: "Spoke ID or name to analyze" },
+        template: { type: "string", description: "Optional matter type override (e.g. estate_planning, corporate_formation, tax_preparation, personal_injury, general)" },
+        refresh: { type: "boolean", description: "Force fresh analysis instead of using cached results" }
+      },
+      required: ["spoke"]
+    }
   }
 ];
 
@@ -297,11 +310,32 @@ async function handleSync({ connection_id, folder_ids }) {
   return lastComplete || { message: 'Sync completed', events: lines.length };
 }
 
+async function handleAnalyzeGaps({ spoke, template, refresh }) {
+  if (!spoke) throw new Error('spoke is required');
+
+  // Resolve spoke by ID or name
+  const spokes = await api.get('/api/spokes');
+  const spokeList = spokes.spokes || [];
+  const spokeObj = spokeList.find(s =>
+    s.id === spoke || (s.name && s.name.toLowerCase() === spoke.toLowerCase())
+  );
+  if (!spokeObj) throw new Error(`Spoke not found: ${spoke}. Available: ${spokeList.map(s => s.name).join(', ')}`);
+
+  const params = new URLSearchParams();
+  if (template) params.set('template', template);
+  if (refresh) params.set('refresh', 'true');
+  const qs = params.toString() ? `?${params.toString()}` : '';
+
+  const report = await api.get(`/api/spoke/${encodeURIComponent(spokeObj.id)}/gaps${qs}`);
+  return report;
+}
+
 const HANDLERS = {
   build_graph: handleBuildGraph,
   query: handleQuery,
   update: handleUpdate,
-  sync: handleSync
+  sync: handleSync,
+  analyze_gaps: handleAnalyzeGaps
 };
 
 // --- MCP Server ---

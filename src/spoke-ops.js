@@ -178,7 +178,7 @@ function updateSpoke(graphDir, spokeId, updates) {
   const spokes = loadSpokes(graphDir);
   if (!spokes[spokeId]) return null;
 
-  const allowed = ['name', 'description', 'source', 'external_id', 'sync_status'];
+  const allowed = ['name', 'description', 'source', 'external_id', 'sync_status', 'template_type', 'gap_analysis', 'document_classification'];
   for (const key of allowed) {
     if (updates[key] !== undefined) {
       spokes[spokeId][key] = updates[key];
