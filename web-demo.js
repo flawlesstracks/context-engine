@@ -4240,9 +4240,24 @@ app.post('/api/demo/tax-client', apiAuth, async (req, res) => {
           });
 
           const staged = stageAndScoreExtraction(v2Entities, { type: 'file', url: '', description: `Demo: ${filename}` }, req.graphDir);
-          ingestResults.push({ filename, entities_staged: staged.length, entities_found: result.entities.length });
+
+          // Auto-resolve: add all staged entities directly to graph (skip review queue for demo)
+          let resolved = 0;
+          for (const cluster of staged) {
+            if (cluster.cluster_id) {
+              try {
+                const action = (cluster.candidate_entity_id && (cluster.quadrant === 2 || cluster.quadrant === 4))
+                  ? 'merge' : 'create_new';
+                resolveCluster(cluster.cluster_id, action, req.graphDir, 'demo');
+                resolved++;
+              } catch (resolveErr) {
+                console.warn(`[demo] Resolve failed for ${cluster.cluster_id}: ${resolveErr.message}`);
+              }
+            }
+          }
+          ingestResults.push({ filename, entities_staged: staged.length, entities_resolved: resolved, entities_found: result.entities.length });
         } else {
-          ingestResults.push({ filename, entities_staged: 0, entities_found: result.entities.length });
+          ingestResults.push({ filename, entities_staged: 0, entities_resolved: 0, entities_found: result.entities.length });
         }
       } catch (err) {
         ingestResults.push({ filename, error: err.message });
