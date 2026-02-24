@@ -64,9 +64,32 @@ const TOOLS = [
         set_self_entity: {
           type: "string",
           description: "Optional. Name of the primary person this graph is about."
+        },
+        spoke: {
+          type: "string",
+          description: "Optional spoke ID to ingest into. Use this when ingesting files for a specific client, project, or matter. If omitted, entities go into the default spoke."
         }
       },
       required: ["files"]
+    }
+  },
+  {
+    name: "sync",
+    description: "Trigger a connector sync to pull data from an external system (like ShareFile) into the knowledge graph. Use this tool when the user asks to sync, refresh, or pull data from a connected service. Returns sync progress including folders synced, files processed, and entities staged for review.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        connection_id: {
+          type: "string",
+          description: "The connection ID to sync. Get available connections from the query tool by asking 'what connections do I have?'"
+        },
+        folder_ids: {
+          type: "array",
+          description: "Optional. Specific folder IDs to sync. If omitted, syncs all mapped folders.",
+          items: { type: "string" }
+        }
+      },
+      required: ["connection_id"]
     }
   },
   {
@@ -122,10 +145,11 @@ const TOOLS = [
 
 // --- Tool Handlers ---
 
-async function handleBuildGraph({ files, set_self_entity }) {
+async function handleBuildGraph({ files, set_self_entity, spoke }) {
   const results = [];
   for (const file of files) {
-    const r = await api.post('/api/ingest/universal', {
+    const params = spoke ? `?spoke_id=${encodeURIComponent(spoke)}` : '';
+    const r = await api.post(`/api/ingest/universal${params}`, {
       filename: file.filename,
       content: Buffer.from(file.content).toString('base64')
     });
@@ -244,10 +268,38 @@ async function handleUpdate({ entity_name, entity_type, observations, relationsh
   };
 }
 
+async function handleSync({ connection_id, folder_ids }) {
+  if (!connection_id) throw new Error('connection_id is required');
+
+  // POST /api/sync returns NDJSON — we collect events and return the final result
+  const res = await fetch(`${api.baseUrl}/api/sync/${encodeURIComponent(connection_id)}`, {
+    method: 'POST',
+    headers: { 'X-Context-API-Key': api.key, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ folder_ids })
+  });
+  if (!res.ok) throw new Error(`API ${res.status}: ${await res.text()}`);
+
+  const text = await res.text();
+  const lines = text.trim().split('\n').filter(Boolean);
+  let lastComplete = null;
+  for (const line of lines) {
+    try {
+      const event = JSON.parse(line);
+      if (event.type === 'complete') lastComplete = event.results;
+      if (event.type === 'error') throw new Error(event.message);
+    } catch (e) {
+      if (e.message && !e.message.includes('JSON')) throw e;
+    }
+  }
+
+  return lastComplete || { message: 'Sync completed', events: lines.length };
+}
+
 const HANDLERS = {
   build_graph: handleBuildGraph,
   query: handleQuery,
-  update: handleUpdate
+  update: handleUpdate,
+  sync: handleSync
 };
 
 // --- MCP Server ---

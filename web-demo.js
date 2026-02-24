@@ -1078,16 +1078,39 @@ app.post('/api/ingest/chatgpt', apiAuth, async (req, res) => {
   res.end();
 });
 
+// --- Spoke auto-resolution for ingest endpoints ---
+// If spoke_id is provided but doesn't exist (and isn't "default"), auto-create it.
+function resolveOrCreateSpoke(graphDir, spokeId) {
+  if (!spokeId || spokeId === 'default') return 'default';
+  const existing = getSpoke(graphDir, spokeId);
+  if (existing) return spokeId;
+  // Treat as a name if it doesn't look like a spoke ID
+  if (!spokeId.startsWith('spoke-')) {
+    // Check if a spoke with this name exists
+    const spokes = loadSpokes(graphDir);
+    const byName = Object.values(spokes).find(s => s.name.toLowerCase() === spokeId.toLowerCase());
+    if (byName) return byName.id;
+    // Auto-create spoke with this name
+    const newSpoke = createSpoke(graphDir, { name: spokeId, description: 'Auto-created from ingest', source: 'manual' });
+    console.log(`[spoke] Auto-created spoke "${spokeId}" → ${newSpoke.id}`);
+    return newSpoke.id;
+  }
+  // Looks like an ID but doesn't exist — create with generic name
+  return spokeId;
+}
+
 // POST /api/ingest/files — Upload files for entity extraction
 const upload = multer({ storage: multer.memoryStorage(), limits: { files: 20, fileSize: 50 * 1024 * 1024 } });
 const ALLOWED_EXTENSIONS = new Set(['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.csv', '.txt', '.md', '.json']);
 
 app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, res) => {
   const previewMode = req.query.preview === 'true';
+  const rawSpokeId = req.query.spoke_id || req.body?.spoke_id || 'default';
+  const spokeId = resolveOrCreateSpoke(req.graphDir, rawSpokeId);
   const files = req.files;
   if (files) {
     for (const f of files) {
-      console.log('INGEST_DEBUG: file received:', f.originalname, f.mimetype, f.size, previewMode ? '(PREVIEW)' : '');
+      console.log('INGEST_DEBUG: file received:', f.originalname, f.mimetype, f.size, previewMode ? '(PREVIEW)' : '', `spoke: ${spokeId}`);
     }
   }
   if (!files || files.length === 0) {
@@ -1224,6 +1247,8 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
         const personName = parsed.name?.full || '';
         const orgEntities = linkedInExperienceToOrgs(parsed, personName, filename, req.agentId);
         const linkedInEntities = [personEntity, ...orgEntities];
+        // Stamp spoke_id + source tracking on all entities
+        for (const ent of linkedInEntities) { ent.spoke_id = spokeId; ent.source = ent.source || 'manual'; ent.source_ref = ent.source_ref || filename; }
 
         // Always flow through signal staging — no direct entity creation
         // Source type 'linkedin_pdf' with signal_confidence 0.85
@@ -1511,6 +1536,13 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
         pendingEntities = v2Entities;
       }
 
+      // Stamp spoke_id + source tracking on all pending entities
+      for (const ent of pendingEntities) {
+        if (!ent.spoke_id) ent.spoke_id = spokeId;
+        if (ent.source === undefined) ent.source = 'manual';
+        if (ent.source_ref === undefined) ent.source_ref = filename;
+      }
+
       // Preview mode: return entities for user review instead of saving
       if (previewMode) {
         const previewList = pendingEntities.map(e => {
@@ -1584,6 +1616,53 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
       total_entities: allPreviewEntities.length,
     });
   } else {
+    // Auto-center detection: if spoke has no centered entity, find the dominant person/business
+    if (spokeId !== 'default') {
+      try {
+        const spoke = getSpoke(req.graphDir, spokeId);
+        if (spoke && !spoke.centered_entity_id) {
+          // Count entity name frequency from staged clusters in this spoke
+          const queue = getReviewQueue(req.graphDir);
+          const spokeClusters = queue.filter(c => c.spoke_id === spokeId);
+          const nameCounts = {};
+          for (const c of spokeClusters) {
+            const name = (c.signals?.names || [])[0] || '';
+            if (name) nameCounts[name] = (nameCounts[name] || 0) + 1;
+          }
+          // Also count from entities already in spoke
+          const spokeEntities = listEntities(req.graphDir, { spokeId });
+          for (const { data } of spokeEntities) {
+            const e = data.entity || {};
+            const name = e.name?.full || e.name?.common || '';
+            if (name && (e.entity_type === 'person' || e.entity_type === 'business')) {
+              nameCounts[name] = (nameCounts[name] || 0) + 2; // Weight existing entities higher
+            }
+          }
+          // Find the most frequent
+          let bestName = null, bestCount = 0, bestEntityId = null;
+          for (const [name, count] of Object.entries(nameCounts)) {
+            if (count > bestCount) { bestCount = count; bestName = name; }
+          }
+          if (bestName) {
+            // Try to find matching entity in spoke
+            for (const { data } of spokeEntities) {
+              const e = data.entity || {};
+              const eName = e.name?.full || e.name?.common || '';
+              if (eName.toLowerCase() === bestName.toLowerCase()) { bestEntityId = e.entity_id; break; }
+            }
+            if (bestEntityId) {
+              setCenteredEntity(req.graphDir, spokeId, bestEntityId, bestName);
+              sendEvent({ type: 'auto_center', spoke_id: spokeId, entity_id: bestEntityId, entity_name: bestName,
+                message: `Auto-detected centered entity for spoke: ${bestName}` });
+              console.log(`[spoke] Auto-centered ${bestName} (${bestEntityId}) for spoke ${spoke.name}`);
+            }
+          }
+        }
+      } catch (err) {
+        console.log(`[spoke] Auto-center detection skipped: ${err.message}`);
+      }
+    }
+
     sendEvent({
       type: 'complete',
       summary: {
@@ -1619,7 +1698,11 @@ app.post('/api/ingest/universal', apiAuth, universalUpload.single('file'), async
         error: 'No file provided. Either upload via multipart field "file" or send JSON { filename, content (base64) }.',
       });
     }
-    console.log(`[universal-parser] Processing: ${filename} (${fileBuffer.length} bytes)`);
+    // Optional spoke_id — from JSON body or query param. Auto-creates if needed.
+    const rawSpokeId = req.body?.spoke_id || req.query.spoke_id || 'default';
+    const spokeId = resolveOrCreateSpoke(req.graphDir, rawSpokeId);
+
+    console.log(`[universal-parser] Processing: ${filename} (${fileBuffer.length} bytes) → spoke: ${spokeId}`);
 
     // Run universal parser
     const result = await universalParse(fileBuffer, filename);
@@ -1661,6 +1744,9 @@ app.post('/api/ingest/universal', apiAuth, universalUpload.single('file'), async
             source_documents: [{ source: `universal_parser:${filename}`, ingested_at: now }],
             merge_history: [],
           },
+          spoke_id: spokeId,
+          source: 'manual',
+          source_ref: filename,
         };
 
         // Map attributes
@@ -1702,14 +1788,45 @@ app.post('/api/ingest/universal', apiAuth, universalUpload.single('file'), async
 
       // Stage through signal staging pipeline
       const scoredClusters = stageAndScoreExtraction(v2Entities, {
-        type: 'file_upload',
+        type: 'manual',
         url: '',
-        description: `universal_parser:${filename}`,
+        description: `manual_upload:${filename}`,
       }, req.graphDir);
 
       console.log(`[universal-parser] Staged ${scoredClusters.length} clusters from ${filename}`);
 
-      return res.json({
+      // Auto-center detection for non-default spokes
+      let autoCentered = null;
+      if (spokeId !== 'default') {
+        try {
+          const spoke = getSpoke(req.graphDir, spokeId);
+          if (spoke && !spoke.centered_entity_id) {
+            // Find most frequent person entity from this extraction
+            const personClusters = scoredClusters.filter(c => c.entity_type === 'person');
+            if (personClusters.length > 0) {
+              const bestCluster = personClusters[0]; // First person entity
+              const bestName = (bestCluster.signals?.names || [])[0] || '';
+              if (bestName) {
+                // Check if there's already a resolved entity matching this name
+                const spokeEntities = listEntities(req.graphDir, { spokeId });
+                const match = spokeEntities.find(({ data }) => {
+                  const n = data.entity?.name?.full || data.entity?.name?.common || '';
+                  return n.toLowerCase() === bestName.toLowerCase();
+                });
+                if (match) {
+                  setCenteredEntity(req.graphDir, spokeId, match.data.entity?.entity_id, bestName);
+                  autoCentered = { entity_id: match.data.entity?.entity_id, entity_name: bestName };
+                  console.log(`[spoke] Auto-centered ${bestName} for spoke ${spoke.name}`);
+                }
+              }
+            }
+          }
+        } catch (err) {
+          console.log(`[spoke] Auto-center detection skipped: ${err.message}`);
+        }
+      }
+
+      const response = {
         success: true,
         metadata: result.metadata,
         summary: result.summary,
@@ -1723,7 +1840,9 @@ app.post('/api/ingest/universal', apiAuth, universalUpload.single('file'), async
           confidence: c.confidence,
           state: c.state,
         })),
-      });
+      };
+      if (autoCentered) response.auto_centered = autoCentered;
+      return res.json(response);
     }
 
     // No entities or chat import — return raw result
@@ -17402,9 +17521,32 @@ const MCP_TOOLS = [
         set_self_entity: {
           type: 'string',
           description: 'Optional. Name of the primary person this graph is about.'
+        },
+        spoke: {
+          type: 'string',
+          description: 'Optional spoke ID to ingest into. Use this when ingesting files for a specific client, project, or matter. If omitted, entities go into the default spoke.'
         }
       },
       required: ['files']
+    }
+  },
+  {
+    name: 'sync',
+    description: 'Trigger a connector sync to pull data from an external system (like ShareFile) into the knowledge graph. Use this tool when the user asks to sync, refresh, or pull data from a connected service. Returns sync progress including folders synced, files processed, and entities staged for review.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        connection_id: {
+          type: 'string',
+          description: 'The connection ID to sync. Get available connections from the query tool by asking "what connections do I have?"'
+        },
+        folder_ids: {
+          type: 'array',
+          description: 'Optional. Specific folder IDs to sync. If omitted, syncs all mapped folders.',
+          items: { type: 'string' }
+        }
+      },
+      required: ['connection_id']
     }
   },
   {
@@ -17461,7 +17603,8 @@ const MCP_TOOLS = [
 // --- MCP Tool Handlers (server-side, calls internal functions directly) ---
 
 async function mcpBuildGraph(args, graphDir) {
-  const { files, set_self_entity } = args || {};
+  const { files, set_self_entity, spoke } = args || {};
+  const spokeId = spoke || 'default';
   if (!files || !Array.isArray(files)) throw new Error('files array is required');
 
   const results = [];
@@ -17488,7 +17631,8 @@ async function mcpBuildGraph(args, graphDir) {
           extraction_metadata: { extracted_at: new Date().toISOString(), source_description: `MCP build_graph: ${file.filename}`, extraction_model: 'universal-parser', extraction_confidence: ent.confidence || 0.7, schema_version: '2.0' },
           entity: { entity_type: mapped, name: nameObj, summary: { value: ent.evidence || '', confidence: ent.confidence || 0.5, facts_layer: 2 } },
           attributes: attrs, relationships: [], values: [], key_facts: [], constraints: [], observations: [],
-          ownership: 'referenced', access_rules: { visibility: 'private', shared_with: [] }, projection_config: { lenses: ['default'] }, perspectives: []
+          ownership: 'referenced', access_rules: { visibility: 'private', shared_with: [] }, projection_config: { lenses: ['default'] }, perspectives: [],
+          spoke_id: spokeId, source: 'manual', source_ref: file.filename
         };
       });
       if (entities.length > 0) {
@@ -17667,10 +17811,35 @@ async function mcpUpdate(args, graphDir) {
   };
 }
 
+async function mcpSync(args, graphDir) {
+  const { connection_id, folder_ids } = args || {};
+  if (!connection_id) throw new Error('connection_id is required');
+
+  const conn = getConnection(graphDir, connection_id);
+  if (!conn) throw new Error(`Connection not found: ${connection_id}`);
+
+  const ConnectorClass = getConnectorClass(conn.provider);
+  if (!ConnectorClass) throw new Error(`No connector for provider: ${conn.provider}`);
+
+  const connector = new ConnectorClass(graphDir, conn.id);
+  const events = [];
+  const writeEvent = (event) => events.push(event);
+
+  const results = await connector.sync({ folder_ids }, writeEvent);
+  return {
+    folders_synced: results.folders_synced,
+    files_processed: results.files_processed,
+    entities_staged: results.entities_staged,
+    errors: results.errors || [],
+    message: `Synced ${results.folders_synced} folders, processed ${results.files_processed} files, staged ${results.entities_staged} entities for review.`
+  };
+}
+
 const MCP_HANDLERS = {
   build_graph: mcpBuildGraph,
   query: mcpQuery,
-  update: mcpUpdate
+  update: mcpUpdate,
+  sync: mcpSync
 };
 
 // --- JSON-RPC helpers ---

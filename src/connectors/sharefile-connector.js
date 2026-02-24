@@ -3,7 +3,7 @@
 const { BaseConnector } = require('./base-connector');
 const { getConnectionDecrypted, updateConnection, updateConnectionTokens } = require('../connector-ops');
 const { refreshAccessToken } = require('./oauth-handler');
-const { createSpoke, loadSpokes, updateSpoke } = require('../spoke-ops');
+const { createSpoke, loadSpokes, updateSpoke, getSpoke, setCenteredEntity } = require('../spoke-ops');
 const { stageAndScoreExtraction } = require('../signalStaging');
 const { parse: universalParse } = require('../../universal-parser');
 
@@ -328,6 +328,31 @@ class ShareFileConnector extends BaseConnector {
           results.errors.push({ folder: spokeName, error: folderErr.message });
           write({ type: 'warning', message: `Failed to sync folder ${spokeName}: ${folderErr.message}` });
         }
+      }
+
+      // Auto-detect centered entity for spokes that don't have one yet
+      for (const [folderId, folderInfo] of targetFolders) {
+        try {
+          const spoke = getSpoke(this.graphDir, folderInfo.spoke_id);
+          if (spoke && !spoke.centered_entity_id) {
+            // Look for person entities in this spoke's review queue or recently staged
+            const { listEntities } = require('../graph-ops');
+            const entities = listEntities(this.graphDir, { spokeId: folderInfo.spoke_id });
+            const personEntity = entities.find(({ data }) =>
+              (data.entity?.entity_type === 'person') && data.spoke_id === folderInfo.spoke_id
+            );
+            if (personEntity) {
+              const eName = personEntity.data.entity?.name?.full
+                || personEntity.data.entity?.name?.common
+                || personEntity.data.entity?.name?.preferred || '';
+              setCenteredEntity(this.graphDir, folderInfo.spoke_id, personEntity.data.entity?.entity_id, eName);
+              write({
+                type: 'info',
+                message: `Auto-detected centered entity for ${folderInfo.spoke_name}: ${eName}`,
+              });
+            }
+          }
+        } catch {}
       }
 
       // Save updated folder map with sync timestamps

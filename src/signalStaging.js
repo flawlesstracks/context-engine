@@ -59,7 +59,8 @@ const SOURCE_WEIGHTS = {
   linkedin: 0.85,
   company_website: 0.8,
   about_page: 0.8,
-  file_upload: 0.75,       // Resume, bio doc
+  manual: 0.75,            // Manual upload — resume, bio doc, client files
+  file_upload: 0.75,       // Legacy alias
   file_import: 0.75,
   uploaded_document: 0.75,
   file: 0.75,
@@ -290,6 +291,10 @@ function stageSignalCluster(extractedData, source, graphDir) {
     match_type: null,
     signals,
     confident_signals: confSignals,
+    // Spoke + connector source tracking (MECE-015 Build 2)
+    spoke_id: extractedData.spoke_id || 'default',
+    connector_source: extractedData.source || null,
+    source_ref: extractedData.source_ref || null,
     // Keep the full entity data for later promotion/merge
     _entity_data: extractedData,
     created_at: now,
