@@ -1,0 +1,46 @@
+Form W-9                                              Request for Taxpayer
+(Rev. March 2024)                                     Identification Number
+Department of the Treasury                            and Certification
+Internal Revenue Service
+
+1. Name (as shown on your income tax return):
+   John R. Smith
+
+2. Business name/disregarded entity name (if different from above):
+   Acme Consulting LLC
+
+3. Check appropriate box for federal tax classification:
+   [X] Limited liability company. Enter the tax classification:
+       P = Partnership
+
+4. Exemptions (codes apply only to certain entities, not individuals):
+   Exempt payee code: N/A
+   Exemption from FATCA reporting code: N/A
+
+5. Address (number, street, and apt. or suite no.):
+   245 Magnolia Lane
+
+6. City, state, and ZIP code:
+   Decatur, GA 30030
+
+7. List account number(s) here (optional):
+   N/A
+
+Part I — Taxpayer Identification Number (TIN)
+   Social Security Number: XXX-XX-4271
+   Employer Identification Number: 88-4923156
+
+Part II — Certification
+
+Under penalties of perjury, I certify that:
+1. The number shown on this form is my correct taxpayer identification number, and
+2. I am not subject to backup withholding, and
+3. I am a U.S. citizen or other U.S. person, and
+4. The FATCA code(s) entered on this form (if any) indicating that I am exempt from
+   FATCA reporting is correct.
+
+Signature: John R. Smith
+Date: January 15, 2026
+
+Phone: (404) 555-0127
+Email: john.smith@acmeconsultingllc.com

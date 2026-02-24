@@ -40,14 +40,19 @@ function saveTemplates(data) {
 
 const FIELD_ALIASES = {
   full_name: ['full_name', 'name', 'legal_name'],
+  legal_name: ['legal_name', 'full_name', 'name', 'company_name', 'business_name', 'entity_name'],
   date_of_birth: ['date_of_birth', 'dob', 'birthday', 'birth_date'],
   ssn: ['ssn', 'social_security', 'social_security_number'],
-  address: ['address', 'home_address', 'residence', 'location', 'mailing_address'],
+  address: ['address', 'home_address', 'residence', 'location', 'mailing_address', 'principal_address', 'registered_address'],
   contact_info: ['phone', 'email', 'contact', 'address', 'contact_info', 'phone_number', 'email_address'],
   relationship: ['relationship', 'relation', 'connection_type'],
-  ownership_percentage: ['ownership', 'percentage', 'equity', 'interest', 'ownership_percentage'],
+  ownership_percentage: ['ownership', 'percentage', 'equity', 'interest', 'ownership_percentage', 'membership_interest'],
   filing_status: ['filing_status', 'tax_status'],
-  ein: ['ein', 'tax_id', 'employer_id', 'employer_identification_number'],
+  ein: ['ein', 'tax_id', 'employer_id', 'employer_identification_number', 'federal_tax_id'],
+  entity_type: ['entity_type', 'business_type', 'organization_type', 'llc', 'corporation', 'partnership', 'sole_proprietorship'],
+  state_of_formation: ['state_of_formation', 'state_of_incorporation', 'formation_state', 'organized_in', 'incorporated_in'],
+  fiscal_year_end: ['fiscal_year_end', 'year_end', 'fiscal_year', 'tax_year_end', 'accounting_period'],
+  ptin: ['ptin', 'preparer_tax_id', 'preparer_identification'],
 };
 
 // ---------------------------------------------------------------------------
@@ -55,7 +60,8 @@ const FIELD_ALIASES = {
 // ---------------------------------------------------------------------------
 
 const HIGH_PRIORITY_CATEGORIES = new Set([
-  'identification', 'legal', 'financial', 'medical', 'incident'
+  'identification', 'legal', 'financial', 'medical', 'incident',
+  'incorporation', 'financial_statements', 'payroll'
 ]);
 
 const LOW_PRIORITY_CATEGORIES = new Set([
@@ -272,7 +278,7 @@ function _entityHasField(entity, fieldName) {
   }
 
   // 2. Check entity.name for name fields
-  if (fieldName === 'full_name') {
+  if (fieldName === 'full_name' || fieldName === 'legal_name') {
     const name = entity.entity?.name || entity.name || {};
     if (name.full || name.common || name.preferred) return true;
   }
@@ -287,11 +293,20 @@ function _entityHasField(entity, fieldName) {
   return false;
 }
 
+// Map template role types to entity_type values used in the graph
+const TYPE_ALIASES = {
+  organization: ['organization', 'business', 'institution'],
+  business: ['business', 'organization', 'institution'],
+  person: ['person'],
+  institution: ['institution', 'organization', 'business'],
+};
+
 function _matchEntityToRole(role, entities) {
-  // Find entities that match the role type
+  // Find entities that match the role type (with alias support)
+  const validTypes = TYPE_ALIASES[role.type] || [role.type];
   const candidates = entities.filter(ent => {
     const eType = ent.entity?.entity_type || ent.entity_type || '';
-    return eType === role.type;
+    return validTypes.includes(eType);
   });
 
   if (candidates.length === 0) return [];
@@ -390,7 +405,9 @@ function scoreRelationships(template, spokeEntities) {
     const hasType = spokeEntities.some(ent => {
       const eType = ent.entity?.entity_type || ent.entity_type || '';
       const templateRole = (template.required_entities || []).find(r => r.role === role);
-      return templateRole && eType === templateRole.type;
+      if (!templateRole) return false;
+      const validTypes = TYPE_ALIASES[templateRole.type] || [templateRole.type];
+      return validTypes.includes(eType);
     });
 
     if (found || hasType) {

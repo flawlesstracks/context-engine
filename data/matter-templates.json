@@ -33,19 +33,19 @@
     ]
   },
   "tax_preparation": {
-    "label": "Tax Preparation",
+    "label": "Business Tax Preparation",
     "required_documents": [
-      { "category": "identification", "items": ["government_id", "ssn_card"] },
-      { "category": "income", "items": ["w2_forms", "1099_forms", "k1_forms", "business_income_records"] },
-      { "category": "deductions", "items": ["mortgage_interest_statement", "property_tax_records", "charitable_donations", "medical_expenses"] },
-      { "category": "financial", "items": ["bank_statements", "investment_statements", "retirement_contributions"] },
-      { "category": "prior_returns", "items": ["prior_year_federal_return", "prior_year_state_return"] }
+      { "category": "incorporation", "items": ["articles_of_incorporation", "operating_agreement", "ein_letter", "state_registration"] },
+      { "category": "financial_statements", "items": ["profit_and_loss", "balance_sheet", "cashflow_statement"] },
+      { "category": "payroll", "items": ["w9_or_w8", "1099_forms", "w2_forms", "payroll_register"] },
+      { "category": "prior_returns", "items": ["prior_year_return", "extension_filing"] },
+      { "category": "identification", "items": ["government_id", "ein_confirmation"] }
     ],
     "required_entities": [
-      { "role": "primary_client", "type": "person", "required_fields": ["full_name", "ssn", "address", "filing_status"] },
-      { "role": "spouse", "type": "person", "required_fields": ["full_name", "ssn"], "optional": true },
-      { "role": "dependent", "type": "person", "required_fields": ["full_name", "date_of_birth", "ssn", "relationship"], "optional": true },
-      { "role": "employer", "type": "business", "required_fields": ["full_name", "ein"], "optional": true }
+      { "role": "business_entity", "type": "organization", "required_fields": ["legal_name", "ein", "entity_type", "state_of_formation", "fiscal_year_end"] },
+      { "role": "owner_member", "type": "person", "required_fields": ["full_name", "ssn", "ownership_percentage", "address"], "min_count": 1 },
+      { "role": "registered_agent", "type": "person", "required_fields": ["full_name", "address"] },
+      { "role": "tax_preparer", "type": "person", "required_fields": ["full_name", "ptin"], "optional": true }
     ]
   },
   "personal_injury": {

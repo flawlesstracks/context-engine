@@ -4171,6 +4171,106 @@ app.get('/api/spoke/:id/gaps', apiAuth, async (req, res) => {
   }
 });
 
+// POST /api/demo/tax-client — One-button demo: create spoke, ingest sample docs, run gap analysis
+app.post('/api/demo/tax-client', apiAuth, async (req, res) => {
+  try {
+    const samplesDir = path.resolve(__dirname, 'samples', 'acme-tax-client');
+    if (!fs.existsSync(samplesDir)) {
+      return res.status(404).json({ error: 'Sample documents not found. Run: node scripts/generate-sample-docs.js --llm' });
+    }
+
+    const files = fs.readdirSync(samplesDir).filter(f => f.endsWith('.txt'));
+    if (files.length === 0) {
+      return res.status(404).json({ error: 'No sample .txt files found in samples/acme-tax-client/' });
+    }
+
+    // Step 1: Create or find spoke
+    const spokeName = 'Acme Consulting LLC';
+    const spokeId = resolveOrCreateSpoke(req.graphDir, spokeName);
+    console.log(`[demo] Spoke: ${spokeId} (${spokeName})`);
+
+    // Step 2: Assign template
+    updateSpoke(req.graphDir, spokeId, { template_type: 'tax_preparation', gap_analysis: null, document_classification: null });
+    console.log(`[demo] Template assigned: tax_preparation`);
+
+    // Step 3: Ingest all sample files
+    const ingestResults = [];
+    for (const filename of files) {
+      const filePath = path.join(samplesDir, filename);
+      const content = fs.readFileSync(filePath);
+      try {
+        const result = await universalParse(content, filename);
+        const now = new Date().toISOString();
+
+        if (result.entities.length > 0 && result.metadata.parse_strategy !== 'chat_import') {
+          const v2Entities = result.entities.map(ent => {
+            const entityType = ent.type === 'PERSON' ? 'person'
+              : ent.type === 'ORG' ? 'business'
+              : 'business';
+
+            return {
+              schema_version: '2.0',
+              schema_type: 'context_architecture_entity',
+              extraction_metadata: {
+                extracted_at: now, updated_at: now,
+                source_description: `demo_ingest:${filename}`,
+                extraction_model: result.metadata.model_used || 'claude-sonnet-4-5-20250929',
+                extraction_confidence: ent.confidence || 0.7,
+                schema_version: '2.0',
+              },
+              entity: {
+                entity_type: entityType,
+                name: { full: ent.name, confidence: ent.confidence || 0.7, facts_layer: 2 },
+                summary: { value: ent.evidence || '', confidence: ent.confidence || 0.7, facts_layer: 2 },
+              },
+              attributes: Object.entries(ent.attributes || {}).map(([key, value], i) => ({
+                attribute_id: `ATTR-${String(i + 1).padStart(3, '0')}`, key, value: String(value), confidence: ent.confidence || 0.7
+              })),
+              relationships: [],
+              values: [], key_facts: [], constraints: [], observations: [],
+              provenance_chain: {
+                created_at: now, created_by: 'demo',
+                source_documents: [{ source: `demo_ingest:${filename}`, ingested_at: now }],
+                merge_history: [],
+              },
+              spoke_id: spokeId,
+              source: 'manual',
+              source_ref: filename,
+            };
+          });
+
+          const staged = stageAndScoreExtraction(v2Entities, { type: 'file', url: '', description: `Demo: ${filename}` }, req.graphDir);
+          ingestResults.push({ filename, entities_staged: staged.length, entities_found: result.entities.length });
+        } else {
+          ingestResults.push({ filename, entities_staged: 0, entities_found: result.entities.length });
+        }
+      } catch (err) {
+        ingestResults.push({ filename, error: err.message });
+      }
+    }
+    console.log(`[demo] Ingested ${files.length} files`);
+
+    // Step 4: Run gap analysis
+    const report = await analyzeGaps(spokeId, req.graphDir, 'tax_preparation');
+
+    // Cache on spoke
+    updateSpoke(req.graphDir, spokeId, { gap_analysis: report });
+
+    res.json({
+      status: 'demo_complete',
+      spoke_id: spokeId,
+      spoke_name: spokeName,
+      template_type: 'tax_preparation',
+      files_ingested: ingestResults,
+      gap_report: report,
+      message: `Acme Consulting LLC demo complete. ${files.length} documents ingested, ${report.entity_count} entities extracted. Completeness: ${Math.round(report.overall_score * 100)}%.`
+    });
+  } catch (err) {
+    console.error('[demo] Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Connector Framework Endpoints (MECE-018)
 // ---------------------------------------------------------------------------
