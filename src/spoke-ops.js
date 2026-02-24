@@ -178,7 +178,7 @@ function updateSpoke(graphDir, spokeId, updates) {
   const spokes = loadSpokes(graphDir);
   if (!spokes[spokeId]) return null;
 
-  const allowed = ['name', 'description', 'source', 'external_id', 'sync_status', 'template_type', 'gap_analysis', 'document_classification', 'files'];
+  const allowed = ['name', 'description', 'source', 'external_id', 'sync_status', 'template_type', 'gap_analysis', 'document_classification', 'files', 'shares'];
   for (const key of allowed) {
     if (updates[key] !== undefined) {
       spokes[spokeId][key] = updates[key];
@@ -346,6 +346,35 @@ function migrateEntitiesToSpokes(graphDir) {
   return migrated;
 }
 
+/**
+ * Find a spoke by its share token. Scans all tenant directories.
+ * @param {string} graphDir - Root graph directory (parent of tenant-* dirs)
+ * @param {string} token - Share token to look up
+ * @returns {{ spoke: object, graphDir: string, share: object } | null}
+ */
+function findSpokeByShareToken(graphDir, token) {
+  if (!token || !fs.existsSync(graphDir)) return null;
+  try {
+    const entries = fs.readdirSync(graphDir).filter(f => f.startsWith('tenant-'));
+    for (const dir of entries) {
+      const tenantDir = path.join(graphDir, dir);
+      const spokesPath = path.join(tenantDir, SPOKES_FILENAME);
+      if (!fs.existsSync(spokesPath)) continue;
+      try {
+        const spokes = JSON.parse(fs.readFileSync(spokesPath, 'utf-8'));
+        for (const spoke of Object.values(spokes)) {
+          const shares = spoke.shares || [];
+          const share = shares.find(s => s.token === token);
+          if (share) {
+            return { spoke, graphDir: tenantDir, share };
+          }
+        }
+      } catch {}
+    }
+  } catch {}
+  return null;
+}
+
 module.exports = {
   loadSpokes,
   saveSpokes,
@@ -358,5 +387,6 @@ module.exports = {
   getEntityCountsBySpoke,
   listSpokesWithCounts,
   migrateEntitiesToSpokes,
+  findSpokeByShareToken,
   SPOKES_FILENAME,
 };

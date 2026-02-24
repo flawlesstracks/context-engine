@@ -18,7 +18,7 @@ const { scrapeLinkedInProfile, transformScrapingDogProfile } = require('./src/sc
 const { analyzeEntityHealth, getRelationshipTier, getTierInfo } = require('./src/health-analyzer');
 const { parse: universalParse } = require('./universal-parser');
 const { query: queryEngine, getSelfEntity, clearSelfEntityCache } = require('./query-engine');
-const { loadSpokes, createSpoke, getSpoke, updateSpoke, setCenteredEntity, deleteSpoke, listSpokesWithCounts, migrateEntitiesToSpokes } = require('./src/spoke-ops');
+const { loadSpokes, createSpoke, getSpoke, updateSpoke, setCenteredEntity, deleteSpoke, listSpokesWithCounts, migrateEntitiesToSpokes, findSpokeByShareToken } = require('./src/spoke-ops');
 const { loadTemplates, getTemplate, saveTemplates, analyzeGaps, FIELD_ALIASES, TYPE_ALIASES } = require('./src/gap-analysis');
 const { createConnection, getConnection, getConnectionDecrypted, updateConnection, deleteConnection: deleteConn, listConnections } = require('./src/connector-ops');
 const { getRegisteredProviders, getConnectorClass } = require('./src/connectors/base-connector');
@@ -4260,8 +4260,26 @@ app.get('/api/spoke/:spokeId/files', apiAuth, (req, res) => {
   res.json({ spoke_id: req.params.spokeId, files: spoke.files || [] });
 });
 
-// GET /api/spoke/:spokeId/file/:fileId — Serve original source file
-app.get('/api/spoke/:spokeId/file/:fileId', apiAuth, (req, res) => {
+// GET /api/spoke/:spokeId/file/:fileId — Serve original source file (supports ?token= for shared access)
+app.get('/api/spoke/:spokeId/file/:fileId', (req, res, next) => {
+  // Token-based auth for shared portal file downloads
+  if (req.query.token) {
+    const result = findSpokeByShareToken(GRAPH_DIR, req.query.token);
+    if (!result) return res.status(403).json({ error: 'Invalid share token' });
+    if (result.spoke.id !== req.params.spokeId) return res.status(403).json({ error: 'Token does not match spoke' });
+    if (!result.share.includes || !result.share.includes.includes('files')) return res.status(403).json({ error: 'File access not included in share' });
+    // Serve the file
+    const manifest = (result.spoke.files || []).find(f => f.file_id === req.params.fileId);
+    if (!manifest) return res.status(404).json({ error: `File ${req.params.fileId} not found in spoke` });
+    const filePath = path.join(result.graphDir, 'spoke_files', req.params.spokeId, manifest.stored_as);
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File not found on disk' });
+    res.setHeader('Content-Type', manifest.mime_type || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `inline; filename="${manifest.original_name}"`);
+    return fs.createReadStream(filePath).pipe(res);
+  }
+  // Fall through to apiAuth
+  next();
+}, apiAuth, (req, res) => {
   const spoke = getSpoke(req.graphDir, req.params.spokeId);
   if (!spoke) return res.status(404).json({ error: `Spoke ${req.params.spokeId} not found` });
   const manifest = (spoke.files || []).find(f => f.file_id === req.params.fileId);
@@ -5345,26 +5363,16 @@ function _exportFindField(provenanceReport, entity, fieldName) {
   return null;
 }
 
-// GET /api/spoke/:id/export — Structured data export with provenance table
-app.get('/api/spoke/:id/export', apiAuth, (req, res) => {
-  const spoke = getSpoke(req.graphDir, req.params.id);
-  if (!spoke) return res.status(404).json({ error: `Spoke ${req.params.id} not found` });
-
+// --- Reusable spoke export data builder ---
+function buildSpokeExportData(spoke, graphDir) {
   const templateType = spoke.template_type;
-  if (!templateType) {
-    return res.status(400).json({
-      error: 'No template assigned to this spoke. Assign one with PUT /api/spoke/:id/template first.',
-      available_templates: Object.keys(loadTemplates())
-    });
-  }
-
+  if (!templateType) return null;
   const template = getTemplate(templateType);
-  if (!template) return res.status(404).json({ error: `Template "${templateType}" not found` });
+  if (!template) return null;
 
-  // Get all entities in this spoke
-  const allEnts = listEntities(req.graphDir);
+  const allEnts = listEntities(graphDir);
   const spokeEntities = allEnts
-    .filter(e => e.data.spoke_id === req.params.id)
+    .filter(e => e.data.spoke_id === spoke.id)
     .map(e => ({ ...e.data, _id: e.id }));
 
   const roles = [];
@@ -5375,7 +5383,6 @@ app.get('/api/spoke/:id/export', apiAuth, (req, res) => {
     const roleData = { role: role.role, entities: [] };
 
     if (matched.length === 0 && !role.optional) {
-      // All fields missing for this unfilled role
       const fields = (role.required_fields || []).map(f => {
         totalFields++;
         missing++;
@@ -5437,7 +5444,7 @@ app.get('/api/spoke/:id/export', apiAuth, (req, res) => {
     roles.push(roleData);
   }
 
-  const exportData = {
+  return {
     spoke_id: spoke.id,
     spoke_name: spoke.name,
     template_type: templateType,
@@ -5445,11 +5452,27 @@ app.get('/api/spoke/:id/export', apiAuth, (req, res) => {
     roles,
     summary: { total_fields: totalFields, verified, low_confidence: lowConf, missing, conflicts: conflictCount }
   };
+}
+
+// GET /api/spoke/:id/export — Structured data export with provenance table
+app.get('/api/spoke/:id/export', apiAuth, (req, res) => {
+  const spoke = getSpoke(req.graphDir, req.params.id);
+  if (!spoke) return res.status(404).json({ error: `Spoke ${req.params.id} not found` });
+
+  if (!spoke.template_type) {
+    return res.status(400).json({
+      error: 'No template assigned to this spoke. Assign one with PUT /api/spoke/:id/template first.',
+      available_templates: Object.keys(loadTemplates())
+    });
+  }
+
+  const exportData = buildSpokeExportData(spoke, req.graphDir);
+  if (!exportData) return res.status(404).json({ error: `Template "${spoke.template_type}" not found` });
 
   // CSV format
   if (req.query.format === 'csv') {
     const csvRows = [['Role', 'Entity', 'Field', 'Value', 'Confidence', 'Status', 'Source File', 'Source Location', 'Snippet']];
-    for (const role of roles) {
+    for (const role of exportData.roles) {
       for (const ent of role.entities) {
         for (const f of ent.fields) {
           csvRows.push([
@@ -6744,6 +6767,45 @@ app.delete('/api/share/:shareId', apiAuth, (req, res) => {
   if (idx === -1) return res.status(404).json({ error: 'Share not found' });
   shares.splice(idx, 1);
   saveShares(req.graphDir, shares);
+  res.json({ ok: true });
+});
+
+// --- Spoke Share endpoints (Build 7 — Client Portal) ---
+
+// POST /api/spoke/:id/share — Create a spoke share link
+app.post('/api/spoke/:id/share', apiAuth, shareLimiter, (req, res) => {
+  const spoke = getSpoke(req.graphDir, req.params.id);
+  if (!spoke) return res.status(404).json({ error: `Spoke ${req.params.id} not found` });
+
+  const token = crypto.randomBytes(12).toString('base64url');
+  const includes = Array.isArray(req.body.includes) ? req.body.includes.filter(s => ['gaps', 'export', 'files'].includes(s)) : ['gaps', 'export', 'files'];
+  const label = (req.body.label || '').trim() || null;
+  const now = new Date().toISOString();
+
+  const share = { token, label, includes, created_at: now };
+  const shares = spoke.shares || [];
+  shares.push(share);
+  updateSpoke(req.graphDir, req.params.id, { shares });
+
+  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  const host = req.headers['x-forwarded-host'] || req.get('host');
+  res.json({ share_url: `${protocol}://${host}/shared/${token}`, token, created_at: now, includes });
+});
+
+// GET /api/spoke/:id/shares — List spoke shares
+app.get('/api/spoke/:id/shares', apiAuth, (req, res) => {
+  const spoke = getSpoke(req.graphDir, req.params.id);
+  if (!spoke) return res.status(404).json({ error: `Spoke ${req.params.id} not found` });
+  res.json({ spoke_id: req.params.id, shares: spoke.shares || [] });
+});
+
+// DELETE /api/spoke/:id/share/:token — Revoke a spoke share
+app.delete('/api/spoke/:id/share/:token', apiAuth, (req, res) => {
+  const spoke = getSpoke(req.graphDir, req.params.id);
+  if (!spoke) return res.status(404).json({ error: `Spoke ${req.params.id} not found` });
+  const shares = (spoke.shares || []).filter(s => s.token !== req.params.token);
+  if (shares.length === (spoke.shares || []).length) return res.status(404).json({ error: 'Share token not found' });
+  updateSpoke(req.graphDir, req.params.id, { shares });
   res.json({ ok: true });
 });
 
@@ -8222,10 +8284,294 @@ function renderSharedProfilePage(entity, share) {
 </body></html>`;
 }
 
-app.get('/shared/:shareId', sharedViewLimiter, (req, res) => {
+// --- Shared Client Portal renderer (Build 7) ---
+
+function _portalFormatLabel(s) {
+  return (s || '').replace(/_/g, ' ').replace(/\b[a-z]/g, function(l) { return l.toUpperCase(); });
+}
+
+function _portalScoreColor(score) {
+  if (score >= 0.8) return '#16A34A';
+  if (score >= 0.5) return '#CA8A04';
+  return '#DC2626';
+}
+
+function _portalBadgeHtml(status) {
+  const colors = { verified: '#16A34A', low_confidence: '#CA8A04', conflict: '#DC2626', missing: '#6B7280' };
+  const labels = { verified: 'Verified', low_confidence: 'Low Confidence', conflict: 'Conflict', missing: 'Missing' };
+  const c = colors[status] || '#6B7280';
+  return `<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:${c}18;color:${c};">${labels[status] || status}</span>`;
+}
+
+function renderPortalCompleteness(gapData) {
+  const pct = Math.round((gapData.overall_score || 0) * 100);
+  const color = _portalScoreColor(gapData.overall_score || 0);
+  const deg = Math.round(pct * 3.6);
+
+  let h = '<div style="background:#fff;border-radius:12px;padding:28px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">';
+  h += '<h2 style="font-size:1rem;font-weight:700;color:#1a1a2e;margin:0 0 20px;">Completeness Analysis</h2>';
+
+  // Ring + bars container
+  h += '<div style="display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap;">';
+
+  // Conic ring
+  h += `<div style="width:150px;height:150px;border-radius:50%;background:conic-gradient(${color} 0deg, ${color} ${deg}deg, #e8e8e8 ${deg}deg);display:flex;align-items:center;justify-content:center;flex-shrink:0;">`;
+  h += `<div style="width:120px;height:120px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;">`;
+  h += `<div style="font-size:2rem;font-weight:700;color:${color};">${pct}%</div>`;
+  h += '<div style="font-size:0.75rem;color:#6B7280;">Complete</div>';
+  h += '</div></div>';
+
+  // Score bars
+  h += '<div style="flex:1;min-width:200px;">';
+  const bars = [
+    { label: 'Documents', score: gapData.document_score || 0, weight: '40%' },
+    { label: 'Entities', score: gapData.entity_score || 0, weight: '40%' },
+    { label: 'Relationships', score: gapData.relationship_score || 0, weight: '20%' }
+  ];
+  for (const bar of bars) {
+    const bPct = Math.round(bar.score * 100);
+    const bColor = _portalScoreColor(bar.score);
+    h += '<div style="margin-bottom:12px;">';
+    h += `<div style="display:flex;justify-content:space-between;font-size:0.82rem;margin-bottom:4px;"><span>${bar.label} <span style="color:#94a3b8;font-size:11px;">(${bar.weight})</span></span><span style="font-weight:600;color:${bColor};">${bPct}%</span></div>`;
+    h += `<div style="height:8px;background:#e8e8e8;border-radius:4px;overflow:hidden;"><div style="height:100%;width:${bPct}%;background:${bColor};border-radius:4px;transition:width 0.3s;"></div></div>`;
+    h += '</div>';
+  }
+  h += '</div></div>';
+
+  // Missing Documents
+  const missingDocs = gapData.missing_documents || [];
+  if (missingDocs.length > 0) {
+    h += '<div style="margin-top:24px;">';
+    h += `<h3 style="font-size:0.85rem;font-weight:600;color:#DC2626;margin:0 0 12px;">Missing Documents (${missingDocs.length})</h3>`;
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;">';
+    for (const doc of missingDocs) {
+      h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;font-size:0.82rem;">';
+      h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+      h += `<span>${escHtml(_portalFormatLabel(doc.item))}</span></div>`;
+    }
+    h += '</div></div>';
+  }
+
+  // Missing Fields
+  const missingFields = gapData.missing_entity_fields || [];
+  if (missingFields.length > 0) {
+    h += '<div style="margin-top:20px;">';
+    h += `<h3 style="font-size:0.85rem;font-weight:600;color:#CA8A04;margin:0 0 12px;">Missing Entity Fields (${missingFields.length})</h3>`;
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;">';
+    for (const field of missingFields) {
+      h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;font-size:0.82rem;">';
+      h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#CA8A04" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>';
+      h += `<span>${escHtml(_portalFormatLabel(field.missing))} <span style="color:#94a3b8;">— ${escHtml(_portalFormatLabel(field.role))}</span></span></div>`;
+    }
+    h += '</div></div>';
+  }
+
+  // Missing Relationships
+  const missingRels = gapData.missing_relationships || [];
+  if (missingRels.length > 0) {
+    h += '<div style="margin-top:20px;">';
+    h += `<h3 style="font-size:0.85rem;font-weight:600;color:#7C3AED;margin:0 0 12px;">Missing Relationships (${missingRels.length})</h3>`;
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;">';
+    for (const rel of missingRels) {
+      h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;font-size:0.82rem;">';
+      h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="1.5"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>';
+      h += `<span>${escHtml(_portalFormatLabel(rel.expected))}</span></div>`;
+    }
+    h += '</div></div>';
+  }
+
+  // Found Documents
+  const foundDocs = gapData.found_documents || [];
+  if (foundDocs.length > 0) {
+    h += '<div style="margin-top:20px;">';
+    h += `<h3 style="font-size:0.85rem;font-weight:600;color:#065F46;margin:0 0 12px;">Found Documents (${foundDocs.length})</h3>`;
+    h += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+    for (const fd of foundDocs) {
+      h += `<span style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;background:#dcfce7;border-radius:12px;font-size:0.78rem;color:#166534;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>${escHtml(_portalFormatLabel(fd.item))}</span>`;
+    }
+    h += '</div></div>';
+  }
+
+  // Suggestions
+  const suggestions = gapData.suggestions || [];
+  if (suggestions.length > 0) {
+    h += '<div style="margin-top:20px;padding:16px;background:#eff6ff;border-radius:8px;">';
+    h += '<h3 style="font-size:0.85rem;font-weight:600;color:#1e40af;margin:0 0 8px;">Suggested Next Steps</h3>';
+    h += '<ul style="margin:0;padding:0 0 0 20px;font-size:0.82rem;color:#1e40af;line-height:1.7;">';
+    for (const s of suggestions) h += `<li>${escHtml(s)}</li>`;
+    h += '</ul></div>';
+  }
+
+  h += '</div>';
+  return h;
+}
+
+function renderPortalExport(exportData, spoke, token) {
+  const s = exportData.summary || {};
+  let h = '<div style="background:#fff;border-radius:12px;padding:28px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">';
+  h += '<h2 style="font-size:1rem;font-weight:700;color:#1a1a2e;margin:0 0 20px;">Extracted Data</h2>';
+
+  // Summary stats
+  h += '<div style="display:flex;gap:20px;flex-wrap:wrap;margin-bottom:24px;">';
+  h += `<div style="text-align:center;"><div style="font-size:1.5rem;font-weight:700;color:#191919;">${s.total_fields || 0}</div><div style="font-size:0.75rem;color:#6B7280;">Total</div></div>`;
+  h += `<div style="text-align:center;"><div style="font-size:1.5rem;font-weight:700;color:#16A34A;">${s.verified || 0}</div><div style="font-size:0.75rem;color:#6B7280;">Verified</div></div>`;
+  if (s.low_confidence) h += `<div style="text-align:center;"><div style="font-size:1.5rem;font-weight:700;color:#CA8A04;">${s.low_confidence}</div><div style="font-size:0.75rem;color:#6B7280;">Low Conf</div></div>`;
+  if (s.conflicts) h += `<div style="text-align:center;"><div style="font-size:1.5rem;font-weight:700;color:#DC2626;">${s.conflicts}</div><div style="font-size:0.75rem;color:#6B7280;">Conflicts</div></div>`;
+  h += `<div style="text-align:center;"><div style="font-size:1.5rem;font-weight:700;color:#6B7280;">${s.missing || 0}</div><div style="font-size:0.75rem;color:#6B7280;">Missing</div></div>`;
+  h += '</div>';
+
+  // Role cards
+  const roles = exportData.roles || [];
+  for (let ri = 0; ri < roles.length; ri++) {
+    const role = roles[ri];
+    let roleVerified = 0, roleTotal = 0;
+    for (const ent of (role.entities || [])) {
+      for (const f of (ent.fields || [])) { roleTotal++; if (f.status === 'verified') roleVerified++; }
+    }
+    const allComplete = (roleVerified === roleTotal && roleTotal > 0);
+    const isOrg = role.role === 'business_entity';
+
+    h += `<div style="border:1px solid #e5e5ea;border-radius:10px;margin-bottom:12px;overflow:hidden;">`;
+    // Header
+    h += `<div onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'" style="display:flex;align-items:center;gap:10px;padding:14px 16px;background:#fafafa;cursor:pointer;user-select:none;">`;
+    if (isOrg) {
+      h += '<div style="width:28px;height:28px;border-radius:6px;background:#dbeafe;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>';
+    } else {
+      h += '<div style="width:28px;height:28px;border-radius:6px;background:#ede9fe;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg></div>';
+    }
+    h += `<span style="font-weight:600;font-size:0.9rem;flex:1;">${escHtml(_portalFormatLabel(role.role))}</span>`;
+    h += `<span style="font-size:0.78rem;color:${allComplete ? '#16A34A' : '#6B7280'};font-weight:600;">${roleVerified}/${roleTotal} fields</span>`;
+    h += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>';
+    h += '</div>';
+
+    // Body
+    h += '<div style="padding:0 16px 16px;">';
+    const hasEntities = role.entities && role.entities.length > 0 && !(role.entities.length === 1 && !role.entities[0].entity_id);
+
+    if (!hasEntities) {
+      h += '<div style="padding:12px 0;font-size:0.82rem;color:#94a3b8;font-style:italic;">No matching entity found</div>';
+      if (role.entities && role.entities[0]) {
+        for (const f of (role.entities[0].fields || [])) {
+          h += `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f3f4f6;font-size:0.82rem;opacity:0.6;">`;
+          h += `<span style="min-width:140px;color:#6B7280;">${escHtml(_portalFormatLabel(f.field))}</span>`;
+          h += `<span style="color:#d1d5db;">—</span>`;
+          h += `<span style="margin-left:auto;">${_portalBadgeHtml('missing')}</span></div>`;
+        }
+      }
+    } else {
+      for (const ent of role.entities) {
+        if (role.entities.length > 1) {
+          h += `<div style="font-size:0.82rem;font-weight:600;color:#4b5563;padding:10px 0 6px;border-bottom:1px solid #f3f4f6;">${escHtml(ent.entity_name)}</div>`;
+        }
+        for (const f of (ent.fields || [])) {
+          const isMissing = f.status === 'missing';
+          h += `<div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f3f4f6;font-size:0.82rem;${isMissing ? 'opacity:0.6;' : ''}">`;
+          h += `<span style="min-width:140px;color:#6B7280;">${escHtml(_portalFormatLabel(f.field))}</span>`;
+          h += f.value ? `<span style="flex:1;color:#1a1a2e;font-weight:500;">${escHtml(String(f.value))}</span>` : '<span style="flex:1;color:#d1d5db;">—</span>';
+          h += `<span style="display:flex;align-items:center;gap:6px;margin-left:auto;">${_portalBadgeHtml(f.status)}`;
+          if (f.provenance && f.provenance.filename) {
+            h += `<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;background:#f3f4f6;border-radius:10px;font-size:10px;color:#6B7280;cursor:pointer;" onclick="var el=this.parentElement.parentElement.nextElementSibling;if(el)el.style.display=el.style.display==='none'?'block':'none';">`;
+            h += `<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+            h += `${escHtml(f.provenance.filename)}</span>`;
+          }
+          h += '</span></div>';
+          // Evidence expansion area
+          if (f.provenance && f.provenance.snippet) {
+            h += '<div style="display:none;padding:8px 12px;margin:4px 0 4px 140px;background:#f8f9fa;border-radius:6px;font-size:0.78rem;border-left:3px solid #6366f1;">';
+            h += `<div style="color:#475569;font-style:italic;">&ldquo;${escHtml(f.provenance.snippet)}&rdquo;</div>`;
+            if (f.provenance.location) h += `<div style="color:#94a3b8;margin-top:4px;">Location: ${escHtml(f.provenance.location)}</div>`;
+            h += '</div>';
+          }
+        }
+      }
+    }
+    h += '</div></div>';
+  }
+
+  h += '</div>';
+  return h;
+}
+
+function renderPortalFiles(files, spokeId, token) {
+  let h = '<div style="background:#fff;border-radius:12px;padding:28px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">';
+  h += `<h2 style="font-size:1rem;font-weight:700;color:#1a1a2e;margin:0 0 20px;">Source Files (${files.length})</h2>`;
+
+  if (files.length === 0) {
+    h += '<div style="text-align:center;padding:32px;color:#94a3b8;font-size:0.9rem;">No files uploaded yet</div>';
+  } else {
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">';
+    for (const file of files) {
+      const size = file.size ? (file.size > 1024 * 1024 ? (file.size / (1024 * 1024)).toFixed(1) + ' MB' : (file.size / 1024).toFixed(1) + ' KB') : '';
+      const date = file.uploaded_at ? new Date(file.uploaded_at).toLocaleDateString() : '';
+      const downloadUrl = `/api/spoke/${encodeURIComponent(spokeId)}/file/${encodeURIComponent(file.file_id)}?token=${encodeURIComponent(token)}`;
+
+      h += '<div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid #e5e5ea;border-radius:10px;transition:border-color 0.15s;">';
+      h += '<div style="width:36px;height:36px;border-radius:8px;background:#ede9fe;display:flex;align-items:center;justify-content:center;flex-shrink:0;">';
+      h += '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>';
+      h += '<div style="flex:1;min-width:0;">';
+      h += `<div style="font-size:0.85rem;font-weight:600;color:#1a1a2e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(file.original_name || file.file_id)}</div>`;
+      const meta = [size, date].filter(Boolean).join(' · ');
+      if (meta) h += `<div style="font-size:0.75rem;color:#94a3b8;margin-top:2px;">${escHtml(meta)}</div>`;
+      h += '</div>';
+      h += `<a href="${downloadUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:#6366f1;color:#fff;border-radius:6px;font-size:0.78rem;font-weight:600;text-decoration:none;white-space:nowrap;">`;
+      h += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+      h += ' Download</a>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  h += '</div>';
+  return h;
+}
+
+function renderSharedClientPortal(spoke, gapData, exportData, files, share) {
+  const includes = share.includes || ['gaps', 'export', 'files'];
+  const templateLabel = gapData ? _portalFormatLabel(gapData.template_name || gapData.template_type || '') : '';
+  const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  let body = '';
+  if (includes.includes('gaps') && gapData) body += renderPortalCompleteness(gapData);
+  if (includes.includes('export') && exportData) body += renderPortalExport(exportData, spoke, share.token);
+  if (includes.includes('files')) body += renderPortalFiles(files || [], spoke.id, share.token);
+
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escHtml(spoke.name)} — Client Portal</title>
+<meta property="og:title" content="${escHtml(spoke.name)} — Client Portal">
+<meta property="og:description" content="Shared client matter portal via Context Architecture">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8f9fa; color: #1a1a2e; min-height: 100vh; }
+  .portal-header { background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 48px 24px 36px; text-align: center; color: #fff; }
+  .portal-name { font-size: 1.6rem; font-weight: 700; margin-bottom: 8px; }
+  .portal-meta { display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 0.85rem; opacity: 0.85; flex-wrap: wrap; }
+  .portal-badge { display: inline-block; padding: 3px 10px; background: rgba(255,255,255,0.2); border-radius: 12px; font-size: 0.78rem; font-weight: 600; }
+  .portal-body { max-width: 800px; margin: -20px auto 40px; padding: 0 16px; }
+  .portal-footer { text-align: center; padding: 32px 24px; font-size: 0.75rem; color: #94a3b8; }
+  .portal-footer a { color: #6366f1; text-decoration: none; }
+  @media (max-width: 600px) {
+    .portal-header { padding: 32px 16px 28px; }
+    .portal-name { font-size: 1.3rem; }
+    .portal-body { margin-top: -12px; }
+  }
+</style></head><body>
+<div class="portal-header">
+  <div class="portal-name">${escHtml(spoke.name)}</div>
+  <div class="portal-meta">
+    ${templateLabel ? '<span class="portal-badge">' + escHtml(templateLabel) + '</span>' : ''}
+    <span>${escHtml(dateStr)}</span>
+  </div>
+</div>
+<div class="portal-body">${body}</div>
+<div class="portal-footer">Powered by <a href="#">Context Architecture</a></div>
+</body></html>`;
+}
+
+app.get('/shared/:shareId', sharedViewLimiter, async (req, res) => {
   const { shareId } = req.params;
 
-  // Scan all tenant directories for this shareId
+  // Phase 1: Check entity shares (shares.json)
   let matchedShare = null;
   let tenantDir = null;
 
@@ -8245,32 +8591,65 @@ app.get('/shared/:shareId', sharedViewLimiter, (req, res) => {
     // GRAPH_DIR might not exist yet
   }
 
-  if (!matchedShare) {
-    return res.status(404).send(renderSharedErrorPage(
-      'Profile Not Found',
-      'This link is invalid or has been revoked. Please ask the profile owner for a new link.'
-    ));
+  if (matchedShare) {
+    // Check expiry
+    if (new Date(matchedShare.expiresAt) < new Date()) {
+      return res.status(410).send(renderSharedErrorPage(
+        'Link Expired',
+        'This shared profile link has expired. Please ask the profile owner to generate a new link.'
+      ));
+    }
+
+    // Load entity
+    const entityPath = path.join(tenantDir, matchedShare.entityId + '.json');
+    if (!fs.existsSync(entityPath)) {
+      return res.status(404).send(renderSharedErrorPage(
+        'Profile Not Found',
+        'The profile could not be loaded. It may have been deleted.'
+      ));
+    }
+
+    const entity = JSON.parse(fs.readFileSync(entityPath, 'utf-8'));
+    return res.send(renderSharedProfilePage(entity, matchedShare));
   }
 
-  // Check expiry
-  if (new Date(matchedShare.expiresAt) < new Date()) {
-    return res.status(410).send(renderSharedErrorPage(
-      'Link Expired',
-      'This shared profile link has expired. Please ask the profile owner to generate a new link.'
-    ));
+  // Phase 2: Check spoke shares (token on spoke objects)
+  const spokeResult = findSpokeByShareToken(GRAPH_DIR, shareId);
+  if (spokeResult) {
+    const { spoke, graphDir: spokeGraphDir, share } = spokeResult;
+    const includes = share.includes || ['gaps', 'export', 'files'];
+
+    // Build gap data if needed
+    let gapData = null;
+    if (includes.includes('gaps') && spoke.template_type) {
+      try {
+        if (spoke.gap_analysis) {
+          gapData = spoke.gap_analysis;
+        } else {
+          gapData = await analyzeGaps(spoke.id, spokeGraphDir, spoke.template_type);
+        }
+      } catch {}
+    }
+
+    // Build export data if needed
+    let exportData = null;
+    if (includes.includes('export') && spoke.template_type) {
+      try {
+        exportData = buildSpokeExportData(spoke, spokeGraphDir);
+      } catch {}
+    }
+
+    // Get files
+    const files = (includes.includes('files') ? (spoke.files || []) : []);
+
+    return res.send(renderSharedClientPortal(spoke, gapData, exportData, files, share));
   }
 
-  // Load entity
-  const entityPath = path.join(tenantDir, matchedShare.entityId + '.json');
-  if (!fs.existsSync(entityPath)) {
-    return res.status(404).send(renderSharedErrorPage(
-      'Profile Not Found',
-      'The profile could not be loaded. It may have been deleted.'
-    ));
-  }
-
-  const entity = JSON.parse(fs.readFileSync(entityPath, 'utf-8'));
-  res.send(renderSharedProfilePage(entity, matchedShare));
+  // Phase 3: Not found
+  res.status(404).send(renderSharedErrorPage(
+    'Link Not Found',
+    'This link is invalid or has been revoked. Please ask the owner for a new link.'
+  ));
 });
 
 const WIKI_HTML = `<!DOCTYPE html>
@@ -13785,6 +14164,152 @@ function downloadExportCsv() {
     .catch(function(err) { toast('CSV download failed: ' + err.message); });
 }
 
+// --- Spoke Share Manager (Build 7) ---
+
+var _spokeShares = [];
+
+function showSpokeShareManager() {
+  selectedView = 'share_portal';
+  selectedId = null;
+  selectedCategory = null;
+  breadcrumbs = [{ label: 'Share Portal' }];
+  renderBreadcrumbs();
+  renderSidebar();
+  if (!_selectedSpoke) {
+    document.getElementById('main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Select a spoke first</div>';
+    return;
+  }
+  document.getElementById('main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Loading shares...</div>';
+  api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/shares').then(function(data) {
+    _spokeShares = data.shares || [];
+    renderSpokeShareManager();
+  }).catch(function(err) {
+    document.getElementById('main').innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Failed to load shares') + '</div>';
+  });
+}
+
+function renderSpokeShareManager() {
+  var h = '<div style="padding:24px 28px;max-width:720px;">';
+
+  // Header
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">';
+  h += '<div style="display:flex;align-items:center;gap:10px;">';
+  h += '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>';
+  h += '<span style="font-size:1.1rem;font-weight:700;color:var(--text-primary);">Share Portal</span>';
+  h += '</div></div>';
+
+  // Create new share
+  h += '<div style="background:var(--bg-card);border:1px solid var(--border-primary);border-radius:12px;padding:20px;margin-bottom:24px;">';
+  h += '<h3 style="font-size:0.9rem;font-weight:600;margin:0 0 16px;color:var(--text-primary);">Create Share Link</h3>';
+  h += '<div style="margin-bottom:12px;">';
+  h += '<label style="display:block;font-size:0.82rem;color:var(--text-secondary);margin-bottom:4px;">Label (optional)</label>';
+  h += '<input type="text" id="shareLabel" placeholder="e.g. For Justin" style="width:100%;padding:8px 12px;border:1px solid var(--border-primary);border-radius:8px;font-size:0.85rem;background:var(--bg-input);color:var(--text-primary);" />';
+  h += '</div>';
+  h += '<div style="margin-bottom:16px;">';
+  h += '<label style="display:block;font-size:0.82rem;color:var(--text-secondary);margin-bottom:8px;">Sections to include</label>';
+  h += '<div style="display:flex;gap:16px;flex-wrap:wrap;">';
+  h += '<label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer;"><input type="checkbox" id="shareIncGaps" checked /> Completeness</label>';
+  h += '<label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer;"><input type="checkbox" id="shareIncExport" checked /> Export Data</label>';
+  h += '<label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer;"><input type="checkbox" id="shareIncFiles" checked /> Source Files</label>';
+  h += '</div></div>';
+  h += '<button onclick="confirmSpokeShare()" style="padding:8px 20px;background:var(--accent-primary);color:#fff;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">Create Share Link</button>';
+  h += '</div>';
+
+  // Active shares list
+  if (_spokeShares.length > 0) {
+    h += '<div style="margin-bottom:8px;font-size:0.85rem;font-weight:600;color:var(--text-primary);">Active Links (' + _spokeShares.length + ')</div>';
+    for (var i = 0; i < _spokeShares.length; i++) {
+      var s = _spokeShares[i];
+      var shareUrl = location.origin + '/shared/' + s.token;
+      var created = s.created_at ? new Date(s.created_at).toLocaleDateString() : '';
+      var incTags = (s.includes || []).map(function(inc) {
+        var labels = { gaps: 'Completeness', export: 'Export', files: 'Files' };
+        return '<span style="display:inline-block;padding:2px 8px;background:#ede9fe;color:#6366f1;border-radius:10px;font-size:10px;font-weight:600;">' + (labels[inc] || inc) + '</span>';
+      }).join(' ');
+
+      h += '<div style="background:var(--bg-card);border:1px solid var(--border-primary);border-radius:10px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">';
+      h += '<div style="flex:1;min-width:200px;">';
+      if (s.label) h += '<div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);margin-bottom:2px;">' + esc(s.label) + '</div>';
+      h += '<div style="font-size:0.78rem;color:var(--text-muted);word-break:break-all;">' + esc(shareUrl) + '</div>';
+      h += '<div style="margin-top:4px;display:flex;gap:4px;align-items:center;">' + incTags;
+      if (created) h += '<span style="font-size:10px;color:var(--text-muted);margin-left:8px;">' + esc(created) + '</span>';
+      h += '</div></div>';
+      h += '<button onclick="copySpokeShareLink(\\'' + esc(s.token) + '\\')" style="padding:6px 14px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:6px;font-size:0.78rem;cursor:pointer;white-space:nowrap;">Copy</button>';
+      h += '<button onclick="revokeSpokeShare(\\'' + esc(s.token) + '\\')" style="padding:6px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;font-size:0.78rem;color:#DC2626;cursor:pointer;white-space:nowrap;">Revoke</button>';
+      h += '</div>';
+    }
+  } else {
+    h += '<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:0.9rem;">No active share links. Create one above.</div>';
+  }
+
+  h += '</div>';
+  document.getElementById('main').innerHTML = h;
+}
+
+function confirmSpokeShare() {
+  if (!_selectedSpoke) return;
+  var label = (document.getElementById('shareLabel') || {}).value || '';
+  var includes = [];
+  if (document.getElementById('shareIncGaps') && document.getElementById('shareIncGaps').checked) includes.push('gaps');
+  if (document.getElementById('shareIncExport') && document.getElementById('shareIncExport').checked) includes.push('export');
+  if (document.getElementById('shareIncFiles') && document.getElementById('shareIncFiles').checked) includes.push('files');
+  if (includes.length === 0) { toast('Select at least one section to share'); return; }
+
+  api('POST', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/share', { label: label, includes: includes }).then(function(data) {
+    toast('Share link created!');
+    // Copy to clipboard
+    if (data.share_url) {
+      var fullUrl = data.share_url;
+      if (fullUrl.startsWith('/')) fullUrl = location.origin + fullUrl;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(fullUrl).then(function() { toast('Link copied to clipboard'); });
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = fullUrl;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        toast('Link copied to clipboard');
+      }
+    }
+    // Refresh
+    showSpokeShareManager();
+  }).catch(function(err) {
+    toast('Failed to create share: ' + (err.message || err));
+  });
+}
+
+function copySpokeShareLink(token) {
+  var url = location.origin + '/shared/' + token;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(function() { toast('Link copied!'); }).catch(function() {
+      _fallbackCopy(url);
+    });
+  } else {
+    _fallbackCopy(url);
+  }
+}
+
+function _fallbackCopy(text) {
+  var ta = document.createElement('textarea');
+  ta.value = text;
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); toast('Link copied!'); } catch(e) { toast('Copy failed — select manually'); }
+  document.body.removeChild(ta);
+}
+
+function revokeSpokeShare(token) {
+  if (!confirm('Revoke this share link? Anyone with the link will no longer have access.')) return;
+  api('DELETE', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/share/' + encodeURIComponent(token)).then(function() {
+    toast('Share link revoked');
+    showSpokeShareManager();
+  }).catch(function(err) {
+    toast('Failed to revoke: ' + (err.message || err));
+  });
+}
+
 // --- Spoke Selector ---
 
 function loadSpokes() {
@@ -13911,6 +14436,11 @@ function renderSidebar() {
     html += '<div class="sb-nav-item' + (exportActive ? ' active' : '') + '" onclick="showExportView()">';
     html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>';
     html += 'Export View</div>';
+
+    var shareActive = (selectedView === 'share_portal');
+    html += '<div class="sb-nav-item' + (shareActive ? ' active' : '') + '" onclick="showSpokeShareManager()">';
+    html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>';
+    html += 'Share Portal</div>';
   }
 
   // ── PROJECTS section ──
