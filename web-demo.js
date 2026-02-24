@@ -8430,7 +8430,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     border-right: none;
     display: flex; flex-direction: column;
     background: #fafafa;
-    box-shadow: 1px 0 3px rgba(0,0,0,0.04);
+    box-shadow: none;
   }
 
   /* --- Sidebar Brand --- */
