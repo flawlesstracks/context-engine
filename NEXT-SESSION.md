@@ -1,12 +1,22 @@
 # Context Architecture — Session Handoff Document
 
-> Last updated: 2026-02-25 (end of Day 8 — Build 10.5 + Build 11 + Build 11.5)
+> Last updated: 2026-02-25 (end of Day 8 — Builds 10.5 + 11 + 11.5 + 12)
 > Server: running on port 3000
 > Branch: main, pushed to origin
 
 ---
 
 ## 0. Builds Shipped Today (Day 8)
+
+### Build 12 — Template Builder UI (Visual Template Editor)
+- **Template editor route**: Clicking a template in sidebar or "+ New Template" opens full visual editor in middle panel. Replaces the read-only template detail view.
+- **Template metadata**: Editable template_id, display_name, description, version badge, and summary stats (doc types, fields, roles, rules counts).
+- **Document type builder**: Accordion-based UI for each document type. Inline editing of type_id, display_name, category, priority, classification signals. Expandable extraction spec field table with field_id, display_name, type (11 types), and necessity_tier selector. Add/remove doc types and individual fields.
+- **Entity role builder**: Accordion for each role. Editable role_id, display_name, entity type (person/business/institution), optional flag. Required fields table with field_id, display_name, type, necessity_tier. Sensitive field types (ssn, ein) auto-flag as BLOCKING.
+- **Cross-document rules builder**: Accordion for each rule. Editable rule_id, description, severity (CRITICAL/WARNING), doc_a/field_a, doc_b/field_b, check_type (5 types). Add/remove rules.
+- **Save with versioning**: Save button calls POST (new) or PUT (existing). PUT auto-bumps patch version. Delete button with confirmation.
+- **Backend CRUD**: POST /api/templates (create), PUT /api/templates/:type (update + version bump), DELETE /api/templates/:type. saveTemplate() and deleteTemplate() write individual JSON files to data/templates/.
+- **26 tests passed**: Version bumping, template CRUD, normalize preserves all fields, backward compat, existing templates intact.
 
 ### Build 11.5 — Three-Tier Necessity Model (BLOCKING / EXPECTED / ENRICHING)
 - **Schema upgrade**: Added `necessity_tier` field to every `extraction_spec` field and `entity_role.required_fields` entry across 3 new-format templates. Version bumped to 1.1.0.
@@ -42,7 +52,6 @@
 
 | Build | Name | Description |
 |-------|------|-------------|
-| 12 | Template Builder UI | Visual template editor for creating custom extraction specs |
 | 13 | Doc Request + Client Upload | Generate document request lists, client-facing upload portal |
 | 14 | Cross-Spoke Intelligence | Cross-client analytics, duplicate entity detection across spokes |
 

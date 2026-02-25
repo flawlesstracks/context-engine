@@ -170,6 +170,40 @@ function saveTemplates(data) {
   fs.writeFileSync(TEMPLATES_PATH, JSON.stringify(data, null, 2));
 }
 
+/**
+ * Save a single new-format template to data/templates/{template_id}.json.
+ * Ensures TEMPLATES_DIR exists.
+ */
+function saveTemplate(templateId, templateData) {
+  if (!fs.existsSync(TEMPLATES_DIR)) fs.mkdirSync(TEMPLATES_DIR, { recursive: true });
+  const filePath = path.join(TEMPLATES_DIR, `${templateId}.json`);
+  fs.writeFileSync(filePath, JSON.stringify(templateData, null, 2));
+}
+
+/**
+ * Delete a template file from data/templates/{template_id}.json.
+ * Returns true if deleted, false if not found.
+ */
+function deleteTemplate(templateId) {
+  const filePath = path.join(TEMPLATES_DIR, `${templateId}.json`);
+  if (fs.existsSync(filePath)) {
+    fs.unlinkSync(filePath);
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Bump the patch version of a semver string: "1.1.0" → "1.1.1"
+ */
+function bumpVersion(version) {
+  if (!version) return '1.0.0';
+  const parts = version.split('.').map(Number);
+  if (parts.length !== 3 || parts.some(isNaN)) return '1.0.0';
+  parts[2] += 1;
+  return parts.join('.');
+}
+
 // ---------------------------------------------------------------------------
 // Field Aliases — deterministic (no LLM) field matching
 // ---------------------------------------------------------------------------
@@ -1022,6 +1056,9 @@ module.exports = {
   loadTemplates,
   getTemplate,
   saveTemplates,
+  saveTemplate,
+  deleteTemplate,
+  bumpVersion,
   normalizeTemplate,
   extractSourceDocuments,
   classifyDocuments,

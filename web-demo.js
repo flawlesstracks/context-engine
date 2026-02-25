@@ -19,7 +19,7 @@ const { analyzeEntityHealth, getRelationshipTier, getTierInfo } = require('./src
 const { parse: universalParse } = require('./universal-parser');
 const { query: queryEngine, getSelfEntity, clearSelfEntityCache } = require('./query-engine');
 const { loadSpokes, createSpoke, getSpoke, updateSpoke, setCenteredEntity, deleteSpoke, listSpokesWithCounts, migrateEntitiesToSpokes, findSpokeByShareToken } = require('./src/spoke-ops');
-const { loadTemplates, getTemplate, saveTemplates, analyzeGaps, FIELD_ALIASES, TYPE_ALIASES } = require('./src/gap-analysis');
+const { loadTemplates, getTemplate, saveTemplates, saveTemplate, deleteTemplate, bumpVersion, analyzeGaps, FIELD_ALIASES, TYPE_ALIASES } = require('./src/gap-analysis');
 const { createConnection, getConnection, getConnectionDecrypted, updateConnection, deleteConnection: deleteConn, listConnections } = require('./src/connector-ops');
 const { getRegisteredProviders, getConnectorClass } = require('./src/connectors/base-connector');
 const { buildAuthorizeUrl, validateState, exchangeCodeForTokens, OAUTH_STATE_COOKIE } = require('./src/connectors/oauth-handler');
@@ -4536,16 +4536,68 @@ app.get('/api/templates/:type', apiAuth, (req, res) => {
   res.json({ id: req.params.type, ...template });
 });
 
-// POST /api/templates/custom — Create custom template (reject overwriting built-ins)
-app.post('/api/templates/custom', apiAuth, (req, res) => {
-  const { id, label, required_documents, required_entities } = req.body || {};
-  if (!id || !label) return res.status(400).json({ error: 'id and label are required' });
-  const builtIns = ['estate_planning', 'corporate_formation', 'tax_preparation', 'personal_injury', 'general'];
-  if (builtIns.includes(id)) return res.status(409).json({ error: `Cannot overwrite built-in template: ${id}` });
-  const templates = loadTemplates();
-  templates[id] = { label, required_documents: required_documents || [], required_entities: required_entities || [] };
-  saveTemplates(templates);
-  res.json({ status: 'created', id, label });
+// POST /api/templates — Create new template (Build 12: full new-format template)
+app.post('/api/templates', apiAuth, (req, res) => {
+  const body = req.body || {};
+  const templateId = body.template_id;
+  if (!templateId) return res.status(400).json({ error: 'template_id is required' });
+  if (!body.display_name) return res.status(400).json({ error: 'display_name is required' });
+  if (!/^[a-z][a-z0-9_]*$/.test(templateId)) return res.status(400).json({ error: 'template_id must be lowercase alphanumeric with underscores, starting with a letter' });
+
+  // Check if template already exists
+  const existing = getTemplate(templateId);
+  if (existing) return res.status(409).json({ error: `Template '${templateId}' already exists. Use PUT to update.` });
+
+  // Build template structure
+  const template = {
+    template_id: templateId,
+    version: body.version || '1.0.0',
+    display_name: body.display_name,
+    description: body.description || '',
+    document_types: body.document_types || [],
+    entity_roles: body.entity_roles || [],
+    cross_doc_rules: body.cross_doc_rules || [],
+    created_at: new Date().toISOString(),
+    created_by: body.created_by || 'template_builder'
+  };
+
+  saveTemplate(templateId, template);
+  res.json({ status: 'created', id: templateId, version: template.version });
+});
+
+// PUT /api/templates/:type — Update existing template (auto-bumps version)
+app.put('/api/templates/:type', apiAuth, (req, res) => {
+  const templateId = req.params.type;
+  const existing = getTemplate(templateId);
+  if (!existing) return res.status(404).json({ error: 'Template not found', available: Object.keys(loadTemplates()) });
+
+  const body = req.body || {};
+  const newVersion = body.version || bumpVersion(existing.version);
+
+  // Merge updates onto existing template
+  const template = {
+    template_id: templateId,
+    version: newVersion,
+    display_name: body.display_name || existing.display_name,
+    description: body.description !== undefined ? body.description : (existing.description || ''),
+    document_types: body.document_types !== undefined ? body.document_types : (existing.document_types || []),
+    entity_roles: body.entity_roles !== undefined ? body.entity_roles : (existing.entity_roles || []),
+    cross_doc_rules: body.cross_doc_rules !== undefined ? body.cross_doc_rules : (existing.cross_doc_rules || []),
+    created_at: existing.created_at || new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    created_by: existing.created_by || 'template_builder'
+  };
+
+  saveTemplate(templateId, template);
+  res.json({ status: 'updated', id: templateId, version: template.version, previous_version: existing.version });
+});
+
+// DELETE /api/templates/:type — Delete a custom template
+app.delete('/api/templates/:type', apiAuth, (req, res) => {
+  const templateId = req.params.type;
+  const deleted = deleteTemplate(templateId);
+  if (!deleted) return res.status(404).json({ error: 'Template file not found in data/templates/' });
+  res.json({ status: 'deleted', id: templateId });
 });
 
 // PUT /api/spoke/:id/template — Assign template to spoke, clear cached analysis (Build 10: re-analysis on change)
@@ -15408,7 +15460,7 @@ function renderSidebar() {
       html += esc(tpl.label) + '</div>';
     }
   }
-  html += '<div class="sb-add-btn" onclick="toast(\\'Custom template creation coming soon\\')">';
+  html += '<div class="sb-add-btn" onclick="showTemplateEditor(null)">';
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
   html += '+ New Template</div>';
 
@@ -16148,59 +16200,477 @@ function submitOnboard() {
 }
 
 function showTemplateDetail(templateId) {
+  showTemplateEditor(templateId);
+}
+
+// ── Template Builder State ──
+window._tplEdit = null;        // current template being edited (mutable copy)
+window._tplIsNew = false;      // true if creating new template
+window._tplExpandedDt = {};    // which doc type accordions are expanded
+window._tplExpandedRole = {};  // which role accordions are expanded
+window._tplExpandedRule = {};  // which rule accordions are expanded
+
+function showTemplateEditor(templateId) {
   selectedView = 'template_detail';
   window._selectedTemplate = templateId;
   _selectedSpoke = null;
+  window._tplExpandedDt = {};
+  window._tplExpandedRole = {};
+  window._tplExpandedRule = {};
   renderSidebar();
 
-  api('GET', '/api/templates/' + encodeURIComponent(templateId)).then(function(data) {
-    breadcrumbs = [{ label: 'Templates' }, { label: data.label || templateId }];
+  if (!templateId) {
+    // New template
+    window._tplIsNew = true;
+    window._tplEdit = {
+      template_id: '',
+      display_name: '',
+      description: '',
+      version: '1.0.0',
+      document_types: [],
+      entity_roles: [],
+      cross_doc_rules: []
+    };
+    breadcrumbs = [{ label: 'Templates' }, { label: 'New Template' }];
     renderBreadcrumbs();
+    renderTemplateEditor();
+  } else {
+    // Edit existing
+    window._tplIsNew = false;
+    api('GET', '/api/templates/' + encodeURIComponent(templateId)).then(function(data) {
+      window._tplEdit = JSON.parse(JSON.stringify(data));
+      if (!window._tplEdit.document_types) window._tplEdit.document_types = [];
+      if (!window._tplEdit.entity_roles) window._tplEdit.entity_roles = [];
+      if (!window._tplEdit.cross_doc_rules) window._tplEdit.cross_doc_rules = [];
+      breadcrumbs = [{ label: 'Templates' }, { label: data.display_name || data.label || templateId }];
+      renderBreadcrumbs();
+      renderTemplateEditor();
+    }).catch(function(err) {
+      document.getElementById('main').innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Failed to load template') + '</div>';
+    });
+  }
+}
 
-    var h = '<div style="padding:24px 28px;">';
-    h += '<div style="font-size:22px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">' + esc(data.label || templateId) + '</div>';
-    h += '<div style="font-size:14px;color:var(--text-muted);margin-bottom:24px;">' + esc(data.description || '') + '</div>';
+function renderTemplateEditor() {
+  var t = window._tplEdit;
+  if (!t) return;
+  var h = '<div style="padding:24px 28px;max-width:900px;">';
 
-    // Required documents
-    if (data.required_documents && data.required_documents.length > 0) {
-      h += '<div style="margin-bottom:24px;">';
-      h += '<div style="font-size:16px;font-weight:600;margin-bottom:12px;">Required Documents (' + data.required_documents.length + ')</div>';
-      h += '<div class="gap-category-grid">';
-      for (var d = 0; d < data.required_documents.length; d++) {
-        var doc = data.required_documents[d];
-        h += '<div class="gap-missing-item">';
-        h += '<svg viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="1.5" style="width:16px;height:16px;flex-shrink:0;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
-        h += '<div><div class="gap-item-name">' + esc((doc.name || doc.item || '').replace(/_/g, ' ')) + '</div>';
-        h += '<div class="gap-item-detail">' + esc((doc.category || '').replace(/_/g, ' ')) + '</div></div>';
-        h += '</div>';
+  // ── Header row: title + Save button ──
+  h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;">';
+  h += '<div style="font-size:22px;font-weight:700;color:var(--text-primary);">' + (window._tplIsNew ? 'New Template' : 'Edit Template') + '</div>';
+  h += '<div style="display:flex;gap:8px;">';
+  if (!window._tplIsNew) {
+    h += '<button onclick="deleteCurrentTemplate()" style="padding:8px 16px;border:1px solid #fca5a5;border-radius:8px;background:#fff;color:#dc2626;font-size:13px;font-weight:600;cursor:pointer;">Delete</button>';
+  }
+  h += '<button onclick="saveCurrentTemplate()" style="padding:8px 20px;border:none;border-radius:8px;background:var(--accent-gradient, linear-gradient(135deg,#6366f1,#8b5cf6));color:#fff;font-size:13px;font-weight:600;cursor:pointer;">Save Template</button>';
+  h += '</div></div>';
+
+  // ── Metadata section ──
+  var inputStyle = 'width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;outline:none;background:#fff;font-family:inherit;';
+  var labelStyle = 'display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;';
+
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">';
+  // Template ID
+  h += '<div><label style="' + labelStyle + '">Template ID</label>';
+  h += '<input id="tpl-id" value="' + esc(t.template_id || '') + '" placeholder="e.g. estate_planning" style="' + inputStyle + '"' + (window._tplIsNew ? '' : ' disabled style="' + inputStyle + 'background:#f5f5f5;color:#999;"') + '/></div>';
+  // Display Name
+  h += '<div><label style="' + labelStyle + '">Display Name</label>';
+  h += '<input id="tpl-name" value="' + esc(t.display_name || '') + '" placeholder="e.g. Estate Planning" style="' + inputStyle + '"/></div>';
+  h += '</div>';
+
+  // Description
+  h += '<div style="margin-bottom:24px;"><label style="' + labelStyle + '">Description</label>';
+  h += '<textarea id="tpl-desc" rows="2" placeholder="What this template is for..." style="' + inputStyle + 'resize:vertical;">' + esc(t.description || '') + '</textarea></div>';
+
+  // Version badge
+  h += '<div style="margin-bottom:24px;display:flex;gap:16px;align-items:center;">';
+  h += '<span style="padding:4px 12px;background:#ede9fe;color:#6366f1;border-radius:16px;font-size:12px;font-weight:600;">v' + esc(t.version || '1.0.0') + '</span>';
+  var dtCount = (t.document_types || []).length;
+  var fieldCount = 0;
+  for (var fc = 0; fc < (t.document_types || []).length; fc++) fieldCount += ((t.document_types[fc] || {}).extraction_spec || []).length;
+  var roleCount = (t.entity_roles || []).length;
+  var ruleCount = (t.cross_doc_rules || []).length;
+  h += '<span style="font-size:12px;color:var(--text-muted);">' + dtCount + ' doc types &middot; ' + fieldCount + ' fields &middot; ' + roleCount + ' roles &middot; ' + ruleCount + ' rules</span>';
+  h += '</div>';
+
+  // ── Document Types Section ──
+  h += _renderDocTypesSection(t);
+
+  // ── Entity Roles Section ──
+  h += _renderRolesSection(t);
+
+  // ── Cross-Doc Rules Section ──
+  h += _renderRulesSection(t);
+
+  h += '</div>';
+  document.getElementById('main').innerHTML = h;
+}
+
+// ── Document Types Accordion ──
+function _renderDocTypesSection(t) {
+  var sectionHdr = 'font-size:16px;font-weight:700;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;';
+  var cardStyle = 'border:1px solid #e5e7eb;border-radius:10px;margin-bottom:10px;overflow:hidden;background:#fff;';
+  var cardHdr = 'padding:14px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:background 0.15s;';
+  var addBtn = 'display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border:1px dashed #d1d5db;border-radius:8px;font-size:12px;color:#6366f1;cursor:pointer;background:transparent;font-weight:600;';
+
+  var h = '<div style="margin-bottom:32px;">';
+  h += '<div style="' + sectionHdr + '"><span>Document Types (' + (t.document_types || []).length + ')</span>';
+  h += '<button onclick="tplAddDocType()" style="' + addBtn + '">+ Add Document Type</button></div>';
+
+  for (var i = 0; i < (t.document_types || []).length; i++) {
+    var dt = t.document_types[i];
+    var expanded = window._tplExpandedDt[i];
+    var specCount = (dt.extraction_spec || []).length;
+    var sigCount = (dt.classification_signals || []).length;
+    var priColor = dt.priority === 'HIGH' ? '#dc2626' : (dt.priority === 'MEDIUM' ? '#d97706' : '#6b7280');
+
+    h += '<div style="' + cardStyle + '">';
+    // Card header
+    h += '<div style="' + cardHdr + (expanded ? 'background:#fafafe;border-bottom:1px solid #e5e7eb;' : '') + '" onclick="tplToggleDt(' + i + ')">';
+    h += '<div style="display:flex;align-items:center;gap:10px;">';
+    h += '<svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5" style="width:18px;height:18px;transform:rotate(' + (expanded ? '90' : '0') + 'deg);transition:transform 0.2s;"><polyline points="9 18 15 12 9 6"/></svg>';
+    h += '<div><div style="font-size:14px;font-weight:600;">' + esc(dt.display_name || dt.type_id || 'Unnamed') + '</div>';
+    h += '<div style="font-size:11px;color:var(--text-muted);">' + esc(dt.type_id || '') + ' &middot; ' + esc(dt.category || '') + ' &middot; ' + specCount + ' fields &middot; ' + sigCount + ' signals</div></div>';
+    h += '</div>';
+    h += '<div style="display:flex;align-items:center;gap:8px;">';
+    h += '<span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;color:' + priColor + ';background:' + priColor + '15;">' + esc(dt.priority || 'MEDIUM') + '</span>';
+    h += '<button onclick="event.stopPropagation();tplRemoveDocType(' + i + ')" style="border:none;background:none;cursor:pointer;color:#d1d5db;font-size:16px;" title="Remove">&times;</button>';
+    h += '</div></div>';
+
+    // Expanded body
+    if (expanded) {
+      h += '<div style="padding:16px;">';
+      // Doc type metadata row
+      h += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:16px;">';
+      h += '<div><label style="font-size:11px;font-weight:600;color:#888;display:block;margin-bottom:4px;">Type ID</label><input value="' + esc(dt.type_id || '') + '" onchange="tplUpdateDt(' + i + ',\\'type_id\\',this.value)" style="width:100%;padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;"/></div>';
+      h += '<div><label style="font-size:11px;font-weight:600;color:#888;display:block;margin-bottom:4px;">Display Name</label><input value="' + esc(dt.display_name || '') + '" onchange="tplUpdateDt(' + i + ',\\'display_name\\',this.value)" style="width:100%;padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;"/></div>';
+      h += '<div><label style="font-size:11px;font-weight:600;color:#888;display:block;margin-bottom:4px;">Category</label><input value="' + esc(dt.category || '') + '" onchange="tplUpdateDt(' + i + ',\\'category\\',this.value)" style="width:100%;padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;"/></div>';
+      h += '<div><label style="font-size:11px;font-weight:600;color:#888;display:block;margin-bottom:4px;">Priority</label><select onchange="tplUpdateDt(' + i + ',\\'priority\\',this.value)" style="width:100%;padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;">';
+      var pris = ['HIGH', 'MEDIUM', 'LOW'];
+      for (var pi = 0; pi < pris.length; pi++) {
+        h += '<option value="' + pris[pi] + '"' + (dt.priority === pris[pi] ? ' selected' : '') + '>' + pris[pi] + '</option>';
       }
-      h += '</div></div>';
-    }
+      h += '</select></div></div>';
 
-    // Required entities / roles
-    if (data.required_entities && data.required_entities.length > 0) {
-      h += '<div style="margin-bottom:24px;">';
-      h += '<div style="font-size:16px;font-weight:600;margin-bottom:12px;">Required Entity Roles (' + data.required_entities.length + ')</div>';
-      for (var e = 0; e < data.required_entities.length; e++) {
-        var role = data.required_entities[e];
-        h += '<div style="border:1px solid #e8e8e8;border-radius:8px;padding:14px;margin-bottom:8px;">';
-        h += '<div style="font-size:14px;font-weight:600;">' + esc((role.role || '').replace(/_/g, ' ')) + '</div>';
-        if (role.required_fields && role.required_fields.length > 0) {
-          h += '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">';
-          for (var f = 0; f < role.required_fields.length; f++) {
-            h += '<span style="display:inline-block;padding:2px 8px;background:#f0f0f0;border-radius:10px;font-size:11px;color:#555;">' + esc((role.required_fields[f] || '').replace(/_/g, ' ')) + '</span>';
+      // Classification signals
+      h += '<div style="margin-bottom:16px;">';
+      h += '<label style="font-size:11px;font-weight:600;color:#888;display:block;margin-bottom:4px;">Classification Signals (comma-separated)</label>';
+      h += '<input value="' + esc((dt.classification_signals || []).join(', ')) + '" onchange="tplUpdateDtSignals(' + i + ',this.value)" style="width:100%;padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;" placeholder="w2, form w-2, wage and tax statement"/>';
+      h += '</div>';
+
+      // Extraction spec fields table
+      h += '<div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">';
+      h += '<span style="font-size:13px;font-weight:600;">Extraction Fields (' + specCount + ')</span>';
+      h += '<button onclick="tplAddField(' + i + ')" style="border:1px dashed #d1d5db;border-radius:6px;background:transparent;padding:4px 10px;font-size:11px;color:#6366f1;cursor:pointer;font-weight:600;">+ Add Field</button>';
+      h += '</div>';
+
+      if (specCount > 0) {
+        h += '<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">';
+        h += '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+        h += '<thead><tr style="background:#f9fafb;"><th style="padding:8px 10px;text-align:left;font-weight:600;color:#6b7280;">Field ID</th><th style="padding:8px 10px;text-align:left;font-weight:600;color:#6b7280;">Display Name</th><th style="padding:8px 10px;text-align:left;font-weight:600;color:#6b7280;">Type</th><th style="padding:8px 10px;text-align:left;font-weight:600;color:#6b7280;">Tier</th><th style="padding:8px 10px;width:30px;"></th></tr></thead>';
+        h += '<tbody>';
+        for (var fi = 0; fi < specCount; fi++) {
+          var field = dt.extraction_spec[fi];
+          var tierBg = field.necessity_tier === 'BLOCKING' ? '#fef2f2' : (field.necessity_tier === 'EXPECTED' ? '#fffbeb' : '#f0fdf4');
+          var tierColor = field.necessity_tier === 'BLOCKING' ? '#991B1B' : (field.necessity_tier === 'EXPECTED' ? '#92400E' : '#065F46');
+          h += '<tr style="border-top:1px solid #f0f0f0;">';
+          h += '<td style="padding:6px 10px;"><input value="' + esc(field.field_id || '') + '" onchange="tplUpdateField(' + i + ',' + fi + ',\\'field_id\\',this.value)" style="width:100%;padding:4px 6px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;font-family:monospace;"/></td>';
+          h += '<td style="padding:6px 10px;"><input value="' + esc(field.display_name || '') + '" onchange="tplUpdateField(' + i + ',' + fi + ',\\'display_name\\',this.value)" style="width:100%;padding:4px 6px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;"/></td>';
+          h += '<td style="padding:6px 10px;"><select onchange="tplUpdateField(' + i + ',' + fi + ',\\'type\\',this.value)" style="padding:4px 6px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;">';
+          var ftypes = ['string', 'number', 'currency', 'date', 'percentage', 'boolean', 'ssn', 'ein', 'phone', 'email', 'address'];
+          for (var ft = 0; ft < ftypes.length; ft++) {
+            h += '<option value="' + ftypes[ft] + '"' + ((field.type || 'string') === ftypes[ft] ? ' selected' : '') + '>' + ftypes[ft] + '</option>';
           }
-          h += '</div>';
+          h += '</select></td>';
+          h += '<td style="padding:6px 10px;"><select onchange="tplUpdateField(' + i + ',' + fi + ',\\'necessity_tier\\',this.value)" style="padding:4px 6px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;background:' + tierBg + ';color:' + tierColor + ';font-weight:600;">';
+          var tiers = ['BLOCKING', 'EXPECTED', 'ENRICHING'];
+          for (var tt = 0; tt < tiers.length; tt++) {
+            h += '<option value="' + tiers[tt] + '"' + ((field.necessity_tier || 'EXPECTED') === tiers[tt] ? ' selected' : '') + '>' + tiers[tt].charAt(0) + '</option>';
+          }
+          h += '</select></td>';
+          h += '<td style="padding:6px 10px;text-align:center;"><button onclick="tplRemoveField(' + i + ',' + fi + ')" style="border:none;background:none;cursor:pointer;color:#d1d5db;font-size:14px;" title="Remove">&times;</button></td>';
+          h += '</tr>';
         }
-        h += '</div>';
+        h += '</tbody></table></div>';
+      } else {
+        h += '<div style="padding:16px;text-align:center;color:var(--text-muted);font-size:13px;border:1px dashed #e5e7eb;border-radius:8px;">No extraction fields yet. Click "+ Add Field" to define what data to extract from this document type.</div>';
+      }
+
+      h += '</div>'; // end expanded body
+    }
+    h += '</div>'; // end card
+  }
+
+  if ((t.document_types || []).length === 0) {
+    h += '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px;border:1px dashed #e5e7eb;border-radius:10px;">No document types defined yet. Click "+ Add Document Type" to start building your template.</div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+// ── Entity Roles Accordion ──
+function _renderRolesSection(t) {
+  var sectionHdr = 'font-size:16px;font-weight:700;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;';
+  var cardStyle = 'border:1px solid #e5e7eb;border-radius:10px;margin-bottom:10px;overflow:hidden;background:#fff;';
+  var cardHdr = 'padding:14px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:background 0.15s;';
+  var addBtn = 'display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border:1px dashed #d1d5db;border-radius:8px;font-size:12px;color:#6366f1;cursor:pointer;background:transparent;font-weight:600;';
+  var tiers = ['BLOCKING', 'EXPECTED', 'ENRICHING'];
+
+  var h = '<div style="margin-bottom:32px;">';
+  h += '<div style="' + sectionHdr + '"><span>Entity Roles (' + (t.entity_roles || []).length + ')</span>';
+  h += '<button onclick="tplAddRole()" style="' + addBtn + '">+ Add Role</button></div>';
+
+  for (var i = 0; i < (t.entity_roles || []).length; i++) {
+    var role = t.entity_roles[i];
+    var expanded = window._tplExpandedRole[i];
+    var rfCount = (role.required_fields || []).length;
+
+    h += '<div style="' + cardStyle + '">';
+    h += '<div style="' + cardHdr + (expanded ? 'background:#fafafe;border-bottom:1px solid #e5e7eb;' : '') + '" onclick="tplToggleRole(' + i + ')">';
+    h += '<div style="display:flex;align-items:center;gap:10px;">';
+    h += '<svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5" style="width:18px;height:18px;transform:rotate(' + (expanded ? '90' : '0') + 'deg);transition:transform 0.2s;"><polyline points="9 18 15 12 9 6"/></svg>';
+    h += '<div><div style="font-size:14px;font-weight:600;">' + esc(role.display_name || role.role_id || 'Unnamed Role') + '</div>';
+    h += '<div style="font-size:11px;color:var(--text-muted);">' + esc(role.role_id || '') + ' &middot; ' + esc(role.type || 'person') + ' &middot; ' + rfCount + ' fields' + (role.optional ? ' &middot; optional' : '') + '</div></div>';
+    h += '</div>';
+    h += '<button onclick="event.stopPropagation();tplRemoveRole(' + i + ')" style="border:none;background:none;cursor:pointer;color:#d1d5db;font-size:16px;" title="Remove">&times;</button>';
+    h += '</div>';
+
+    if (expanded) {
+      h += '<div style="padding:16px;">';
+      // Role metadata
+      h += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">';
+      h += '<div><label style="font-size:11px;font-weight:600;color:#888;display:block;margin-bottom:4px;">Role ID</label><input value="' + esc(role.role_id || '') + '" onchange="tplUpdateRole(' + i + ',\\'role_id\\',this.value)" style="width:100%;padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;"/></div>';
+      h += '<div><label style="font-size:11px;font-weight:600;color:#888;display:block;margin-bottom:4px;">Display Name</label><input value="' + esc(role.display_name || '') + '" onchange="tplUpdateRole(' + i + ',\\'display_name\\',this.value)" style="width:100%;padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;"/></div>';
+      h += '<div><label style="font-size:11px;font-weight:600;color:#888;display:block;margin-bottom:4px;">Entity Type</label><select onchange="tplUpdateRole(' + i + ',\\'type\\',this.value)" style="width:100%;padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;">';
+      var etypes = ['person', 'business', 'institution'];
+      for (var ei = 0; ei < etypes.length; ei++) {
+        h += '<option value="' + etypes[ei] + '"' + ((role.type || 'person') === etypes[ei] ? ' selected' : '') + '>' + etypes[ei] + '</option>';
+      }
+      h += '</select></div></div>';
+
+      // Optional checkbox
+      h += '<div style="margin-bottom:16px;"><label style="font-size:12px;color:#555;cursor:pointer;display:inline-flex;align-items:center;gap:6px;"><input type="checkbox"' + (role.optional ? ' checked' : '') + ' onchange="tplUpdateRole(' + i + ',\\'optional\\',this.checked)"/> This role is optional</label></div>';
+
+      // Required fields
+      h += '<div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">';
+      h += '<span style="font-size:13px;font-weight:600;">Required Fields (' + rfCount + ')</span>';
+      h += '<button onclick="tplAddRoleField(' + i + ')" style="border:1px dashed #d1d5db;border-radius:6px;background:transparent;padding:4px 10px;font-size:11px;color:#6366f1;cursor:pointer;font-weight:600;">+ Add Field</button>';
+      h += '</div>';
+
+      if (rfCount > 0) {
+        h += '<div style="border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;">';
+        h += '<table style="width:100%;border-collapse:collapse;font-size:12px;">';
+        h += '<thead><tr style="background:#f9fafb;"><th style="padding:8px 10px;text-align:left;font-weight:600;color:#6b7280;">Field ID</th><th style="padding:8px 10px;text-align:left;font-weight:600;color:#6b7280;">Display Name</th><th style="padding:8px 10px;text-align:left;font-weight:600;color:#6b7280;">Type</th><th style="padding:8px 10px;text-align:left;font-weight:600;color:#6b7280;">Tier</th><th style="padding:8px 10px;width:30px;"></th></tr></thead>';
+        h += '<tbody>';
+        for (var ri = 0; ri < rfCount; ri++) {
+          var rf = role.required_fields[ri];
+          var rfObj = typeof rf === 'string' ? { field_id: role.role_id + '.' + rf, display_name: rf.replace(/_/g, ' '), field_type: 'text' } : rf;
+          var rtierBg = (rfObj.necessity_tier || 'EXPECTED') === 'BLOCKING' ? '#fef2f2' : ((rfObj.necessity_tier || 'EXPECTED') === 'EXPECTED' ? '#fffbeb' : '#f0fdf4');
+          var rtierColor = (rfObj.necessity_tier || 'EXPECTED') === 'BLOCKING' ? '#991B1B' : ((rfObj.necessity_tier || 'EXPECTED') === 'EXPECTED' ? '#92400E' : '#065F46');
+          h += '<tr style="border-top:1px solid #f0f0f0;">';
+          h += '<td style="padding:6px 10px;"><input value="' + esc(rfObj.field_id || '') + '" onchange="tplUpdateRoleField(' + i + ',' + ri + ',\\'field_id\\',this.value)" style="width:100%;padding:4px 6px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;font-family:monospace;"/></td>';
+          h += '<td style="padding:6px 10px;"><input value="' + esc(rfObj.display_name || '') + '" onchange="tplUpdateRoleField(' + i + ',' + ri + ',\\'display_name\\',this.value)" style="width:100%;padding:4px 6px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;"/></td>';
+          h += '<td style="padding:6px 10px;"><select onchange="tplUpdateRoleField(' + i + ',' + ri + ',\\'field_type\\',this.value)" style="padding:4px 6px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;">';
+          var rftypes = ['text', 'number', 'date', 'ssn', 'ein', 'phone', 'email', 'address'];
+          for (var rft = 0; rft < rftypes.length; rft++) {
+            h += '<option value="' + rftypes[rft] + '"' + ((rfObj.field_type || 'text') === rftypes[rft] ? ' selected' : '') + '>' + rftypes[rft] + '</option>';
+          }
+          h += '</select></td>';
+          h += '<td style="padding:6px 10px;"><select onchange="tplUpdateRoleField(' + i + ',' + ri + ',\\'necessity_tier\\',this.value)" style="padding:4px 6px;border:1px solid #e5e7eb;border-radius:4px;font-size:12px;background:' + rtierBg + ';color:' + rtierColor + ';font-weight:600;">';
+          for (var rtt = 0; rtt < tiers.length; rtt++) {
+            h += '<option value="' + tiers[rtt] + '"' + ((rfObj.necessity_tier || 'EXPECTED') === tiers[rtt] ? ' selected' : '') + '>' + tiers[rtt].charAt(0) + '</option>';
+          }
+          h += '</select></td>';
+          h += '<td style="padding:6px 10px;text-align:center;"><button onclick="tplRemoveRoleField(' + i + ',' + ri + ')" style="border:none;background:none;cursor:pointer;color:#d1d5db;font-size:14px;" title="Remove">&times;</button></td>';
+          h += '</tr>';
+        }
+        h += '</tbody></table></div>';
+      } else {
+        h += '<div style="padding:12px;text-align:center;color:var(--text-muted);font-size:12px;border:1px dashed #e5e7eb;border-radius:8px;">No fields yet.</div>';
       }
       h += '</div>';
     }
-
     h += '</div>';
-    document.getElementById('main').innerHTML = h;
+  }
+
+  if ((t.entity_roles || []).length === 0) {
+    h += '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px;border:1px dashed #e5e7eb;border-radius:10px;">No entity roles defined. Click "+ Add Role" to define required parties (e.g., Plaintiff, Business Entity).</div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+// ── Cross-Doc Rules Section ──
+function _renderRulesSection(t) {
+  var sectionHdr = 'font-size:16px;font-weight:700;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;';
+  var cardStyle = 'border:1px solid #e5e7eb;border-radius:10px;margin-bottom:10px;overflow:hidden;background:#fff;';
+  var cardHdr = 'padding:14px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:background 0.15s;';
+  var addBtn = 'display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border:1px dashed #d1d5db;border-radius:8px;font-size:12px;color:#6366f1;cursor:pointer;background:transparent;font-weight:600;';
+
+  var h = '<div style="margin-bottom:32px;">';
+  h += '<div style="' + sectionHdr + '"><span>Cross-Document Rules (' + (t.cross_doc_rules || []).length + ')</span>';
+  h += '<button onclick="tplAddRule()" style="' + addBtn + '">+ Add Rule</button></div>';
+
+  for (var i = 0; i < (t.cross_doc_rules || []).length; i++) {
+    var rule = t.cross_doc_rules[i];
+    var expanded = window._tplExpandedRule[i];
+    var sevColor = (rule.severity || 'WARNING') === 'CRITICAL' ? '#dc2626' : '#d97706';
+
+    h += '<div style="' + cardStyle + '">';
+    h += '<div style="' + cardHdr + (expanded ? 'background:#fafafe;border-bottom:1px solid #e5e7eb;' : '') + '" onclick="tplToggleRule(' + i + ')">';
+    h += '<div style="display:flex;align-items:center;gap:10px;">';
+    h += '<svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5" style="width:18px;height:18px;transform:rotate(' + (expanded ? '90' : '0') + 'deg);transition:transform 0.2s;"><polyline points="9 18 15 12 9 6"/></svg>';
+    h += '<div><div style="font-size:14px;font-weight:600;">' + esc(rule.rule_id || 'Unnamed Rule') + '</div>';
+    h += '<div style="font-size:11px;color:var(--text-muted);">' + esc(rule.description || '') + '</div></div>';
+    h += '</div>';
+    h += '<div style="display:flex;align-items:center;gap:8px;">';
+    h += '<span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;color:' + sevColor + ';background:' + sevColor + '15;">' + esc(rule.severity || 'WARNING') + '</span>';
+    h += '<button onclick="event.stopPropagation();tplRemoveRule(' + i + ')" style="border:none;background:none;cursor:pointer;color:#d1d5db;font-size:16px;" title="Remove">&times;</button>';
+    h += '</div></div>';
+
+    if (expanded) {
+      h += '<div style="padding:16px;">';
+      h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">';
+      h += '<div><label style="font-size:11px;font-weight:600;color:#888;display:block;margin-bottom:4px;">Rule ID</label><input value="' + esc(rule.rule_id || '') + '" onchange="tplUpdateRule(' + i + ',\\'rule_id\\',this.value)" style="width:100%;padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;"/></div>';
+      h += '<div><label style="font-size:11px;font-weight:600;color:#888;display:block;margin-bottom:4px;">Severity</label><select onchange="tplUpdateRule(' + i + ',\\'severity\\',this.value)" style="width:100%;padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;">';
+      h += '<option value="CRITICAL"' + (rule.severity === 'CRITICAL' ? ' selected' : '') + '>CRITICAL</option>';
+      h += '<option value="WARNING"' + (rule.severity === 'WARNING' || !rule.severity ? ' selected' : '') + '>WARNING</option>';
+      h += '</select></div></div>';
+      h += '<div style="margin-bottom:12px;"><label style="font-size:11px;font-weight:600;color:#888;display:block;margin-bottom:4px;">Description</label><input value="' + esc(rule.description || '') + '" onchange="tplUpdateRule(' + i + ',\\'description\\',this.value)" style="width:100%;padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;"/></div>';
+
+      h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">';
+      h += '<div><label style="font-size:11px;font-weight:600;color:#888;display:block;margin-bottom:4px;">Document A &middot; Field</label>';
+      h += '<div style="display:flex;gap:6px;"><input value="' + esc(rule.doc_a || '') + '" onchange="tplUpdateRule(' + i + ',\\'doc_a\\',this.value)" placeholder="doc_type_id" style="flex:1;padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:monospace;"/>';
+      h += '<input value="' + esc(rule.field_a || '') + '" onchange="tplUpdateRule(' + i + ',\\'field_a\\',this.value)" placeholder="field_id" style="flex:1;padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:monospace;"/></div></div>';
+      h += '<div><label style="font-size:11px;font-weight:600;color:#888;display:block;margin-bottom:4px;">Document B &middot; Field</label>';
+      h += '<div style="display:flex;gap:6px;"><input value="' + esc(rule.doc_b || '') + '" onchange="tplUpdateRule(' + i + ',\\'doc_b\\',this.value)" placeholder="doc_type_id" style="flex:1;padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:monospace;"/>';
+      h += '<input value="' + esc(rule.field_b || '') + '" onchange="tplUpdateRule(' + i + ',\\'field_b\\',this.value)" placeholder="field_id" style="flex:1;padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:12px;font-family:monospace;"/></div></div></div>';
+
+      h += '<div><label style="font-size:11px;font-weight:600;color:#888;display:block;margin-bottom:4px;">Check Type</label><select onchange="tplUpdateRule(' + i + ',\\'check_type\\',this.value)" style="padding:6px 10px;border:1px solid #e5e7eb;border-radius:6px;font-size:13px;">';
+      var checks = ['values_must_match', 'mutual_exclusion', 'date_must_precede', 'sum_must_equal', 'expiration_check'];
+      for (var ci = 0; ci < checks.length; ci++) {
+        h += '<option value="' + checks[ci] + '"' + ((rule.check_type || 'values_must_match') === checks[ci] ? ' selected' : '') + '>' + checks[ci].replace(/_/g, ' ') + '</option>';
+      }
+      h += '</select></div>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  if ((t.cross_doc_rules || []).length === 0) {
+    h += '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px;border:1px dashed #e5e7eb;border-radius:10px;">No cross-document validation rules. Click "+ Add Rule" to define integrity checks across document types.</div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+// ── Template Builder Action Functions ──
+
+function tplToggleDt(i) { window._tplExpandedDt[i] = !window._tplExpandedDt[i]; renderTemplateEditor(); }
+function tplToggleRole(i) { window._tplExpandedRole[i] = !window._tplExpandedRole[i]; renderTemplateEditor(); }
+function tplToggleRule(i) { window._tplExpandedRule[i] = !window._tplExpandedRule[i]; renderTemplateEditor(); }
+
+function tplAddDocType() {
+  var t = window._tplEdit;
+  t.document_types.push({ type_id: '', display_name: '', category: '', priority: 'MEDIUM', classification_signals: [], extraction_spec: [] });
+  window._tplExpandedDt[t.document_types.length - 1] = true;
+  renderTemplateEditor();
+}
+function tplRemoveDocType(i) { window._tplEdit.document_types.splice(i, 1); delete window._tplExpandedDt[i]; renderTemplateEditor(); }
+function tplUpdateDt(i, key, val) { window._tplEdit.document_types[i][key] = val; }
+function tplUpdateDtSignals(i, val) { window._tplEdit.document_types[i].classification_signals = val.split(',').map(function(s) { return s.trim(); }).filter(Boolean); }
+
+function tplAddField(dtIdx) {
+  var spec = window._tplEdit.document_types[dtIdx].extraction_spec;
+  spec.push({ field_id: '', display_name: '', type: 'string', necessity_tier: 'EXPECTED' });
+  renderTemplateEditor();
+}
+function tplRemoveField(dtIdx, fIdx) { window._tplEdit.document_types[dtIdx].extraction_spec.splice(fIdx, 1); renderTemplateEditor(); }
+function tplUpdateField(dtIdx, fIdx, key, val) { window._tplEdit.document_types[dtIdx].extraction_spec[fIdx][key] = val; }
+
+function tplAddRole() {
+  var t = window._tplEdit;
+  t.entity_roles.push({ role_id: '', display_name: '', type: 'person', optional: false, required_fields: [] });
+  window._tplExpandedRole[t.entity_roles.length - 1] = true;
+  renderTemplateEditor();
+}
+function tplRemoveRole(i) { window._tplEdit.entity_roles.splice(i, 1); delete window._tplExpandedRole[i]; renderTemplateEditor(); }
+function tplUpdateRole(i, key, val) { window._tplEdit.entity_roles[i][key] = val; }
+
+function tplAddRoleField(roleIdx) {
+  var role = window._tplEdit.entity_roles[roleIdx];
+  if (!role.required_fields) role.required_fields = [];
+  var prefix = role.role_id ? role.role_id + '.' : '';
+  role.required_fields.push({ field_id: prefix, display_name: '', field_type: 'text', necessity_tier: 'EXPECTED' });
+  renderTemplateEditor();
+}
+function tplRemoveRoleField(roleIdx, fIdx) { window._tplEdit.entity_roles[roleIdx].required_fields.splice(fIdx, 1); renderTemplateEditor(); }
+function tplUpdateRoleField(roleIdx, fIdx, key, val) {
+  var rf = window._tplEdit.entity_roles[roleIdx].required_fields[fIdx];
+  if (typeof rf === 'string') {
+    window._tplEdit.entity_roles[roleIdx].required_fields[fIdx] = { field_id: rf, display_name: rf.replace(/_/g, ' '), field_type: 'text', necessity_tier: 'EXPECTED' };
+    rf = window._tplEdit.entity_roles[roleIdx].required_fields[fIdx];
+  }
+  rf[key] = val;
+  // Auto-flag sensitive field types as BLOCKING
+  if (key === 'field_type' && ['ssn', 'ein'].indexOf(val) >= 0) {
+    rf.necessity_tier = 'BLOCKING';
+    rf.sensitivity = 'CRITICAL';
+    renderTemplateEditor();
+  }
+}
+
+function tplAddRule() {
+  var t = window._tplEdit;
+  t.cross_doc_rules.push({ rule_id: '', description: '', severity: 'WARNING', doc_a: '', field_a: '', doc_b: '', field_b: '', check_type: 'values_must_match' });
+  window._tplExpandedRule[t.cross_doc_rules.length - 1] = true;
+  renderTemplateEditor();
+}
+function tplRemoveRule(i) { window._tplEdit.cross_doc_rules.splice(i, 1); delete window._tplExpandedRule[i]; renderTemplateEditor(); }
+function tplUpdateRule(i, key, val) { window._tplEdit.cross_doc_rules[i][key] = val; }
+
+function saveCurrentTemplate() {
+  var t = window._tplEdit;
+  // Read metadata from DOM inputs
+  var idEl = document.getElementById('tpl-id');
+  var nameEl = document.getElementById('tpl-name');
+  var descEl = document.getElementById('tpl-desc');
+  if (idEl) t.template_id = idEl.value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
+  if (nameEl) t.display_name = nameEl.value.trim();
+  if (descEl) t.description = descEl.value.trim();
+
+  if (!t.template_id) { toast('Template ID is required'); return; }
+  if (!t.display_name) { toast('Display name is required'); return; }
+
+  var method = window._tplIsNew ? 'POST' : 'PUT';
+  var url = window._tplIsNew ? '/api/templates' : '/api/templates/' + encodeURIComponent(t.template_id);
+
+  api(method, url, t).then(function(data) {
+    toast('Template saved! v' + (data.version || t.version));
+    window._tplIsNew = false;
+    window._selectedTemplate = t.template_id;
+    if (data.version) t.version = data.version;
+    loadTemplates();
+    renderTemplateEditor();
   }).catch(function(err) {
-    document.getElementById('main').innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Failed to load template') + '</div>';
+    toast('Error: ' + (err.message || err));
+  });
+}
+
+function deleteCurrentTemplate() {
+  var t = window._tplEdit;
+  if (!t || !t.template_id) return;
+  if (!confirm('Delete template "' + (t.display_name || t.template_id) + '"? This cannot be undone.')) return;
+  api('DELETE', '/api/templates/' + encodeURIComponent(t.template_id)).then(function() {
+    toast('Template deleted');
+    window._tplEdit = null;
+    window._selectedTemplate = null;
+    selectedView = null;
+    loadTemplates();
+    showClientDashboard();
+  }).catch(function(err) {
+    toast('Error: ' + (err.message || err));
   });
 }
 
