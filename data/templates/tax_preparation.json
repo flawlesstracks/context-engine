@@ -124,6 +124,45 @@
         { "field_id": "formation.formation_date", "display_name": "Formation Date", "field_type": "date", "sensitivity": "STANDARD", "source_hint": "Date filed with Secretary of State", "auto_approve": true },
         { "field_id": "formation.fiscal_year_end", "display_name": "Fiscal Year End", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Fiscal year specification in operating agreement", "auto_approve": true }
       ]
+    },
+    {
+      "type_id": "w9_form",
+      "display_name": "Form W-9 — Request for Taxpayer Identification Number",
+      "category": "Identification",
+      "priority": "HIGH",
+      "classification_signals": ["Request for Taxpayer Identification Number", "W-9", "Form W-9", "taxpayer identification", "backup withholding", "TIN"],
+      "extraction_spec": [
+        { "field_id": "w9.name", "display_name": "Name (Line 1)", "field_type": "text", "sensitivity": "CRITICAL", "entity_type": "person_or_business", "source_hint": "Line 1 — Name of entity/individual as shown on income tax return", "extraction_notes": "Required field. Determines primary entity for this form.", "auto_approve": false },
+        { "field_id": "w9.business_name", "display_name": "Business Name", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Line 2 — Business name/disregarded entity name (if different from Line 1)", "auto_approve": true },
+        { "field_id": "w9.tax_classification", "display_name": "Tax Classification", "field_type": "text", "sensitivity": "CRITICAL", "source_hint": "Line 3a — Individual/sole proprietor, C corp, S corp, Partnership, Trust/estate, LLC, Other", "extraction_notes": "Exactly one classification must be checked.", "auto_approve": false },
+        { "field_id": "w9.address", "display_name": "Address", "field_type": "text", "sensitivity": "CRITICAL", "source_hint": "Line 5 — Number, street, and apt or suite no.", "auto_approve": false },
+        { "field_id": "w9.city_state_zip", "display_name": "City, State, ZIP", "field_type": "text", "sensitivity": "CRITICAL", "source_hint": "Line 6 — City, state, and ZIP code", "auto_approve": false },
+        { "field_id": "w9.ssn", "display_name": "Social Security Number", "field_type": "ssn", "sensitivity": "CRITICAL", "entity_type": "person", "source_hint": "Part I — SSN (3-2-4 digit format)", "extraction_notes": "Either SSN or EIN required. Cross-ref with other tax documents.", "auto_approve": false },
+        { "field_id": "w9.ein", "display_name": "Employer Identification Number", "field_type": "ein", "sensitivity": "CRITICAL", "entity_type": "business", "source_hint": "Part I — EIN (2-7 digit format)", "extraction_notes": "Either SSN or EIN required. Cross-ref with K-1 and W-2.", "auto_approve": false },
+        { "field_id": "w9.signature", "display_name": "Signature", "field_type": "text", "sensitivity": "CRITICAL", "source_hint": "Part II — Certification signature", "extraction_notes": "Form is not valid without signature.", "auto_approve": false },
+        { "field_id": "w9.date", "display_name": "Date Signed", "field_type": "date", "sensitivity": "STANDARD", "source_hint": "Part II — Date next to signature", "auto_approve": true }
+      ]
+    },
+    {
+      "type_id": "w8ben_form",
+      "display_name": "Form W-8BEN — Certificate of Foreign Status",
+      "category": "Identification",
+      "priority": "HIGH",
+      "classification_signals": ["Certificate of Foreign Status", "W-8BEN", "beneficial owner", "foreign status", "Form W-8BEN", "tax treaty"],
+      "extraction_spec": [
+        { "field_id": "w8ben.name", "display_name": "Name of Beneficial Owner", "field_type": "text", "sensitivity": "CRITICAL", "entity_type": "person", "source_hint": "Part I, Line 1 — Name of individual who is the beneficial owner", "auto_approve": false },
+        { "field_id": "w8ben.citizenship", "display_name": "Country of Citizenship", "field_type": "text", "sensitivity": "CRITICAL", "source_hint": "Part I, Line 2 — Country of citizenship", "auto_approve": false },
+        { "field_id": "w8ben.permanent_address", "display_name": "Permanent Residence Address", "field_type": "text", "sensitivity": "CRITICAL", "source_hint": "Part I, Line 3 — Permanent residence address (street, city, country)", "auto_approve": false },
+        { "field_id": "w8ben.mailing_address", "display_name": "Mailing Address", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Part I, Line 4 — Mailing address (if different from Line 3)", "auto_approve": true },
+        { "field_id": "w8ben.dob", "display_name": "Date of Birth", "field_type": "date", "sensitivity": "CRITICAL", "source_hint": "Part I, Line 8 — Date of birth (MM-DD-YYYY)", "auto_approve": false },
+        { "field_id": "w8ben.us_tin", "display_name": "U.S. TIN (SSN or ITIN)", "field_type": "ssn", "sensitivity": "CRITICAL", "source_hint": "Part I, Line 5 — U.S. taxpayer identification number", "extraction_notes": "Required if claiming treaty benefits or if income is effectively connected.", "auto_approve": false },
+        { "field_id": "w8ben.foreign_tin", "display_name": "Foreign Tax ID", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Part I, Line 6a — Foreign tax identifying number", "auto_approve": false },
+        { "field_id": "w8ben.treaty_country", "display_name": "Treaty Country", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Part II, Line 9 — Country of residence for tax treaty purposes", "auto_approve": true },
+        { "field_id": "w8ben.article", "display_name": "Treaty Article", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Part II, Line 10 — Article number of the treaty", "auto_approve": true },
+        { "field_id": "w8ben.rate", "display_name": "Withholding Rate (%)", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Part II, Line 10 — Rate of withholding under treaty", "auto_approve": true },
+        { "field_id": "w8ben.signature", "display_name": "Signature", "field_type": "text", "sensitivity": "CRITICAL", "source_hint": "Part III — Signature of beneficial owner", "extraction_notes": "Form is not valid without signature.", "auto_approve": false },
+        { "field_id": "w8ben.sign_date", "display_name": "Date Signed", "field_type": "date", "sensitivity": "CRITICAL", "source_hint": "Part III — Date (MM-DD-YYYY)", "extraction_notes": "W-8BEN expires 3 years after this date.", "auto_approve": false }
+      ]
     }
   ],
 
@@ -201,6 +240,28 @@
       "fields": ["payroll.employee_name", "income.k1_partner_name", "prior.taxpayer_name"],
       "validation": "exact",
       "severity": "HIGH"
+    },
+    {
+      "rule_id": "w9_w8ben_mutual_exclusion",
+      "description": "W-9 and W-8BEN cannot both be filed for the same person — W-9 is for U.S. persons, W-8BEN is for foreign persons",
+      "fields": ["w9.name", "w8ben.name"],
+      "validation": "mutual_exclusion",
+      "severity": "CRITICAL"
+    },
+    {
+      "rule_id": "w8ben_expiration",
+      "description": "W-8BEN expires 3 calendar years after sign date — must be current",
+      "fields": ["w8ben.sign_date"],
+      "validation": "expiration",
+      "severity": "WARNING",
+      "expiration_years": 3
+    },
+    {
+      "rule_id": "tax_classification_consistency",
+      "description": "W-9 entity type should match the business entity classification in other tax documents",
+      "fields": ["w9.tax_classification", "formation.entity_type"],
+      "validation": "approx",
+      "severity": "WARNING"
     }
   ]
 }

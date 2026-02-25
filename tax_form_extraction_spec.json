@@ -1,0 +1,266 @@
+{
+  "spec_version": "1.0",
+  "spec_type": "extraction_specification",
+  "created": "2026-02-25",
+  "author": "Context Architecture",
+  "description": "Master extraction reference for IRS tax identification forms. Maps PDF form fields to semantic entities for the CA template system.",
+
+  "document_detection": {
+    "method": "text_scan + field_scan",
+    "instructions": "Scan page 1 text for form identifier. Also check PDF form field name prefixes for fallback detection.",
+    "patterns": {
+      "w9": {
+        "text_triggers": ["Form W-9", "Request for Taxpayer Identification Number", "W-9"],
+        "field_prefix": "topmostSubform[0].Page1[0].f1_",
+        "confidence_boost": ["backup withholding", "U.S. person", "TIN"]
+      },
+      "w8ben": {
+        "text_triggers": ["Form W-8BEN", "Certificate of Foreign Status", "W-8BEN"],
+        "field_prefix": "topmostSubform[0].Page1[0].f_",
+        "confidence_boost": ["beneficial owner", "foreign status", "tax treaty"],
+        "exclusion": "W-8BEN-E is a DIFFERENT form (entities, not individuals)"
+      }
+    }
+  },
+
+  "templates": {
+
+    "w9": {
+      "display_name": "Form W-9 — Request for Taxpayer Identification Number and Certification",
+      "irs_revision": "Rev. March 2024",
+      "omb_number": "Not displayed (Cat. No. 10231X)",
+      "purpose": "U.S. persons provide TIN to requesters who must file information returns with IRS",
+      "who_files": "U.S. citizens, resident aliens, U.S. entities",
+      "do_not_use_if": "You are a foreign person — use Form W-8 instead",
+
+      "pdf_field_mapping": {
+        "description": "Maps IRS PDF internal field names to semantic field IDs. Field type 7 = text, type 2 = checkbox, type 6 = signature.",
+        "fields": [
+          {"pdf_field": "f1_01[0]", "field_id": "w9_name", "label": "Line 1: Name of entity/individual", "type": "text", "required": true, "entity_type": "person_or_business"},
+          {"pdf_field": "f1_02[0]", "field_id": "w9_business_name", "label": "Line 2: Business name/disregarded entity name", "type": "text", "required": false},
+
+          {"pdf_field": "c1_1[0]", "field_id": "w9_class_individual", "label": "Line 3a: Individual/sole proprietor", "type": "checkbox", "group": "tax_classification"},
+          {"pdf_field": "c1_1[1]", "field_id": "w9_class_c_corp", "label": "Line 3a: C corporation", "type": "checkbox", "group": "tax_classification"},
+          {"pdf_field": "c1_1[2]", "field_id": "w9_class_s_corp", "label": "Line 3a: S corporation", "type": "checkbox", "group": "tax_classification"},
+          {"pdf_field": "c1_1[3]", "field_id": "w9_class_partnership", "label": "Line 3a: Partnership", "type": "checkbox", "group": "tax_classification"},
+          {"pdf_field": "c1_1[4]", "field_id": "w9_class_trust_estate", "label": "Line 3a: Trust/estate", "type": "checkbox", "group": "tax_classification"},
+          {"pdf_field": "c1_1[5]", "field_id": "w9_class_llc", "label": "Line 3a: LLC", "type": "checkbox", "group": "tax_classification"},
+          {"pdf_field": "f1_03[0]", "field_id": "w9_llc_classification", "label": "Line 3a: LLC tax classification (C, S, or P)", "type": "text", "conditional": "w9_class_llc == checked"},
+          {"pdf_field": "c1_1[6]", "field_id": "w9_class_other", "label": "Line 3a: Other", "type": "checkbox", "group": "tax_classification"},
+          {"pdf_field": "f1_04[0]", "field_id": "w9_other_description", "label": "Line 3a: Other description", "type": "text", "conditional": "w9_class_other == checked"},
+          {"pdf_field": "c1_2[0]", "field_id": "w9_foreign_partners", "label": "Line 3b: Has foreign partners/owners/beneficiaries", "type": "checkbox"},
+
+          {"pdf_field": "f1_05[0]", "field_id": "w9_exempt_payee_code", "label": "Line 4: Exempt payee code", "type": "text", "required": false},
+          {"pdf_field": "f1_06[0]", "field_id": "w9_fatca_code", "label": "Line 4: FATCA exemption code", "type": "text", "required": false},
+
+          {"pdf_field": "f1_07[0]", "field_id": "w9_address", "label": "Line 5: Address (number, street, apt/suite)", "type": "text", "required": true},
+          {"pdf_field": "f1_08[0]", "field_id": "w9_city_state_zip", "label": "Line 6: City, state, and ZIP code", "type": "text", "required": true},
+          {"pdf_field": "f1_09[0]", "field_id": "w9_requester_info", "label": "Requester's name and address", "type": "text", "required": false},
+          {"pdf_field": "f1_10[0]", "field_id": "w9_account_numbers", "label": "Line 7: Account number(s)", "type": "text", "required": false},
+
+          {"pdf_field": "f1_11[0]", "field_id": "w9_ssn_1", "label": "Part I: SSN first 3 digits", "type": "text", "sensitive": true, "required_one_of": ["w9_ssn", "w9_ein"]},
+          {"pdf_field": "f1_12[0]", "field_id": "w9_ssn_2", "label": "Part I: SSN middle 2 digits", "type": "text", "sensitive": true},
+          {"pdf_field": "f1_13[0]", "field_id": "w9_ssn_3", "label": "Part I: SSN last 4 digits", "type": "text", "sensitive": true},
+          {"pdf_field": "f1_14[0]", "field_id": "w9_ein_1", "label": "Part I: EIN first 2 digits", "type": "text", "sensitive": true, "required_one_of": ["w9_ssn", "w9_ein"]},
+          {"pdf_field": "f1_15[0]", "field_id": "w9_ein_2", "label": "Part I: EIN last 7 digits", "type": "text", "sensitive": true}
+        ]
+      },
+
+      "entity_extraction_rules": {
+        "primary_entity": {
+          "source_field": "w9_name",
+          "entity_type_determined_by": "tax_classification checkbox group",
+          "mapping": {
+            "w9_class_individual": "person",
+            "w9_class_c_corp": "business",
+            "w9_class_s_corp": "business",
+            "w9_class_partnership": "business",
+            "w9_class_trust_estate": "business",
+            "w9_class_llc": "business",
+            "w9_class_other": "business"
+          }
+        },
+        "secondary_entity": {
+          "source_field": "w9_business_name",
+          "entity_type": "business",
+          "relationship_to_primary": "dba_of OR disregarded_entity_of"
+        },
+        "address_entity": {
+          "source_fields": ["w9_address", "w9_city_state_zip"],
+          "parse_into": {
+            "street": "w9_address",
+            "city": "w9_city_state_zip (before first comma)",
+            "state": "w9_city_state_zip (between commas or state abbreviation)",
+            "zip": "w9_city_state_zip (5 or 9 digit pattern)"
+          }
+        }
+      },
+
+      "validation_rules": [
+        {"rule_id": "w9_v1", "description": "Name on Line 1 is required", "check": "w9_name is not empty", "severity": "critical"},
+        {"rule_id": "w9_v2", "description": "Exactly one tax classification must be checked", "check": "exactly_one(tax_classification group)", "severity": "critical"},
+        {"rule_id": "w9_v3", "description": "TIN required — either SSN or EIN", "check": "w9_ssn is filled OR w9_ein is filled", "severity": "critical"},
+        {"rule_id": "w9_v4", "description": "SSN format: 3-2-4 digits", "check": "len(w9_ssn_1)==3 AND len(w9_ssn_2)==2 AND len(w9_ssn_3)==4", "severity": "format", "conditional": "w9_ssn is filled"},
+        {"rule_id": "w9_v5", "description": "EIN format: 2-7 digits", "check": "len(w9_ein_1)==2 AND len(w9_ein_2)==7", "severity": "format", "conditional": "w9_ein is filled"},
+        {"rule_id": "w9_v6", "description": "LLC must specify tax classification", "check": "w9_llc_classification in ['C', 'S', 'P']", "severity": "critical", "conditional": "w9_class_llc == checked"},
+        {"rule_id": "w9_v7", "description": "Address is required", "check": "w9_address is not empty AND w9_city_state_zip is not empty", "severity": "critical"},
+        {"rule_id": "w9_v8", "description": "Signature present", "check": "signature field is not empty", "severity": "warning"}
+      ],
+
+      "sensitive_fields": {
+        "description": "Fields that must be masked/redacted in display and logs",
+        "fields": ["w9_ssn_1", "w9_ssn_2", "w9_ssn_3", "w9_ein_1", "w9_ein_2"],
+        "display_format": "***-**-{last4} for SSN, **-***{last4} for EIN"
+      },
+
+      "completeness_checklist": [
+        {"item": "Name (Line 1)", "field": "w9_name", "weight": 10},
+        {"item": "Tax Classification (Line 3a)", "field": "tax_classification", "weight": 10},
+        {"item": "Address (Line 5)", "field": "w9_address", "weight": 8},
+        {"item": "City/State/ZIP (Line 6)", "field": "w9_city_state_zip", "weight": 8},
+        {"item": "SSN or EIN (Part I)", "field": "w9_ssn OR w9_ein", "weight": 10},
+        {"item": "Signature (Part II)", "field": "signature", "weight": 10},
+        {"item": "Date", "field": "date", "weight": 5}
+      ]
+    },
+
+    "w8ben": {
+      "display_name": "Form W-8BEN — Certificate of Foreign Status of Beneficial Owner (Individuals)",
+      "irs_revision": "Rev. October 2021",
+      "omb_number": "1545-1621",
+      "purpose": "Foreign individuals certify foreign status for U.S. tax withholding and reporting",
+      "who_files": "Non-U.S. individuals (beneficial owners of income)",
+      "do_not_use_if": [
+        "You are NOT an individual — use W-8BEN-E",
+        "You are a U.S. citizen or resident alien — use W-9",
+        "Income is effectively connected with U.S. trade/business — use W-8ECI",
+        "Receiving compensation for personal services in U.S. — use 8233 or W-4",
+        "Acting as intermediary — use W-8IMY"
+      ],
+
+      "pdf_field_mapping": {
+        "description": "Maps IRS PDF internal field names to semantic field IDs for W-8BEN.",
+        "fields": [
+          {"pdf_field": "f_1[0]", "field_id": "w8_name", "label": "Line 1: Name of beneficial owner", "type": "text", "required": true, "part": "I", "entity_type": "person"},
+          {"pdf_field": "f_2[0]", "field_id": "w8_country_citizenship", "label": "Line 2: Country of citizenship", "type": "text", "required": true, "part": "I"},
+          {"pdf_field": "f_3[0]", "field_id": "w8_permanent_address", "label": "Line 3: Permanent residence address (street)", "type": "text", "required": true, "part": "I"},
+          {"pdf_field": "f_4[0]", "field_id": "w8_permanent_city_country", "label": "Line 3: City/town, state/province, postal code, country", "type": "text", "required": true, "part": "I"},
+          {"pdf_field": "f_5[0]", "field_id": "w8_mailing_address", "label": "Line 4: Mailing address (if different)", "type": "text", "required": false, "part": "I"},
+          {"pdf_field": "f_6[0]", "field_id": "w8_mailing_city_country", "label": "Line 4: Mailing city/town, state/province, postal code, country", "type": "text", "required": false, "part": "I"},
+          {"pdf_field": "f_7[0]", "field_id": "w8_us_tin", "label": "Line 5: U.S. TIN (SSN or ITIN)", "type": "text", "required": false, "sensitive": true, "part": "I"},
+          {"pdf_field": "f_8[0]", "field_id": "w8_foreign_tin", "label": "Line 6a: Foreign tax identifying number", "type": "text", "required": false, "sensitive": true, "part": "I"},
+          {"pdf_field": "c1_01[0]", "field_id": "w8_ftin_not_required", "label": "Line 6b: FTIN not legally required", "type": "checkbox", "part": "I"},
+          {"pdf_field": "f_9[0]", "field_id": "w8_reference_numbers", "label": "Line 7: Reference number(s)", "type": "text", "required": false, "part": "I"},
+          {"pdf_field": "f_10[0]", "field_id": "w8_date_of_birth", "label": "Line 8: Date of birth (MM-DD-YYYY)", "type": "date", "required": true, "part": "I"},
+
+          {"pdf_field": "f_11[0]", "field_id": "w8_treaty_country", "label": "Line 9: Treaty country of residence", "type": "text", "required": false, "part": "II"},
+          {"pdf_field": "f_12[0]", "field_id": "w8_treaty_article", "label": "Line 10: Treaty article number", "type": "text", "required": false, "part": "II"},
+          {"pdf_field": "f_13[0]", "field_id": "w8_treaty_paragraph", "label": "Line 10: Treaty paragraph", "type": "text", "required": false, "part": "II"},
+          {"pdf_field": "f_14[0]", "field_id": "w8_withholding_rate", "label": "Line 10: Withholding rate (%)", "type": "percentage", "required": false, "part": "II"},
+          {"pdf_field": "f_15[0]", "field_id": "w8_income_type", "label": "Line 10: Type of income", "type": "text", "required": false, "part": "II"},
+          {"pdf_field": "f_16[0]", "field_id": "w8_treaty_conditions", "label": "Line 10: Additional conditions explanation", "type": "text", "required": false, "part": "II"},
+
+          {"pdf_field": "c1_02[0]", "field_id": "w8_capacity_cert", "label": "Part III: Capacity to sign certification", "type": "checkbox", "part": "III"},
+          {"pdf_field": "f_20[0]", "field_id": "w8_signature", "label": "Part III: Signature", "type": "signature", "required": true, "part": "III"},
+          {"pdf_field": "Date[0]", "field_id": "w8_sign_date", "label": "Part III: Date (MM-DD-YYYY)", "type": "date", "required": true, "part": "III"},
+          {"pdf_field": "f_21[0]", "field_id": "w8_print_name", "label": "Part III: Print name of signer", "type": "text", "required": false, "part": "III"}
+        ]
+      },
+
+      "entity_extraction_rules": {
+        "primary_entity": {
+          "source_field": "w8_name",
+          "entity_type": "person",
+          "nationality": "w8_country_citizenship",
+          "relationship_context": "foreign_beneficial_owner"
+        },
+        "address_entity": {
+          "permanent": {
+            "source_fields": ["w8_permanent_address", "w8_permanent_city_country"],
+            "type": "foreign_address"
+          },
+          "mailing": {
+            "source_fields": ["w8_mailing_address", "w8_mailing_city_country"],
+            "type": "mailing_address",
+            "conditional": "only if different from permanent"
+          }
+        },
+        "treaty_entity": {
+          "conditional": "Part II is filled",
+          "creates_observation": {
+            "attribute": "tax_treaty_claim",
+            "value": "{w8_treaty_country} Art. {w8_treaty_article} Para. {w8_treaty_paragraph} — {w8_withholding_rate}% on {w8_income_type}"
+          }
+        }
+      },
+
+      "validation_rules": [
+        {"rule_id": "w8_v1", "description": "Name of beneficial owner is required", "check": "w8_name is not empty", "severity": "critical"},
+        {"rule_id": "w8_v2", "description": "Country of citizenship is required", "check": "w8_country_citizenship is not empty", "severity": "critical"},
+        {"rule_id": "w8_v3", "description": "Permanent address is required", "check": "w8_permanent_address is not empty", "severity": "critical"},
+        {"rule_id": "w8_v4", "description": "Date of birth is required", "check": "w8_date_of_birth is not empty", "severity": "critical"},
+        {"rule_id": "w8_v5", "description": "DOB format: MM-DD-YYYY", "check": "w8_date_of_birth matches MM-DD-YYYY", "severity": "format"},
+        {"rule_id": "w8_v6", "description": "Either US TIN or Foreign TIN should be present (or FTIN not required checked)", "check": "w8_us_tin OR w8_foreign_tin OR w8_ftin_not_required", "severity": "warning"},
+        {"rule_id": "w8_v7", "description": "If treaty benefits claimed, treaty country must match Part I citizenship or provide explanation", "check": "w8_treaty_country is consistent with w8_country_citizenship", "severity": "warning", "conditional": "Part II is filled"},
+        {"rule_id": "w8_v8", "description": "If treaty rate claimed, article AND paragraph AND rate AND income type all required", "check": "all of [w8_treaty_article, w8_treaty_paragraph, w8_withholding_rate, w8_income_type] are filled", "severity": "critical", "conditional": "any Part II line 10 field is filled"},
+        {"rule_id": "w8_v9", "description": "Signature is required", "check": "w8_signature is not empty", "severity": "critical"},
+        {"rule_id": "w8_v10", "description": "Sign date is required", "check": "w8_sign_date is not empty", "severity": "critical"},
+        {"rule_id": "w8_v11", "description": "Form expires 3 years after sign date (last day of 3rd calendar year)", "check": "w8_sign_date + 3 years > today", "severity": "expiration"}
+      ],
+
+      "sensitive_fields": {
+        "fields": ["w8_us_tin", "w8_foreign_tin", "w8_date_of_birth"],
+        "display_format": "***-**-{last4} for SSN/ITIN, redact FTIN except last 4"
+      },
+
+      "completeness_checklist": [
+        {"item": "Name (Line 1)", "field": "w8_name", "weight": 10, "part": "I"},
+        {"item": "Country of Citizenship (Line 2)", "field": "w8_country_citizenship", "weight": 10, "part": "I"},
+        {"item": "Permanent Address (Line 3)", "field": "w8_permanent_address", "weight": 8, "part": "I"},
+        {"item": "U.S. TIN or Foreign TIN (Lines 5-6)", "field": "w8_us_tin OR w8_foreign_tin", "weight": 7, "part": "I"},
+        {"item": "Date of Birth (Line 8)", "field": "w8_date_of_birth", "weight": 8, "part": "I"},
+        {"item": "Treaty Country (Line 9)", "field": "w8_treaty_country", "weight": 5, "part": "II"},
+        {"item": "Treaty Article/Rate (Line 10)", "field": "w8_treaty_article", "weight": 5, "part": "II"},
+        {"item": "Signature (Part III)", "field": "w8_signature", "weight": 10, "part": "III"},
+        {"item": "Sign Date (Part III)", "field": "w8_sign_date", "weight": 5, "part": "III"}
+      ]
+    }
+  },
+
+  "cross_form_logic": {
+    "description": "Decision tree for which form a person should file",
+    "decision_tree": {
+      "question": "Is the person a U.S. person?",
+      "yes": {
+        "form": "W-9",
+        "note": "U.S. citizens, resident aliens, U.S. entities"
+      },
+      "no": {
+        "question": "Is the person an individual?",
+        "yes": {
+          "question": "Is income effectively connected with U.S. trade/business?",
+          "yes": "W-8ECI",
+          "no": {
+            "question": "Is person receiving compensation for personal services in U.S.?",
+            "yes": "Form 8233 or W-4",
+            "no": "W-8BEN"
+          }
+        },
+        "no": "W-8BEN-E (entities)"
+      }
+    },
+    "mutual_exclusion": "A person should NEVER file both W-9 and W-8BEN. If both are present for the same person, flag as critical conflict."
+  },
+
+  "expiration_tracking": {
+    "w9": {
+      "expires": "Does not expire unless information changes",
+      "resubmit_triggers": ["Name change", "TIN change", "Tax classification change", "Address change"]
+    },
+    "w8ben": {
+      "expires": "Last day of 3rd calendar year after signing",
+      "example": "Signed 2024-03-15 → expires 2027-12-31",
+      "resubmit_triggers": ["Any certification becomes incorrect", "Expiration date reached", "Change of circumstances"]
+    }
+  }
+}

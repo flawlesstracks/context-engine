@@ -1,0 +1,460 @@
+{
+  "spec_version": "1.0",
+  "spec_type": "extraction_specification",
+  "created": "2026-02-25",
+  "author": "Context Architecture",
+  "description": "Master extraction reference for SMB financial statements. Tells the AI: when you see this document type, pull these fields from these locations.",
+
+  "document_detection": {
+    "method": "header_scan",
+    "instructions": "Scan rows 3-8 for statement type identifier. Match against known patterns.",
+    "patterns": {
+      "income_statement": {
+        "triggers": ["Income Statement", "Profit and Loss", "P&L Statement", "Statement of Operations"],
+        "confidence_boost": ["REVENUES", "COST OF GOODS SOLD", "GROSS PROFIT", "NET INCOME"]
+      },
+      "balance_sheet": {
+        "triggers": ["Balance Sheet", "Statement of Financial Position"],
+        "confidence_boost": ["ASSETS", "LIABILITIES", "EQUITY", "TOTAL LIABILITIES & EQUITY"]
+      },
+      "cash_flow": {
+        "triggers": ["Statement of Cash Flows", "Cash Flow Statement"],
+        "confidence_boost": ["BEGINNING CASH ON HAND", "CASH RECEIPTS", "CASH PAYMENTS", "NET CASH CHANGE"]
+      }
+    }
+  },
+
+  "common_metadata": {
+    "description": "Fields shared across all three statement types. Always extract first.",
+    "fields": {
+      "company_name": {
+        "location": "row_3_col_0",
+        "fallback": "First non-empty cell in rows 1-5",
+        "type": "string",
+        "required": true
+      },
+      "statement_type": {
+        "location": "row_4_col_0",
+        "type": "enum",
+        "values": ["Income Statement", "Balance Sheet", "Statement of Cash Flows"],
+        "required": true
+      },
+      "statement_date": {
+        "location": "row_5_col_0",
+        "type": "date",
+        "formats": ["[Month] [Day], [Year]", "YYYY-MM-DD", "MM/DD/YYYY"],
+        "required": true
+      },
+      "current_period": {
+        "header_location": "row_6_col_1",
+        "date_range_location": "row_7_col_1",
+        "format": "[Start Date] to [End Date]",
+        "required": true
+      },
+      "prior_period": {
+        "header_location": "row_6_col_3",
+        "date_range_location": "row_7_col_3",
+        "format": "[Start Date] to [End Date]",
+        "required": true
+      }
+    }
+  },
+
+  "column_mapping": {
+    "description": "Standard 6-column layout with separator columns",
+    "layout": {
+      "col_0": "line_item_label",
+      "col_1": "current_period_value",
+      "col_2": "separator (NaN)",
+      "col_3": "prior_period_value",
+      "col_4": "separator (NaN)",
+      "col_5": "increase_decrease_value"
+    },
+    "value_columns": [1, 3, 5],
+    "label_column": 0
+  },
+
+  "templates": {
+
+    "income_statement": {
+      "display_name": "Income Statement (P&L)",
+      "description": "Revenues minus expenses = Net Income. Shows profitability over a period.",
+      "sections": [
+        {
+          "section_id": "revenues",
+          "section_label": "REVENUES",
+          "section_type": "income",
+          "start_marker": "REVENUES",
+          "end_marker": "TOTAL REVENUES",
+          "fields": [
+            {"id": "rev_product_1", "label": "Product/Service 1", "type": "currency", "sign": "positive"},
+            {"id": "rev_product_2", "label": "Product/Service 2", "type": "currency", "sign": "positive"},
+            {"id": "rev_product_3", "label": "Product/Service 3", "type": "currency", "sign": "positive"},
+            {"id": "rev_other", "label": "Other Revenue", "type": "currency", "sign": "positive"}
+          ],
+          "subtotal": {"id": "total_revenues", "label": "TOTAL REVENUES", "formula": "SUM(rev_product_1:rev_other)"}
+        },
+        {
+          "section_id": "cogs",
+          "section_label": "COST OF GOODS SOLD",
+          "section_type": "expense",
+          "start_marker": "COST OF GOODS SOLD",
+          "end_marker": "TOTAL COST OF GOODS SOLD",
+          "fields": [
+            {"id": "cogs_product_1", "label": "Product/Service 1", "type": "currency", "sign": "negative"},
+            {"id": "cogs_product_2", "label": "Product/Service 2", "type": "currency", "sign": "negative"},
+            {"id": "cogs_product_3", "label": "Product/Service 3", "type": "currency", "sign": "negative"},
+            {"id": "cogs_salaries_direct", "label": "Salaries-Direct", "type": "currency", "sign": "negative"},
+            {"id": "cogs_payroll_direct", "label": "Payroll Taxes and Benefits-Direct", "type": "currency", "sign": "negative"},
+            {"id": "cogs_depreciation_direct", "label": "Depreciation-Direct", "type": "currency", "sign": "negative"},
+            {"id": "cogs_supplies", "label": "Supplies", "type": "currency", "sign": "negative"},
+            {"id": "cogs_other_direct", "label": "Other Direct Costs", "type": "currency", "sign": "negative"}
+          ],
+          "subtotal": {"id": "total_cogs", "label": "TOTAL COST OF GOODS SOLD", "formula": "SUM(cogs_*)"}
+        },
+        {
+          "section_id": "gross_profit",
+          "section_label": "GROSS PROFIT (LOSS)",
+          "section_type": "calculated",
+          "fields": [],
+          "subtotal": {"id": "gross_profit", "label": "GROSS PROFIT (LOSS)", "formula": "total_revenues - total_cogs"}
+        },
+        {
+          "section_id": "opex",
+          "section_label": "OPERATING EXPENSES",
+          "section_type": "expense",
+          "start_marker": "OPERATING EXPENSES",
+          "end_marker": "TOTAL OPERATING EXPENSES",
+          "fields": [
+            {"id": "opex_advertising", "label": "Advertising and Promotion", "type": "currency"},
+            {"id": "opex_auto", "label": "Automobile/Transportation", "type": "currency"},
+            {"id": "opex_bad_debts", "label": "Bad Debts/Losses and Thefts", "type": "currency"},
+            {"id": "opex_bank_fees", "label": "Bank Service Charges", "type": "currency"},
+            {"id": "opex_licenses", "label": "Business Licenses and Permits", "type": "currency"},
+            {"id": "opex_charitable", "label": "Charitable Contributions", "type": "currency"},
+            {"id": "opex_computer", "label": "Computer and Internet", "type": "currency"},
+            {"id": "opex_education", "label": "Continuing Education", "type": "currency"},
+            {"id": "opex_depreciation_indirect", "label": "Depreciation-Indirect", "type": "currency"},
+            {"id": "opex_dues", "label": "Dues and Subscriptions", "type": "currency"},
+            {"id": "opex_insurance", "label": "Insurance", "type": "currency"},
+            {"id": "opex_meals", "label": "Meals and Entertainment", "type": "currency"},
+            {"id": "opex_merchant_fees", "label": "Merchant Account Fees", "type": "currency"},
+            {"id": "opex_misc", "label": "Miscellaneous Expense", "type": "currency"},
+            {"id": "opex_office_supplies", "label": "Office Supplies", "type": "currency"},
+            {"id": "opex_payroll_processing", "label": "Payroll Processing", "type": "currency"},
+            {"id": "opex_postage", "label": "Postage and Delivery", "type": "currency"},
+            {"id": "opex_printing", "label": "Printing and Reproduction", "type": "currency"},
+            {"id": "opex_professional", "label": "Professional Services - Legal, Accounting", "type": "currency"},
+            {"id": "opex_occupancy", "label": "Occupancy", "type": "currency"},
+            {"id": "opex_rental", "label": "Rental Payments", "type": "currency"},
+            {"id": "opex_salaries_indirect", "label": "Salaries-Indirect", "type": "currency"},
+            {"id": "opex_payroll_indirect", "label": "Payroll Taxes and Benefits-Indirect", "type": "currency"},
+            {"id": "opex_subcontractor", "label": "Subcontractor", "type": "currency"},
+            {"id": "opex_telephone", "label": "Telephone", "type": "currency"},
+            {"id": "opex_travel", "label": "Travel", "type": "currency"},
+            {"id": "opex_utilities", "label": "Utilities", "type": "currency"},
+            {"id": "opex_website", "label": "Website Development", "type": "currency"}
+          ],
+          "subtotal": {"id": "total_opex", "label": "TOTAL OPERATING EXPENSES", "formula": "SUM(opex_*)"}
+        },
+        {
+          "section_id": "operating_profit",
+          "section_label": "OPERATING PROFIT (LOSS)",
+          "section_type": "calculated",
+          "fields": [],
+          "subtotal": {"id": "operating_profit", "label": "OPERATING PROFIT (LOSS)", "formula": "gross_profit - total_opex"}
+        },
+        {
+          "section_id": "interest_tax",
+          "section_label": "INTEREST (INCOME), EXPENSE & TAXES",
+          "section_type": "expense",
+          "start_marker": "INTEREST (INCOME), EXPENSE & TAXES",
+          "end_marker": "TOTAL INTEREST (INCOME), EXPENSE & TAXES",
+          "fields": [
+            {"id": "interest_income", "label": "Interest (Income)", "type": "currency", "sign": "negative"},
+            {"id": "interest_expense", "label": "Interest Expense", "type": "currency", "sign": "positive"},
+            {"id": "income_tax_expense", "label": "Income Tax Expense", "type": "currency", "sign": "positive"}
+          ],
+          "subtotal": {"id": "total_interest_tax", "label": "TOTAL INTEREST (INCOME), EXPENSE & TAXES", "formula": "SUM(interest_*)"}
+        },
+        {
+          "section_id": "net_income",
+          "section_label": "NET INCOME (LOSS)",
+          "section_type": "calculated",
+          "fields": [],
+          "subtotal": {"id": "net_income", "label": "NET INCOME (LOSS)", "formula": "operating_profit - total_interest_tax"}
+        }
+      ],
+      "key_metrics": [
+        {"id": "gross_margin", "formula": "gross_profit / total_revenues", "type": "percentage"},
+        {"id": "operating_margin", "formula": "operating_profit / total_revenues", "type": "percentage"},
+        {"id": "net_margin", "formula": "net_income / total_revenues", "type": "percentage"}
+      ]
+    },
+
+    "balance_sheet": {
+      "display_name": "Balance Sheet",
+      "description": "Assets = Liabilities + Equity. Snapshot at a point in time.",
+      "validation_rule": "TOTAL ASSETS must equal TOTAL LIABILITIES & EQUITY",
+      "sections": [
+        {
+          "section_id": "current_assets",
+          "section_label": "Current Assets",
+          "section_type": "asset",
+          "parent": "ASSETS",
+          "fields": [
+            {"id": "ca_cash", "label": "Cash", "type": "currency"},
+            {"id": "ca_petty_cash", "label": "Petty Cash", "type": "currency"},
+            {"id": "ca_accounts_receivable", "label": "Accounts Receivables", "type": "currency"},
+            {"id": "ca_inventory", "label": "Inventory", "type": "currency"},
+            {"id": "ca_prepaid_expenses", "label": "Prepaid Expenses", "type": "currency"},
+            {"id": "ca_employee_advances", "label": "Employee Advances", "type": "currency"},
+            {"id": "ca_temp_investments", "label": "Temporary Investments", "type": "currency"}
+          ],
+          "subtotal": {"id": "total_current_assets", "label": "Total Current Assets", "formula": "SUM(ca_*)"}
+        },
+        {
+          "section_id": "fixed_assets",
+          "section_label": "Fixed Assets",
+          "section_type": "asset",
+          "parent": "ASSETS",
+          "fields": [
+            {"id": "fa_land", "label": "Land", "type": "currency"},
+            {"id": "fa_buildings", "label": "Buildings", "type": "currency"},
+            {"id": "fa_furniture_equipment", "label": "Furniture and Equipment", "type": "currency"},
+            {"id": "fa_computer_equipment", "label": "Computer Equipment", "type": "currency"},
+            {"id": "fa_vehicles", "label": "Vehicles", "type": "currency"},
+            {"id": "fa_accum_depreciation", "label": "Less: Accumulated Depreciation", "type": "currency", "sign": "contra"}
+          ],
+          "subtotal": {"id": "total_fixed_assets", "label": "Total Fixed Assets", "formula": "SUM(fa_*)"}
+        },
+        {
+          "section_id": "other_assets",
+          "section_label": "Other Assets",
+          "section_type": "asset",
+          "parent": "ASSETS",
+          "fields": [
+            {"id": "oa_trademarks", "label": "Trademarks", "type": "currency"},
+            {"id": "oa_patents", "label": "Patents", "type": "currency"},
+            {"id": "oa_security_deposits", "label": "Security Deposits", "type": "currency"},
+            {"id": "oa_other", "label": "Other Assets", "type": "currency"}
+          ],
+          "subtotal": {"id": "total_other_assets", "label": "Total Other Assets", "formula": "SUM(oa_*)"}
+        },
+        {
+          "section_id": "total_assets",
+          "section_label": "TOTAL ASSETS",
+          "section_type": "calculated",
+          "fields": [],
+          "subtotal": {"id": "total_assets", "label": "TOTAL ASSETS", "formula": "total_current_assets + total_fixed_assets + total_other_assets"}
+        },
+        {
+          "section_id": "current_liabilities",
+          "section_label": "Current Liabilities",
+          "section_type": "liability",
+          "parent": "LIABILITIES",
+          "fields": [
+            {"id": "cl_accounts_payable", "label": "Accounts Payable", "type": "currency"},
+            {"id": "cl_credit_cards", "label": "Business Credit Cards", "type": "currency"},
+            {"id": "cl_sales_tax", "label": "Sales Tax Payable", "type": "currency"},
+            {"id": "cl_payroll", "label": "Payroll Liabilities", "type": "currency"},
+            {"id": "cl_other", "label": "Other Liabilities", "type": "currency"},
+            {"id": "cl_current_ltd", "label": "Current Portion of Long-Term Debt", "type": "currency"}
+          ],
+          "subtotal": {"id": "total_current_liabilities", "label": "Total Current Liabilities", "formula": "SUM(cl_*)"}
+        },
+        {
+          "section_id": "long_term_liabilities",
+          "section_label": "Long-Term Liabilities",
+          "section_type": "liability",
+          "parent": "LIABILITIES",
+          "fields": [
+            {"id": "ltl_notes_payable", "label": "Notes Payable", "type": "currency"},
+            {"id": "ltl_mortgage", "label": "Mortgage Payable", "type": "currency"},
+            {"id": "ltl_less_current", "label": "Less: Current portion of Long-term debt", "type": "currency", "sign": "contra"}
+          ],
+          "subtotal": {"id": "total_lt_liabilities", "label": "Total Long-Term Liabilities", "formula": "SUM(ltl_*)"}
+        },
+        {
+          "section_id": "equity",
+          "section_label": "EQUITY",
+          "section_type": "equity",
+          "fields": [
+            {"id": "eq_capital_stock", "label": "Capital Stock/Partner's Equity", "type": "currency"},
+            {"id": "eq_retained_earnings", "label": "Opening Retained Earnings", "type": "currency"},
+            {"id": "eq_dividends", "label": "Dividends Paid/Owner's Draw", "type": "currency", "sign": "contra"},
+            {"id": "eq_net_income", "label": "Net Income (Loss)", "type": "currency"}
+          ],
+          "subtotal": {"id": "total_equity", "label": "Total Equity", "formula": "SUM(eq_*)"}
+        },
+        {
+          "section_id": "total_liabilities_equity",
+          "section_label": "TOTAL LIABILITIES & EQUITY",
+          "section_type": "calculated",
+          "fields": [],
+          "subtotal": {"id": "total_liabilities_equity", "label": "TOTAL LIABILITIES & EQUITY", "formula": "total_current_liabilities + total_lt_liabilities + total_equity"}
+        }
+      ],
+      "key_metrics": [
+        {"id": "current_ratio", "formula": "total_current_assets / total_current_liabilities", "type": "ratio"},
+        {"id": "debt_to_equity", "formula": "(total_current_liabilities + total_lt_liabilities) / total_equity", "type": "ratio"},
+        {"id": "working_capital", "formula": "total_current_assets - total_current_liabilities", "type": "currency"}
+      ],
+      "balance_check": "total_assets == total_liabilities_equity"
+    },
+
+    "cash_flow": {
+      "display_name": "Statement of Cash Flows",
+      "description": "Cash in minus cash out = ending cash position. Shows liquidity over a period.",
+      "sections": [
+        {
+          "section_id": "beginning_cash",
+          "section_label": "BEGINNING CASH ON HAND",
+          "section_type": "balance",
+          "fields": [],
+          "subtotal": {"id": "beginning_cash", "label": "BEGINNING CASH ON HAND", "type": "currency"}
+        },
+        {
+          "section_id": "cash_receipts",
+          "section_label": "CASH RECEIPTS",
+          "section_type": "inflow",
+          "start_marker": "ADD: CASH RECEIPTS",
+          "end_marker": "TOTAL CASH RECEIPTS",
+          "fields": [
+            {"id": "cr_cash_sales", "label": "Cash Sales", "type": "currency"},
+            {"id": "cr_collections", "label": "Collections from Customer Credit Accounts", "type": "currency"},
+            {"id": "cr_loan_injection", "label": "Loan or Other Cash Injection", "type": "currency"},
+            {"id": "cr_interest_income", "label": "Interest Income", "type": "currency"},
+            {"id": "cr_tax_refund", "label": "Income Tax Refund", "type": "currency"},
+            {"id": "cr_misc", "label": "Misc. Cash Receipts", "type": "currency"}
+          ],
+          "subtotal": {"id": "total_cash_receipts", "label": "TOTAL CASH RECEIPTS", "formula": "SUM(cr_*)"}
+        },
+        {
+          "section_id": "cogs_payments",
+          "section_label": "COST OF GOODS SOLD (Payments)",
+          "section_type": "outflow",
+          "start_marker": "COST OF GOODS SOLD:",
+          "end_marker": "Sub-Total Cost of Goods Sold",
+          "fields": [
+            {"id": "cp_direct_costs", "label": "Direct Product/Service Costs", "type": "currency"},
+            {"id": "cp_salaries_direct", "label": "Salaries-Direct", "type": "currency"},
+            {"id": "cp_payroll_direct", "label": "Payroll Taxes and Benefits-Direct", "type": "currency"},
+            {"id": "cp_supplies", "label": "Supplies", "type": "currency"},
+            {"id": "cp_other_costs", "label": "Other Costs", "type": "currency"}
+          ],
+          "subtotal": {"id": "subtotal_cogs_payments", "label": "Sub-Total Cost of Goods Sold", "formula": "SUM(cp_*)"}
+        },
+        {
+          "section_id": "opex_payments",
+          "section_label": "OPERATING EXPENSES (Payments)",
+          "section_type": "outflow",
+          "start_marker": "OPERATING EXPENSES:",
+          "end_marker": "Sub-Total Operating Expenses",
+          "fields": [
+            {"id": "op_advertising", "label": "Advertising and Promotion", "type": "currency"},
+            {"id": "op_auto", "label": "Automobile/Transportation", "type": "currency"},
+            {"id": "op_bank_fees", "label": "Bank Service Charges", "type": "currency"},
+            {"id": "op_licenses", "label": "Business Licenses and Permits", "type": "currency"},
+            {"id": "op_charitable", "label": "Charitable Contributions", "type": "currency"},
+            {"id": "op_computer", "label": "Computer and Internet", "type": "currency"},
+            {"id": "op_education", "label": "Continuing Education", "type": "currency"},
+            {"id": "op_dues", "label": "Dues and Subscriptions", "type": "currency"},
+            {"id": "op_insurance", "label": "Insurance", "type": "currency"},
+            {"id": "op_meals", "label": "Meals and Entertainment", "type": "currency"},
+            {"id": "op_merchant_fees", "label": "Merchant Account Fees", "type": "currency"},
+            {"id": "op_misc", "label": "Miscellaneous Expense", "type": "currency"},
+            {"id": "op_office_supplies", "label": "Office Supplies", "type": "currency"},
+            {"id": "op_payroll_processing", "label": "Payroll Processing", "type": "currency"},
+            {"id": "op_postage", "label": "Postage and Delivery", "type": "currency"},
+            {"id": "op_printing", "label": "Printing and Reproduction", "type": "currency"},
+            {"id": "op_professional", "label": "Professional Services - Legal, Accounting", "type": "currency"},
+            {"id": "op_occupancy", "label": "Occupancy", "type": "currency"},
+            {"id": "op_rental", "label": "Rental Payments", "type": "currency"},
+            {"id": "op_salaries_indirect", "label": "Salaries-Indirect", "type": "currency"},
+            {"id": "op_payroll_indirect", "label": "Payroll Taxes and Benefits-Indirect", "type": "currency"},
+            {"id": "op_subcontractor", "label": "Subcontractor", "type": "currency"},
+            {"id": "op_telephone", "label": "Telephone", "type": "currency"},
+            {"id": "op_travel", "label": "Travel", "type": "currency"},
+            {"id": "op_utilities", "label": "Utilities", "type": "currency"},
+            {"id": "op_website", "label": "Website Development", "type": "currency"}
+          ],
+          "subtotal": {"id": "subtotal_opex_payments", "label": "Sub-Total Operating Expenses", "formula": "SUM(op_*)"}
+        },
+        {
+          "section_id": "other_payments",
+          "section_label": "OTHER EXPENSE PAYMENTS",
+          "section_type": "outflow",
+          "start_marker": "OTHER EXPENSE PAYMENTS",
+          "end_marker": "Sub-Total Other Expense Payments",
+          "fields": [
+            {"id": "oth_interest", "label": "Interest Expense", "type": "currency"},
+            {"id": "oth_income_tax", "label": "Income Tax Expense", "type": "currency"},
+            {"id": "oth_owner_draws", "label": "Cash Disbursements to Owners", "type": "currency"}
+          ],
+          "subtotal": {"id": "subtotal_other_payments", "label": "Sub-Total Other Expense Payments", "formula": "SUM(oth_*)"}
+        },
+        {
+          "section_id": "total_payments",
+          "section_label": "TOTAL CASH PAYMENTS",
+          "section_type": "calculated",
+          "fields": [],
+          "subtotal": {"id": "total_cash_payments", "label": "TOTAL CASH PAYMENTS", "formula": "subtotal_cogs_payments + subtotal_opex_payments + subtotal_other_payments"}
+        },
+        {
+          "section_id": "net_cash_change",
+          "section_label": "NET CASH CHANGE",
+          "section_type": "calculated",
+          "fields": [],
+          "subtotal": {"id": "net_cash_change", "label": "NET CASH CHANGE - Inflow (Outflow)", "formula": "total_cash_receipts - total_cash_payments"}
+        },
+        {
+          "section_id": "ending_cash",
+          "section_label": "CASH POSITION",
+          "section_type": "calculated",
+          "fields": [],
+          "subtotal": {"id": "ending_cash", "label": "CASH POSITION (end of month)", "formula": "beginning_cash + net_cash_change"}
+        }
+      ],
+      "key_metrics": [
+        {"id": "cash_burn_rate", "formula": "total_cash_payments / period_months", "type": "currency_monthly"},
+        {"id": "cash_runway_months", "formula": "ending_cash / (total_cash_payments / period_months)", "type": "months"}
+      ]
+    }
+  },
+
+  "cross_statement_validation": {
+    "description": "Rules that validate consistency ACROSS the three statements",
+    "rules": [
+      {
+        "rule_id": "net_income_match",
+        "description": "Net Income on Income Statement must equal Net Income on Balance Sheet equity section",
+        "source": "income_statement.net_income",
+        "target": "balance_sheet.eq_net_income",
+        "tolerance": 0.01
+      },
+      {
+        "rule_id": "cash_position_match",
+        "description": "Ending Cash on Cash Flow must equal Cash on Balance Sheet",
+        "source": "cash_flow.ending_cash",
+        "target": "balance_sheet.ca_cash",
+        "tolerance": 0.01
+      },
+      {
+        "rule_id": "balance_sheet_balances",
+        "description": "Total Assets must equal Total Liabilities + Equity",
+        "formula": "balance_sheet.total_assets == balance_sheet.total_liabilities_equity",
+        "tolerance": 0.01
+      }
+    ]
+  },
+
+  "extraction_instructions": {
+    "for_ai_prompt": "When extracting financial data from uploaded documents, follow this procedure:\n\n1. DETECT: Scan header rows to identify document type (Income Statement, Balance Sheet, or Cash Flow).\n2. METADATA: Extract company name, statement date, and period ranges.\n3. SECTION WALK: For each section defined in the template, scan for the section start marker, then extract each line item value from the current_period (col 1) and prior_period (col 3) columns.\n4. VALIDATE: Check subtotals match the sum of their line items. Flag discrepancies.\n5. CROSS-VALIDATE: If multiple statements are present, run cross-statement validation rules.\n6. OUTPUT: Return structured JSON with extracted values, validation results, and any flags.",
+    "fuzzy_matching": {
+      "enabled": true,
+      "threshold": 0.85,
+      "notes": "Line item labels may vary slightly between preparers. Use fuzzy string matching with 85% similarity threshold. Common variations: 'A/R' = 'Accounts Receivable', 'PP&E' = 'Property, Plant and Equipment', 'SG&A' = Operating Expenses."
+    }
+  }
+}

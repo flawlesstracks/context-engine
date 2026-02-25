@@ -1,0 +1,1539 @@
+{
+  "extraction_results": {
+    "income_statement": {
+      "source_file": "Income-Statement-Template.xls",
+      "type": "income_statement",
+      "metadata": {
+        "company_name": "Construction Company",
+        "current_period_label": "Current Period",
+        "prior_period_label": "Prior Period",
+        "current_period_range": "07/01/15 to 09/30/15",
+        "prior_period_range": "07/01/14 to 09/30/14"
+      },
+      "total_fields": 46,
+      "populated_fields": 39,
+      "items": [
+        {
+          "row": 3,
+          "label": "Construction Company",
+          "type": "line_item",
+          "section": null,
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 4,
+          "label": "Income Statement",
+          "type": "line_item",
+          "section": null,
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 5,
+          "label": "2015-10-01 00:00:00",
+          "type": "line_item",
+          "section": null,
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 9,
+          "label": "REVENUES",
+          "type": "section_header",
+          "section": "REVENUES",
+          "current": null,
+          "prior": null,
+          "change": null
+        },
+        {
+          "row": 10,
+          "label": "Product/Service 1 \u2026",
+          "type": "line_item",
+          "section": "REVENUES",
+          "current": 14000.0,
+          "prior": 11689.0,
+          "change": 2311.0
+        },
+        {
+          "row": 11,
+          "label": "Product/Service 2 \u2026",
+          "type": "line_item",
+          "section": "REVENUES",
+          "current": 25000.0,
+          "prior": 22111.0,
+          "change": 2889.0
+        },
+        {
+          "row": 12,
+          "label": "Product/Service 3 \u2026",
+          "type": "line_item",
+          "section": "REVENUES",
+          "current": 8000.0,
+          "prior": 3899.0,
+          "change": 4101.0
+        },
+        {
+          "row": 13,
+          "label": "Other Revenue",
+          "type": "line_item",
+          "section": "REVENUES",
+          "current": 400.0,
+          "prior": 203.0,
+          "change": 197.0
+        },
+        {
+          "row": 14,
+          "label": "TOTAL REVENUES",
+          "type": "subtotal",
+          "section": "REVENUES",
+          "current": 47400.0,
+          "prior": 37902.0,
+          "change": 9498.0
+        },
+        {
+          "row": 16,
+          "label": "COST OF GOODS SOLD",
+          "type": "section_header",
+          "section": "COST OF GOODS SOLD",
+          "current": null,
+          "prior": null,
+          "change": null
+        },
+        {
+          "row": 17,
+          "label": "Product/Service 1 \u2026",
+          "type": "line_item",
+          "section": "COST OF GOODS SOLD",
+          "current": 4000.0,
+          "prior": 3506.7,
+          "change": 493.3000000000002
+        },
+        {
+          "row": 18,
+          "label": "Product/Service 2 \u2026",
+          "type": "line_item",
+          "section": "COST OF GOODS SOLD",
+          "current": 13000.0,
+          "prior": 11055.5,
+          "change": 1944.5
+        },
+        {
+          "row": 19,
+          "label": "Product/Service 3 \u2026",
+          "type": "line_item",
+          "section": "COST OF GOODS SOLD",
+          "current": 3200.0,
+          "prior": 1559.6000000000001,
+          "change": 1640.3999999999999
+        },
+        {
+          "row": 20,
+          "label": "Salaries-Direct",
+          "type": "line_item",
+          "section": "COST OF GOODS SOLD",
+          "current": 1900.0,
+          "prior": 1766.0,
+          "change": 134.0
+        },
+        {
+          "row": 21,
+          "label": "Payroll Taxes and Benefits-Direct",
+          "type": "line_item",
+          "section": "COST OF GOODS SOLD",
+          "current": 225.0,
+          "prior": 215.0,
+          "change": 10.0
+        },
+        {
+          "row": 22,
+          "label": "Depreciation-Direct",
+          "type": "line_item",
+          "section": "COST OF GOODS SOLD",
+          "current": 612.0,
+          "prior": 612.0,
+          "change": 0.0
+        },
+        {
+          "row": 23,
+          "label": "Supplies",
+          "type": "line_item",
+          "section": "COST OF GOODS SOLD",
+          "current": 400.0,
+          "prior": 310.0,
+          "change": 90.0
+        },
+        {
+          "row": 24,
+          "label": "Other Direct Costs",
+          "type": "line_item",
+          "section": "COST OF GOODS SOLD",
+          "current": 50.0,
+          "prior": 24.0,
+          "change": 26.0
+        },
+        {
+          "row": 25,
+          "label": "TOTAL COST OF GOODS SOLD",
+          "type": "subtotal",
+          "section": "COST OF GOODS SOLD",
+          "current": 23387.0,
+          "prior": 19048.800000000003,
+          "change": 4338.199999999997
+        },
+        {
+          "row": 27,
+          "label": "GROSS PROFIT (LOSS)",
+          "type": "subtotal",
+          "section": "COST OF GOODS SOLD",
+          "current": 24013.0,
+          "prior": 18853.199999999997,
+          "change": 5159.800000000003
+        },
+        {
+          "row": 29,
+          "label": "OPERATING EXPENSES",
+          "type": "section_header",
+          "section": "OPERATING EXPENSES",
+          "current": null,
+          "prior": null,
+          "change": null
+        },
+        {
+          "row": 30,
+          "label": "Advertising and Promotion",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 300.0,
+          "prior": 206.0,
+          "change": 94.0
+        },
+        {
+          "row": 31,
+          "label": "Automobile/Transportation",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 50.0,
+          "prior": 45.0,
+          "change": 5.0
+        },
+        {
+          "row": 32,
+          "label": "Bad Debts/Losses and Thefts",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 25.0,
+          "prior": 0.0,
+          "change": 25.0
+        },
+        {
+          "row": 33,
+          "label": "Bank Service Charges",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 30.0,
+          "prior": 25.0,
+          "change": 5.0
+        },
+        {
+          "row": 34,
+          "label": "Business Licenses and Permits",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 50.0,
+          "prior": 0.0,
+          "change": 50.0
+        },
+        {
+          "row": 35,
+          "label": "Charitable Contributions",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 0.0,
+          "prior": 100.0,
+          "change": -100.0
+        },
+        {
+          "row": 36,
+          "label": "Computer and Internet",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 125.0,
+          "prior": 129.0,
+          "change": -4.0
+        },
+        {
+          "row": 37,
+          "label": "Continuing Education",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 38,
+          "label": "Depreciation-Indirect",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 1277.0,
+          "prior": 1277.0,
+          "change": 0.0
+        },
+        {
+          "row": 39,
+          "label": "Dues and Subscriptions",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 25.0,
+          "prior": 0.0,
+          "change": 25.0
+        },
+        {
+          "row": 40,
+          "label": "Insurance",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 600.0,
+          "prior": 600.0,
+          "change": 0.0
+        },
+        {
+          "row": 41,
+          "label": "Meals and Entertainment",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 200.0,
+          "prior": 185.0,
+          "change": 15.0
+        },
+        {
+          "row": 42,
+          "label": "Merchant Account Fees",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 600.0,
+          "prior": 502.0,
+          "change": 98.0
+        },
+        {
+          "row": 43,
+          "label": "Miscellaneous Expense",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 25.0,
+          "prior": 30.0,
+          "change": -5.0
+        },
+        {
+          "row": 44,
+          "label": "Office Supplies",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 50.0,
+          "prior": 40.0,
+          "change": 10.0
+        },
+        {
+          "row": 45,
+          "label": "Payroll Processing",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 200.0,
+          "prior": 201.0,
+          "change": -1.0
+        },
+        {
+          "row": 46,
+          "label": "Postage and Delivery",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 20.0,
+          "prior": 18.0,
+          "change": 2.0
+        },
+        {
+          "row": 47,
+          "label": "Printing and Reproduction",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 50.0,
+          "prior": 33.0,
+          "change": 17.0
+        },
+        {
+          "row": 48,
+          "label": "Professional Services - Legal, Accounting",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 250.0,
+          "prior": 207.0,
+          "change": 43.0
+        },
+        {
+          "row": 49,
+          "label": "Occupancy",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 1600.0,
+          "prior": 1600.0,
+          "change": 0.0
+        },
+        {
+          "row": 50,
+          "label": "Rental Payments",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 525.0,
+          "prior": 514.0,
+          "change": 11.0
+        },
+        {
+          "row": 51,
+          "label": "Salaries-Indirect",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 4000.0,
+          "prior": 3805.0,
+          "change": 195.0
+        },
+        {
+          "row": 52,
+          "label": "Payroll Taxes and Benefits-Indirect",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 425.0,
+          "prior": 411.0,
+          "change": 14.0
+        },
+        {
+          "row": 53,
+          "label": "Subcontractor",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 54,
+          "label": "Telephone",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 500.0,
+          "prior": 488.0,
+          "change": 12.0
+        },
+        {
+          "row": 55,
+          "label": "Travel",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 100.0,
+          "prior": 56.0,
+          "change": 44.0
+        },
+        {
+          "row": 56,
+          "label": "Utilities",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 900.0,
+          "prior": 790.0,
+          "change": 110.0
+        },
+        {
+          "row": 57,
+          "label": "Website Development",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES",
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 58,
+          "label": "TOTAL OPERATING EXPENSES",
+          "type": "subtotal",
+          "section": "OPERATING EXPENSES",
+          "current": 11927.0,
+          "prior": 11262.0,
+          "change": 665.0
+        },
+        {
+          "row": 60,
+          "label": "OPERATING PROFIT (LOSS)",
+          "type": "subtotal",
+          "section": "OPERATING EXPENSES",
+          "current": 12086.0,
+          "prior": 7591.199999999997,
+          "change": 4494.800000000003
+        },
+        {
+          "row": 62,
+          "label": "INTEREST (INCOME), EXPENSE & TAXES",
+          "type": "section_header",
+          "section": "INTEREST (INCOME), EXPENSE & TAXES",
+          "current": null,
+          "prior": null,
+          "change": null
+        },
+        {
+          "row": 63,
+          "label": "Interest (Income)",
+          "type": "line_item",
+          "section": "INTEREST (INCOME), EXPENSE & TAXES",
+          "current": -50.0,
+          "prior": -32.0,
+          "change": -18.0
+        },
+        {
+          "row": 64,
+          "label": "Interest Expense",
+          "type": "line_item",
+          "section": "INTEREST (INCOME), EXPENSE & TAXES",
+          "current": 700.0,
+          "prior": 689.0,
+          "change": 11.0
+        },
+        {
+          "row": 65,
+          "label": "Income Tax Expense",
+          "type": "line_item",
+          "section": "INTEREST (INCOME), EXPENSE & TAXES",
+          "current": 5200.0,
+          "prior": 3200.0,
+          "change": 2000.0
+        },
+        {
+          "row": 66,
+          "label": "TOTAL INTEREST (INCOME), EXPENSE & TAXES",
+          "type": "subtotal",
+          "section": "INTEREST (INCOME), EXPENSE & TAXES",
+          "current": 5850.0,
+          "prior": 3857.0,
+          "change": 1993.0
+        },
+        {
+          "row": 68,
+          "label": "NET INCOME (LOSS)",
+          "type": "subtotal",
+          "section": "INTEREST (INCOME), EXPENSE & TAXES",
+          "current": 6236.0,
+          "prior": 3734.199999999997,
+          "change": 2501.800000000003
+        }
+      ]
+    },
+    "balance_sheet": {
+      "source_file": "sbseg-Balance-Sheet-Template.xls",
+      "type": "balance_sheet",
+      "metadata": {
+        "company_name": "Construction Company",
+        "current_period_label": "Current Period",
+        "prior_period_label": "Prior Period",
+        "current_period_range": "05/01/15 to 05/01/16",
+        "prior_period_range": "05/01/14 to 05/01/15"
+      },
+      "total_fields": 38,
+      "populated_fields": 27,
+      "items": [
+        {
+          "row": 3,
+          "label": "Construction Company",
+          "type": "line_item",
+          "section": null,
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 4,
+          "label": "Balance Sheet",
+          "type": "line_item",
+          "section": null,
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 5,
+          "label": "2015-05-01 00:00:00",
+          "type": "line_item",
+          "section": null,
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 9,
+          "label": "ASSETS",
+          "type": "section_header",
+          "section": "ASSETS",
+          "current": null,
+          "prior": null,
+          "change": null
+        },
+        {
+          "row": 10,
+          "label": "Current Assets:",
+          "type": "line_item",
+          "section": "ASSETS",
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 11,
+          "label": "Cash",
+          "type": "line_item",
+          "section": "ASSETS",
+          "current": 21506.0,
+          "prior": 20000.0,
+          "change": 1506.0
+        },
+        {
+          "row": 12,
+          "label": "Petty Cash",
+          "type": "line_item",
+          "section": "ASSETS",
+          "current": 200.0,
+          "prior": 200.0,
+          "change": 0.0
+        },
+        {
+          "row": 13,
+          "label": "Accounts Receivables",
+          "type": "line_item",
+          "section": "ASSETS",
+          "current": 5013.0,
+          "prior": 5000.0,
+          "change": 13.0
+        },
+        {
+          "row": 14,
+          "label": "Inventory",
+          "type": "line_item",
+          "section": "ASSETS",
+          "current": 20887.0,
+          "prior": 21000.0,
+          "change": -113.0
+        },
+        {
+          "row": 15,
+          "label": "Prepaid Expenses",
+          "type": "line_item",
+          "section": "ASSETS",
+          "current": 1098.0,
+          "prior": 1100.0,
+          "change": -2.0
+        },
+        {
+          "row": 16,
+          "label": "Employee Advances",
+          "type": "line_item",
+          "section": "ASSETS",
+          "current": 100.0,
+          "prior": 0.0,
+          "change": 100.0
+        },
+        {
+          "row": 17,
+          "label": "Temporary Investments",
+          "type": "line_item",
+          "section": "ASSETS",
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 18,
+          "label": "Total Current Assets",
+          "type": "subtotal",
+          "section": "ASSETS",
+          "current": 48804.0,
+          "prior": 47300.0,
+          "change": 1504.0
+        },
+        {
+          "row": 20,
+          "label": "Fixed Assets:",
+          "type": "line_item",
+          "section": "ASSETS",
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 21,
+          "label": "Land",
+          "type": "line_item",
+          "section": "ASSETS",
+          "current": 150000.0,
+          "prior": 150000.0,
+          "change": 0.0
+        },
+        {
+          "row": 22,
+          "label": "Buildings",
+          "type": "line_item",
+          "section": "ASSETS",
+          "current": 60235.0,
+          "prior": 60235.0,
+          "change": 0.0
+        },
+        {
+          "row": 23,
+          "label": "Furniture and Equipment",
+          "type": "line_item",
+          "section": "ASSETS",
+          "current": 28777.0,
+          "prior": 30777.0,
+          "change": -2000.0
+        },
+        {
+          "row": 24,
+          "label": "Computer Equipment",
+          "type": "line_item",
+          "section": "ASSETS",
+          "current": 5195.0,
+          "prior": 5195.0,
+          "change": 0.0
+        },
+        {
+          "row": 25,
+          "label": "Vehicles",
+          "type": "line_item",
+          "section": "ASSETS",
+          "current": 32513.0,
+          "prior": 32513.0,
+          "change": 0.0
+        },
+        {
+          "row": 26,
+          "label": "Less: Accumulated Depreciation",
+          "type": "line_item",
+          "section": "ASSETS",
+          "current": -43183.0,
+          "prior": -45201.0,
+          "change": 2018.0
+        },
+        {
+          "row": 27,
+          "label": "Total Fixed Assets",
+          "type": "subtotal",
+          "section": "ASSETS",
+          "current": 233537.0,
+          "prior": 233519.0,
+          "change": 18.0
+        },
+        {
+          "row": 29,
+          "label": "Other Assets:",
+          "type": "line_item",
+          "section": "ASSETS",
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 30,
+          "label": "Trademarks",
+          "type": "line_item",
+          "section": "ASSETS",
+          "current": 4171.0,
+          "prior": 4171.0,
+          "change": 0.0
+        },
+        {
+          "row": 31,
+          "label": "Patents",
+          "type": "line_item",
+          "section": "ASSETS",
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 32,
+          "label": "Security Deposits",
+          "type": "line_item",
+          "section": "ASSETS",
+          "current": 1500.0,
+          "prior": 1500.0,
+          "change": 0.0
+        },
+        {
+          "row": 33,
+          "label": "Other Assets",
+          "type": "line_item",
+          "section": "ASSETS",
+          "current": 583.0,
+          "prior": 600.0,
+          "change": -17.0
+        },
+        {
+          "row": 34,
+          "label": "Total Other Assets",
+          "type": "subtotal",
+          "section": "ASSETS",
+          "current": 6254.0,
+          "prior": 6271.0,
+          "change": -17.0
+        },
+        {
+          "row": 36,
+          "label": "TOTAL ASSETS",
+          "type": "subtotal",
+          "section": "ASSETS",
+          "current": 288595.0,
+          "prior": 287090.0,
+          "change": 1505.0
+        },
+        {
+          "row": 38,
+          "label": "LIABILITIES",
+          "type": "section_header",
+          "section": "LIABILITIES",
+          "current": null,
+          "prior": null,
+          "change": null
+        },
+        {
+          "row": 39,
+          "label": "Current Liabilities:",
+          "type": "line_item",
+          "section": "LIABILITIES",
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 40,
+          "label": "Accounts Payable",
+          "type": "line_item",
+          "section": "LIABILITIES",
+          "current": 18237.0,
+          "prior": 18000.0,
+          "change": 237.0
+        },
+        {
+          "row": 41,
+          "label": "Business Credit Cards",
+          "type": "line_item",
+          "section": "LIABILITIES",
+          "current": 7523.0,
+          "prior": 6000.0,
+          "change": 1523.0
+        },
+        {
+          "row": 42,
+          "label": "Sales Tax Payable",
+          "type": "line_item",
+          "section": "LIABILITIES",
+          "current": 1055.0,
+          "prior": 1000.0,
+          "change": 55.0
+        },
+        {
+          "row": 43,
+          "label": "Payroll Liabilities",
+          "type": "line_item",
+          "section": "LIABILITIES",
+          "current": 2382.0,
+          "prior": 2500.0,
+          "change": -118.0
+        },
+        {
+          "row": 44,
+          "label": "Other Liabilities",
+          "type": "line_item",
+          "section": "LIABILITIES",
+          "current": 941.0,
+          "prior": 1000.0,
+          "change": -59.0
+        },
+        {
+          "row": 45,
+          "label": "Current Portion of Long-Term Debt",
+          "type": "line_item",
+          "section": "LIABILITIES",
+          "current": 12111.0,
+          "prior": 12111.0,
+          "change": 0.0
+        },
+        {
+          "row": 46,
+          "label": "Total Current Liabilities",
+          "type": "subtotal",
+          "section": "LIABILITIES",
+          "current": 42249.0,
+          "prior": 40611.0,
+          "change": 1638.0
+        },
+        {
+          "row": 48,
+          "label": "Long-Term Liabilities:",
+          "type": "line_item",
+          "section": "LIABILITIES",
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 49,
+          "label": "Notes Payable",
+          "type": "line_item",
+          "section": "LIABILITIES",
+          "current": 50195.0,
+          "prior": 48301.0,
+          "change": 1894.0
+        },
+        {
+          "row": 50,
+          "label": "Mortgage Payable",
+          "type": "line_item",
+          "section": "LIABILITIES",
+          "current": 148222.0,
+          "prior": 146231.0,
+          "change": 1991.0
+        },
+        {
+          "row": 51,
+          "label": "Less: Current portion of Long-term debt",
+          "type": "line_item",
+          "section": "LIABILITIES",
+          "current": -1200.0,
+          "prior": -1200.0,
+          "change": 0.0
+        },
+        {
+          "row": 52,
+          "label": "Total Long-Term Liabilities",
+          "type": "subtotal",
+          "section": "LIABILITIES",
+          "current": 197217.0,
+          "prior": 193332.0,
+          "change": 3885.0
+        },
+        {
+          "row": 54,
+          "label": "EQUITY",
+          "type": "section_header",
+          "section": "EQUITY",
+          "current": null,
+          "prior": null,
+          "change": null
+        },
+        {
+          "row": 55,
+          "label": "Capital Stock/Partner's Equity",
+          "type": "line_item",
+          "section": "EQUITY",
+          "current": 20000.0,
+          "prior": 20000.0,
+          "change": 0.0
+        },
+        {
+          "row": 56,
+          "label": "Opening Retained Earnings",
+          "type": "line_item",
+          "section": "EQUITY",
+          "current": 25530.0,
+          "prior": 29129.0,
+          "change": -3599.0
+        },
+        {
+          "row": 57,
+          "label": "Dividends Paid/Owner's Draw",
+          "type": "line_item",
+          "section": "EQUITY",
+          "current": -5000.0,
+          "prior": -5000.0,
+          "change": 0.0
+        },
+        {
+          "row": 58,
+          "label": "Net Income (Loss)",
+          "type": "subtotal",
+          "section": "EQUITY",
+          "current": 8599.0,
+          "prior": 9018.0,
+          "change": -419.0
+        },
+        {
+          "row": 59,
+          "label": "Total Equity",
+          "type": "subtotal",
+          "section": "EQUITY",
+          "current": 49129.0,
+          "prior": 53147.0,
+          "change": -4018.0
+        },
+        {
+          "row": 61,
+          "label": "TOTAL LIABILITIES & EQUITY",
+          "type": "subtotal",
+          "section": "EQUITY",
+          "current": 288595.0,
+          "prior": 287090.0,
+          "change": 1505.0
+        },
+        {
+          "row": 63,
+          "label": "Balance Sheet Check",
+          "type": "line_item",
+          "section": "EQUITY",
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        }
+      ]
+    },
+    "cash_flow": {
+      "source_file": "Cash-Flow-Statement-Template-final.xls",
+      "type": "cash_flow",
+      "metadata": {
+        "company_name": "Construction Company",
+        "current_period_label": "Current Period",
+        "prior_period_label": "Prior Period",
+        "current_period_range": "07/01/15 to 09/30/15",
+        "prior_period_range": "07/01/14 to 09/30/14"
+      },
+      "total_fields": 43,
+      "populated_fields": 35,
+      "items": [
+        {
+          "row": 3,
+          "label": "Construction Company",
+          "type": "line_item",
+          "section": null,
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 4,
+          "label": "Statement of Cash Flows",
+          "type": "line_item",
+          "section": null,
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 5,
+          "label": "2015-05-01 00:00:00",
+          "type": "line_item",
+          "section": null,
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 8,
+          "label": "BEGINNING CASH ON HAND",
+          "type": "subtotal",
+          "section": null,
+          "current": 24110.0,
+          "prior": 31885.0,
+          "change": -7775.0
+        },
+        {
+          "row": 10,
+          "label": "ADD: CASH RECEIPTS",
+          "type": "section_header",
+          "section": "ADD: CASH RECEIPTS",
+          "current": null,
+          "prior": null,
+          "change": null
+        },
+        {
+          "row": 11,
+          "label": "Cash Sales",
+          "type": "line_item",
+          "section": "ADD: CASH RECEIPTS",
+          "current": 12000.0,
+          "prior": 12600.0,
+          "change": -600.0
+        },
+        {
+          "row": 12,
+          "label": "Collections from Customer Credit Accounts",
+          "type": "line_item",
+          "section": "ADD: CASH RECEIPTS",
+          "current": 35000.0,
+          "prior": 36750.0,
+          "change": -1750.0
+        },
+        {
+          "row": 13,
+          "label": "Loan or Other Cash Injection",
+          "type": "line_item",
+          "section": "ADD: CASH RECEIPTS",
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 14,
+          "label": "Interest Income",
+          "type": "line_item",
+          "section": "ADD: CASH RECEIPTS",
+          "current": 250.0,
+          "prior": 250.0,
+          "change": 0.0
+        },
+        {
+          "row": 15,
+          "label": "Income Tax Refund",
+          "type": "line_item",
+          "section": "ADD: CASH RECEIPTS",
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 16,
+          "label": "Misc. Cash Receipts",
+          "type": "line_item",
+          "section": "ADD: CASH RECEIPTS",
+          "current": 50.0,
+          "prior": 50.0,
+          "change": 0.0
+        },
+        {
+          "row": 17,
+          "label": "TOTAL CASH RECEIPTS",
+          "type": "subtotal",
+          "section": "ADD: CASH RECEIPTS",
+          "current": 47300.0,
+          "prior": 49650.0,
+          "change": -2350.0
+        },
+        {
+          "row": 19,
+          "label": "LESS: CASH PAYMENTS",
+          "type": "section_header",
+          "section": "LESS: CASH PAYMENTS",
+          "current": null,
+          "prior": null,
+          "change": null
+        },
+        {
+          "row": 20,
+          "label": "COST OF GOODS SOLD:",
+          "type": "section_header",
+          "section": "COST OF GOODS SOLD:",
+          "current": null,
+          "prior": null,
+          "change": null
+        },
+        {
+          "row": 21,
+          "label": "Direct Product/Service Costs",
+          "type": "line_item",
+          "section": "COST OF GOODS SOLD:",
+          "current": 13000.0,
+          "prior": 13650.0,
+          "change": -650.0
+        },
+        {
+          "row": 22,
+          "label": "Salaries-Direct",
+          "type": "line_item",
+          "section": "COST OF GOODS SOLD:",
+          "current": 1900.0,
+          "prior": 1995.0,
+          "change": -95.0
+        },
+        {
+          "row": 23,
+          "label": "Payroll Taxes and Benefits-Direct",
+          "type": "line_item",
+          "section": "COST OF GOODS SOLD:",
+          "current": 225.0,
+          "prior": 236.25,
+          "change": -11.25
+        },
+        {
+          "row": 24,
+          "label": "Supplies",
+          "type": "line_item",
+          "section": "COST OF GOODS SOLD:",
+          "current": 400.0,
+          "prior": 420.0,
+          "change": -20.0
+        },
+        {
+          "row": 25,
+          "label": "Other Costs",
+          "type": "line_item",
+          "section": "COST OF GOODS SOLD:",
+          "current": 50.0,
+          "prior": 52.5,
+          "change": -2.5
+        },
+        {
+          "row": 26,
+          "label": "Sub-Total Cost of Goods Sold",
+          "type": "subtotal",
+          "section": "COST OF GOODS SOLD:",
+          "current": 15575.0,
+          "prior": 16353.75,
+          "change": -778.75
+        },
+        {
+          "row": 28,
+          "label": "OPERATING EXPENSES:",
+          "type": "section_header",
+          "section": "OPERATING EXPENSES:",
+          "current": null,
+          "prior": null,
+          "change": null
+        },
+        {
+          "row": 29,
+          "label": "Advertising and Promotion",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 300.0,
+          "prior": 315.0,
+          "change": -15.0
+        },
+        {
+          "row": 30,
+          "label": "Automobile/Transportation",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 50.0,
+          "prior": 52.5,
+          "change": -2.5
+        },
+        {
+          "row": 31,
+          "label": "Bank Service Charges",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 25.0,
+          "prior": 26.25,
+          "change": -1.25
+        },
+        {
+          "row": 32,
+          "label": "Business Licenses and Permits",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 30.0,
+          "prior": 31.5,
+          "change": -1.5
+        },
+        {
+          "row": 33,
+          "label": "Charitable Contributions",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 50.0,
+          "prior": 52.5,
+          "change": -2.5
+        },
+        {
+          "row": 34,
+          "label": "Computer and Internet",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 200.0,
+          "prior": 210.0,
+          "change": -10.0
+        },
+        {
+          "row": 35,
+          "label": "Continuing Education",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 125.0,
+          "prior": 131.25,
+          "change": -6.25
+        },
+        {
+          "row": 36,
+          "label": "Dues and Subscriptions",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 25.0,
+          "prior": 26.25,
+          "change": -1.25
+        },
+        {
+          "row": 37,
+          "label": "Insurance",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 600.0,
+          "prior": 630.0,
+          "change": -30.0
+        },
+        {
+          "row": 38,
+          "label": "Meals and Entertainment",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 200.0,
+          "prior": 210.0,
+          "change": -10.0
+        },
+        {
+          "row": 39,
+          "label": "Merchant Account Fees",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 600.0,
+          "prior": 630.0,
+          "change": -30.0
+        },
+        {
+          "row": 40,
+          "label": "Miscellaneous Expense",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 25.0,
+          "prior": 26.25,
+          "change": -1.25
+        },
+        {
+          "row": 41,
+          "label": "Office Supplies",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 50.0,
+          "prior": 52.5,
+          "change": -2.5
+        },
+        {
+          "row": 42,
+          "label": "Payroll Processing",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 200.0,
+          "prior": 210.0,
+          "change": -10.0
+        },
+        {
+          "row": 43,
+          "label": "Postage and Delivery",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 20.0,
+          "prior": 21.0,
+          "change": -1.0
+        },
+        {
+          "row": 44,
+          "label": "Printing and Reproduction",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 50.0,
+          "prior": 52.5,
+          "change": -2.5
+        },
+        {
+          "row": 45,
+          "label": "Professional Services - Legal, Accounting",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 250.0,
+          "prior": 262.5,
+          "change": -12.5
+        },
+        {
+          "row": 46,
+          "label": "Occupancy",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 1600.0,
+          "prior": 1680.0,
+          "change": -80.0
+        },
+        {
+          "row": 47,
+          "label": "Rental Payments",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 525.0,
+          "prior": 551.25,
+          "change": -26.25
+        },
+        {
+          "row": 48,
+          "label": "Salaries-Indirect",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 4000.0,
+          "prior": 4200.0,
+          "change": -200.0
+        },
+        {
+          "row": 49,
+          "label": "Payroll Taxes and Benefits-Indirect",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 425.0,
+          "prior": 446.25,
+          "change": -21.25
+        },
+        {
+          "row": 50,
+          "label": "Subcontractor",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 51,
+          "label": "Telephone",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 500.0,
+          "prior": 525.0,
+          "change": -25.0
+        },
+        {
+          "row": 52,
+          "label": "Travel",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 100.0,
+          "prior": 105.0,
+          "change": -5.0
+        },
+        {
+          "row": 53,
+          "label": "Utilities",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 900.0,
+          "prior": 945.0,
+          "change": -45.0
+        },
+        {
+          "row": 54,
+          "label": "Website Development",
+          "type": "line_item",
+          "section": "OPERATING EXPENSES:",
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 55,
+          "label": "Sub-Total Operating Expenses",
+          "type": "subtotal",
+          "section": "OPERATING EXPENSES:",
+          "current": 10850.0,
+          "prior": 11392.5,
+          "change": -542.5
+        },
+        {
+          "row": 57,
+          "label": "OTHER EXPENSE PAYMENTS",
+          "type": "section_header",
+          "section": "OTHER EXPENSE PAYMENTS",
+          "current": null,
+          "prior": null,
+          "change": null
+        },
+        {
+          "row": 58,
+          "label": "Interest Expense",
+          "type": "line_item",
+          "section": "OTHER EXPENSE PAYMENTS",
+          "current": 700.0,
+          "prior": 735.0,
+          "change": -35.0
+        },
+        {
+          "row": 59,
+          "label": "Income Tax Expense",
+          "type": "line_item",
+          "section": "OTHER EXPENSE PAYMENTS",
+          "current": 5200.0,
+          "prior": 5460.0,
+          "change": -260.0
+        },
+        {
+          "row": 60,
+          "label": "Cash Disbursements to Owners",
+          "type": "line_item",
+          "section": "OTHER EXPENSE PAYMENTS",
+          "current": 0.0,
+          "prior": 0.0,
+          "change": 0.0
+        },
+        {
+          "row": 61,
+          "label": "Sub-Total Other Expense Payments",
+          "type": "subtotal",
+          "section": "OTHER EXPENSE PAYMENTS",
+          "current": 5900.0,
+          "prior": 6195.0,
+          "change": -295.0
+        },
+        {
+          "row": 63,
+          "label": "TOTAL CASH PAYMENTS",
+          "type": "subtotal",
+          "section": "OTHER EXPENSE PAYMENTS",
+          "current": 32325.0,
+          "prior": 33941.25,
+          "change": -1616.25
+        },
+        {
+          "row": 65,
+          "label": "NET CASH CHANGE - Inflow (Outflow)",
+          "type": "subtotal",
+          "section": "OTHER EXPENSE PAYMENTS",
+          "current": 14975.0,
+          "prior": 15708.75,
+          "change": -733.75
+        },
+        {
+          "row": 67,
+          "label": "CASH POSITION (end of month)",
+          "type": "subtotal",
+          "section": "OTHER EXPENSE PAYMENTS",
+          "current": 39085.0,
+          "prior": 47593.75,
+          "change": -8508.75
+        }
+      ]
+    }
+  },
+  "validation": [
+    {
+      "rule": "Net Income Match",
+      "is_value": 6236.0,
+      "bs_value": 8599.0,
+      "status": "FAIL",
+      "detail": "IS: 6,236.00 vs BS: 8,599.00"
+    },
+    {
+      "rule": "Cash Position Match",
+      "cf_value": 39085.0,
+      "bs_value": 21506.0,
+      "status": "MISMATCH",
+      "detail": "CF Ending: 39,085.00 vs BS Cash: 21,506.00"
+    },
+    {
+      "rule": "Balance Sheet Equation",
+      "assets": 288595.0,
+      "liab_equity": 288595.0,
+      "status": "PASS",
+      "detail": "Assets: 288,595.00 vs L+E: 288,595.00"
+    }
+  ]
+}
