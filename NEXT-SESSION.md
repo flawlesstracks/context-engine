@@ -1,8 +1,42 @@
 # Context Architecture — Session Handoff Document
 
-> Last updated: 2026-02-16 (end of Session 4)
+> Last updated: 2026-02-25 (end of Day 8 — Build 10.5 + Build 11)
 > Server: running on port 3000
 > Branch: main, pushed to origin
+
+---
+
+## 0. Builds Shipped Today (Day 8)
+
+### Build 10.5 — New Extraction Spec Templates
+- **Financial Statement Review template** (`data/templates/financial_review.json`): 3 document types (Income Statement: 49 fields, Balance Sheet: 37 fields, Cash Flow: 43 fields), 2 entity roles, 3 cross-doc rules (net_income_match, cash_position_match, balance_sheet_equation — all CRITICAL)
+- **W-9 + W-8BEN added to tax_preparation template**: W-9 (9 extraction fields), W-8BEN (12 extraction fields), 3 new cross-doc rules (mutual_exclusion, expiration, classification_consistency). Total tax cross-doc rules: 7
+- **Sample extraction fixture**: `data/sample-extractions/financial_statements_sample.json` (real extraction output from income statement)
+- **All templates loaded and verified**: financial_review, tax_preparation (with W-9/W-8BEN), personal_injury, estate_planning, corporate_formation, general
+- **Signal classification working**: Form_W9 → w9_form, Balance_Sheet → balance_sheet, CashFlow → cash_flow, P&L → income_statement, W-8BEN → w8ben_form
+
+### Build 11 — Firm Dashboard + Onboarding + Template Filters
+- **GET /api/dashboard**: Returns spoke summaries with completeness, review status, entity count, missing docs, cross-doc violations, dynamic filter chips. Single API call populates entire view.
+- **POST /api/onboard**: One-click client creation (name + template + file upload). Creates spoke, binds template, ingests files, runs gap analysis, returns complete state.
+- **Dashboard UI**: Sortable table (6 columns), color-coded completeness bars (red/yellow/green), summary stats header (total/critical/in-progress/complete/fully-reviewed).
+- **Template-aware filter chips**: Dynamic chips generated from active templates. Tax → "Missing W-2", "Missing K-1", "Missing W-9". Financial → "Missing Income Statement", "Missing Balance Sheet", "Cross-Doc Violations". PI → "Missing Medical Records", "Ready for Demand". Universal → "Critical (<50%)", "Needs Review", "Complete".
+- **New Client onboarding modal**: Client name, template dropdown (all 6 templates), drag-and-drop file zone. Auto-redirects to client workspace after creation.
+
+---
+
+## What's Next
+
+| Build | Name | Description |
+|-------|------|-------------|
+| 12 | Template Builder UI | Visual template editor for creating custom extraction specs |
+| 13 | Doc Request + Client Upload | Generate document request lists, client-facing upload portal |
+| 14 | Cross-Spoke Intelligence | Cross-client analytics, duplicate entity detection across spokes |
+
+### Notes for Next Session
+- 3 new extraction spec templates now loaded: financial_review, enhanced tax_preparation (W-9/W-8BEN), existing PI and corporate_formation
+- Sample extraction fixture at `data/sample-extractions/financial_statements_sample.json` for testing cross-doc validation
+- Dashboard endpoint returns `filter_chips` array — frontend renders them dynamically from template document_types
+- Onboarding endpoint supports multipart file upload via multer
 
 ---
 

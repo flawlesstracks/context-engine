@@ -4182,6 +4182,249 @@ app.post('/api/spokes/migrate', apiAuth, (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// Dashboard Endpoint (Build 11)
+// ---------------------------------------------------------------------------
+
+// GET /api/dashboard — Firm-wide dashboard: all spokes with completeness, review status, entity counts
+app.get('/api/dashboard', apiAuth, (req, res) => {
+  try {
+    const spokes = listSpokesWithCounts(req.graphDir);
+    const templates = loadTemplates();
+
+    const spokeSummaries = spokes.filter(s => s.id !== 'default').map(spoke => {
+      const templateType = spoke.template_type || null;
+      const template = templateType ? templates[templateType] : null;
+
+      // Completeness from cached gap analysis
+      const gap = spoke.gap_analysis || {};
+      const completeness = gap.overall_score != null ? Math.round(gap.overall_score * 100) : null;
+
+      // Review status: count reviewed vs total entities
+      const entityCount = spoke.entity_count || 0;
+      const reviewSummary = spoke.review_summary || {};
+      const reviewedCount = reviewSummary.reviewed_count || 0;
+      const totalReviewable = reviewSummary.total_reviewable || entityCount;
+
+      // Missing documents from gap analysis
+      const missingDocs = (gap.missing_documents || []).map(d => d.type_id || d.item);
+      const foundDocs = (gap.found_documents || []).map(d => d.type_id || d.item);
+      const crossDocViolations = (gap.cross_doc_violations || []).length;
+
+      return {
+        spoke_id: spoke.id,
+        name: spoke.name || spoke.id,
+        template_type: templateType,
+        template_label: template ? (template.label || template.display_name) : null,
+        completeness_pct: completeness,
+        review_status: `${reviewedCount} of ${totalReviewable} reviewed`,
+        reviewed_count: reviewedCount,
+        total_reviewable: totalReviewable,
+        entity_count: entityCount,
+        last_updated: spoke.updated_at || spoke.created_at || null,
+        missing_documents: missingDocs,
+        found_documents: foundDocs,
+        cross_doc_violations: crossDocViolations
+      };
+    });
+
+    // Sort by completeness ascending (worst first), nulls at top
+    spokeSummaries.sort((a, b) => {
+      if (a.completeness_pct == null && b.completeness_pct == null) return 0;
+      if (a.completeness_pct == null) return -1;
+      if (b.completeness_pct == null) return -1;
+      return a.completeness_pct - b.completeness_pct;
+    });
+
+    // Aggregate stats
+    const total = spokeSummaries.length;
+    const critical = spokeSummaries.filter(s => s.completeness_pct != null && s.completeness_pct < 50).length;
+    const inProgress = spokeSummaries.filter(s => s.completeness_pct != null && s.completeness_pct >= 50 && s.completeness_pct < 80).length;
+    const complete = spokeSummaries.filter(s => s.completeness_pct != null && s.completeness_pct >= 80).length;
+    const fullyReviewed = spokeSummaries.filter(s => s.total_reviewable > 0 && s.reviewed_count >= s.total_reviewable).length;
+    const noAnalysis = spokeSummaries.filter(s => s.completeness_pct == null).length;
+
+    // Collect active template types for filter chip generation
+    const activeTemplateTypes = [...new Set(spokeSummaries.map(s => s.template_type).filter(Boolean))];
+
+    // Generate dynamic filter chips based on active templates
+    const filterChips = [];
+
+    // Universal chips (always present)
+    filterChips.push({ id: 'critical', label: 'Critical (<50%)', type: 'universal', filter: { completeness_max: 49 } });
+    filterChips.push({ id: 'needs_review', label: 'Needs Review', type: 'universal', filter: { review_incomplete: true } });
+    filterChips.push({ id: 'complete', label: 'Complete', type: 'universal', filter: { completeness_min: 80 } });
+
+    for (const tmplType of activeTemplateTypes) {
+      const tmpl = templates[tmplType];
+      if (!tmpl) continue;
+
+      // Generate "Missing [doc]" chips for HIGH-priority document types
+      for (const dt of (tmpl.document_types || [])) {
+        if (dt.priority === 'HIGH') {
+          filterChips.push({
+            id: `missing_${dt.type_id}`,
+            label: `Missing ${dt.display_name}`,
+            type: 'template',
+            template_type: tmplType,
+            filter: { missing_document: dt.type_id }
+          });
+        }
+      }
+
+      // Template-specific special chips
+      if (tmplType === 'financial_review') {
+        filterChips.push({
+          id: 'cross_doc_violations',
+          label: 'Cross-Doc Violations',
+          type: 'template',
+          template_type: 'financial_review',
+          filter: { has_cross_doc_violations: true }
+        });
+      }
+      if (tmplType === 'personal_injury') {
+        filterChips.push({
+          id: 'ready_for_demand',
+          label: 'Ready for Demand',
+          type: 'template',
+          template_type: 'personal_injury',
+          filter: { completeness_min: 80 }
+        });
+      }
+    }
+
+    res.json({
+      spokes: spokeSummaries,
+      stats: { total, critical, in_progress: inProgress, complete, fully_reviewed: fullyReviewed, no_analysis: noAnalysis },
+      filter_chips: filterChips,
+      active_templates: activeTemplateTypes
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/onboard — One-click client onboarding: create spoke + bind template + ingest files
+const onboardUpload = multer({ storage: multer.memoryStorage(), limits: { files: 20, fileSize: 50 * 1024 * 1024 } });
+app.post('/api/onboard', apiAuth, onboardUpload.array('files', 20), async (req, res) => {
+  try {
+    const { client_name, template_type } = req.body || {};
+    if (!client_name) return res.status(400).json({ error: 'client_name is required' });
+    if (!template_type) return res.status(400).json({ error: 'template_type is required' });
+
+    const template = getTemplate(template_type);
+    if (!template) return res.status(404).json({ error: 'Template not found', available_templates: Object.keys(loadTemplates()) });
+
+    // Step 1: Create spoke
+    const spokeId = resolveOrCreateSpoke(req.graphDir, client_name);
+    console.log(`[onboard] Spoke: ${spokeId} (${client_name})`);
+
+    // Step 2: Assign template
+    updateSpoke(req.graphDir, spokeId, {
+      template_type,
+      gap_analysis: null,
+      document_classification: null,
+      review_status: null,
+      review_summary: null
+    });
+    console.log(`[onboard] Template assigned: ${template_type}`);
+
+    // Step 3: Ingest uploaded files (if any are in the multipart request)
+    const ingestResults = [];
+    if (req.files && req.files.length > 0) {
+      for (const file of req.files) {
+        const filename = file.originalname;
+        const fileBuffer = file.buffer;
+
+        // Preserve source file
+        const fileId = preserveSourceFile(req.graphDir, spokeId, filename, fileBuffer);
+        console.log(`[onboard] Preserved ${filename} → ${fileId}`);
+
+        try {
+          const result = await universalParse(fileBuffer, filename);
+          const now = new Date().toISOString();
+
+          if (result.entities.length > 0 && result.metadata.parse_strategy !== 'chat_import') {
+            const v2Entities = result.entities.map(ent => {
+              const entityType = ent.type === 'PERSON' ? 'person' : 'business';
+              return {
+                schema_version: '2.0',
+                schema_type: 'context_architecture_entity',
+                extraction_metadata: {
+                  extracted_at: now, updated_at: now,
+                  source_description: `onboard:${filename}`,
+                  extraction_model: result.metadata.model_used || 'claude-sonnet-4-5-20250929',
+                  extraction_confidence: ent.confidence || 0.7,
+                  schema_version: '2.0',
+                },
+                entity: {
+                  entity_type: entityType,
+                  name: { full: ent.name, confidence: ent.confidence || 0.7, facts_layer: 2 },
+                  summary: { value: ent.evidence || '', confidence: ent.confidence || 0.7, facts_layer: 2 },
+                },
+                attributes: (Array.isArray(ent.attributes) ? ent.attributes : Object.entries(ent.attributes || {}).map(([key, value]) => ({ key, value: String(value), evidence: null }))).map((attr, i) => ({
+                  key: attr.key || attr.attribute || `attr_${i}`,
+                  value: typeof attr.value === 'object' ? JSON.stringify(attr.value) : String(attr.value || ''),
+                  confidence: ent.confidence || 0.7,
+                  provenance: { source: `file_upload:${filename}`, extracted_at: now },
+                })),
+                observations: (ent.observations || []).map((obs, i) => ({
+                  observation_id: `obs-${Date.now()}-${i}`,
+                  observation: typeof obs === 'string' ? obs : (obs.observation || obs.fact || JSON.stringify(obs)),
+                  confidence: ent.confidence || 0.7,
+                  confidence_label: 'moderate',
+                  facts_layer: 2,
+                  source: `file_upload:${filename}`,
+                  created_at: now,
+                })),
+                relationships: [],
+                spoke_id: spokeId,
+                source_ref: filename,
+              };
+            });
+
+            for (const v2ent of v2Entities) {
+              try {
+                const id = writeEntity(v2ent, req.graphDir);
+                ingestResults.push({ filename, entity_id: id, name: v2ent.entity.name.full });
+              } catch (writeErr) {
+                ingestResults.push({ filename, error: writeErr.message });
+              }
+            }
+          }
+        } catch (parseErr) {
+          ingestResults.push({ filename, error: parseErr.message });
+        }
+      }
+    }
+
+    // Step 4: Run gap analysis (quick, signal-based only for initial view)
+    let gapReport = null;
+    try {
+      gapReport = await analyzeGaps(spokeId, req.graphDir, template_type);
+      updateSpoke(req.graphDir, spokeId, { gap_analysis: gapReport, template_type });
+    } catch (gapErr) {
+      console.warn('[onboard] Gap analysis failed:', gapErr.message);
+    }
+
+    const spoke = getSpoke(req.graphDir, spokeId);
+    res.status(201).json({
+      status: 'onboarded',
+      spoke_id: spokeId,
+      spoke,
+      template_type,
+      entities_created: ingestResults.length,
+      ingest_results: ingestResults,
+      gap_analysis: gapReport
+    });
+  } catch (err) {
+    if (err.message.includes('already exists')) {
+      return res.status(409).json({ error: err.message });
+    }
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Gap Analysis Endpoints (MECE-019)
 // ---------------------------------------------------------------------------
 
@@ -15662,37 +15905,161 @@ function selectDocumentDetail(fileId) {
 }
 
 function promptNewClient() {
-  var name = prompt('Client name:');
-  if (!name || !name.trim()) return;
-
-  // Show template selection
+  // Build and show onboarding modal
   api('GET', '/api/templates').then(function(tData) {
     var templates = tData.templates || [];
-    var templateOptions = templates.map(function(t) { return t.label; }).join('\\n');
-    var templateChoice = prompt('Select template type:\\n\\n' + templates.map(function(t, i) { return (i+1) + '. ' + t.label; }).join('\\n') + '\\n\\nEnter number:');
-    var templateType = null;
-    if (templateChoice) {
-      var idx = parseInt(templateChoice) - 1;
-      if (idx >= 0 && idx < templates.length) templateType = templates[idx].id;
-    }
+    var overlay = document.createElement('div');
+    overlay.id = 'onboard-overlay';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);z-index:1000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
 
-    // Create the spoke
-    api('POST', '/api/spoke', { name: name.trim(), description: '' }).then(function(spokeData) {
-      toast('Client "' + name.trim() + '" created!');
-      // Assign template if selected
-      if (templateType && spokeData.id) {
-        api('PUT', '/api/spoke/' + encodeURIComponent(spokeData.id) + '/template', { template_type: templateType }).then(function() {
-          loadSpokes();
-          selectClient(spokeData.id);
-        });
-      } else {
-        loadSpokes();
-        selectClient(spokeData.id);
-      }
-    }).catch(function(err) {
-      toast('Failed to create client: ' + (err.message || err));
-    });
+    var modal = document.createElement('div');
+    modal.style.cssText = 'background:#fff;border-radius:16px;width:520px;max-width:90vw;max-height:85vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,0.2);';
+
+    var mh = '<div style="padding:28px 28px 0;">';
+    mh += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">';
+    mh += '<div style="font-size:20px;font-weight:700;">New Client</div>';
+    mh += '<div onclick="closeOnboardModal()" style="cursor:pointer;width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:8px;color:#666;font-size:18px;" onmouseover="this.style.background=\\'#f0f0f0\\'" onmouseout="this.style.background=\\'\\'">&#10005;</div>';
+    mh += '</div>';
+
+    // Client name
+    mh += '<div style="margin-bottom:20px;">';
+    mh += '<label style="display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:6px;">Client Name</label>';
+    mh += '<input id="onboard-name" type="text" placeholder="e.g. Acme Corp" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;outline:none;transition:border 0.2s;" onfocus="this.style.borderColor=\\'#6366f1\\'" onblur="this.style.borderColor=\\'#ddd\\'" />';
+    mh += '</div>';
+
+    // Template dropdown
+    mh += '<div style="margin-bottom:20px;">';
+    mh += '<label style="display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:6px;">Template Type</label>';
+    mh += '<select id="onboard-template" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;outline:none;background:#fff;cursor:pointer;">';
+    for (var i = 0; i < templates.length; i++) {
+      mh += '<option value="' + esc(templates[i].id) + '">' + esc(templates[i].label) + '</option>';
+    }
+    mh += '</select>';
+    mh += '</div>';
+
+    // File drop zone
+    mh += '<div style="margin-bottom:24px;">';
+    mh += '<label style="display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:6px;">Initial Documents (optional)</label>';
+    mh += '<div id="onboard-dropzone" style="border:2px dashed #ddd;border-radius:10px;padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:#fafafa;" onclick="document.getElementById(\\'onboard-file-input\\').click()" ondragover="event.preventDefault();this.style.borderColor=\\'#6366f1\\';this.style.background=\\'#f0f0ff\\'" ondragleave="this.style.borderColor=\\'#ddd\\';this.style.background=\\'#fafafa\\'" ondrop="handleOnboardDrop(event)">';
+    mh += '<svg viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5" style="width:32px;height:32px;margin-bottom:8px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
+    mh += '<div style="font-size:14px;color:#666;">Drop files here or click to browse</div>';
+    mh += '<div style="font-size:12px;color:#999;margin-top:4px;">PDF, DOC, XLSX, CSV, TXT</div>';
+    mh += '</div>';
+    mh += '<input id="onboard-file-input" type="file" multiple style="display:none" onchange="handleOnboardFiles(this.files)" />';
+    mh += '<div id="onboard-file-list" style="margin-top:8px;"></div>';
+    mh += '</div>';
+
+    // Create button
+    mh += '<div style="padding-bottom:28px;">';
+    mh += '<button id="onboard-btn" onclick="submitOnboard()" style="width:100%;padding:12px;border:none;border-radius:10px;background:var(--accent-gradient, linear-gradient(135deg,#6366f1,#8b5cf6));color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity=\\'0.9\\'" onmouseout="this.style.opacity=\\'1\\'">Create Client</button>';
+    mh += '</div></div>';
+
+    modal.innerHTML = mh;
+    overlay.appendChild(modal);
+    overlay.onclick = function(e) { if (e.target === overlay) closeOnboardModal(); };
+    document.body.appendChild(overlay);
+
+    // Focus the name input
+    setTimeout(function() { document.getElementById('onboard-name').focus(); }, 100);
   });
+}
+
+window._onboardFiles = [];
+
+function closeOnboardModal() {
+  var overlay = document.getElementById('onboard-overlay');
+  if (overlay) overlay.remove();
+  window._onboardFiles = [];
+}
+
+function handleOnboardDrop(e) {
+  e.preventDefault();
+  e.currentTarget.style.borderColor = '#ddd';
+  e.currentTarget.style.background = '#fafafa';
+  if (e.dataTransfer && e.dataTransfer.files) {
+    handleOnboardFiles(e.dataTransfer.files);
+  }
+}
+
+function handleOnboardFiles(files) {
+  for (var i = 0; i < files.length; i++) {
+    window._onboardFiles.push(files[i]);
+  }
+  renderOnboardFileList();
+}
+
+function removeOnboardFile(idx) {
+  window._onboardFiles.splice(idx, 1);
+  renderOnboardFileList();
+}
+
+function renderOnboardFileList() {
+  var el = document.getElementById('onboard-file-list');
+  if (!el) return;
+  if (window._onboardFiles.length === 0) { el.innerHTML = ''; return; }
+  var h = '';
+  for (var i = 0; i < window._onboardFiles.length; i++) {
+    var f = window._onboardFiles[i];
+    var sizeKB = Math.round(f.size / 1024);
+    h += '<div style="display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#f8f8fa;border-radius:6px;margin-bottom:4px;font-size:13px;">';
+    h += '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:340px;">' + esc(f.name) + ' <span style="color:#999;">(' + sizeKB + ' KB)</span></span>';
+    h += '<span onclick="removeOnboardFile(' + i + ')" style="cursor:pointer;color:#999;padding:2px 6px;border-radius:4px;" onmouseover="this.style.color=\\'#dc2626\\'" onmouseout="this.style.color=\\'#999\\'">&#10005;</span>';
+    h += '</div>';
+  }
+  el.innerHTML = h;
+}
+
+function submitOnboard() {
+  var nameEl = document.getElementById('onboard-name');
+  var templateEl = document.getElementById('onboard-template');
+  var btn = document.getElementById('onboard-btn');
+  var clientName = (nameEl.value || '').trim();
+  var templateType = templateEl.value;
+  if (!clientName) { nameEl.style.borderColor = '#dc2626'; nameEl.focus(); return; }
+
+  btn.textContent = 'Creating...';
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+
+  // Build FormData if files present, otherwise JSON
+  if (window._onboardFiles.length > 0) {
+    var fd = new FormData();
+    fd.append('client_name', clientName);
+    fd.append('template_type', templateType);
+    for (var i = 0; i < window._onboardFiles.length; i++) {
+      fd.append('files', window._onboardFiles[i]);
+    }
+    fetch('/api/onboard', {
+      method: 'POST',
+      headers: { 'X-Context-API-Key': window._apiKey },
+      body: fd
+    }).then(function(r) { return r.json(); }).then(function(data) {
+      if (data.error) throw new Error(data.error);
+      closeOnboardModal();
+      toast('Client "' + clientName + '" created with ' + (data.entities_created || 0) + ' entities!');
+      loadSpokes().then(function() {
+        selectClient(data.spoke_id);
+      });
+    }).catch(function(err) {
+      btn.textContent = 'Create Client';
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      toast('Error: ' + (err.message || err));
+    });
+  } else {
+    api('POST', '/api/onboard', { client_name: clientName, template_type: templateType }).then(function(data) {
+      closeOnboardModal();
+      toast('Client "' + clientName + '" created!');
+      loadSpokes().then(function() {
+        selectClient(data.spoke_id);
+      });
+    }).catch(function(err) {
+      btn.textContent = 'Create Client';
+      btn.disabled = false;
+      btn.style.opacity = '1';
+      toast('Error: ' + (err.message || err));
+    });
+  }
 }
 
 function showTemplateDetail(templateId) {
@@ -15763,81 +16130,165 @@ function showClientDashboard() {
   renderClientDashboard();
 }
 
+window._dashboardSortCol = 'completeness';
+window._dashboardSortAsc = true;
+window._dashboardActiveChip = null;
+window._dashboardData = null;
+
 function renderClientDashboard() {
-  var clientSpokes = _spokesList.filter(function(s) { return s.id !== 'default'; });
   var mainEl = document.getElementById('main');
 
-  if (clientSpokes.length === 0) {
-    mainEl.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg><div>No clients yet.<br/><span style="color:#0a66c2;cursor:pointer;" onclick="promptNewClient()">+ Add your first client</span></div></div>';
+  // Fetch from the dashboard API for rich data
+  api('GET', '/api/dashboard').then(function(data) {
+    window._dashboardData = data;
+    renderDashboardContent(data);
+  }).catch(function(err) {
+    // Fallback to local spoke data
+    var clientSpokes = _spokesList.filter(function(s) { return s.id !== 'default'; });
+    if (clientSpokes.length === 0) {
+      mainEl.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg><div>No clients yet.<br/><span style="color:var(--accent-primary);cursor:pointer;" onclick="promptNewClient()">+ Add your first client</span></div></div>';
+    }
+  });
+}
+
+function renderDashboardContent(data) {
+  var spokes = data.spokes || [];
+  var stats = data.stats || {};
+  var filterChips = data.filter_chips || [];
+  var mainEl = document.getElementById('main');
+
+  if (spokes.length === 0) {
+    mainEl.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg><div>No clients yet.<br/><span style="color:var(--accent-primary);cursor:pointer;" onclick="promptNewClient()">+ Add your first client</span></div></div>';
     return;
   }
 
-  // Summary stats
-  var total = clientSpokes.length;
-  var critical = 0, inProgress = 0, complete = 0;
-  for (var i = 0; i < clientSpokes.length; i++) {
-    var cs = clientSpokes[i];
-    if (!cs._hasTemplate) continue;
-    if (cs._completeness >= 0.8) complete++;
-    else if (cs._completeness >= 0.5) inProgress++;
-    else critical++;
-  }
-
   var h = '<div style="padding:24px 28px;">';
-  h += '<div style="font-size:22px;font-weight:700;margin-bottom:20px;">Clients</div>';
 
-  // Stats row
-  h += '<div style="display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap;">';
-  h += '<div style="padding:12px 20px;background:#f8f8fa;border-radius:10px;font-size:13px;"><strong style="font-size:20px;display:block;">' + total + '</strong> Total</div>';
-  if (critical > 0) h += '<div style="padding:12px 20px;background:#fef2f2;border-radius:10px;font-size:13px;color:#991B1B;"><strong style="font-size:20px;display:block;">' + critical + '</strong> Critical</div>';
-  if (inProgress > 0) h += '<div style="padding:12px 20px;background:#fefce8;border-radius:10px;font-size:13px;color:#92400E;"><strong style="font-size:20px;display:block;">' + inProgress + '</strong> In Progress</div>';
-  if (complete > 0) h += '<div style="padding:12px 20px;background:#f0fdf4;border-radius:10px;font-size:13px;color:#065F46;"><strong style="font-size:20px;display:block;">' + complete + '</strong> Complete</div>';
+  // Header row with title + New Client button
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">';
+  h += '<div style="font-size:22px;font-weight:700;">Client Dashboard</div>';
+  h += '<button onclick="promptNewClient()" style="display:flex;align-items:center;gap:6px;padding:8px 16px;border:none;border-radius:8px;background:var(--accent-gradient, linear-gradient(135deg,#6366f1,#8b5cf6));color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity=\\'0.9\\'" onmouseout="this.style.opacity=\\'1\\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New Client</button>';
   h += '</div>';
 
-  // Client table
-  h += '<table style="width:100%;border-collapse:collapse;font-size:14px;">';
-  h += '<thead><tr style="border-bottom:2px solid #e8e8e8;text-align:left;">';
-  h += '<th style="padding:10px 12px;font-weight:600;color:var(--text-secondary);">Name</th>';
-  h += '<th style="padding:10px 12px;font-weight:600;color:var(--text-secondary);">Template</th>';
-  h += '<th style="padding:10px 12px;font-weight:600;color:var(--text-secondary);">Completeness</th>';
-  h += '<th style="padding:10px 12px;font-weight:600;color:var(--text-secondary);">Entities</th>';
-  h += '<th style="padding:10px 12px;font-weight:600;color:var(--text-secondary);">Updated</th>';
-  h += '</tr></thead><tbody>';
+  // Summary stats header (Build 11)
+  h += '<div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">';
+  h += '<div style="padding:14px 20px;background:#f8f8fa;border-radius:10px;font-size:13px;flex:1;min-width:100px;text-align:center;"><strong style="font-size:22px;display:block;color:var(--text-primary);">' + stats.total + '</strong><span style="color:var(--text-muted);">Total Clients</span></div>';
+  if (stats.critical > 0) h += '<div style="padding:14px 20px;background:#fef2f2;border-radius:10px;font-size:13px;flex:1;min-width:100px;text-align:center;"><strong style="font-size:22px;display:block;color:#991B1B;">' + stats.critical + '</strong><span style="color:#991B1B;">Critical (&lt;50%)</span></div>';
+  if (stats.in_progress > 0) h += '<div style="padding:14px 20px;background:#fefce8;border-radius:10px;font-size:13px;flex:1;min-width:100px;text-align:center;"><strong style="font-size:22px;display:block;color:#92400E;">' + stats.in_progress + '</strong><span style="color:#92400E;">In Progress</span></div>';
+  if (stats.complete > 0) h += '<div style="padding:14px 20px;background:#f0fdf4;border-radius:10px;font-size:13px;flex:1;min-width:100px;text-align:center;"><strong style="font-size:22px;display:block;color:#065F46;">' + stats.complete + '</strong><span style="color:#065F46;">Complete (80%+)</span></div>';
+  if (stats.fully_reviewed > 0) h += '<div style="padding:14px 20px;background:#eff6ff;border-radius:10px;font-size:13px;flex:1;min-width:100px;text-align:center;"><strong style="font-size:22px;display:block;color:#1D4ED8;">' + stats.fully_reviewed + '</strong><span style="color:#1D4ED8;">Fully Reviewed</span></div>';
+  h += '</div>';
 
-  // Sort: worst completeness first
-  var sorted = clientSpokes.slice().sort(function(a, b) {
-    var aS = a._hasTemplate ? a._completeness : 2;
-    var bS = b._hasTemplate ? b._completeness : 2;
-    return aS - bS;
+  // Filter chips (Build 11)
+  if (filterChips.length > 0) {
+    h += '<div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">';
+    for (var ci = 0; ci < filterChips.length; ci++) {
+      var chip = filterChips[ci];
+      var isActive = (window._dashboardActiveChip === chip.id);
+      var chipBg = isActive ? 'var(--accent-primary)' : (chip.type === 'universal' ? '#f0f0f2' : '#ede9fe');
+      var chipColor = isActive ? '#fff' : (chip.type === 'universal' ? 'var(--text-secondary)' : '#6366f1');
+      h += '<span data-chip="' + esc(chip.id) + '" onclick="toggleDashboardChip(\\'' + esc(chip.id) + '\\')" style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;background:' + chipBg + ';color:' + chipColor + ';transition:all 0.15s;border:1px solid ' + (isActive ? 'var(--accent-primary)' : 'transparent') + ';">' + esc(chip.label) + '</span>';
+    }
+    h += '</div>';
+  }
+
+  // Apply filter
+  var filtered = spokes;
+  if (window._dashboardActiveChip && window._dashboardData) {
+    var activeChip = filterChips.find(function(c) { return c.id === window._dashboardActiveChip; });
+    if (activeChip && activeChip.filter) {
+      filtered = spokes.filter(function(s) {
+        if (activeChip.filter.completeness_max != null && (s.completeness_pct == null || s.completeness_pct > activeChip.filter.completeness_max)) return false;
+        if (activeChip.filter.completeness_min != null && (s.completeness_pct == null || s.completeness_pct < activeChip.filter.completeness_min)) return false;
+        if (activeChip.filter.review_incomplete && s.total_reviewable > 0 && s.reviewed_count >= s.total_reviewable) return false;
+        if (activeChip.filter.missing_document && !s.missing_documents.includes(activeChip.filter.missing_document)) return false;
+        if (activeChip.filter.has_cross_doc_violations && s.cross_doc_violations === 0) return false;
+        if (activeChip.template_type && s.template_type !== activeChip.template_type) return false;
+        return true;
+      });
+    }
+  }
+
+  // Sort
+  var sortCol = window._dashboardSortCol;
+  var sortAsc = window._dashboardSortAsc;
+  filtered.sort(function(a, b) {
+    var av, bv;
+    if (sortCol === 'name') { av = (a.name || '').toLowerCase(); bv = (b.name || '').toLowerCase(); return sortAsc ? (av < bv ? -1 : 1) : (bv < av ? -1 : 1); }
+    if (sortCol === 'template') { av = (a.template_label || '').toLowerCase(); bv = (b.template_label || '').toLowerCase(); return sortAsc ? (av < bv ? -1 : 1) : (bv < av ? -1 : 1); }
+    if (sortCol === 'completeness') { av = a.completeness_pct != null ? a.completeness_pct : -1; bv = b.completeness_pct != null ? b.completeness_pct : -1; return sortAsc ? av - bv : bv - av; }
+    if (sortCol === 'review') { av = a.reviewed_count || 0; bv = b.reviewed_count || 0; return sortAsc ? av - bv : bv - av; }
+    if (sortCol === 'entities') { av = a.entity_count || 0; bv = b.entity_count || 0; return sortAsc ? av - bv : bv - av; }
+    if (sortCol === 'updated') { av = a.last_updated || ''; bv = b.last_updated || ''; return sortAsc ? (av < bv ? -1 : 1) : (bv < av ? -1 : 1); }
+    return 0;
   });
 
-  for (var i = 0; i < sorted.length; i++) {
-    var cs = sorted[i];
-    var pct = cs._hasTemplate ? Math.round((cs._completeness || 0) * 100) : -1;
-    var barColor = pct >= 80 ? '#16A34A' : pct >= 50 ? '#CA8A04' : '#DC2626';
-    var updated = cs.updated_at ? new Date(cs.updated_at).toLocaleDateString() : '—';
-    var templateLabel = cs.template_type ? cs.template_type.replace(/_/g, ' ').replace(/\\b[a-z]/g, function(l) { return l.toUpperCase(); }) : '—';
+  // Table
+  h += '<table style="width:100%;border-collapse:collapse;font-size:14px;">';
+  h += '<thead><tr style="border-bottom:2px solid #e8e8e8;text-align:left;">';
+  var cols = [
+    { key: 'name', label: 'Client Name' },
+    { key: 'template', label: 'Template' },
+    { key: 'completeness', label: 'Completeness' },
+    { key: 'review', label: 'Review Status' },
+    { key: 'entities', label: 'Entities' },
+    { key: 'updated', label: 'Last Updated' }
+  ];
+  for (var ci = 0; ci < cols.length; ci++) {
+    var col = cols[ci];
+    var arrow = (sortCol === col.key) ? (sortAsc ? ' \\u25B2' : ' \\u25BC') : '';
+    h += '<th style="padding:10px 12px;font-weight:600;color:var(--text-secondary);cursor:pointer;user-select:none;white-space:nowrap;" onclick="sortDashboard(\\'' + col.key + '\\')">' + col.label + arrow + '</th>';
+  }
+  h += '</tr></thead><tbody>';
 
-    h += '<tr style="border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background 0.15s;" onclick="selectClient(\\'' + esc(cs.id) + '\\')" onmouseover="this.style.background=\\'#f8f8fa\\'" onmouseout="this.style.background=\\'\\'">';
-    h += '<td style="padding:12px;font-weight:500;">' + esc(cs.name) + '</td>';
-    h += '<td style="padding:12px;color:var(--text-muted);">' + esc(templateLabel) + '</td>';
+  for (var i = 0; i < filtered.length; i++) {
+    var s = filtered[i];
+    var pct = s.completeness_pct;
+    var barColor = pct == null ? '#999' : (pct >= 80 ? '#16A34A' : pct >= 50 ? '#CA8A04' : '#DC2626');
+    var updated = s.last_updated ? new Date(s.last_updated).toLocaleDateString() : '\\u2014';
+    var templateLabel = s.template_label || '\\u2014';
+
+    h += '<tr style="border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background 0.15s;" onclick="selectClient(\\'' + esc(s.spoke_id) + '\\')" onmouseover="this.style.background=\\'#f8f8fa\\'" onmouseout="this.style.background=\\'\\'">';
+    h += '<td style="padding:12px;font-weight:500;">' + esc(s.name) + '</td>';
+    h += '<td style="padding:12px;"><span style="display:inline-block;padding:2px 10px;border-radius:10px;font-size:12px;background:#f0f0f2;color:var(--text-secondary);">' + esc(templateLabel) + '</span></td>';
     h += '<td style="padding:12px;">';
-    if (pct >= 0) {
+    if (pct != null) {
       h += '<div style="display:flex;align-items:center;gap:8px;">';
-      h += '<div style="width:80px;height:6px;background:#e8e8e8;border-radius:3px;overflow:hidden;"><div style="width:' + pct + '%;height:100%;background:' + barColor + ';border-radius:3px;"></div></div>';
-      h += '<span style="font-size:13px;font-weight:600;color:' + barColor + ';">' + pct + '%</span>';
+      h += '<div style="width:100px;height:8px;background:#e8e8e8;border-radius:4px;overflow:hidden;"><div style="width:' + pct + '%;height:100%;background:' + barColor + ';border-radius:4px;transition:width 0.3s;"></div></div>';
+      h += '<span style="font-size:13px;font-weight:600;color:' + barColor + ';min-width:36px;">' + pct + '%</span>';
       h += '</div>';
     } else {
-      h += '<span style="color:var(--text-muted);font-size:12px;">No template</span>';
+      h += '<span style="color:var(--text-muted);font-size:12px;font-style:italic;">Not analyzed</span>';
     }
     h += '</td>';
-    h += '<td style="padding:12px;color:var(--text-muted);">' + (cs.entity_count || 0) + '</td>';
+    h += '<td style="padding:12px;"><span style="font-size:13px;color:var(--text-muted);">' + esc(s.review_status) + '</span></td>';
+    h += '<td style="padding:12px;text-align:center;"><span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#f0f0f2;font-size:12px;font-weight:600;color:var(--text-secondary);">' + (s.entity_count || 0) + '</span></td>';
     h += '<td style="padding:12px;color:var(--text-muted);font-size:13px;">' + esc(updated) + '</td>';
     h += '</tr>';
   }
 
-  h += '</tbody></table></div>';
+  h += '</tbody></table>';
+  if (filtered.length === 0 && spokes.length > 0) {
+    h += '<div style="padding:40px;text-align:center;color:var(--text-muted);font-size:14px;">No clients match this filter.</div>';
+  }
+  h += '</div>';
+
   mainEl.innerHTML = h;
+}
+
+function sortDashboard(col) {
+  if (window._dashboardSortCol === col) {
+    window._dashboardSortAsc = !window._dashboardSortAsc;
+  } else {
+    window._dashboardSortCol = col;
+    window._dashboardSortAsc = (col === 'completeness'); // completeness defaults asc, others desc
+  }
+  if (window._dashboardData) renderDashboardContent(window._dashboardData);
+}
+
+function toggleDashboardChip(chipId) {
+  window._dashboardActiveChip = (window._dashboardActiveChip === chipId) ? null : chipId;
+  if (window._dashboardData) renderDashboardContent(window._dashboardData);
 }
 
 /* --- End Client Navigation (Build 8) --- */
