@@ -204,6 +204,154 @@ function bumpVersion(version) {
   return parts.join('.');
 }
 
+/**
+ * Build a client-friendly display name map from a template.
+ * Maps type_ids and field_ids to human-readable strings suitable for client emails.
+ * Returns { type_map: { type_id: { display_name, client_description } }, field_map: { field_id: display_name } }
+ */
+function buildDisplayNameMap(templateType) {
+  const template = getTemplate(templateType);
+  if (!template) return { type_map: {}, field_map: {} };
+
+  const type_map = {};
+  const field_map = {};
+
+  // Map document types
+  for (const dt of (template.document_types || [])) {
+    const clientDesc = dt.client_description || _toClientFriendly(dt.display_name || dt.type_id);
+    type_map[dt.type_id] = {
+      display_name: dt.display_name || _formatLabel(dt.type_id),
+      client_description: clientDesc,
+      category: dt.category || ''
+    };
+    // Map extraction fields
+    for (const f of (dt.extraction_spec || [])) {
+      field_map[f.field_id] = f.display_name || _formatLabel(f.field_id);
+    }
+  }
+
+  // Map entity role fields
+  for (const role of (template.entity_roles || [])) {
+    for (const f of (role.required_fields || [])) {
+      if (typeof f === 'object' && f.field_id) {
+        field_map[f.field_id] = f.display_name || _formatLabel(f.field_id);
+      }
+    }
+  }
+
+  return { type_map, field_map };
+}
+
+/**
+ * Convert internal field name to client-friendly description.
+ * e.g., "w2_form" → "your W-2 from your employer"
+ */
+const CLIENT_FRIENDLY_OVERRIDES = {
+  w2_form: 'your W-2 from your employer',
+  w9_form: 'a completed W-9 form',
+  w8ben_form: 'a completed W-8BEN form (for foreign persons)',
+  'k1_form': 'your Schedule K-1 from the partnership or S corporation',
+  '1099_misc': 'your 1099-MISC for miscellaneous income',
+  '1099_nec': 'your 1099-NEC for nonemployee compensation',
+  '1099_int': 'your 1099-INT for interest income',
+  '1099_div': 'your 1099-DIV for dividend income',
+  prior_year_return: 'a copy of last year\'s tax return',
+  income_statement: 'your Income Statement (Profit & Loss)',
+  balance_sheet: 'your Balance Sheet',
+  cash_flow_statement: 'your Cash Flow Statement',
+  police_report: 'the police report from the incident',
+  medical_records: 'your medical records related to the injury',
+  medical_bills: 'all medical bills related to treatment',
+  insurance_policy: 'your insurance policy declarations page',
+  settlement_statement: 'the settlement statement',
+  demand_letter: 'the demand letter',
+  lien_notice: 'any lien notices received',
+  surgical_report: 'surgical reports (if applicable)',
+  ime_report: 'the Independent Medical Examination (IME) report',
+  treatment_plan: 'your treatment plan from your healthcare provider',
+  witness_statement: 'any witness statements',
+};
+
+function _toClientFriendly(name) {
+  const key = (name || '').toLowerCase().replace(/[\s-]+/g, '_');
+  if (CLIENT_FRIENDLY_OVERRIDES[key]) return CLIENT_FRIENDLY_OVERRIDES[key];
+  // Default: "Your {formatted name}"
+  return _formatLabel(name);
+}
+
+/**
+ * Generate a client-friendly document request email from gap analysis.
+ * Returns { subject, body, missing_items }
+ */
+function generateRequestEmail(spokeId, graphDir, templateType, options) {
+  const opts = options || {};
+  const clientName = opts.client_name || 'Client';
+  const firmName = opts.firm_name || 'Our Firm';
+  const shareUrl = opts.share_url || '';
+
+  const template = getTemplate(templateType);
+  if (!template) return { error: 'Template not found' };
+
+  // Get current gap analysis
+  const spoke = getSpoke(graphDir, spokeId);
+  if (!spoke) return { error: 'Spoke not found' };
+
+  const gaps = spoke.gap_analysis;
+  if (!gaps) return { error: 'No gap analysis available. Run analysis first.' };
+
+  const dnm = buildDisplayNameMap(templateType);
+  const missingDocs = gaps.missing_documents || [];
+  const missingFields = gaps.missing_entity_fields || [];
+
+  if (missingDocs.length === 0 && missingFields.length === 0) {
+    return { subject: 'All documents received', body: `Dear ${clientName},\n\nWe have received all the documents we need. Thank you!\n\nBest regards,\n${firmName}`, missing_items: [] };
+  }
+
+  // Group missing docs by category
+  const byCategory = {};
+  const missingItems = [];
+  for (const doc of missingDocs) {
+    const cat = doc.category || 'Other';
+    if (!byCategory[cat]) byCategory[cat] = [];
+    const info = dnm.type_map[doc.item] || {};
+    const friendly = info.client_description || _toClientFriendly(doc.item);
+    byCategory[cat].push(friendly);
+    missingItems.push({ internal: doc.item, display: friendly, category: cat, type: 'document' });
+  }
+
+  // Add missing entity fields
+  for (const field of missingFields) {
+    const friendly = dnm.field_map[field.missing] || _formatLabel(field.missing);
+    const cat = 'Additional Information';
+    if (!byCategory[cat]) byCategory[cat] = [];
+    byCategory[cat].push(friendly);
+    missingItems.push({ internal: field.missing, display: friendly, category: cat, type: 'field' });
+  }
+
+  const templateName = template.display_name || _formatLabel(templateType);
+  const subject = `Documents needed for your ${templateName}`;
+
+  let body = `Dear ${clientName},\n\n`;
+  body += `To complete your ${templateName}, we still need the following:\n\n`;
+
+  for (const [cat, items] of Object.entries(byCategory)) {
+    body += `${_formatLabel(cat)}:\n`;
+    for (const item of items) {
+      body += `  - ${item}\n`;
+    }
+    body += '\n';
+  }
+
+  if (shareUrl) {
+    body += `You can securely upload these documents here:\n${shareUrl}\n\n`;
+  }
+
+  body += `If you have any questions about what is needed, please don't hesitate to reach out.\n\n`;
+  body += `Thank you,\n${firmName}`;
+
+  return { subject, body, missing_items: missingItems };
+}
+
 // ---------------------------------------------------------------------------
 // Field Aliases — deterministic (no LLM) field matching
 // ---------------------------------------------------------------------------
@@ -1060,6 +1208,8 @@ module.exports = {
   deleteTemplate,
   bumpVersion,
   normalizeTemplate,
+  buildDisplayNameMap,
+  generateRequestEmail,
   extractSourceDocuments,
   classifyDocuments,
   classifyBySignals,

@@ -1,12 +1,23 @@
 # Context Architecture — Session Handoff Document
 
-> Last updated: 2026-02-25 (end of Day 8 — Builds 10.5 + 11 + 11.5 + 12)
+> Last updated: 2026-02-25 (end of Day 8 — Builds 10.5 + 11 + 11.5 + 12 + 13)
 > Server: running on port 3000
 > Branch: main, pushed to origin
 
 ---
 
 ## 0. Builds Shipped Today (Day 8)
+
+### Build 13 — Document Request Generator + Client Upload Portal
+- **Display name map**: `buildDisplayNameMap(templateType)` creates a client-friendly lookup from template type_ids and field_ids to human-readable text. `CLIENT_FRIENDLY_OVERRIDES` dictionary maps common internal names (w2_form, ein, police_report, etc.) to plain English.
+- **Email generator**: POST /api/spokes/:id/request-email generates a professional document request email. Groups missing items by category, uses display names instead of field_ids. Returns `{ subject, body, missing_items, share_url, mailto_link }`.
+- **Auto-create upload share**: If `include_upload_link: true`, the endpoint auto-creates a share token with `includes: ['gaps', 'upload']` and includes the share URL in the email body.
+- **"Request Missing Documents" button**: Added to completeness tab UI. Shows email preview modal with subject, body, client upload link, copy-to-clipboard, and "Open in Email" mailto link.
+- **Client upload portal**: When a share includes `'upload'`, the shared portal at `/shared/:token` renders a drag-and-drop upload zone at the top. Files are saved to `spoke_files/{spoke_id}/` with metadata (original_name, mime_type, size, status: pending_review).
+- **POST /shared/:token/upload**: Unauthenticated file upload route. Validates file extensions, writes files to disk, records file metadata on spoke, adds `recent_activity` entry, invalidates cached gap analysis.
+- **Activity logging**: Both email generation and client uploads create entries in `spoke.recent_activity` array (capped at 50 entries).
+- **GET /api/spokes/:id/display-names**: Returns the full display name map for a spoke's template.
+- **16 tests passed**: Display name map (7), email generation (5), template integration (4).
 
 ### Build 12 — Template Builder UI (Visual Template Editor)
 - **Template editor route**: Clicking a template in sidebar or "+ New Template" opens full visual editor in middle panel. Replaces the read-only template detail view.
@@ -52,7 +63,6 @@
 
 | Build | Name | Description |
 |-------|------|-------------|
-| 13 | Doc Request + Client Upload | Generate document request lists, client-facing upload portal |
 | 14 | Cross-Spoke Intelligence | Cross-client analytics, duplicate entity detection across spokes |
 
 ### Notes for Next Session

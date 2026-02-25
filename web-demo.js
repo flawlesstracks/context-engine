@@ -19,7 +19,7 @@ const { analyzeEntityHealth, getRelationshipTier, getTierInfo } = require('./src
 const { parse: universalParse } = require('./universal-parser');
 const { query: queryEngine, getSelfEntity, clearSelfEntityCache } = require('./query-engine');
 const { loadSpokes, createSpoke, getSpoke, updateSpoke, setCenteredEntity, deleteSpoke, listSpokesWithCounts, migrateEntitiesToSpokes, findSpokeByShareToken } = require('./src/spoke-ops');
-const { loadTemplates, getTemplate, saveTemplates, saveTemplate, deleteTemplate, bumpVersion, analyzeGaps, FIELD_ALIASES, TYPE_ALIASES } = require('./src/gap-analysis');
+const { loadTemplates, getTemplate, saveTemplates, saveTemplate, deleteTemplate, bumpVersion, buildDisplayNameMap, generateRequestEmail, analyzeGaps, FIELD_ALIASES, TYPE_ALIASES } = require('./src/gap-analysis');
 const { createConnection, getConnection, getConnectionDecrypted, updateConnection, deleteConnection: deleteConn, listConnections } = require('./src/connector-ops');
 const { getRegisteredProviders, getConnectorClass } = require('./src/connectors/base-connector');
 const { buildAuthorizeUrl, validateState, exchangeCodeForTokens, OAUTH_STATE_COOKIE } = require('./src/connectors/oauth-handler');
@@ -4239,6 +4239,88 @@ app.get('/api/spokes/:id/tier-adjustments', apiAuth, (req, res) => {
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// ---------------------------------------------------------------------------
+// Document Request Email Generator (Build 13)
+// ---------------------------------------------------------------------------
+
+// POST /api/spokes/:id/request-email — Generate client-friendly document request email
+app.post('/api/spokes/:id/request-email', apiAuth, async (req, res) => {
+  try {
+    const spoke = getSpoke(req.graphDir, req.params.id);
+    if (!spoke) return res.status(404).json({ error: 'Spoke not found' });
+    if (!spoke.template_type) return res.status(400).json({ error: 'Spoke has no template assigned' });
+
+    // Ensure gap analysis is current
+    if (!spoke.gap_analysis) {
+      try {
+        const gap = await analyzeGaps(req.params.id, req.graphDir, spoke.template_type);
+        updateSpoke(req.graphDir, req.params.id, { gap_analysis: gap });
+      } catch (err) {
+        return res.status(500).json({ error: 'Failed to run gap analysis: ' + err.message });
+      }
+    }
+
+    // Build share URL if spoke has a share token, or create one
+    let shareUrl = '';
+    if (req.body.include_upload_link !== false) {
+      const shares = spoke.shares || [];
+      let uploadShare = shares.find(s => s.includes && s.includes.includes('upload'));
+      if (!uploadShare) {
+        // Auto-create an upload share
+        const crypto = require('crypto');
+        const token = crypto.randomBytes(12).toString('base64url');
+        uploadShare = {
+          token,
+          label: 'Client Upload Portal',
+          includes: ['gaps', 'upload'],
+          created_at: new Date().toISOString()
+        };
+        shares.push(uploadShare);
+        updateSpoke(req.graphDir, req.params.id, { shares });
+      }
+      const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+      const host = req.headers['x-forwarded-host'] || req.get('host');
+      shareUrl = `${protocol}://${host}/shared/${uploadShare.token}`;
+    }
+
+    const result = generateRequestEmail(req.params.id, req.graphDir, spoke.template_type, {
+      client_name: req.body.client_name || spoke.name || 'Client',
+      firm_name: req.body.firm_name || 'Our Firm',
+      share_url: shareUrl
+    });
+
+    if (result.error) return res.status(400).json({ error: result.error });
+
+    // Log activity
+    const activity = spoke.recent_activity || [];
+    activity.unshift({
+      type: 'email_generated',
+      description: 'Document request email generated (' + (result.missing_items || []).length + ' items)',
+      timestamp: new Date().toISOString()
+    });
+    updateSpoke(req.graphDir, req.params.id, { recent_activity: activity.slice(0, 50) });
+
+    res.json({
+      subject: result.subject,
+      body: result.body,
+      missing_items: result.missing_items,
+      share_url: shareUrl,
+      mailto_link: 'mailto:?subject=' + encodeURIComponent(result.subject) + '&body=' + encodeURIComponent(result.body)
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/spokes/:id/display-names — Get client-friendly display name map
+app.get('/api/spokes/:id/display-names', apiAuth, (req, res) => {
+  const spoke = getSpoke(req.graphDir, req.params.id);
+  if (!spoke) return res.status(404).json({ error: 'Spoke not found' });
+  if (!spoke.template_type) return res.status(400).json({ error: 'No template assigned' });
+  const map = buildDisplayNameMap(spoke.template_type);
+  res.json({ spoke_id: req.params.id, template_type: spoke.template_type, ...map });
 });
 
 // ---------------------------------------------------------------------------
@@ -9215,12 +9297,57 @@ function renderPortalFiles(files, spokeId, token) {
   return h;
 }
 
+// Build 13: Client upload zone for shared portal
+function renderPortalUploadZone(clientName, token) {
+  return `<div style="background:#fff;border-radius:12px;padding:28px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06);">
+  <h2 style="font-size:1rem;font-weight:700;color:#1a1a2e;margin:0 0 6px;">Upload Documents</h2>
+  <p style="font-size:0.85rem;color:#6B7280;margin:0 0 20px;">Upload documents for ${escHtml(clientName)}. Supported formats: PDF, DOCX, XLSX, CSV, TXT, JSON.</p>
+  <div id="portalDropzone" style="border:2px dashed #d1d5db;border-radius:12px;padding:40px 24px;text-align:center;cursor:pointer;transition:all 0.2s;background:#fafafe;"
+    ondragover="event.preventDefault();this.style.borderColor='#6366f1';this.style.background='#f0f0ff';"
+    ondragleave="this.style.borderColor='#d1d5db';this.style.background='#fafafe';"
+    ondrop="event.preventDefault();this.style.borderColor='#d1d5db';this.style.background='#fafafe';portalUploadFiles(event.dataTransfer.files);"
+    onclick="document.getElementById('portalFileInput').click();">
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5" style="margin-bottom:12px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    <div style="font-size:0.95rem;font-weight:600;color:#333;margin-bottom:4px;">Drop files here or click to browse</div>
+    <div style="font-size:0.8rem;color:#94a3b8;">Up to 20 files, 50MB each</div>
+    <input type="file" id="portalFileInput" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.json" style="display:none;" onchange="portalUploadFiles(this.files);">
+  </div>
+  <div id="portalUploadStatus" style="margin-top:12px;"></div>
+</div>
+<script>
+function portalUploadFiles(files) {
+  if (!files || files.length === 0) return;
+  var status = document.getElementById('portalUploadStatus');
+  status.innerHTML = '<div style="padding:12px;background:#eff6ff;border-radius:8px;font-size:0.85rem;color:#1e40af;">Uploading ' + files.length + ' file(s)...</div>';
+  var fd = new FormData();
+  for (var i = 0; i < files.length; i++) fd.append('files', files[i]);
+  fetch('/shared/${escHtml(token)}/upload', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.error) {
+        status.innerHTML = '<div style="padding:12px;background:#fef2f2;border-radius:8px;font-size:0.85rem;color:#991B1B;">Error: ' + data.error + '</div>';
+      } else {
+        status.innerHTML = '<div style="padding:12px;background:#f0fdf4;border-radius:8px;font-size:0.85rem;color:#065F46;">Upload complete! ' + (data.files_processed || 0) + ' file(s) processed. ' + (data.entities_created || 0) + ' entities extracted.</div>';
+        // Refresh page after brief delay to show updated completeness
+        setTimeout(function() { window.location.reload(); }, 2000);
+      }
+    })
+    .catch(function(err) {
+      status.innerHTML = '<div style="padding:12px;background:#fef2f2;border-radius:8px;font-size:0.85rem;color:#991B1B;">Upload failed: ' + (err.message || 'Network error') + '</div>';
+    });
+}
+</script>`;
+}
+
 function renderSharedClientPortal(spoke, gapData, exportData, files, share) {
   const includes = share.includes || ['gaps', 'export', 'files'];
   const templateLabel = gapData ? _portalFormatLabel(gapData.template_name || gapData.template_type || '') : '';
   const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  const canUpload = includes.includes('upload');
 
   let body = '';
+  // Upload zone at top if enabled (Build 13)
+  if (canUpload) body += renderPortalUploadZone(spoke.name, share.token);
   if (includes.includes('gaps') && gapData) body += renderPortalCompleteness(gapData);
   if (includes.includes('export') && exportData) body += renderPortalExport(exportData, spoke, share.token);
   if (includes.includes('files')) body += renderPortalFiles(files || [], spoke.id, share.token);
@@ -9343,6 +9470,81 @@ app.get('/shared/:shareId', sharedViewLimiter, async (req, res) => {
     'Link Not Found',
     'This link is invalid or has been revoked. Please ask the owner for a new link.'
   ));
+});
+
+// Build 13: Client upload portal — unauthenticated file upload via share token
+const sharedUpload = multer({ storage: multer.memoryStorage(), limits: { files: 20, fileSize: 50 * 1024 * 1024 } });
+app.post('/shared/:token/upload', sharedViewLimiter, sharedUpload.array('files', 20), async (req, res) => {
+  try {
+    const spokeResult = findSpokeByShareToken(GRAPH_DIR, req.params.token);
+    if (!spokeResult) return res.status(404).json({ error: 'Invalid or expired upload link' });
+
+    const { spoke, graphDir: spokeGraphDir, share } = spokeResult;
+    const includes = share.includes || [];
+    if (!includes.includes('upload')) return res.status(403).json({ error: 'This link does not allow uploads' });
+
+    const files = req.files || [];
+    if (files.length === 0) return res.status(400).json({ error: 'No files provided' });
+
+    // Validate extensions
+    for (const file of files) {
+      const ext = path.extname(file.originalname).toLowerCase();
+      if (!ALLOWED_EXTENSIONS.has(ext)) {
+        return res.status(400).json({ error: `Unsupported file type: ${ext}` });
+      }
+    }
+
+    // Save file records to spoke and write buffer to spoke_files directory
+    const spokeFilesDir = path.join(spokeGraphDir, 'spoke_files', spoke.id);
+    if (!fs.existsSync(spokeFilesDir)) fs.mkdirSync(spokeFilesDir, { recursive: true });
+
+    const processedFiles = [];
+    for (const file of files) {
+      const fileId = 'FILE-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+      const ext = path.extname(file.originalname).toLowerCase();
+      const savedName = fileId + ext;
+
+      // Write file to disk
+      fs.writeFileSync(path.join(spokeFilesDir, savedName), file.buffer);
+
+      processedFiles.push({
+        id: fileId,
+        original_name: file.originalname,
+        saved_name: savedName,
+        mime_type: file.mimetype,
+        size: file.size,
+        uploaded_at: new Date().toISOString(),
+        uploaded_via: 'client_portal',
+        share_token: req.params.token,
+        status: 'pending_review'
+      });
+    }
+
+    // Update spoke with file records and activity log
+    const existingFiles = spoke.files || [];
+    const activity = spoke.recent_activity || [];
+    activity.unshift({
+      type: 'client_upload',
+      description: files.length + ' file(s) uploaded via client portal: ' + files.map(f => f.originalname).join(', '),
+      timestamp: new Date().toISOString(),
+      uploaded_via: 'client_portal'
+    });
+
+    updateSpoke(spokeGraphDir, spoke.id, {
+      files: existingFiles.concat(processedFiles),
+      recent_activity: activity.slice(0, 50),
+      gap_analysis: null  // Invalidate cached analysis so it re-runs
+    });
+
+    res.json({
+      ok: true,
+      files_processed: processedFiles.length,
+      entities_created: 0,
+      message: 'Files uploaded successfully. Your documents will be reviewed shortly.'
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Upload failed: ' + err.message });
+  }
 });
 
 const WIKI_HTML = `<!DOCTYPE html>
@@ -13898,6 +14100,89 @@ function refreshGapAnalysis() {
   }
 }
 
+// Build 13: Generate document request email
+function generateRequestEmail() {
+  if (!_selectedSpoke) { toast('No client selected'); return; }
+
+  // Find spoke name
+  var spokeName = _selectedSpoke;
+  for (var i = 0; i < _spokesList.length; i++) {
+    if (_spokesList[i].id === _selectedSpoke) { spokeName = _spokesList[i].name; break; }
+  }
+
+  api('POST', '/api/spokes/' + encodeURIComponent(_selectedSpoke) + '/request-email', {
+    client_name: spokeName,
+    include_upload_link: true
+  }).then(function(data) {
+    // Show modal with email preview
+    var overlay = document.createElement('div');
+    overlay.id = 'emailModal';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
+
+    var mh = '<div style="background:#fff;border-radius:16px;padding:28px;max-width:600px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">';
+    mh += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">';
+    mh += '<div style="font-size:18px;font-weight:700;">Document Request Email</div>';
+    mh += '<button onclick="document.getElementById(\\'emailModal\\').remove()" style="border:none;background:none;font-size:24px;cursor:pointer;color:#999;padding:0 4px;">&times;</button>';
+    mh += '</div>';
+
+    // Subject line
+    mh += '<div style="margin-bottom:16px;">';
+    mh += '<label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Subject</label>';
+    mh += '<div style="padding:10px 14px;background:#f5f5f5;border-radius:8px;font-size:14px;">' + esc(data.subject || '') + '</div>';
+    mh += '</div>';
+
+    // Email body
+    mh += '<div style="margin-bottom:20px;">';
+    mh += '<label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Email Body</label>';
+    mh += '<pre id="emailBodyText" style="padding:16px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;font-size:13px;font-family:inherit;white-space:pre-wrap;word-wrap:break-word;line-height:1.6;max-height:300px;overflow-y:auto;">' + esc(data.body || '') + '</pre>';
+    mh += '</div>';
+
+    // Share URL
+    if (data.share_url) {
+      mh += '<div style="margin-bottom:20px;padding:12px 16px;background:#eff6ff;border-radius:8px;font-size:13px;">';
+      mh += '<strong>Client Upload Link:</strong> <a href="' + esc(data.share_url) + '" target="_blank" style="color:#6366f1;word-break:break-all;">' + esc(data.share_url) + '</a>';
+      mh += '</div>';
+    }
+
+    // Missing items count
+    var items = data.missing_items || [];
+    mh += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:20px;">' + items.length + ' missing item' + (items.length !== 1 ? 's' : '') + ' included in request</div>';
+
+    // Action buttons
+    mh += '<div style="display:flex;gap:10px;">';
+    mh += '<button onclick="copyEmailToClipboard()" style="flex:1;padding:10px;border:none;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">Copy to Clipboard</button>';
+    if (data.mailto_link) {
+      mh += '<a href="' + esc(data.mailto_link) + '" style="flex:1;padding:10px;border:1px solid #e5e7eb;border-radius:8px;text-align:center;text-decoration:none;color:#333;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;">Open in Email</a>';
+    }
+    mh += '</div>';
+    mh += '</div>';
+
+    overlay.innerHTML = mh;
+    document.body.appendChild(overlay);
+    overlay.addEventListener('click', function(e) { if (e.target === overlay) overlay.remove(); });
+  }).catch(function(err) {
+    toast('Error generating email: ' + (err.message || err));
+  });
+}
+
+function copyEmailToClipboard() {
+  var el = document.getElementById('emailBodyText');
+  if (!el) return;
+  var text = el.textContent || el.innerText;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(function() { toast('Email copied to clipboard'); });
+  } else {
+    // Fallback
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    toast('Email copied to clipboard');
+  }
+}
+
 function _gapScoreColor(score) {
   if (score >= 0.8) return '#16A34A';
   if (score >= 0.5) return '#CA8A04';
@@ -15569,6 +15854,16 @@ function _buildCompletenessHtml(data) {
     h += '</div>';
   }
   h += '</div></div>';
+
+  // Request Missing Documents button (Build 13)
+  var totalMissing = (data.missing_documents || []).length + (data.missing_entity_fields || []).length;
+  if (totalMissing > 0) {
+    h += '<div style="display:flex;gap:10px;margin-bottom:20px;">';
+    h += '<button onclick="generateRequestEmail()" style="display:flex;align-items:center;gap:8px;padding:10px 20px;border:none;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity=\\'0.9\\'" onmouseout="this.style.opacity=\\'1\\'">';
+    h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>';
+    h += 'Request Missing Documents (' + totalMissing + ')</button>';
+    h += '</div>';
+  }
 
   var missingDocs = data.missing_documents || [];
   if (missingDocs.length > 0) {
