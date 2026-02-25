@@ -4182,7 +4182,67 @@ app.post('/api/spokes/migrate', apiAuth, (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
-// Dashboard Endpoint (Build 11)
+// Tier Adjustments (Build 11.5 — per-spoke field tier overrides)
+// ---------------------------------------------------------------------------
+
+// PATCH /api/spokes/:id/tier-adjustments — Override necessity_tier for specific fields on a spoke
+app.patch('/api/spokes/:id/tier-adjustments', apiAuth, (req, res) => {
+  try {
+    const spokeId = req.params.id;
+    const spoke = getSpoke(req.graphDir, spokeId);
+    if (!spoke) return res.status(404).json({ error: 'Spoke not found' });
+
+    const { adjustments } = req.body || {};
+    if (!adjustments || typeof adjustments !== 'object') {
+      return res.status(400).json({ error: 'Body must include { adjustments: { "field_id": "BLOCKING"|"EXPECTED"|"ENRICHING", ... } }' });
+    }
+
+    // Validate tier values
+    const validTiers = new Set(['BLOCKING', 'EXPECTED', 'ENRICHING']);
+    for (const [fieldId, tier] of Object.entries(adjustments)) {
+      if (!validTiers.has(tier)) {
+        return res.status(400).json({ error: `Invalid tier "${tier}" for field "${fieldId}". Must be BLOCKING, EXPECTED, or ENRICHING.` });
+      }
+    }
+
+    // Merge with existing adjustments (new values override, null removes)
+    const existing = spoke.tier_adjustments || {};
+    for (const [fieldId, tier] of Object.entries(adjustments)) {
+      if (tier === null) {
+        delete existing[fieldId];
+      } else {
+        existing[fieldId] = tier;
+      }
+    }
+
+    updateSpoke(req.graphDir, spokeId, { tier_adjustments: existing });
+
+    // Invalidate cached gap analysis so next dashboard load recalculates
+    updateSpoke(req.graphDir, spokeId, { gap_analysis: null });
+
+    res.json({
+      spoke_id: spokeId,
+      tier_adjustments: existing,
+      adjustment_count: Object.keys(existing).length
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/spokes/:id/tier-adjustments — Get current tier overrides for a spoke
+app.get('/api/spokes/:id/tier-adjustments', apiAuth, (req, res) => {
+  try {
+    const spoke = getSpoke(req.graphDir, req.params.id);
+    if (!spoke) return res.status(404).json({ error: 'Spoke not found' });
+    res.json({ spoke_id: req.params.id, tier_adjustments: spoke.tier_adjustments || {} });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Dashboard Endpoint (Build 11 + Build 11.5 three-tier scores)
 // ---------------------------------------------------------------------------
 
 // GET /api/dashboard — Firm-wide dashboard: all spokes with completeness, review status, entity counts
@@ -4210,12 +4270,28 @@ app.get('/api/dashboard', apiAuth, (req, res) => {
       const foundDocs = (gap.found_documents || []).map(d => d.type_id || d.item);
       const crossDocViolations = (gap.cross_doc_violations || []).length;
 
+      // Build 11.5 — three-tier scores from cached gap analysis
+      const filingReadiness = gap.filing_readiness != null ? Math.round(gap.filing_readiness * 100) : null;
+      const qualityScore = gap.quality_score != null ? Math.round(gap.quality_score * 100) : null;
+      const completenessScore = gap.completeness != null ? Math.round(gap.completeness * 100) : null;
+      const tierCounts = gap.tier_counts || null;
+      const missingByTier = gap.missing_by_tier || null;
+      const tierAdjustmentCount = spoke.tier_adjustments ? Object.keys(spoke.tier_adjustments).length : 0;
+
       return {
         spoke_id: spoke.id,
         name: spoke.name || spoke.id,
         template_type: templateType,
         template_label: template ? (template.label || template.display_name) : null,
         completeness_pct: completeness,
+        // Build 11.5 — three-tier scores (as percentages)
+        filing_readiness_pct: filingReadiness,
+        quality_score_pct: qualityScore,
+        completeness_score_pct: completenessScore,
+        tier_counts: tierCounts,
+        missing_by_tier: missingByTier,
+        tier_adjustment_count: tierAdjustmentCount,
+        // Existing fields
         review_status: `${reviewedCount} of ${totalReviewable} reviewed`,
         reviewed_count: reviewedCount,
         total_reviewable: totalReviewable,
@@ -4242,6 +4318,9 @@ app.get('/api/dashboard', apiAuth, (req, res) => {
     const complete = spokeSummaries.filter(s => s.completeness_pct != null && s.completeness_pct >= 80).length;
     const fullyReviewed = spokeSummaries.filter(s => s.total_reviewable > 0 && s.reviewed_count >= s.total_reviewable).length;
     const noAnalysis = spokeSummaries.filter(s => s.completeness_pct == null).length;
+    // Build 11.5 — filing readiness stats
+    const filingNotReady = spokeSummaries.filter(s => s.filing_readiness_pct != null && s.filing_readiness_pct < 100).length;
+    const filingReady = spokeSummaries.filter(s => s.filing_readiness_pct != null && s.filing_readiness_pct >= 100).length;
 
     // Collect active template types for filter chip generation
     const activeTemplateTypes = [...new Set(spokeSummaries.map(s => s.template_type).filter(Boolean))];
@@ -4253,6 +4332,9 @@ app.get('/api/dashboard', apiAuth, (req, res) => {
     filterChips.push({ id: 'critical', label: 'Critical (<50%)', type: 'universal', filter: { completeness_max: 49 } });
     filterChips.push({ id: 'needs_review', label: 'Needs Review', type: 'universal', filter: { review_incomplete: true } });
     filterChips.push({ id: 'complete', label: 'Complete', type: 'universal', filter: { completeness_min: 80 } });
+    // Build 11.5 — tier-aware chips
+    filterChips.push({ id: 'filing_not_ready', label: 'Filing Not Ready', type: 'universal', filter: { filing_not_ready: true } });
+    filterChips.push({ id: 'low_quality', label: 'Low Quality (<70%)', type: 'universal', filter: { quality_max: 69 } });
 
     for (const tmplType of activeTemplateTypes) {
       const tmpl = templates[tmplType];
@@ -4294,7 +4376,10 @@ app.get('/api/dashboard', apiAuth, (req, res) => {
 
     res.json({
       spokes: spokeSummaries,
-      stats: { total, critical, in_progress: inProgress, complete, fully_reviewed: fullyReviewed, no_analysis: noAnalysis },
+      stats: {
+        total, critical, in_progress: inProgress, complete, fully_reviewed: fullyReviewed, no_analysis: noAnalysis,
+        filing_not_ready: filingNotReady, filing_ready: filingReady
+      },
       filter_chips: filterChips,
       active_templates: activeTemplateTypes
     });
@@ -16170,16 +16255,17 @@ function renderDashboardContent(data) {
   h += '<button onclick="promptNewClient()" style="display:flex;align-items:center;gap:6px;padding:8px 16px;border:none;border-radius:8px;background:var(--accent-gradient, linear-gradient(135deg,#6366f1,#8b5cf6));color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity=\\'0.9\\'" onmouseout="this.style.opacity=\\'1\\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New Client</button>';
   h += '</div>';
 
-  // Summary stats header (Build 11)
+  // Summary stats header (Build 11 + 11.5)
   h += '<div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">';
   h += '<div style="padding:14px 20px;background:#f8f8fa;border-radius:10px;font-size:13px;flex:1;min-width:100px;text-align:center;"><strong style="font-size:22px;display:block;color:var(--text-primary);">' + stats.total + '</strong><span style="color:var(--text-muted);">Total Clients</span></div>';
-  if (stats.critical > 0) h += '<div style="padding:14px 20px;background:#fef2f2;border-radius:10px;font-size:13px;flex:1;min-width:100px;text-align:center;"><strong style="font-size:22px;display:block;color:#991B1B;">' + stats.critical + '</strong><span style="color:#991B1B;">Critical (&lt;50%)</span></div>';
+  if (stats.filing_not_ready > 0) h += '<div style="padding:14px 20px;background:#fef2f2;border-radius:10px;font-size:13px;flex:1;min-width:100px;text-align:center;"><strong style="font-size:22px;display:block;color:#991B1B;">' + stats.filing_not_ready + '</strong><span style="color:#991B1B;">Filing Not Ready</span></div>';
+  if (stats.critical > 0) h += '<div style="padding:14px 20px;background:#fff7ed;border-radius:10px;font-size:13px;flex:1;min-width:100px;text-align:center;"><strong style="font-size:22px;display:block;color:#9A3412;">' + stats.critical + '</strong><span style="color:#9A3412;">Critical (&lt;50%)</span></div>';
   if (stats.in_progress > 0) h += '<div style="padding:14px 20px;background:#fefce8;border-radius:10px;font-size:13px;flex:1;min-width:100px;text-align:center;"><strong style="font-size:22px;display:block;color:#92400E;">' + stats.in_progress + '</strong><span style="color:#92400E;">In Progress</span></div>';
-  if (stats.complete > 0) h += '<div style="padding:14px 20px;background:#f0fdf4;border-radius:10px;font-size:13px;flex:1;min-width:100px;text-align:center;"><strong style="font-size:22px;display:block;color:#065F46;">' + stats.complete + '</strong><span style="color:#065F46;">Complete (80%+)</span></div>';
+  if (stats.filing_ready > 0) h += '<div style="padding:14px 20px;background:#f0fdf4;border-radius:10px;font-size:13px;flex:1;min-width:100px;text-align:center;"><strong style="font-size:22px;display:block;color:#065F46;">' + stats.filing_ready + '</strong><span style="color:#065F46;">Filing Ready</span></div>';
   if (stats.fully_reviewed > 0) h += '<div style="padding:14px 20px;background:#eff6ff;border-radius:10px;font-size:13px;flex:1;min-width:100px;text-align:center;"><strong style="font-size:22px;display:block;color:#1D4ED8;">' + stats.fully_reviewed + '</strong><span style="color:#1D4ED8;">Fully Reviewed</span></div>';
   h += '</div>';
 
-  // Filter chips (Build 11)
+  // Filter chips (Build 11 + 11.5)
   if (filterChips.length > 0) {
     h += '<div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">';
     for (var ci = 0; ci < filterChips.length; ci++) {
@@ -16192,7 +16278,7 @@ function renderDashboardContent(data) {
     h += '</div>';
   }
 
-  // Apply filter
+  // Apply filter (Build 11 + 11.5 tier-aware filters)
   var filtered = spokes;
   if (window._dashboardActiveChip && window._dashboardData) {
     var activeChip = filterChips.find(function(c) { return c.id === window._dashboardActiveChip; });
@@ -16203,6 +16289,8 @@ function renderDashboardContent(data) {
         if (activeChip.filter.review_incomplete && s.total_reviewable > 0 && s.reviewed_count >= s.total_reviewable) return false;
         if (activeChip.filter.missing_document && !s.missing_documents.includes(activeChip.filter.missing_document)) return false;
         if (activeChip.filter.has_cross_doc_violations && s.cross_doc_violations === 0) return false;
+        if (activeChip.filter.filing_not_ready && (s.filing_readiness_pct == null || s.filing_readiness_pct >= 100)) return false;
+        if (activeChip.filter.quality_max != null && (s.quality_score_pct == null || s.quality_score_pct > activeChip.filter.quality_max)) return false;
         if (activeChip.template_type && s.template_type !== activeChip.template_type) return false;
         return true;
       });
@@ -16216,6 +16304,8 @@ function renderDashboardContent(data) {
     var av, bv;
     if (sortCol === 'name') { av = (a.name || '').toLowerCase(); bv = (b.name || '').toLowerCase(); return sortAsc ? (av < bv ? -1 : 1) : (bv < av ? -1 : 1); }
     if (sortCol === 'template') { av = (a.template_label || '').toLowerCase(); bv = (b.template_label || '').toLowerCase(); return sortAsc ? (av < bv ? -1 : 1) : (bv < av ? -1 : 1); }
+    if (sortCol === 'filing') { av = a.filing_readiness_pct != null ? a.filing_readiness_pct : -1; bv = b.filing_readiness_pct != null ? b.filing_readiness_pct : -1; return sortAsc ? av - bv : bv - av; }
+    if (sortCol === 'quality') { av = a.quality_score_pct != null ? a.quality_score_pct : -1; bv = b.quality_score_pct != null ? b.quality_score_pct : -1; return sortAsc ? av - bv : bv - av; }
     if (sortCol === 'completeness') { av = a.completeness_pct != null ? a.completeness_pct : -1; bv = b.completeness_pct != null ? b.completeness_pct : -1; return sortAsc ? av - bv : bv - av; }
     if (sortCol === 'review') { av = a.reviewed_count || 0; bv = b.reviewed_count || 0; return sortAsc ? av - bv : bv - av; }
     if (sortCol === 'entities') { av = a.entity_count || 0; bv = b.entity_count || 0; return sortAsc ? av - bv : bv - av; }
@@ -16223,47 +16313,63 @@ function renderDashboardContent(data) {
     return 0;
   });
 
-  // Table
+  // Helper: render a mini tier bar
+  function tierBar(pct, color, label) {
+    if (pct == null) return '<span style="color:var(--text-muted);font-size:10px;">\\u2014</span>';
+    var w = Math.min(pct, 100);
+    return '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;" title="' + label + ': ' + pct + '%">' +
+      '<div style="width:60px;height:5px;background:#e8e8e8;border-radius:3px;overflow:hidden;"><div style="width:' + w + '%;height:100%;background:' + color + ';border-radius:3px;"></div></div>' +
+      '<span style="font-size:10px;font-weight:600;color:' + color + ';min-width:28px;">' + pct + '%</span>' +
+      '</div>';
+  }
+
+  // Table (Build 11.5 — three-tier columns)
   h += '<table style="width:100%;border-collapse:collapse;font-size:14px;">';
   h += '<thead><tr style="border-bottom:2px solid #e8e8e8;text-align:left;">';
   var cols = [
-    { key: 'name', label: 'Client Name' },
+    { key: 'name', label: 'Client' },
     { key: 'template', label: 'Template' },
-    { key: 'completeness', label: 'Completeness' },
-    { key: 'review', label: 'Review Status' },
-    { key: 'entities', label: 'Entities' },
-    { key: 'updated', label: 'Last Updated' }
+    { key: 'filing', label: 'Filing Ready' },
+    { key: 'quality', label: 'Quality' },
+    { key: 'completeness', label: 'Complete' },
+    { key: 'review', label: 'Review' },
+    { key: 'entities', label: 'Ent.' },
+    { key: 'updated', label: 'Updated' }
   ];
   for (var ci = 0; ci < cols.length; ci++) {
     var col = cols[ci];
     var arrow = (sortCol === col.key) ? (sortAsc ? ' \\u25B2' : ' \\u25BC') : '';
-    h += '<th style="padding:10px 12px;font-weight:600;color:var(--text-secondary);cursor:pointer;user-select:none;white-space:nowrap;" onclick="sortDashboard(\\'' + col.key + '\\')">' + col.label + arrow + '</th>';
+    h += '<th style="padding:10px 8px;font-weight:600;color:var(--text-secondary);cursor:pointer;user-select:none;white-space:nowrap;font-size:12px;" onclick="sortDashboard(\\'' + col.key + '\\')">' + col.label + arrow + '</th>';
   }
   h += '</tr></thead><tbody>';
 
   for (var i = 0; i < filtered.length; i++) {
     var s = filtered[i];
-    var pct = s.completeness_pct;
-    var barColor = pct == null ? '#999' : (pct >= 80 ? '#16A34A' : pct >= 50 ? '#CA8A04' : '#DC2626');
     var updated = s.last_updated ? new Date(s.last_updated).toLocaleDateString() : '\\u2014';
     var templateLabel = s.template_label || '\\u2014';
 
+    // Filing readiness color: red if <100, green if 100
+    var frPct = s.filing_readiness_pct;
+    var frColor = frPct == null ? '#999' : (frPct >= 100 ? '#16A34A' : frPct >= 80 ? '#CA8A04' : '#DC2626');
+    // Quality color
+    var qPct = s.quality_score_pct;
+    var qColor = qPct == null ? '#999' : (qPct >= 80 ? '#16A34A' : qPct >= 50 ? '#CA8A04' : '#DC2626');
+    // Completeness color
+    var cPct = s.completeness_score_pct != null ? s.completeness_score_pct : s.completeness_pct;
+    var cColor = cPct == null ? '#999' : (cPct >= 80 ? '#16A34A' : cPct >= 50 ? '#CA8A04' : '#DC2626');
+
     h += '<tr style="border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background 0.15s;" onclick="selectClient(\\'' + esc(s.spoke_id) + '\\')" onmouseover="this.style.background=\\'#f8f8fa\\'" onmouseout="this.style.background=\\'\\'">';
-    h += '<td style="padding:12px;font-weight:500;">' + esc(s.name) + '</td>';
-    h += '<td style="padding:12px;"><span style="display:inline-block;padding:2px 10px;border-radius:10px;font-size:12px;background:#f0f0f2;color:var(--text-secondary);">' + esc(templateLabel) + '</span></td>';
-    h += '<td style="padding:12px;">';
-    if (pct != null) {
-      h += '<div style="display:flex;align-items:center;gap:8px;">';
-      h += '<div style="width:100px;height:8px;background:#e8e8e8;border-radius:4px;overflow:hidden;"><div style="width:' + pct + '%;height:100%;background:' + barColor + ';border-radius:4px;transition:width 0.3s;"></div></div>';
-      h += '<span style="font-size:13px;font-weight:600;color:' + barColor + ';min-width:36px;">' + pct + '%</span>';
-      h += '</div>';
-    } else {
-      h += '<span style="color:var(--text-muted);font-size:12px;font-style:italic;">Not analyzed</span>';
-    }
-    h += '</td>';
-    h += '<td style="padding:12px;"><span style="font-size:13px;color:var(--text-muted);">' + esc(s.review_status) + '</span></td>';
-    h += '<td style="padding:12px;text-align:center;"><span style="display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;background:#f0f0f2;font-size:12px;font-weight:600;color:var(--text-secondary);">' + (s.entity_count || 0) + '</span></td>';
-    h += '<td style="padding:12px;color:var(--text-muted);font-size:13px;">' + esc(updated) + '</td>';
+    h += '<td style="padding:10px 8px;font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(s.name) + '</td>';
+    h += '<td style="padding:10px 8px;"><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;background:#f0f0f2;color:var(--text-secondary);white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis;">' + esc(templateLabel) + '</span></td>';
+    // Filing Readiness
+    h += '<td style="padding:10px 8px;">' + tierBar(frPct, frColor, 'Filing Readiness') + '</td>';
+    // Quality Score
+    h += '<td style="padding:10px 8px;">' + tierBar(qPct, qColor, 'Quality Score') + '</td>';
+    // Completeness
+    h += '<td style="padding:10px 8px;">' + tierBar(cPct, cColor, 'Completeness') + '</td>';
+    h += '<td style="padding:10px 8px;"><span style="font-size:12px;color:var(--text-muted);">' + esc(s.review_status) + '</span></td>';
+    h += '<td style="padding:10px 8px;text-align:center;"><span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#f0f0f2;font-size:11px;font-weight:600;color:var(--text-secondary);">' + (s.entity_count || 0) + '</span></td>';
+    h += '<td style="padding:10px 8px;color:var(--text-muted);font-size:12px;">' + esc(updated) + '</td>';
     h += '</tr>';
   }
 
@@ -16281,7 +16387,7 @@ function sortDashboard(col) {
     window._dashboardSortAsc = !window._dashboardSortAsc;
   } else {
     window._dashboardSortCol = col;
-    window._dashboardSortAsc = (col === 'completeness'); // completeness defaults asc, others desc
+    window._dashboardSortAsc = (col === 'filing' || col === 'completeness' || col === 'quality'); // tier cols default asc
   }
   if (window._dashboardData) renderDashboardContent(window._dashboardData);
 }

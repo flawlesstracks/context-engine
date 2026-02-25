@@ -1,12 +1,26 @@
 # Context Architecture — Session Handoff Document
 
-> Last updated: 2026-02-25 (end of Day 8 — Build 10.5 + Build 11)
+> Last updated: 2026-02-25 (end of Day 8 — Build 10.5 + Build 11 + Build 11.5)
 > Server: running on port 3000
 > Branch: main, pushed to origin
 
 ---
 
 ## 0. Builds Shipped Today (Day 8)
+
+### Build 11.5 — Three-Tier Necessity Model (BLOCKING / EXPECTED / ENRICHING)
+- **Schema upgrade**: Added `necessity_tier` field to every `extraction_spec` field and `entity_role.required_fields` entry across 3 new-format templates. Version bumped to 1.1.0.
+  - `financial_review.json`: 136 fields annotated (B:25 / E:22 / EN:89)
+  - `tax_preparation.json`: 80 fields annotated (B:47 / E:25 / EN:8)
+  - `personal_injury.json`: 116 fields annotated (B:48 / E:47 / EN:21)
+  - Total: 332 fields annotated, zero missing
+- **Three-tier scoring in `scoreDocumentFields()`**: Returns `filing_readiness` (% BLOCKING extracted), `quality_score` (% BLOCKING+EXPECTED), `completeness` (% ALL). Backward-compatible single `score` preserved.
+- **Tier adjustments**: Per-spoke `tier_adjustments` object allows overriding any field's tier (e.g., promote ENRICHING→BLOCKING for a specific client). PATCH /api/spokes/:id/tier-adjustments endpoint.
+- **`analyzeGaps()` upgraded**: Now returns `filing_readiness`, `quality_score`, `completeness`, `tier_counts`, `missing_by_tier` in gap analysis output.
+- **Dashboard API upgraded**: GET /api/dashboard returns `filing_readiness_pct`, `quality_score_pct`, `completeness_score_pct` per spoke. New stats: `filing_not_ready`, `filing_ready`. New filter chips: "Filing Not Ready", "Low Quality (<70%)".
+- **Dashboard UI upgraded**: Table now shows 3 mini-bars per client (Filing Ready / Quality / Complete) with color-coded progress. Sortable by all three tier columns. Summary stats header shows Filing Not Ready / Filing Ready counts.
+- **Legacy compatibility**: Templates without `necessity_tier` default to EXPECTED. Legacy templates (estate_planning, corporate_formation, general) continue to work unchanged.
+- **36 verification tests passed**: Field counts, tier distribution, three-tier scoring, tier adjustments, cross-doc rules unchanged, backward compat.
 
 ### Build 10.5 — New Extraction Spec Templates
 - **Financial Statement Review template** (`data/templates/financial_review.json`): 3 document types (Income Statement: 49 fields, Balance Sheet: 37 fields, Cash Flow: 43 fields), 2 entity roles, 3 cross-doc rules (net_income_match, cash_position_match, balance_sheet_equation — all CRITICAL)

@@ -489,20 +489,53 @@ function scoreDocuments(template, classifications, signalClassifications) {
 }
 
 // ---------------------------------------------------------------------------
-// Scoring: Field-Level within Documents (Build 10 — new)
+// Scoring: Field-Level within Documents (Build 10 + Build 11.5 three-tier)
 // ---------------------------------------------------------------------------
 
 /**
- * Score field-level extraction within found document types.
- * Checks which extraction_spec fields were actually extracted in spoke entities.
+ * Resolve the effective necessity_tier for a field, applying per-spoke overrides.
+ * tier_adjustments: { "income.net_income": "BLOCKING", ... }
  */
-function scoreDocumentFields(template, foundDocTypes, spokeEntities) {
+function _resolveFieldTier(field, tierAdjustments) {
+  if (tierAdjustments && tierAdjustments[field.field_id]) {
+    return tierAdjustments[field.field_id];
+  }
+  return field.necessity_tier || 'EXPECTED'; // default if not annotated
+}
+
+/**
+ * Score field-level extraction within found document types.
+ * Returns three-tier scores (Build 11.5):
+ *   filing_readiness  — % of BLOCKING fields extracted
+ *   quality_score     — % of (BLOCKING + EXPECTED) fields extracted
+ *   completeness      — % of ALL fields extracted
+ * Plus legacy single score for backward compat.
+ *
+ * @param {object} template - Normalized template
+ * @param {Array} foundDocTypes - Document types that were found (from scoreDocuments)
+ * @param {Array} spokeEntities - All entities in the spoke
+ * @param {object} tierAdjustments - Optional per-spoke field_id → tier overrides
+ */
+function scoreDocumentFields(template, foundDocTypes, spokeEntities, tierAdjustments) {
   const docTypes = template.document_types || [];
-  if (docTypes.length === 0) return { score: 1, missing_fields: [], total: 0, extracted: 0 };
+  if (docTypes.length === 0) return {
+    score: 1, missing_fields: [], total: 0, extracted: 0,
+    filing_readiness: 1, quality_score: 1, completeness: 1,
+    tier_counts: { BLOCKING: { total: 0, extracted: 0 }, EXPECTED: { total: 0, extracted: 0 }, ENRICHING: { total: 0, extracted: 0 } },
+    missing_by_tier: { BLOCKING: [], EXPECTED: [], ENRICHING: [] }
+  };
 
   let totalFields = 0;
   let extractedFields = 0;
   const missingFields = [];
+
+  // Three-tier counters
+  const tierCounts = {
+    BLOCKING:  { total: 0, extracted: 0 },
+    EXPECTED:  { total: 0, extracted: 0 },
+    ENRICHING: { total: 0, extracted: 0 }
+  };
+  const missingByTier = { BLOCKING: [], EXPECTED: [], ENRICHING: [] };
 
   // Build a set of found type_ids
   const foundTypeIds = new Set((foundDocTypes || []).map(d => d.type_id));
@@ -526,7 +559,10 @@ function scoreDocumentFields(template, foundDocTypes, spokeEntities) {
     if (!foundTypeIds.has(dt.type_id)) continue;
 
     for (const field of (dt.extraction_spec || [])) {
+      const tier = _resolveFieldTier(field, tierAdjustments);
       totalFields++;
+      if (tierCounts[tier]) tierCounts[tier].total++;
+
       // Check if this field was extracted: look for field_id suffix or display_name in entity data
       const fieldKey = (field.field_id || '').split('.').pop().toLowerCase().replace(/\s+/g, '_');
       const displayKey = (field.display_name || '').toLowerCase().replace(/\s+/g, '_');
@@ -536,19 +572,42 @@ function scoreDocumentFields(template, foundDocTypes, spokeEntities) {
 
       if (found) {
         extractedFields++;
+        if (tierCounts[tier]) tierCounts[tier].extracted++;
       } else {
-        missingFields.push({
+        const missingEntry = {
           field_id: field.field_id,
           display_name: field.display_name,
           sensitivity: field.sensitivity,
+          necessity_tier: tier,
           from_document_type: dt.type_id
-        });
+        };
+        missingFields.push(missingEntry);
+        if (missingByTier[tier]) missingByTier[tier].push(missingEntry);
       }
     }
   }
 
+  // Legacy single score (backward compat)
   const score = totalFields > 0 ? extractedFields / totalFields : 1;
-  return { score, missing_fields: missingFields, total: totalFields, extracted: extractedFields };
+
+  // Three-tier scores (Build 11.5)
+  const bTotal = tierCounts.BLOCKING.total;
+  const bExtracted = tierCounts.BLOCKING.extracted;
+  const eTotal = tierCounts.EXPECTED.total;
+  const eExtracted = tierCounts.EXPECTED.extracted;
+
+  const filingReadiness = bTotal > 0 ? bExtracted / bTotal : 1;
+  const qualityScore = (bTotal + eTotal) > 0 ? (bExtracted + eExtracted) / (bTotal + eTotal) : 1;
+  const completenessScore = score; // same as legacy
+
+  return {
+    score, missing_fields: missingFields, total: totalFields, extracted: extractedFields,
+    filing_readiness: Math.round(filingReadiness * 100) / 100,
+    quality_score: Math.round(qualityScore * 100) / 100,
+    completeness: Math.round(completenessScore * 100) / 100,
+    tier_counts: tierCounts,
+    missing_by_tier: missingByTier
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -854,10 +913,10 @@ function generateSuggestions(missingDocs, missingFields, missingRels, missingDoc
 }
 
 // ---------------------------------------------------------------------------
-// Main Orchestrator — analyzeGaps (Build 10 — two-level scoring)
+// Main Orchestrator — analyzeGaps (Build 10 + Build 11.5 three-tier scoring)
 // ---------------------------------------------------------------------------
 
-async function analyzeGaps(spokeId, graphDir, templateType) {
+async function analyzeGaps(spokeId, graphDir, templateType, tierAdjustments) {
   const template = getTemplate(templateType);
   if (!template) {
     throw new Error(`Unknown template type: ${templateType}. Available: ${Object.keys(loadTemplates()).join(', ')}`);
@@ -865,6 +924,9 @@ async function analyzeGaps(spokeId, graphDir, templateType) {
 
   const spoke = getSpoke(graphDir, spokeId);
   const spokeName = spoke?.name || spokeId;
+
+  // Load per-spoke tier adjustments (override param > spoke data)
+  const effectiveAdjustments = tierAdjustments || spoke?.tier_adjustments || null;
 
   // Collect spoke entities
   const allEnts = listEntities(graphDir);
@@ -890,8 +952,8 @@ async function analyzeGaps(spokeId, graphDir, templateType) {
   // Score documents (document-level)
   const docResult = scoreDocuments(template, classifications, signalClassifications);
 
-  // Score fields within found documents (field-level — Build 10)
-  const fieldResult = scoreDocumentFields(template, docResult.found, spokeEntities);
+  // Score fields within found documents (field-level — Build 10 + three-tier — Build 11.5)
+  const fieldResult = scoreDocumentFields(template, docResult.found, spokeEntities, effectiveAdjustments);
 
   // Score entities
   const entityResult = scoreEntities(template, spokeEntities);
@@ -935,6 +997,13 @@ async function analyzeGaps(spokeId, graphDir, templateType) {
     field_score: Math.round(fieldResult.score * 100) / 100,
     entity_score: Math.round(entityResult.score * 100) / 100,
     relationship_score: Math.round(relResult.score * 100) / 100,
+    // Build 11.5 — three-tier scores
+    filing_readiness: fieldResult.filing_readiness,
+    quality_score: fieldResult.quality_score,
+    completeness: fieldResult.completeness,
+    tier_counts: fieldResult.tier_counts,
+    missing_by_tier: fieldResult.missing_by_tier,
+    // Existing fields
     missing_documents: docResult.missing,
     missing_fields: fieldResult.missing_fields,
     missing_entity_fields: entityResult.missingFields,
@@ -944,6 +1013,7 @@ async function analyzeGaps(spokeId, graphDir, templateType) {
     suggestions,
     source_documents: sourceDocuments,
     entity_count: spokeEntities.length,
+    tier_adjustments_applied: effectiveAdjustments ? Object.keys(effectiveAdjustments).length : 0,
     analyzed_at: new Date().toISOString()
   };
 }
