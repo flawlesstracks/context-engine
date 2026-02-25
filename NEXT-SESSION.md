@@ -1,12 +1,18 @@
 # Context Architecture — Session Handoff Document
 
-> Last updated: 2026-02-25 (end of Day 8 — Builds 10.5 + 11 + 11.5 + 12 + 13)
+> Last updated: 2026-02-25 (end of Day 8 — Builds 10.5 + 11 + 11.5 + 12 + 13 + 14)
 > Server: running on port 3000
 > Branch: main, pushed to origin
 
 ---
 
 ## 0. Builds Shipped Today (Day 8)
+
+### Build 14 — Cross-Spoke Intelligence (Stretch Goal)
+- **Cross-spoke query endpoint**: GET /api/dashboard/query supports queries by: `q` (free-text search across names, templates, missing docs/fields), `missing` (specific missing document type), `missing_field` (specific missing entity field), `stale` (days since last activity), `unreviewed` (spokes with pending reviews). Returns filtered spoke list with completeness, missing docs, and activity data.
+- **Shared entity detection**: GET /api/dashboard/shared-entities scans all entities across all client spokes, normalizes names, and detects entities appearing in 2+ spokes. Returns `{ shared_entities: [{ name, entity_type, spoke_count, appearances }] }`. Enables cross-client pattern detection (e.g., same medical provider across PI cases).
+- **Dashboard search bar**: Search input above stats header. Type "missing W-2" → calls cross-spoke query → filters dashboard table to matching spokes. Type "unreviewed" → shows spokes with pending reviews. Works alongside existing filter chips. Clear button to reset.
+- **16 tests passed**: Cross-spoke query logic, stale detection, entity scanning, syntax checks, template integrity.
 
 ### Build 13 — Document Request Generator + Client Upload Portal
 - **Display name map**: `buildDisplayNameMap(templateType)` creates a client-friendly lookup from template type_ids and field_ids to human-readable text. `CLIENT_FRIENDLY_OVERRIDES` dictionary maps common internal names (w2_form, ein, police_report, etc.) to plain English.
@@ -61,9 +67,7 @@
 
 ## What's Next
 
-| Build | Name | Description |
-|-------|------|-------------|
-| 14 | Cross-Spoke Intelligence | Cross-client analytics, duplicate entity detection across spokes |
+All builds from the Days 9-10 plan have been shipped.
 
 ### Notes for Next Session
 - 3 new extraction spec templates now loaded: financial_review, enhanced tax_preparation (W-9/W-8BEN), existing PI and corporate_formation

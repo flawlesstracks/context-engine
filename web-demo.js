@@ -4470,6 +4470,152 @@ app.get('/api/dashboard', apiAuth, (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// Cross-Spoke Intelligence (Build 14)
+// ---------------------------------------------------------------------------
+
+// GET /api/dashboard/query — Cross-spoke queries: find spokes matching criteria
+app.get('/api/dashboard/query', apiAuth, (req, res) => {
+  try {
+    const spokes = listSpokesWithCounts(req.graphDir);
+    const clientSpokes = spokes.filter(s => s.id !== 'default');
+    const q = (req.query.q || '').trim().toLowerCase();
+    const missing = req.query.missing;
+    const missingField = req.query.missing_field;
+    const stale = req.query.stale ? parseInt(req.query.stale) : null;
+    const unreviewed = req.query.unreviewed === 'true';
+
+    let results = clientSpokes.map(spoke => {
+      const gap = spoke.gap_analysis || {};
+      const missingDocs = (gap.missing_documents || []).map(d => (d.type_id || d.item || '').toLowerCase());
+      const missingFields = (gap.missing_entity_fields || []).map(f => (f.missing || '').toLowerCase());
+      const lastActivity = spoke.updated_at || spoke.created_at;
+      const daysSinceActivity = lastActivity ? Math.floor((Date.now() - new Date(lastActivity).getTime()) / 86400000) : 999;
+      const reviewSummary = spoke.review_summary || {};
+      const hasUnreviewed = (reviewSummary.total_reviewable || 0) > (reviewSummary.reviewed_count || 0);
+
+      return {
+        spoke_id: spoke.id,
+        name: spoke.name || spoke.id,
+        template_type: spoke.template_type,
+        completeness_pct: gap.overall_score != null ? Math.round(gap.overall_score * 100) : null,
+        filing_readiness_pct: gap.filing_readiness != null ? Math.round(gap.filing_readiness * 100) : null,
+        missing_documents: missingDocs,
+        missing_fields: missingFields,
+        days_since_activity: daysSinceActivity,
+        has_unreviewed: hasUnreviewed,
+        entity_count: spoke.entity_count || 0,
+        last_updated: lastActivity
+      };
+    });
+
+    // Apply filters
+    if (missing) {
+      const needle = missing.toLowerCase();
+      results = results.filter(r => r.missing_documents.some(d => d.includes(needle)));
+    }
+    if (missingField) {
+      const needle = missingField.toLowerCase();
+      results = results.filter(r => r.missing_fields.some(f => f.includes(needle)));
+    }
+    if (stale && stale > 0) {
+      results = results.filter(r => r.days_since_activity >= stale);
+    }
+    if (unreviewed) {
+      results = results.filter(r => r.has_unreviewed);
+    }
+    // Free-text search: match against name, template, missing docs, missing fields
+    if (q) {
+      results = results.filter(r => {
+        if ((r.name || '').toLowerCase().includes(q)) return true;
+        if ((r.template_type || '').toLowerCase().includes(q)) return true;
+        if (r.missing_documents.some(d => d.includes(q))) return true;
+        if (r.missing_fields.some(f => f.includes(q))) return true;
+        // Special keyword matches
+        if (q === 'unreviewed' && r.has_unreviewed) return true;
+        if (q.startsWith('missing ') && r.missing_documents.some(d => d.includes(q.replace('missing ', '')))) return true;
+        return false;
+      });
+    }
+
+    res.json({ results, total: results.length, query: { q, missing, missing_field, stale, unreviewed } });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/dashboard/shared-entities — Detect entities appearing across multiple spokes
+app.get('/api/dashboard/shared-entities', apiAuth, (req, res) => {
+  try {
+    const spokes = listSpokesWithCounts(req.graphDir);
+    const clientSpokes = spokes.filter(s => s.id !== 'default');
+
+    // Collect all entities by name across spokes
+    const entityMap = {}; // normalized_name → [{ spoke_id, spoke_name, entity_id, entity_name, entity_type }]
+
+    for (const spoke of clientSpokes) {
+      // Read entities for this spoke
+      const spokeDir = path.join(req.graphDir, 'spoke_files', spoke.id);
+      const entityFiles = [];
+
+      // Also check main graph dir for spoke-assigned entities
+      try {
+        const allFiles = fs.readdirSync(req.graphDir).filter(f => f.startsWith('ENT-') && f.endsWith('.json'));
+        for (const f of allFiles) {
+          try {
+            const entity = JSON.parse(fs.readFileSync(path.join(req.graphDir, f), 'utf-8'));
+            if (entity.spoke_id === spoke.id || (entity.entity && entity.entity.spoke_id === spoke.id)) {
+              const name = entity.entity?.name?.full || entity.entity?.name || '';
+              if (!name || typeof name !== 'string') continue;
+              const normalized = name.toLowerCase().trim().replace(/\s+/g, ' ');
+              if (normalized.length < 2) continue;
+
+              if (!entityMap[normalized]) entityMap[normalized] = [];
+              entityMap[normalized].push({
+                spoke_id: spoke.id,
+                spoke_name: spoke.name || spoke.id,
+                entity_id: entity.entity?.entity_id || f.replace('.json', ''),
+                entity_name: name,
+                entity_type: entity.entity?.entity_type || 'unknown'
+              });
+            }
+          } catch {}
+        }
+      } catch {}
+    }
+
+    // Filter to entities appearing in 2+ spokes
+    const sharedEntities = [];
+    for (const [name, appearances] of Object.entries(entityMap)) {
+      const uniqueSpokes = [...new Set(appearances.map(a => a.spoke_id))];
+      if (uniqueSpokes.length >= 2) {
+        sharedEntities.push({
+          name: appearances[0].entity_name,
+          normalized_name: name,
+          entity_type: appearances[0].entity_type,
+          spoke_count: uniqueSpokes.length,
+          appearances: appearances.map(a => ({
+            spoke_id: a.spoke_id,
+            spoke_name: a.spoke_name,
+            entity_id: a.entity_id
+          }))
+        });
+      }
+    }
+
+    // Sort by spoke_count descending
+    sharedEntities.sort((a, b) => b.spoke_count - a.spoke_count);
+
+    res.json({
+      shared_entities: sharedEntities,
+      total: sharedEntities.length,
+      spokes_analyzed: clientSpokes.length
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/onboard — One-click client onboarding: create spoke + bind template + ingest files
 const onboardUpload = multer({ storage: multer.memoryStorage(), limits: { files: 20, fileSize: 50 * 1024 * 1024 } });
 app.post('/api/onboard', apiAuth, onboardUpload.array('files', 20), async (req, res) => {
@@ -17020,6 +17166,15 @@ function renderDashboardContent(data) {
   h += '<button onclick="promptNewClient()" style="display:flex;align-items:center;gap:6px;padding:8px 16px;border:none;border-radius:8px;background:var(--accent-gradient, linear-gradient(135deg,#6366f1,#8b5cf6));color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity=\\'0.9\\'" onmouseout="this.style.opacity=\\'1\\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New Client</button>';
   h += '</div>';
 
+  // Cross-spoke search bar (Build 14)
+  h += '<div style="margin-bottom:16px;position:relative;">';
+  h += '<svg viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
+  h += '<input id="dashboardSearch" type="text" placeholder="Search clients, documents, fields... (e.g. missing W-2, unreviewed)" value="' + esc(window._dashboardSearchQuery || '') + '" onkeydown="if(event.key===\\'Enter\\')dashboardSearch(this.value)" style="width:100%;padding:10px 14px 10px 36px;border:1px solid #e5e7eb;border-radius:10px;font-size:13px;outline:none;background:#fff;transition:border-color 0.2s;" onfocus="this.style.borderColor=\\'#6366f1\\'" onblur="this.style.borderColor=\\'#e5e7eb\\'">';
+  if (window._dashboardSearchQuery) {
+    h += '<button onclick="clearDashboardSearch()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;color:#94a3b8;font-size:16px;padding:2px 6px;" title="Clear search">&times;</button>';
+  }
+  h += '</div>';
+
   // Summary stats header (Build 11 + 11.5)
   h += '<div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">';
   h += '<div style="padding:14px 20px;background:#f8f8fa;border-radius:10px;font-size:13px;flex:1;min-width:100px;text-align:center;"><strong style="font-size:22px;display:block;color:var(--text-primary);">' + stats.total + '</strong><span style="color:var(--text-muted);">Total Clients</span></div>';
@@ -17159,6 +17314,52 @@ function sortDashboard(col) {
 
 function toggleDashboardChip(chipId) {
   window._dashboardActiveChip = (window._dashboardActiveChip === chipId) ? null : chipId;
+  if (window._dashboardData) renderDashboardContent(window._dashboardData);
+}
+
+// Build 14: Cross-spoke search
+window._dashboardSearchQuery = '';
+window._dashboardSearchResults = null;
+
+function dashboardSearch(query) {
+  query = (query || '').trim();
+  window._dashboardSearchQuery = query;
+  if (!query) {
+    window._dashboardSearchResults = null;
+    if (window._dashboardData) renderDashboardContent(window._dashboardData);
+    return;
+  }
+  api('GET', '/api/dashboard/query?q=' + encodeURIComponent(query)).then(function(data) {
+    window._dashboardSearchResults = data.results || [];
+    // Rebuild dashboard with search results
+    if (window._dashboardData) {
+      // Filter dashboard spokes to only those in search results
+      var resultIds = {};
+      for (var i = 0; i < (data.results || []).length; i++) resultIds[data.results[i].spoke_id] = true;
+      var filtered = {
+        spokes: (window._dashboardData.spokes || []).filter(function(s) { return resultIds[s.spoke_id]; }),
+        stats: window._dashboardData.stats,
+        filter_chips: window._dashboardData.filter_chips
+      };
+      renderDashboardContent(filtered);
+      // Show result count banner
+      var mainEl = document.getElementById('main');
+      if (mainEl) {
+        var banner = document.createElement('div');
+        banner.style.cssText = 'padding:8px 16px;background:#ede9fe;border-radius:8px;font-size:13px;color:#6366f1;margin:0 28px 16px;display:flex;justify-content:space-between;align-items:center;';
+        banner.innerHTML = '<span>Search: "' + esc(query) + '" \\u2014 ' + data.results.length + ' result' + (data.results.length !== 1 ? 's' : '') + '</span><button onclick="clearDashboardSearch()" style="border:none;background:none;cursor:pointer;color:#6366f1;font-weight:600;font-size:12px;">Clear</button>';
+        var firstChild = mainEl.firstChild;
+        if (firstChild) mainEl.insertBefore(banner, firstChild.nextSibling);
+      }
+    }
+  }).catch(function(err) {
+    toast('Search error: ' + (err.message || err));
+  });
+}
+
+function clearDashboardSearch() {
+  window._dashboardSearchQuery = '';
+  window._dashboardSearchResults = null;
   if (window._dashboardData) renderDashboardContent(window._dashboardData);
 }
 
