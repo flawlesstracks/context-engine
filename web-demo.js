@@ -9126,13 +9126,16 @@ const WIKI_HTML = `<!DOCTYPE html>
     display: flex; align-items: center; gap: 4px;
   }
   .rp-actions {
-    display: flex; gap: 6px;
+    display: flex; gap: 4px;
   }
   .rp-btn {
-    padding: 5px 14px; border-radius: 6px; border: 1px solid #e0e0e0;
+    padding: 5px 8px; border-radius: 6px; border: 1px solid #e0e0e0;
     font-size: 12px; font-weight: 600; cursor: pointer;
     transition: all 0.15s; background: #fff;
+    min-width: 28px; text-align: center;
   }
+  .rp-btn .rp-btn-label { display: none; }
+  .rp-btn .rp-btn-icon { font-size: 14px; }
   .rp-btn.approve { color: #059669; border-color: #a7f3d0; }
   .rp-btn.approve:hover { background: #ecfdf5; border-color: #059669; }
   .rp-btn.reject { color: #dc2626; border-color: #fecaca; }
@@ -9192,6 +9195,24 @@ const WIKI_HTML = `<!DOCTYPE html>
     width: 100%; padding: 8px 12px; border: 1px solid #0a66c2;
     border-radius: 8px; font-size: 15px; margin-bottom: 10px;
     outline: none; background: #fff;
+  }
+
+  /* --- Client Breadcrumb Nav (Build 8.1) --- */
+  .client-breadcrumb {
+    display: flex; align-items: center; gap: 0;
+    padding: 10px 28px 0; background: #fff;
+    font-size: 14px;
+  }
+  .client-breadcrumb a {
+    color: #9ca3af; text-decoration: none; cursor: pointer;
+    transition: color 0.15s;
+  }
+  .client-breadcrumb a:hover { color: #6366f1; }
+  .client-breadcrumb .cb-sep {
+    color: #d1d5db; margin: 0 8px; font-size: 12px;
+  }
+  .client-breadcrumb .cb-current {
+    color: var(--text-primary); font-weight: 600;
   }
 
   /* --- Client Workspace Tab Bar (Build 8) --- */
@@ -9291,15 +9312,29 @@ const WIKI_HTML = `<!DOCTYPE html>
 
   /* --- Right Entity Pipeline Panel --- */
   #rightPanel {
-    width: 560px; min-width: 560px;
+    width: 280px; min-width: 280px;
     border: 0; outline: 0; box-shadow: none;
     background: #f4f2ee;
     overflow-y: auto;
     display: flex; flex-direction: column;
     height: 100vh;
+    position: relative;
+    transition: width 0.2s ease, min-width 0.2s ease, opacity 0.2s ease;
   }
+  #rightPanel.collapsed { width: 0; min-width: 0; overflow: hidden; opacity: 0; padding: 0; }
   #rightPanel.hidden { display: none; }
-  #rightPanelContent { padding: 36px 16px 24px; }
+  #rightPanelContent { padding: 36px 12px 24px; }
+  .rp-collapse-toggle {
+    position: absolute; top: 10px; left: -14px; z-index: 10;
+    width: 28px; height: 28px; border-radius: 50%;
+    border: 1px solid #e0e0e0; background: #fff;
+    cursor: pointer; font-size: 13px; color: #666;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    transition: transform 0.2s ease;
+  }
+  .rp-collapse-toggle:hover { background: #f5f5f5; color: #333; }
+  #rightPanel.collapsed .rp-collapse-toggle { left: -32px; transform: rotate(180deg); }
   #rightPanelToggle {
     display: none; position: fixed; right: 16px; top: 16px; z-index: 100;
     width: 36px; height: 36px; border-radius: 8px; border: 1px solid #e0e0e0;
@@ -9309,7 +9344,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   #rightPanelToggle:hover { background: #f5f5f5; }
   @media (max-width: 1200px) {
     #rightPanel { display: none; }
-    #rightPanel.force-show { display: flex; position: fixed; right: 0; top: 0; bottom: 0; z-index: 99; box-shadow: -4px 0 16px rgba(0,0,0,0.1); width: 560px; }
+    #rightPanel.force-show { display: flex; position: fixed; right: 0; top: 0; bottom: 0; z-index: 99; box-shadow: -4px 0 16px rgba(0,0,0,0.1); width: 280px; }
     #rightPanelToggle { display: block; }
   }
 
@@ -11944,6 +11979,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     </div>
   </div>
   <div id="rightPanel">
+    <button class="rp-collapse-toggle" onclick="toggleCollapseRightPanel()" title="Collapse panel">&#x203A;</button>
     <div id="rightPanelContent"></div>
   </div>
   <button id="rightPanelToggle" onclick="toggleRightPanel()" title="Toggle context panel">&#9776;</button>
@@ -15171,9 +15207,14 @@ function showClientWorkspace(spokeId, tab) {
   ];
   renderBreadcrumbs();
 
-  // Render tab bar + content
+  // Render breadcrumb bar + tab bar + content
   var mainEl = document.getElementById('main');
-  var tabHtml = '<div class="client-tab-bar">';
+  var tabHtml = '<div class="client-breadcrumb">';
+  tabHtml += '<a onclick="showClientDashboard()">Clients</a>';
+  tabHtml += '<span class="cb-sep">&gt;</span>';
+  tabHtml += '<span class="cb-current">' + esc(spokeName) + '</span>';
+  tabHtml += '</div>';
+  tabHtml += '<div class="client-tab-bar">';
   var tabs = [
     { id: 'completeness', label: 'Completeness', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>' },
     { id: 'export', label: 'Data Export', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' },
@@ -15471,7 +15512,7 @@ function showClientDashboard() {
   selectedView = 'client_dashboard';
   selectedId = null;
   selectedCategory = null;
-  breadcrumbs = [{ label: 'Clients' }];
+  breadcrumbs = [{ label: 'Dashboard' }];
   renderBreadcrumbs();
   renderSidebar();
   renderClientDashboard();
@@ -16013,6 +16054,11 @@ function toggleRightPanel() {
   }
 }
 
+function toggleCollapseRightPanel() {
+  var rp = document.getElementById('rightPanel');
+  rp.classList.toggle('collapsed');
+}
+
 function togglePpSection(secId) {
   ppCollapsed[secId] = !ppCollapsed[secId];
   var body = document.getElementById('pp-body-' + secId);
@@ -16109,9 +16155,9 @@ function renderReviewQueuePanel(rp) {
         h += '</div>';
       }
       h += '<div class="rp-actions">';
-      h += '<button class="rp-btn approve" onclick="event.stopPropagation();reviewField(' + p.ri + ',' + p.ei + ',' + p.fi + ',\\'approved\\')">&#10003; Approve</button>';
-      h += '<button class="rp-btn reject" onclick="event.stopPropagation();reviewField(' + p.ri + ',' + p.ei + ',' + p.fi + ',\\'rejected\\')">&#10007; Reject</button>';
-      h += '<button class="rp-btn edit" onclick="event.stopPropagation();showFieldInRightPanel(' + p.ri + ',' + p.ei + ',' + p.fi + ')">&#9998; Edit</button>';
+      h += '<button class="rp-btn approve" title="Approve" onclick="event.stopPropagation();reviewField(' + p.ri + ',' + p.ei + ',' + p.fi + ',\\'approved\\')"><span class="rp-btn-icon">&#10003;</span></button>';
+      h += '<button class="rp-btn reject" title="Reject" onclick="event.stopPropagation();reviewField(' + p.ri + ',' + p.ei + ',' + p.fi + ',\\'rejected\\')"><span class="rp-btn-icon">&#10007;</span></button>';
+      h += '<button class="rp-btn edit" title="Edit" onclick="event.stopPropagation();showFieldInRightPanel(' + p.ri + ',' + p.ei + ',' + p.fi + ')"><span class="rp-btn-icon">&#9998;</span></button>';
       h += '</div></div>';
     }
     if (pending.length > 15) {
