@@ -584,6 +584,7 @@ EXTRACTION RULES:
 - entity_type MUST be "person", "business", or "institution"
 - Use "business" for companies, for-profit organizations, and commercial entities
 - Use "institution" for schools, universities, governments, hospitals, public services, churches, non-profits, and civic organizations
+- When processing incorporation documents, articles of organization, EIN letters, operating agreements, or tax filings, ALWAYS create an entity of type "business" for the company itself — not just the people mentioned in the document
 - For persons: include name, role, relationship to the author, location, personality traits, key facts — whatever the text says
 - For organizations: include name, industry, location, what the author says about them
 - Each observation MUST contain a direct quote or close paraphrase from the source text
@@ -1233,7 +1234,9 @@ app.post('/api/ingest/files', apiAuth, upload.array('files', 20), async (req, re
                   for (const attr of ext.attributes) {
                     const sv = String(attr.value || '');
                     const evidence = attr.evidence || null;
-                    if (sv) v2.attributes.push({ attribute_id: 'ATTR-' + String(seq++).padStart(3, '0'), key: attr.key, value: sv, confidence: 0.6, confidence_label: 'MODERATE', time_decay: { stability: 'stable', captured_date: now.slice(0, 10) }, source_attribution: { facts_layer: 2, layer_label: 'group' }, provenance: evidence ? { file_id: null, original_filename: filename, snippet: evidence.snippet, location: evidence.location, extraction_model: 'claude-sonnet-4-5-20250929', extraction_type: evidence.type || 'direct', extracted_at: now } : null });
+                    const eType = evidence ? (evidence.type || 'direct') : 'inferred';
+                    const attrConf = (eType === 'direct' && evidence) ? 0.85 : 0.6;
+                    if (sv) v2.attributes.push({ attribute_id: 'ATTR-' + String(seq++).padStart(3, '0'), key: attr.key, value: sv, confidence: attrConf, confidence_label: attrConf >= 0.8 ? 'HIGH' : 'MODERATE', time_decay: { stability: 'stable', captured_date: now.slice(0, 10) }, source_attribution: { facts_layer: 2, layer_label: 'group' }, provenance: evidence ? { file_id: null, original_filename: filename, snippet: evidence.snippet, location: evidence.location, extraction_model: 'claude-sonnet-4-5-20250929', extraction_type: eType, extracted_at: now } : null });
                   }
                 } else if (ext.attributes && typeof ext.attributes === 'object') {
                   let seq = 1;
@@ -1812,12 +1815,14 @@ app.post('/api/ingest/universal', apiAuth, universalUpload.single('file'), async
             const sv = String(attr.value || '');
             if (sv) {
               const evidence = attr.evidence || null;
+              const evidType = evidence ? (evidence.type || 'direct') : 'inferred';
+              const attrConf = (evidType === 'direct' && evidence) ? Math.max(ent.confidence || 0.7, 0.85) : (ent.confidence || 0.7);
               v2.attributes.push({
                 attribute_id: 'ATTR-' + String(seq++).padStart(3, '0'),
                 key: attr.key,
                 value: sv,
-                confidence: ent.confidence || 0.7,
-                confidence_label: ent.confidence >= 0.8 ? 'HIGH' : 'MODERATE',
+                confidence: attrConf,
+                confidence_label: attrConf >= 0.8 ? 'HIGH' : 'MODERATE',
                 time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
                 source_attribution: { facts_layer: 2, layer_label: 'group' },
                 provenance: evidence ? {
@@ -1826,7 +1831,7 @@ app.post('/api/ingest/universal', apiAuth, universalUpload.single('file'), async
                   snippet: evidence.snippet,
                   location: evidence.location,
                   extraction_model: result.metadata.model_used || 'claude-sonnet-4-5-20250929',
-                  extraction_type: evidence.type || 'direct',
+                  extraction_type: evidType,
                   extracted_at: now,
                 } : null,
               });
@@ -4304,8 +4309,29 @@ app.post('/api/demo/tax-client', apiAuth, async (req, res) => {
       return res.status(404).json({ error: 'No sample .txt files found in samples/acme-tax-client/' });
     }
 
-    // Step 1: Create or find spoke
+    // Step 0: Idempotency — clean up existing Acme spoke if present
     const spokeName = 'Acme Consulting LLC';
+    const existingSpokes = loadSpokes(req.graphDir);
+    const existingAcme = Object.values(existingSpokes).find(s => s.name === spokeName);
+    if (existingAcme) {
+      console.log(`[demo] Cleaning up existing spoke: ${existingAcme.id}`);
+      // Delete entities belonging to this spoke
+      const entsToDelete = listEntities(req.graphDir).filter(e => e.data.spoke_id === existingAcme.id);
+      for (const ent of entsToDelete) {
+        try { deleteEntity(ent.id, req.graphDir); } catch {}
+      }
+      // Delete spoke files from disk
+      const spokeFilesDir = path.join(req.graphDir, 'spoke_files', existingAcme.id);
+      if (fs.existsSync(spokeFilesDir)) {
+        const sf = fs.readdirSync(spokeFilesDir);
+        for (const f of sf) fs.unlinkSync(path.join(spokeFilesDir, f));
+        fs.rmdirSync(spokeFilesDir);
+      }
+      deleteSpoke(req.graphDir, existingAcme.id, true);
+      console.log(`[demo] Deleted ${entsToDelete.length} entities + spoke ${existingAcme.id}`);
+    }
+
+    // Step 1: Create spoke
     const spokeId = resolveOrCreateSpoke(req.graphDir, spokeName);
     console.log(`[demo] Spoke: ${spokeId} (${spokeName})`);
 
@@ -4350,19 +4376,21 @@ app.post('/api/demo/tax-client', apiAuth, async (req, res) => {
               },
               attributes: (Array.isArray(ent.attributes) ? ent.attributes : Object.entries(ent.attributes || {}).map(([key, value]) => ({ key, value: String(value), evidence: null }))).map((attr, i) => {
                 const evidence = attr.evidence || null;
+                const evidType = evidence ? (evidence.type || 'direct') : 'inferred';
+                const attrConf = (evidType === 'direct' && evidence) ? Math.max(ent.confidence || 0.7, 0.85) : (ent.confidence || 0.7);
                 return {
                   attribute_id: `ATTR-${String(i + 1).padStart(3, '0')}`,
                   key: attr.key,
                   value: String(attr.value || ''),
-                  confidence: ent.confidence || 0.7,
-                  confidence_label: (ent.confidence || 0.7) >= 0.8 ? 'HIGH' : 'MODERATE',
+                  confidence: attrConf,
+                  confidence_label: attrConf >= 0.8 ? 'HIGH' : 'MODERATE',
                   provenance: evidence ? {
                     file_id: demoFileId,
                     original_filename: filename,
                     snippet: evidence.snippet,
                     location: evidence.location,
                     extraction_model: result.metadata.model_used || 'claude-sonnet-4-5-20250929',
-                    extraction_type: evidence.type || 'direct',
+                    extraction_type: evidType,
                     extracted_at: now,
                   } : null,
                 };
@@ -4405,6 +4433,87 @@ app.post('/api/demo/tax-client', apiAuth, async (req, res) => {
       }
     }
     console.log(`[demo] Ingested ${files.length} files`);
+
+    // Step 3b: Ensure business entity for Acme Consulting LLC exists
+    const allSpokeEnts = listEntities(req.graphDir).filter(e => e.data.spoke_id === spokeId);
+    const hasBizEntity = allSpokeEnts.some(e => {
+      const t = e.data.entity?.entity_type;
+      return (t === 'business' || t === 'organization');
+    });
+
+    if (!hasBizEntity) {
+      console.log('[demo] No business entity found — creating Acme Consulting LLC entity');
+      // Look up file IDs from the spoke's file manifest for provenance
+      const spokeNow = getSpoke(req.graphDir, spokeId);
+      const spokeFiles = spokeNow.files || [];
+      const einFile = spokeFiles.find(f => f.original_name === 'acme_ein_letter.txt');
+      const articlesFile = spokeFiles.find(f => f.original_name === 'acme_articles_of_incorporation.txt');
+      const now = new Date().toISOString();
+
+      const bizEntity = {
+        schema_version: '2.0',
+        schema_type: 'context_architecture_entity',
+        extraction_metadata: {
+          extracted_at: now, updated_at: now,
+          source_description: 'demo_ingest:business_entity_synthesis',
+          extraction_model: 'demo', extraction_confidence: 0.95, schema_version: '2.0',
+        },
+        entity: {
+          entity_type: 'business',
+          name: { common: 'Acme Consulting LLC', legal: 'Acme Consulting LLC', confidence: 0.95, facts_layer: 1 },
+          summary: { value: 'Georgia limited liability company providing management consulting, business advisory, and technology consulting services. Founded March 2022.', confidence: 0.95, facts_layer: 1 },
+        },
+        attributes: [
+          { attribute_id: 'ATTR-001', key: 'legal_name', value: 'Acme Consulting LLC', confidence: 0.95, confidence_label: 'HIGH', provenance: articlesFile ? { file_id: articlesFile.file_id, original_filename: 'acme_articles_of_incorporation.txt', snippet: 'NAME OF LIMITED LIABILITY COMPANY: Acme Consulting LLC', location: 'Section 1', extraction_type: 'direct', extracted_at: now } : null },
+          { attribute_id: 'ATTR-002', key: 'ein', value: '88-4923156', confidence: 0.95, confidence_label: 'HIGH', provenance: einFile ? { file_id: einFile.file_id, original_filename: 'acme_ein_letter.txt', snippet: 'We assigned you EIN 88-4923156', location: 'CP 575 A', extraction_type: 'direct', extracted_at: now } : null },
+          { attribute_id: 'ATTR-003', key: 'entity_type', value: 'Limited Liability Company', confidence: 0.95, confidence_label: 'HIGH', provenance: einFile ? { file_id: einFile.file_id, original_filename: 'acme_ein_letter.txt', snippet: 'Entity Type: Limited Liability Company', location: 'CP 575 A', extraction_type: 'direct', extracted_at: now } : null },
+          { attribute_id: 'ATTR-004', key: 'state_of_formation', value: 'Georgia', confidence: 0.95, confidence_label: 'HIGH', provenance: articlesFile ? { file_id: articlesFile.file_id, original_filename: 'acme_articles_of_incorporation.txt', snippet: 'forming a Georgia limited liability company', location: 'Preamble', extraction_type: 'direct', extracted_at: now } : null },
+          { attribute_id: 'ATTR-005', key: 'fiscal_year_end', value: 'December 31', confidence: 0.9, confidence_label: 'HIGH', provenance: einFile ? { file_id: einFile.file_id, original_filename: 'acme_ein_letter.txt', snippet: 'Fiscal Year End: December', location: 'CP 575 A', extraction_type: 'direct', extracted_at: now } : null },
+          { attribute_id: 'ATTR-006', key: 'address', value: '1847 Peachtree Road NE, Suite 310, Atlanta, GA 30309', confidence: 0.95, confidence_label: 'HIGH', provenance: articlesFile ? { file_id: articlesFile.file_id, original_filename: 'acme_articles_of_incorporation.txt', snippet: '1847 Peachtree Road NE, Suite 310, Atlanta, Georgia 30309', location: 'Section 2', extraction_type: 'direct', extracted_at: now } : null },
+          { attribute_id: 'ATTR-007', key: 'formation_date', value: 'March 15, 2022', confidence: 0.95, confidence_label: 'HIGH', provenance: articlesFile ? { file_id: articlesFile.file_id, original_filename: 'acme_articles_of_incorporation.txt', snippet: 'EFFECTIVE DATE: March 15, 2022', location: 'Section 8', extraction_type: 'direct', extracted_at: now } : null },
+          { attribute_id: 'ATTR-008', key: 'purpose', value: 'Management consulting, business advisory services, and technology consulting', confidence: 0.9, confidence_label: 'HIGH', provenance: articlesFile ? { file_id: articlesFile.file_id, original_filename: 'acme_articles_of_incorporation.txt', snippet: 'management consulting, business advisory services, and technology consulting', location: 'Section 6', extraction_type: 'direct', extracted_at: now } : null },
+        ],
+        relationships: [],
+        values: [], key_facts: [], constraints: [], observations: [],
+        provenance_chain: {
+          created_at: now, created_by: 'demo',
+          source_documents: [
+            { source: 'demo_ingest:acme_ein_letter.txt', ingested_at: now },
+            { source: 'demo_ingest:acme_articles_of_incorporation.txt', ingested_at: now },
+          ],
+          merge_history: [],
+        },
+        spoke_id: spokeId,
+        source: 'manual',
+        source_ref: 'demo_business_entity',
+      };
+
+      const newId = getNextCounter(req.graphDir, 'ACL');
+      writeEntity(newId, bizEntity, req.graphDir);
+      console.log(`[demo] Created business entity: ${newId}`);
+
+      // Set as centered entity for the spoke
+      setCenteredEntity(req.graphDir, spokeId, newId);
+      console.log(`[demo] Set ${newId} as centered entity`);
+    }
+
+    // Step 3c: Confidence boost — bump direct extractions to minimum 0.85
+    const postEnts = listEntities(req.graphDir).filter(e => e.data.spoke_id === spokeId);
+    for (const { id: entId, data } of postEnts) {
+      let changed = false;
+      for (const attr of (data.attributes || [])) {
+        if (attr.provenance && attr.provenance.extraction_type === 'direct' && attr.confidence != null && attr.confidence < 0.85) {
+          attr.confidence = 0.85;
+          attr.confidence_label = 'HIGH';
+          changed = true;
+        }
+      }
+      if (data.entity?.name?.confidence != null && data.entity.name.confidence < 0.85) {
+        data.entity.name.confidence = 0.85;
+        changed = true;
+      }
+      if (changed) writeEntity(entId, data, req.graphDir);
+    }
 
     // Step 4: Run gap analysis
     const report = await analyzeGaps(spokeId, req.graphDir, 'tax_preparation');
@@ -8537,13 +8646,15 @@ function renderSharedClientPortal(spoke, gapData, exportData, files, share) {
 
   return `<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${escHtml(spoke.name)} — Client Portal</title>
-<meta property="og:title" content="${escHtml(spoke.name)} — Client Portal">
+<title>${escHtml(spoke.name)} — Client File Review | Context Architecture</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%236366f1'/><text x='16' y='22' font-size='16' font-weight='bold' fill='white' text-anchor='middle' font-family='system-ui'>CA</text></svg>">
+<meta property="og:title" content="${escHtml(spoke.name)} — Client File Review">
 <meta property="og:description" content="Shared client matter portal via Context Architecture">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8f9fa; color: #1a1a2e; min-height: 100vh; }
   .portal-header { background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 48px 24px 36px; text-align: center; color: #fff; }
+  .portal-logo { width: 44px; height: 44px; border-radius: 10px; background: rgba(255,255,255,0.2); display: inline-flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 800; margin-bottom: 14px; border: 2px solid rgba(255,255,255,0.3); letter-spacing: -0.5px; }
   .portal-name { font-size: 1.6rem; font-weight: 700; margin-bottom: 8px; }
   .portal-meta { display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 0.85rem; opacity: 0.85; flex-wrap: wrap; }
   .portal-badge { display: inline-block; padding: 3px 10px; background: rgba(255,255,255,0.2); border-radius: 12px; font-size: 0.78rem; font-weight: 600; }
@@ -8557,6 +8668,7 @@ function renderSharedClientPortal(spoke, gapData, exportData, files, share) {
   }
 </style></head><body>
 <div class="portal-header">
+  <div class="portal-logo">CA</div>
   <div class="portal-name">${escHtml(spoke.name)}</div>
   <div class="portal-meta">
     ${templateLabel ? '<span class="portal-badge">' + escHtml(templateLabel) + '</span>' : ''}
@@ -8564,7 +8676,7 @@ function renderSharedClientPortal(spoke, gapData, exportData, files, share) {
   </div>
 </div>
 <div class="portal-body">${body}</div>
-<div class="portal-footer">Powered by <a href="#">Context Architecture</a></div>
+<div class="portal-footer">Powered by <a href="https://contextarchitecture.com">Context Architecture</a> &mdash; contextarchitecture.com</div>
 </body></html>`;
 }
 
