@@ -5032,6 +5032,37 @@ app.patch('/api/entity/:id', apiAuth, (req, res) => {
   });
 });
 
+// PATCH /api/entity/:id/observation/:index/review — Set review status on a field (Build 8)
+app.patch('/api/entity/:id/observation/:index/review', apiAuth, (req, res) => {
+  const entity = readEntity(req.params.id, req.graphDir);
+  if (!entity) return res.status(404).json({ error: 'Entity not found' });
+
+  const { status, reviewed_by, notes, field_key } = req.body;
+  if (!status || !['approved', 'rejected', 'pending'].includes(status)) {
+    return res.status(400).json({ error: 'Invalid status. Must be approved, rejected, or pending.' });
+  }
+
+  const now = new Date().toISOString();
+  const review = { status, reviewed_by: reviewed_by || 'user', reviewed_at: now, notes: notes || '' };
+
+  // Store review in a reviews map on the entity keyed by field_key
+  if (!entity.field_reviews) entity.field_reviews = {};
+  if (field_key) {
+    entity.field_reviews[field_key] = review;
+  }
+
+  // Also store on observation if index is valid
+  const idx = parseInt(req.params.index);
+  const obs = entity.observations || [];
+  if (idx >= 0 && idx < obs.length) {
+    obs[idx].review = review;
+  }
+
+  writeEntity(req.params.id, entity, req.graphDir);
+
+  res.json({ status: 'reviewed', entity_id: req.params.id, field_key, review });
+});
+
 // POST /api/observe — Append an observation to an existing entity
 const CONFIDENCE_MAP = {
   VERIFIED: 1.0, STRONG: 0.8, MODERATE: 0.6, SPECULATIVE: 0.4, UNCERTAIN: 0.2,
@@ -9016,25 +9047,174 @@ const WIKI_HTML = `<!DOCTYPE html>
     color: #666;
   }
 
-  /* --- Spoke Selector --- */
-  .spoke-selector-wrap {
-    padding: 8px 16px;
-    border-bottom: 1px solid var(--border-primary);
+  /* --- Spoke Selector (legacy — hidden) --- */
+  .spoke-selector-wrap { display: none; }
+
+  /* --- Client List Items --- */
+  .sb-client-item {
+    display: flex; align-items: center; padding: 9px 16px;
+    cursor: pointer; color: #333; font-size: 14px;
+    border-left: 3px solid transparent;
+    transition: background 0.15s, border-color 0.15s;
+    gap: 8px;
   }
-  .spoke-selector-wrap select {
-    width: 100%; padding: 6px 8px;
-    border: 1px solid var(--border); border-radius: 6px;
-    background: var(--bg-surface); color: var(--text-primary);
-    font-size: 0.82rem; cursor: pointer;
-    outline: none;
+  .sb-client-item:hover { background: #f0f0f0; }
+  .sb-client-item.active {
+    font-weight: 600; border-left-color: #0a66c2; color: #0a66c2;
+    background: rgba(10,102,194,0.04);
   }
-  .spoke-selector-wrap select:focus {
-    border-color: var(--accent-primary);
+  .sb-client-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sb-client-meta {
+    display: flex; align-items: center; gap: 6px; flex-shrink: 0;
   }
-  .spoke-centered-label {
+  .sb-client-count {
+    font-size: 11px; color: var(--text-muted); font-weight: 400;
+  }
+  .sb-client-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .sb-client-dot.red { background: #DC2626; }
+  .sb-client-dot.yellow { background: #CA8A04; }
+  .sb-client-dot.green { background: #16A34A; }
+  .sb-client-dot.gray { background: #d1d5db; }
+
+  /* --- Template List Items --- */
+  .sb-template-item {
+    display: flex; align-items: center; padding: 8px 16px;
+    cursor: pointer; color: #555; font-size: 13px;
+    border-left: 3px solid transparent;
+    transition: background 0.15s;
+    gap: 8px;
+  }
+  .sb-template-item:hover { background: #f0f0f0; }
+  .sb-template-item.active {
+    font-weight: 600; border-left-color: #7c3aed; color: #7c3aed;
+  }
+  .sb-template-item svg { width: 14px; height: 14px; color: #999; flex-shrink: 0; }
+  .sb-template-item.active svg { color: #7c3aed; }
+
+  /* --- Add Item Button (shared) --- */
+  .sb-add-btn {
+    display: flex; align-items: center; padding: 8px 16px;
+    cursor: pointer; color: #0a66c2; font-size: 13px; font-weight: 500;
+    gap: 6px; transition: background 0.15s;
+  }
+  .sb-add-btn:hover { background: rgba(10,102,194,0.06); }
+  .sb-add-btn svg { width: 14px; height: 14px; }
+
+  /* --- Context-Sensitive Right Panel (Build 8) --- */
+  .rp-section-title {
+    font-size: 13px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.6px; color: #555; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .rp-review-item {
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+    padding: 14px; margin-bottom: 10px;
+    transition: border-color 0.15s;
+  }
+  .rp-review-item:hover { border-color: #0a66c2; }
+  .rp-review-field {
+    font-size: 14px; font-weight: 600; color: var(--text-primary);
+    margin-bottom: 4px;
+  }
+  .rp-review-value {
+    font-size: 15px; color: var(--text-primary); margin-bottom: 8px;
+  }
+  .rp-review-source {
+    font-size: 11px; color: var(--text-muted); margin-bottom: 10px;
     display: flex; align-items: center; gap: 4px;
-    margin-top: 4px; font-size: 0.75rem; color: var(--text-muted);
   }
+  .rp-actions {
+    display: flex; gap: 6px;
+  }
+  .rp-btn {
+    padding: 5px 14px; border-radius: 6px; border: 1px solid #e0e0e0;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: all 0.15s; background: #fff;
+  }
+  .rp-btn.approve { color: #059669; border-color: #a7f3d0; }
+  .rp-btn.approve:hover { background: #ecfdf5; border-color: #059669; }
+  .rp-btn.reject { color: #dc2626; border-color: #fecaca; }
+  .rp-btn.reject:hover { background: #fef2f2; border-color: #dc2626; }
+  .rp-btn.edit { color: #0a66c2; border-color: #bfdbfe; }
+  .rp-btn.edit:hover { background: #eff6ff; border-color: #0a66c2; }
+  .rp-verified-item {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 0; font-size: 12px; color: var(--text-muted);
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .rp-verified-item:last-child { border-bottom: none; }
+  .rp-verified-check {
+    color: #059669; font-size: 14px;
+  }
+
+  /* Field Detail */
+  .rp-field-detail { padding: 0; }
+  .rp-field-header {
+    font-size: 13px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .rp-field-value {
+    font-size: 22px; font-weight: 700; color: var(--text-primary);
+    margin-bottom: 16px; word-break: break-word;
+  }
+  .rp-field-status {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .rp-field-status.verified { background: #ecfdf5; color: #065f46; }
+  .rp-field-status.low_confidence { background: #fefce8; color: #854d0e; }
+  .rp-field-status.conflict { background: #fef2f2; color: #991b1b; }
+  .rp-field-status.missing { background: #f3f4f6; color: #6b7280; }
+  .rp-evidence {
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+    padding: 14px; margin-bottom: 16px;
+    border-left: 3px solid #0a66c2;
+  }
+  .rp-evidence-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    color: var(--text-muted); margin-bottom: 8px; letter-spacing: 0.4px;
+  }
+  .rp-evidence-snippet {
+    font-size: 13px; color: var(--text-secondary); line-height: 1.5;
+    font-style: italic;
+  }
+  .rp-evidence-file {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text-muted); margin-top: 10px;
+  }
+
+  /* Edit inline */
+  .rp-edit-input {
+    width: 100%; padding: 8px 12px; border: 1px solid #0a66c2;
+    border-radius: 8px; font-size: 15px; margin-bottom: 10px;
+    outline: none; background: #fff;
+  }
+
+  /* --- Client Workspace Tab Bar (Build 8) --- */
+  .client-tab-bar {
+    display: flex; gap: 0; border-bottom: 2px solid #e8e8e8;
+    padding: 0 28px; background: #fff;
+    position: sticky; top: 0; z-index: 5;
+  }
+  .client-tab {
+    display: flex; align-items: center; gap: 6px;
+    padding: 14px 18px 12px; cursor: pointer;
+    font-size: 14px; font-weight: 500; color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px; transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .client-tab:hover { color: var(--text-primary); }
+  .client-tab.active {
+    color: #0a66c2; font-weight: 600;
+    border-bottom-color: #0a66c2;
+  }
+  .client-tab svg { width: 16px; height: 16px; }
+  .client-tab.active svg { color: #0a66c2; }
 
   /* --- Sidebar Bottom --- */
   .sidebar-bottom {
@@ -11451,14 +11631,14 @@ const WIKI_HTML = `<!DOCTYPE html>
   .li-people-name { font-size: 14px; font-weight: 600; color: #191919; }
   .li-people-role { font-size: 13px; color: #666; }
 
-  /* --- Gap Analysis Dashboard (MECE-019) --- */
-  .gap-dashboard { padding: 24px 28px; }
+  /* --- Gap Analysis Dashboard (MECE-019) — font sizes bumped Build 8 --- */
+  .gap-dashboard { padding: 24px 28px; font-size: 15px; }
   .gap-dashboard-header {
     display: flex; align-items: center; justify-content: space-between;
     margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
   }
   .gap-dashboard-title {
-    font-size: 1.3rem; font-weight: 700; color: var(--text-primary);
+    font-size: 1.5rem; font-weight: 700; color: var(--text-primary);
     display: flex; align-items: center; gap: 8px;
   }
   .gap-dashboard-controls { display: flex; align-items: center; gap: 10px; }
@@ -11477,21 +11657,21 @@ const WIKI_HTML = `<!DOCTYPE html>
     gap: 40px; margin-bottom: 28px; flex-wrap: wrap;
   }
   .gap-ring {
-    position: relative; width: 160px; height: 160px;
+    position: relative; width: 180px; height: 180px;
     border-radius: 50%;
   }
   .gap-ring-label {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
     text-align: center;
   }
-  .gap-ring-pct { font-size: 2rem; font-weight: 700; line-height: 1; }
+  .gap-ring-pct { font-size: 3rem; font-weight: 700; line-height: 1; }
   .gap-ring-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
   .gap-score-bars { flex: 1; min-width: 260px; }
   .gap-score-bar {
     margin-bottom: 14px;
   }
   .gap-score-bar-header {
-    display: flex; justify-content: space-between; font-size: 13px;
+    display: flex; justify-content: space-between; font-size: 14px;
     margin-bottom: 4px; color: var(--text-primary);
   }
   .gap-score-bar-track {
@@ -11504,7 +11684,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     margin-bottom: 20px;
   }
   .gap-category-title {
-    font-size: 0.95rem; font-weight: 600; color: var(--text-primary);
+    font-size: 1.1rem; font-weight: 600; color: var(--text-primary);
     margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
   }
   .gap-category-grid {
@@ -11512,9 +11692,13 @@ const WIKI_HTML = `<!DOCTYPE html>
     gap: 10px;
   }
   .gap-missing-item {
-    display: flex; align-items: flex-start; gap: 8px; padding: 10px 14px;
+    display: flex; align-items: flex-start; gap: 8px; padding: 12px 16px;
     border: 1px solid #e0e0e0; border-radius: 8px; background: #fff;
-    font-size: 13px;
+    font-size: 14px; transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .gap-missing-item[style*="cursor:pointer"]:hover,
+  .gap-missing-item[onclick]:hover {
+    border-color: #0a66c2; box-shadow: 0 2px 8px rgba(10,102,194,0.1);
   }
   .gap-missing-item svg { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
   .gap-missing-item .gap-item-name { font-weight: 500; color: var(--text-primary); }
@@ -11542,14 +11726,14 @@ const WIKI_HTML = `<!DOCTYPE html>
     font-size: 12px; color: #065F46; margin: 3px;
   }
 
-  /* --- Export View (Build 6) — card-based layout matching Completeness --- */
-  .export-view { padding: 24px 28px; }
+  /* --- Export View (Build 6) — card-based layout matching Completeness — font bumps Build 8 --- */
+  .export-view { padding: 24px 28px; font-size: 15px; }
   .export-header {
     display: flex; align-items: center; justify-content: space-between;
     margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
   }
   .export-title {
-    font-size: 1.3rem; font-weight: 700; color: var(--text-primary);
+    font-size: 1.5rem; font-weight: 700; color: var(--text-primary);
     display: flex; align-items: center; gap: 8px;
   }
   .export-summary {
@@ -11584,7 +11768,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   }
   .export-role-icon.org { background: #EFF6FF; color: #1D4ED8; }
   .export-role-icon.person { background: #F0FDF4; color: #16A34A; }
-  .export-role-name { font-size: 14px; font-weight: 600; color: var(--text-primary); flex: 1; }
+  .export-role-name { font-size: 16px; font-weight: 600; color: var(--text-primary); flex: 1; }
   .export-role-count {
     font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
     background: #F3F4F6; color: #6B7280;
@@ -11604,17 +11788,17 @@ const WIKI_HTML = `<!DOCTYPE html>
   .export-field-row {
     display: flex; align-items: flex-start; gap: 10px;
     padding: 10px 16px; border-bottom: 1px solid #f5f5f5;
-    font-size: 13px; transition: background 0.1s;
+    font-size: 14px; transition: background 0.1s; cursor: pointer;
   }
   .export-field-row:last-child { border-bottom: none; }
   .export-field-row:hover { background: #fafbfc; }
   .export-field-row.missing { opacity: 0.6; }
   .export-field-label {
     width: 160px; min-width: 120px; font-weight: 500;
-    color: var(--text-secondary); flex-shrink: 0;
+    color: var(--text-secondary); flex-shrink: 0; font-size: 14px;
   }
   .export-field-value {
-    flex: 1; color: var(--text-primary); font-weight: 500;
+    flex: 1; color: var(--text-primary); font-weight: 500; font-size: 15px;
     display: flex; align-items: flex-start; gap: 8px; flex-wrap: wrap;
   }
   .export-field-value.empty { color: #9CA3AF; font-style: italic; font-weight: 400; }
@@ -11784,7 +11968,9 @@ var breadcrumbs = [];
 var recentEntities = [];
 var _sbProjectsExpanded = false;
 var _selectedSpoke = null;  // null = "All", or spoke ID
-var _spokesList = [];       // [{id, name, centered_entity_name, entity_count}]
+var _spokesList = [];       // [{id, name, centered_entity_name, entity_count, _completeness, _hasTemplate}]
+var _templatesList = [];    // [{id, label, category_count, entity_roles}]
+var _activeClientTab = 'completeness'; // Current tab when viewing a client workspace
 
 function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
@@ -12969,6 +13155,11 @@ function filterAffiliationsHub() {
 var _gapData = null;
 
 function showCompletenessDashboard() {
+  // Route through client workspace if a spoke is selected
+  if (_selectedSpoke && _selectedSpoke !== 'default') {
+    showClientWorkspace(_selectedSpoke, 'completeness');
+    return;
+  }
   selectedView = 'completeness';
   selectedId = null;
   selectedCategory = null;
@@ -12977,7 +13168,7 @@ function showCompletenessDashboard() {
   renderSidebar();
   document.getElementById('main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Loading gap analysis...</div>';
   var spokeParam = _selectedSpoke ? _selectedSpoke : '';
-  if (!spokeParam) { document.getElementById('main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Select a spoke first</div>'; return; }
+  if (!spokeParam) { document.getElementById('main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Select a client first</div>'; return; }
   api('GET', '/api/spoke/' + encodeURIComponent(spokeParam) + '/gaps').then(function(data) {
     _gapData = data;
     renderCompletenessDashboard(data);
@@ -13015,6 +13206,7 @@ function renderTemplateSelector() {
 function setMatterType(templateType) {
   if (!_selectedSpoke) return;
   api('PUT', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/template', { template_type: templateType }).then(function() {
+    // Refresh the analysis (works in both tab and standalone mode)
     refreshGapAnalysis();
   }).catch(function(err) {
     toast('Failed to set template: ' + (err.message || err));
@@ -13023,13 +13215,28 @@ function setMatterType(templateType) {
 
 function refreshGapAnalysis() {
   if (!_selectedSpoke) return;
-  document.getElementById('main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Analyzing completeness...</div>';
-  api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/gaps?refresh=true').then(function(data) {
-    _gapData = data;
-    renderCompletenessDashboard(data);
-  }).catch(function(err) {
-    document.getElementById('main').innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Analysis failed') + '</div>';
-  });
+  // If in client workspace, refresh within the tab
+  var container = document.getElementById('clientTabContent');
+  if (container) {
+    container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Analyzing completeness...</div>';
+    api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/gaps?refresh=true').then(function(data) {
+      _gapData = data;
+      container.innerHTML = _buildCompletenessHtml(data);
+      // Also refresh completeness dots in sidebar
+      loadSpokes();
+    }).catch(function(err) {
+      container.innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Analysis failed') + '</div>';
+    });
+  } else {
+    document.getElementById('main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Analyzing completeness...</div>';
+    api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/gaps?refresh=true').then(function(data) {
+      _gapData = data;
+      renderCompletenessDashboard(data);
+      loadSpokes();
+    }).catch(function(err) {
+      document.getElementById('main').innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Analysis failed') + '</div>';
+    });
+  }
 }
 
 function _gapScoreColor(score) {
@@ -13064,7 +13271,7 @@ function renderCompletenessDashboard(data) {
   h += '<div class="gap-ring-container">';
   var deg = Math.round(pct * 3.6);
   h += '<div class="gap-ring" style="background: conic-gradient(' + color + ' 0deg, ' + color + ' ' + deg + 'deg, #e8e8e8 ' + deg + 'deg);">';
-  h += '<div class="gap-ring-label" style="background:#fff;width:120px;height:120px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;">';
+  h += '<div class="gap-ring-label" style="background:#fff;width:140px;height:140px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;">';
   h += '<div class="gap-ring-pct" style="color:' + color + ';">' + pct + '%</div>';
   h += '<div class="gap-ring-sub">Complete</div>';
   h += '</div></div>';
@@ -13776,8 +13983,9 @@ function enterApp(user) {
   });
   // Load review queue badge count
   refreshReviewQueueBadge();
-  // Load spoke selector
+  // Load spoke list (clients) and templates
   loadSpokes();
+  loadTemplates();
 }
 
 function logout() {
@@ -13816,6 +14024,7 @@ function login() {
     document.getElementById('app').style.display = 'flex';
     renderSidebar();
     loadSpokes();
+    loadTemplates();
   }).catch(function(err) {
     var el = document.getElementById('loginError');
     el.textContent = err.message; el.classList.add('active');
@@ -14041,6 +14250,11 @@ var _exportData = null;
 var _expandedEvidence = {};
 
 function showExportView() {
+  // Route through client workspace if a spoke is selected
+  if (_selectedSpoke && _selectedSpoke !== 'default') {
+    showClientWorkspace(_selectedSpoke, 'export');
+    return;
+  }
   selectedView = 'export';
   selectedId = null;
   selectedCategory = null;
@@ -14050,7 +14264,7 @@ function showExportView() {
   renderSidebar();
   document.getElementById('main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Loading export data...</div>';
   var spokeParam = _selectedSpoke ? _selectedSpoke : '';
-  if (!spokeParam) { document.getElementById('main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Select a spoke first</div>'; return; }
+  if (!spokeParam) { document.getElementById('main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Select a client first</div>'; return; }
   api('GET', '/api/spoke/' + encodeURIComponent(spokeParam) + '/export').then(function(data) {
     _exportData = data;
     renderExportView(data);
@@ -14281,6 +14495,11 @@ function downloadExportCsv() {
 var _spokeShares = [];
 
 function showSpokeShareManager() {
+  // Route through client workspace if a spoke is selected
+  if (_selectedSpoke && _selectedSpoke !== 'default') {
+    showClientWorkspace(_selectedSpoke, 'share');
+    return;
+  }
   selectedView = 'share_portal';
   selectedId = null;
   selectedCategory = null;
@@ -14288,7 +14507,7 @@ function showSpokeShareManager() {
   renderBreadcrumbs();
   renderSidebar();
   if (!_selectedSpoke) {
-    document.getElementById('main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Select a spoke first</div>';
+    document.getElementById('main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Select a client first</div>';
     return;
   }
   document.getElementById('main').innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Loading shares...</div>';
@@ -14385,11 +14604,24 @@ function confirmSpokeShare() {
         toast('Link copied to clipboard');
       }
     }
-    // Refresh
-    showSpokeShareManager();
+    // Refresh — use tab system if in client workspace, else standalone
+    _refreshShareView();
   }).catch(function(err) {
     toast('Failed to create share: ' + (err.message || err));
   });
+}
+
+function _refreshShareView() {
+  var container = document.getElementById('clientTabContent');
+  if (container && _activeClientTab === 'share') {
+    // In tab mode — reload via tab
+    api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/shares').then(function(data) {
+      _spokeShares = data.shares || [];
+      container.innerHTML = _buildShareHtml();
+    });
+  } else {
+    showSpokeShareManager();
+  }
 }
 
 function copySpokeShareLink(token) {
@@ -14416,7 +14648,7 @@ function revokeSpokeShare(token) {
   if (!confirm('Revoke this share link? Anyone with the link will no longer have access.')) return;
   api('DELETE', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/share/' + encodeURIComponent(token)).then(function() {
     toast('Share link revoked');
-    showSpokeShareManager();
+    _refreshShareView();
   }).catch(function(err) {
     toast('Failed to revoke: ' + (err.message || err));
   });
@@ -14427,9 +14659,33 @@ function revokeSpokeShare(token) {
 function loadSpokes() {
   api('GET', '/api/spokes').then(function(data) {
     _spokesList = data.spokes || [];
-    renderSpokeSelector();
+    // Fetch gap scores for each non-default spoke (for completeness dots)
+    var clientSpokes = _spokesList.filter(function(s) { return s.id !== 'default'; });
+    var pending = clientSpokes.length;
+    if (pending === 0) { renderSidebar(); return; }
+    clientSpokes.forEach(function(s) {
+      api('GET', '/api/spoke/' + encodeURIComponent(s.id) + '/gaps').then(function(gapData) {
+        s._completeness = gapData.overall_score || 0;
+        s._hasTemplate = true;
+      }).catch(function() {
+        s._completeness = -1; // no template assigned
+        s._hasTemplate = false;
+      }).finally(function() {
+        pending--;
+        if (pending <= 0) renderSidebar();
+      });
+    });
   }).catch(function() {
     _spokesList = [];
+  });
+}
+
+function loadTemplates() {
+  api('GET', '/api/templates').then(function(data) {
+    _templatesList = data.templates || [];
+    renderSidebar();
+  }).catch(function() {
+    _templatesList = [];
   });
 }
 
@@ -14438,44 +14694,13 @@ function spokeParam() {
 }
 
 function renderSpokeSelector() {
+  // Legacy — spoke selector dropdown is now replaced by client list in sidebar
   var el = document.getElementById('spokeSelector');
-  if (!el) return;
-  // Hide if only default spoke (or no spokes)
-  if (_spokesList.length <= 1) { el.innerHTML = ''; return; }
-
-  var html = '<div class="spoke-selector-wrap">';
-  html += '<select id="spokeSelect" onchange="onSpokeChange()">';
-  html += '<option value="">All Spokes</option>';
-  for (var i = 0; i < _spokesList.length; i++) {
-    var s = _spokesList[i];
-    var sel = (_selectedSpoke === s.id) ? ' selected' : '';
-    var label = s.name + ' (' + (s.entity_count || 0) + ')';
-    html += '<option value="' + esc(s.id) + '"' + sel + '>' + esc(label) + '</option>';
-  }
-  html += '</select>';
-
-  // Show centered entity when a spoke is selected
-  if (_selectedSpoke) {
-    var spoke = null;
-    for (var i = 0; i < _spokesList.length; i++) {
-      if (_spokesList[i].id === _selectedSpoke) { spoke = _spokesList[i]; break; }
-    }
-    if (spoke && spoke.centered_entity_name) {
-      html += '<div class="spoke-centered-label">';
-      html += '<svg width="12" height="12" viewBox="0 0 24 24" fill="#f1c40f" stroke="#f1c40f" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg> ';
-      html += esc(spoke.centered_entity_name);
-      html += '</div>';
-    }
-  }
-
-  html += '</div>';
-  el.innerHTML = html;
+  if (el) el.innerHTML = '';
 }
 
 function onSpokeChange() {
-  var sel = document.getElementById('spokeSelect');
-  _selectedSpoke = sel ? (sel.value || null) : null;
-  renderSpokeSelector();
+  // Legacy — kept for backward compat. Use selectClient() instead.
   refreshEntityList();
 }
 
@@ -14493,13 +14718,14 @@ function renderSidebar() {
   var data = buildSidebarData();
   var html = '';
 
-  // ── ME section ──
+  // ── ME section (Personal Graph) ──
   if (primaryEntityId && primaryEntityData) {
     var selfName = (primaryEntityData.entity && primaryEntityData.entity.name) ? (primaryEntityData.entity.name.preferred || primaryEntityData.entity.name.full || primaryEntityData.entity.name) : '';
     if (typeof selfName === 'object') selfName = selfName.full || selfName.preferred || '';
-    html += '<div class="sb-section-label" style="display:flex;align-items:center;gap:6px;">';
+    var meActive = !_selectedSpoke || _selectedSpoke === 'default';
+    html += '<div class="sb-section-label" style="display:flex;align-items:center;gap:6px;cursor:pointer;" onclick="selectPersonalGraph()">';
     html += '<svg width="14" height="14" viewBox="0 0 24 24" fill="#f1c40f" stroke="#f1c40f" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg>';
-    html += esc(selfName || 'Me');
+    html += esc(selfName || 'Me') + ' <span style="font-size:10px;color:#bbb;font-weight:400;">(Personal Graph)</span>';
     html += '</div>';
   } else {
     html += '<div class="sb-section-label" style="cursor:pointer;color:var(--text-muted);" onclick="promptSetSelfEntity()">';
@@ -14508,52 +14734,76 @@ function renderSidebar() {
   }
 
   // About
-  var aboutActive = (selectedId === primaryEntityId && window._liActiveTab === 'overview');
-  html += '<div class="sb-nav-item' + (aboutActive ? ' active' : '') + '" onclick="selectView(\\'overview\\')">';
+  var aboutActive = (!_selectedSpoke || _selectedSpoke === 'default') && (selectedId === primaryEntityId && window._liActiveTab === 'overview');
+  html += '<div class="sb-nav-item' + (aboutActive ? ' active' : '') + '" onclick="selectPersonalGraph();selectView(\\'overview\\')">';
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>';
   html += 'About</div>';
 
   // Career
-  var careerActive = (selectedId === primaryEntityId && window._liActiveTab === 'career');
-  html += '<div class="sb-nav-item' + (careerActive ? ' active' : '') + '" onclick="selectView(\\'career\\')">';
+  var careerActive = (!_selectedSpoke || _selectedSpoke === 'default') && (selectedId === primaryEntityId && window._liActiveTab === 'career');
+  html += '<div class="sb-nav-item' + (careerActive ? ' active' : '') + '" onclick="selectPersonalGraph();selectView(\\'career\\')">';
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>';
   html += 'Career</div>';
 
   // Family
-  var familyActive = (selectedCategory === 'people_hub' && window._peopleHubTab === 'family');
-  html += '<div class="sb-nav-item' + (familyActive ? ' active' : '') + '" onclick="showPeopleHub(\\'family\\')">';
+  var familyActive = (!_selectedSpoke || _selectedSpoke === 'default') && (selectedCategory === 'people_hub' && window._peopleHubTab === 'family');
+  html += '<div class="sb-nav-item' + (familyActive ? ' active' : '') + '" onclick="selectPersonalGraph();showPeopleHub(\\'family\\')">';
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>';
   html += 'Family</div>';
 
   // Friends
-  var friendsActive = (selectedCategory === 'people_hub' && window._peopleHubTab === 'friends');
-  html += '<div class="sb-nav-item' + (friendsActive ? ' active' : '') + '" onclick="showPeopleHub(\\'friends\\')">';
+  var friendsActive = (!_selectedSpoke || _selectedSpoke === 'default') && (selectedCategory === 'people_hub' && window._peopleHubTab === 'friends');
+  html += '<div class="sb-nav-item' + (friendsActive ? ' active' : '') + '" onclick="selectPersonalGraph();showPeopleHub(\\'friends\\')">';
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>';
   html += 'Friends</div>';
 
   // Affiliations
-  var affilActive = (selectedCategory === 'affiliations_hub');
-  html += '<div class="sb-nav-item' + (affilActive ? ' active' : '') + '" onclick="showAffiliationsHub()">';
+  var affilActive = (!_selectedSpoke || _selectedSpoke === 'default') && (selectedCategory === 'affiliations_hub');
+  html += '<div class="sb-nav-item' + (affilActive ? ' active' : '') + '" onclick="selectPersonalGraph();showAffiliationsHub()">';
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>';
   html += 'Affiliations</div>';
 
-  // ── MATTER section (only when spoke is selected) ──
-  if (_selectedSpoke) {
-    html += '<div class="sb-section-label">Matter</div>';
-    var compActive = (selectedView === 'completeness');
-    html += '<div class="sb-nav-item' + (compActive ? ' active' : '') + '" onclick="showCompletenessDashboard()">';
-    html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>';
-    html += 'Completeness</div>';
-    var exportActive = (selectedView === 'export');
-    html += '<div class="sb-nav-item' + (exportActive ? ' active' : '') + '" onclick="showExportView()">';
-    html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>';
-    html += 'Export View</div>';
-
-    var shareActive = (selectedView === 'share_portal');
-    html += '<div class="sb-nav-item' + (shareActive ? ' active' : '') + '" onclick="showSpokeShareManager()">';
-    html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>';
-    html += 'Share Portal</div>';
+  // ── CLIENTS section ──
+  var clientSpokes = _spokesList.filter(function(s) { return s.id !== 'default'; });
+  if (clientSpokes.length > 0 || true) { // Always show CLIENTS header
+    html += '<div class="sb-section-label">Clients</div>';
+    for (var ci = 0; ci < clientSpokes.length; ci++) {
+      var cs = clientSpokes[ci];
+      var isActive = (_selectedSpoke === cs.id);
+      var dotClass = 'gray';
+      if (cs._hasTemplate) {
+        if (cs._completeness >= 0.8) dotClass = 'green';
+        else if (cs._completeness >= 0.5) dotClass = 'yellow';
+        else dotClass = 'red';
+      }
+      html += '<div class="sb-client-item' + (isActive ? ' active' : '') + '" onclick="selectClient(\\'' + esc(cs.id) + '\\')">';
+      html += '<span class="sb-client-name">' + esc(cs.name) + '</span>';
+      html += '<span class="sb-client-meta">';
+      html += '<span class="sb-client-count">' + (cs.entity_count || 0) + '</span>';
+      html += '<span class="sb-client-dot ' + dotClass + '" title="' + (cs._hasTemplate ? Math.round((cs._completeness || 0) * 100) + '% complete' : 'No template') + '"></span>';
+      html += '</span>';
+      html += '</div>';
+    }
+    // + New Client button
+    html += '<div class="sb-add-btn" onclick="promptNewClient()">';
+    html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+    html += '+ New Client</div>';
   }
+
+  // ── TEMPLATES section ──
+  html += '<div class="sb-section-label">Templates</div>';
+  if (_templatesList && _templatesList.length > 0) {
+    for (var ti = 0; ti < _templatesList.length; ti++) {
+      var tpl = _templatesList[ti];
+      var tplActive = (selectedView === 'template_detail' && window._selectedTemplate === tpl.id);
+      html += '<div class="sb-template-item' + (tplActive ? ' active' : '') + '" onclick="showTemplateDetail(\\'' + esc(tpl.id) + '\\')">';
+      html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+      html += esc(tpl.label) + '</div>';
+    }
+  }
+  html += '<div class="sb-add-btn" onclick="toast(\\'Custom template creation coming soon\\')">';
+  html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+  html += '+ New Template</div>';
 
   // ── PROJECTS section ──
   var allProjects = [].concat(data.projects.active || [], data.projects.rnd || [], data.projects.archive || []);
@@ -14595,6 +14845,716 @@ function renderSidebar() {
 
 // Backward-compat alias
 function renderEntityList() { renderSidebar(); }
+
+/* --- Client Selection & Navigation (Build 8) --- */
+
+function selectClient(spokeId) {
+  _selectedSpoke = spokeId;
+  selectedId = null;
+  selectedView = 'client_workspace';
+  selectedCategory = null;
+  _activeClientTab = 'completeness';
+  renderSidebar();
+
+  // Load the client workspace — default to Completeness tab
+  showClientWorkspace(spokeId, 'completeness');
+}
+
+function selectPersonalGraph() {
+  if (!_selectedSpoke && selectedView !== 'client_workspace') return; // Already on personal graph
+  _selectedSpoke = null;
+  selectedView = null;
+  selectedCategory = null;
+  // Don't re-render sidebar here — let the nav item onclick handler do that
+}
+
+// --- HTML builders for tab content (return string, don't write to DOM) ---
+
+function _buildCompletenessHtml(data) {
+  var pct = Math.round((data.overall_score || 0) * 100);
+  var color = _gapScoreColor(data.overall_score || 0);
+  var h = '<div class="gap-dashboard">';
+
+  h += '<div class="gap-dashboard-header">';
+  h += '<div class="gap-dashboard-title">';
+  h += '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>';
+  h += ' ' + esc(data.template_name || 'Completeness') + '</div>';
+  h += '<div class="gap-dashboard-controls">';
+  h += '<select id="gapTemplateSelect" onchange="setMatterType(this.value)">';
+  h += '<option value="' + esc(data.template_type || '') + '">' + esc(data.template_name || '') + '</option>';
+  h += '</select>';
+  h += '<button onclick="refreshGapAnalysis()">Refresh Analysis</button>';
+  h += '</div></div>';
+
+  h += '<div class="gap-ring-container">';
+  var deg = Math.round(pct * 3.6);
+  h += '<div class="gap-ring" style="background: conic-gradient(' + color + ' 0deg, ' + color + ' ' + deg + 'deg, #e8e8e8 ' + deg + 'deg);">';
+  h += '<div class="gap-ring-label" style="background:#fff;width:140px;height:140px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;">';
+  h += '<div class="gap-ring-pct" style="color:' + color + ';">' + pct + '%</div>';
+  h += '<div class="gap-ring-sub">Complete</div>';
+  h += '</div></div>';
+
+  h += '<div class="gap-score-bars">';
+  var bars = [
+    { label: 'Documents', score: data.document_score || 0, weight: '40%' },
+    { label: 'Entities', score: data.entity_score || 0, weight: '40%' },
+    { label: 'Relationships', score: data.relationship_score || 0, weight: '20%' }
+  ];
+  for (var b = 0; b < bars.length; b++) {
+    var bar = bars[b];
+    var bPct = Math.round(bar.score * 100);
+    var bColor = _gapScoreColor(bar.score);
+    h += '<div class="gap-score-bar">';
+    h += '<div class="gap-score-bar-header"><span>' + bar.label + ' <span style="color:var(--text-muted);font-size:11px;">(' + bar.weight + ' weight)</span></span><span style="font-weight:600;color:' + bColor + ';">' + bPct + '%</span></div>';
+    h += '<div class="gap-score-bar-track"><div class="gap-score-bar-fill" style="width:' + bPct + '%;background:' + bColor + ';"></div></div>';
+    h += '</div>';
+  }
+  h += '</div></div>';
+
+  var missingDocs = data.missing_documents || [];
+  if (missingDocs.length > 0) {
+    h += '<div class="gap-category">';
+    h += '<div class="gap-category-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Missing Documents (' + missingDocs.length + ')</div>';
+    h += '<div class="gap-category-grid">';
+    for (var d = 0; d < missingDocs.length; d++) {
+      var doc = missingDocs[d];
+      h += '<div class="gap-missing-item" style="cursor:pointer;" onclick="switchClientTab(\\'documents\\')">';
+      h += '<svg viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+      h += '<div><div class="gap-item-name">' + esc(_gapFormatLabel(doc.item)) + '</div>';
+      h += '<div class="gap-item-detail">' + esc(_gapFormatLabel(doc.category)) + '</div></div>';
+      h += '<span class="gap-priority-badge ' + (doc.priority || 'medium') + '">' + (doc.priority || 'medium') + '</span>';
+      h += '</div>';
+    }
+    h += '</div></div>';
+  }
+
+  var missingFields = data.missing_entity_fields || [];
+  if (missingFields.length > 0) {
+    h += '<div class="gap-category">';
+    h += '<div class="gap-category-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#CA8A04" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg> Missing Entity Fields (' + missingFields.length + ')</div>';
+    h += '<div class="gap-category-grid">';
+    for (var f = 0; f < missingFields.length; f++) {
+      var field = missingFields[f];
+      h += '<div class="gap-missing-item" style="cursor:pointer;" onclick="switchClientTab(\\'export\\')">';
+      h += '<svg viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>';
+      h += '<div><div class="gap-item-name">' + esc(_gapFormatLabel(field.missing)) + '</div>';
+      h += '<div class="gap-item-detail">' + esc(_gapFormatLabel(field.role)) + (field.entity ? ' &middot; ' + esc(field.entity) : '') + '</div></div>';
+      h += '</div>';
+    }
+    h += '</div></div>';
+  }
+
+  var missingRels = data.missing_relationships || [];
+  if (missingRels.length > 0) {
+    h += '<div class="gap-category">';
+    h += '<div class="gap-category-title"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg> Missing Relationships (' + missingRels.length + ')</div>';
+    h += '<div class="gap-category-grid">';
+    for (var r = 0; r < missingRels.length; r++) {
+      var rel = missingRels[r];
+      h += '<div class="gap-missing-item">';
+      h += '<svg viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>';
+      h += '<div><div class="gap-item-name">' + esc(_gapFormatLabel(rel.expected)) + '</div>';
+      h += '<div class="gap-item-detail">Expected connection</div></div>';
+      h += '</div>';
+    }
+    h += '</div></div>';
+  }
+
+  var foundDocs = data.found_documents || [];
+  if (foundDocs.length > 0) {
+    h += '<div class="gap-found-section">';
+    h += '<div class="gap-category-title" style="color:#065F46;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Found Documents (' + foundDocs.length + ')</div>';
+    h += '<div>';
+    for (var fd = 0; fd < foundDocs.length; fd++) {
+      var fdoc = foundDocs[fd];
+      h += '<span class="gap-found-item" style="cursor:pointer;" onclick="switchClientTab(\\'documents\\')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> ' + esc(_gapFormatLabel(fdoc.item)) + '</span>';
+    }
+    h += '</div></div>';
+  }
+
+  var suggestions = data.suggestions || [];
+  if (suggestions.length > 0) {
+    h += '<div class="gap-suggestions">';
+    h += '<div class="gap-suggestions-title">Suggested Next Steps</div>';
+    h += '<ul>';
+    for (var s = 0; s < suggestions.length; s++) {
+      h += '<li>' + esc(suggestions[s]) + '</li>';
+    }
+    h += '</ul></div>';
+  }
+
+  h += '<div style="margin-top:20px;font-size:11px;color:var(--text-muted);">';
+  h += (data.entity_count || 0) + ' entities &middot; ' + (data.source_documents || []).length + ' source documents';
+  if (data.cached) h += ' &middot; <span style="color:#CA8A04;">cached</span>';
+  if (data.analyzed_at) h += ' &middot; analyzed ' + new Date(data.analyzed_at).toLocaleString();
+  h += '</div>';
+
+  h += '</div>';
+  return h;
+}
+
+function _buildExportHtml(data) {
+  var s = data.summary || {};
+  var h = '<div class="export-view">';
+
+  h += '<div class="export-header">';
+  h += '<div class="export-title">';
+  h += '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
+  h += ' ' + esc(data.spoke_name || 'Export') + ' — Data Export</div>';
+  h += '<button class="export-btn-csv" onclick="downloadExportCsv()">';
+  h += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+  h += ' Download CSV</button>';
+  h += '</div>';
+
+  h += '<div class="export-summary">';
+  h += '<div class="export-stat"><div class="export-stat-count" style="color:#191919;">' + (s.total_fields || 0) + '</div> Total</div>';
+  h += '<div class="export-stat"><div class="export-stat-count" style="color:#16A34A;">' + (s.verified || 0) + '</div> Verified</div>';
+  if (s.low_confidence) h += '<div class="export-stat"><div class="export-stat-count" style="color:#CA8A04;">' + s.low_confidence + '</div> Low Conf</div>';
+  if (s.conflicts) h += '<div class="export-stat"><div class="export-stat-count" style="color:#DC2626;">' + s.conflicts + '</div> Conflicts</div>';
+  h += '<div class="export-stat"><div class="export-stat-count" style="color:#6B7280;">' + (s.missing || 0) + '</div> Missing</div>';
+  h += '</div>';
+
+  var roles = data.roles || [];
+  for (var ri = 0; ri < roles.length; ri++) {
+    var role = roles[ri];
+    var roleVerified = 0, roleTotal = 0;
+    for (var ei = 0; ei < (role.entities || []).length; ei++) {
+      for (var fi = 0; fi < (role.entities[ei].fields || []).length; fi++) {
+        roleTotal++;
+        if (role.entities[ei].fields[fi].status === 'verified') roleVerified++;
+      }
+    }
+    var allComplete = (roleVerified === roleTotal && roleTotal > 0);
+
+    h += '<div class="export-role-card">';
+    h += '<div class="export-role-header" onclick="toggleExportRole(' + ri + ')">';
+    h += _exportRoleIcon(role.role);
+    h += '<span class="export-role-name">' + esc(_exportFormatLabel(role.role)) + '</span>';
+    h += '<span class="export-role-count' + (allComplete ? ' complete' : '') + '">' + roleVerified + '/' + roleTotal + ' fields</span>';
+    h += '<span class="export-role-chevron" id="exportChevron' + ri + '"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></span>';
+    h += '</div>';
+
+    h += '<div class="export-role-body" id="exportBody' + ri + '">';
+
+    var hasEntities = role.entities && role.entities.length > 0 && !(role.entities.length === 1 && !role.entities[0].entity_id);
+
+    if (!hasEntities) {
+      h += '<div class="export-not-found">No matching entity found for this role</div>';
+      if (role.entities && role.entities[0]) {
+        for (var fi = 0; fi < (role.entities[0].fields || []).length; fi++) {
+          var f = role.entities[0].fields[fi];
+          h += '<div class="export-field-row missing">';
+          h += '<div class="export-field-label">' + esc(_exportFormatLabel(f.field)) + '</div>';
+          h += '<div class="export-field-value empty">—</div>';
+          h += '<div class="export-field-meta">' + _exportBadgeHtml('missing') + '</div>';
+          h += '</div>';
+        }
+      }
+    } else {
+      for (var ei = 0; ei < role.entities.length; ei++) {
+        var ent = role.entities[ei];
+        if (role.entities.length > 1) {
+          h += '<div class="export-entity-header">';
+          h += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>';
+          h += esc(ent.entity_name || '');
+          h += '</div>';
+        }
+
+        for (var fi = 0; fi < (ent.fields || []).length; fi++) {
+          var f = ent.fields[fi];
+          var isMissing = f.status === 'missing';
+          var evidKey = ri + '_' + ei + '_' + fi;
+
+          h += '<div class="export-field-row' + (isMissing ? ' missing' : '') + '" onclick="showFieldInRightPanel(' + ri + ',' + ei + ',' + fi + ')">';
+          h += '<div class="export-field-label">' + esc(_exportFormatLabel(f.field)) + '</div>';
+
+          if (f.value) {
+            h += '<div class="export-field-value">' + esc(String(f.value)) + '</div>';
+          } else {
+            h += '<div class="export-field-value empty">—</div>';
+          }
+
+          h += '<div class="export-field-meta">';
+          h += _exportBadgeHtml(f.status);
+          if (f.provenance && f.provenance.filename) {
+            h += '<span class="export-source-pill" onclick="toggleExportEvidence(event,\\'' + evidKey + '\\',' + ri + ',' + ei + ',' + fi + ')">';
+            h += '<svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> ';
+            h += esc(f.provenance.filename);
+            h += '</span>';
+          }
+          h += '</div>';
+          h += '</div>';
+
+          h += '<div id="exportEvid_' + evidKey + '" style="display:none;"></div>';
+        }
+      }
+    }
+
+    h += '</div></div>';
+  }
+
+  h += '</div>';
+  return h;
+}
+
+function _buildShareHtml() {
+  var h = '<div style="padding:24px 28px;max-width:720px;">';
+
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">';
+  h += '<div style="display:flex;align-items:center;gap:10px;">';
+  h += '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>';
+  h += '<span style="font-size:1.1rem;font-weight:700;color:var(--text-primary);">Share Portal</span>';
+  h += '</div></div>';
+
+  h += '<div style="background:var(--bg-card);border:1px solid var(--border-primary);border-radius:12px;padding:20px;margin-bottom:24px;">';
+  h += '<h3 style="font-size:0.9rem;font-weight:600;margin:0 0 16px;color:var(--text-primary);">Create Share Link</h3>';
+  h += '<div style="margin-bottom:12px;">';
+  h += '<label style="display:block;font-size:0.82rem;color:var(--text-secondary);margin-bottom:4px;">Label (optional)</label>';
+  h += '<input type="text" id="shareLabel" placeholder="e.g. For Justin" style="width:100%;padding:8px 12px;border:1px solid var(--border-primary);border-radius:8px;font-size:0.85rem;background:var(--bg-input);color:var(--text-primary);" />';
+  h += '</div>';
+  h += '<div style="margin-bottom:16px;">';
+  h += '<label style="display:block;font-size:0.82rem;color:var(--text-secondary);margin-bottom:8px;">Sections to include</label>';
+  h += '<div style="display:flex;gap:16px;flex-wrap:wrap;">';
+  h += '<label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer;"><input type="checkbox" id="shareIncGaps" checked /> Completeness</label>';
+  h += '<label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer;"><input type="checkbox" id="shareIncExport" checked /> Export Data</label>';
+  h += '<label style="display:flex;align-items:center;gap:6px;font-size:0.85rem;cursor:pointer;"><input type="checkbox" id="shareIncFiles" checked /> Source Files</label>';
+  h += '</div></div>';
+  h += '<button onclick="confirmSpokeShare()" style="padding:8px 20px;background:var(--accent-primary);color:#fff;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">Create Share Link</button>';
+  h += '</div>';
+
+  if (_spokeShares.length > 0) {
+    h += '<div style="margin-bottom:8px;font-size:0.85rem;font-weight:600;color:var(--text-primary);">Active Links (' + _spokeShares.length + ')</div>';
+    for (var i = 0; i < _spokeShares.length; i++) {
+      var s = _spokeShares[i];
+      var shareUrl = location.origin + '/shared/' + s.token;
+      var created = s.created_at ? new Date(s.created_at).toLocaleDateString() : '';
+      var incTags = (s.includes || []).map(function(inc) {
+        var labels = { gaps: 'Completeness', export: 'Export', files: 'Files' };
+        return '<span style="display:inline-block;padding:2px 8px;background:#ede9fe;color:#6366f1;border-radius:10px;font-size:10px;font-weight:600;">' + (labels[inc] || inc) + '</span>';
+      }).join(' ');
+
+      h += '<div style="background:var(--bg-card);border:1px solid var(--border-primary);border-radius:10px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">';
+      h += '<div style="flex:1;min-width:200px;">';
+      if (s.label) h += '<div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);margin-bottom:2px;">' + esc(s.label) + '</div>';
+      h += '<div style="font-size:0.78rem;color:var(--text-muted);word-break:break-all;">' + esc(shareUrl) + '</div>';
+      h += '<div style="margin-top:4px;display:flex;gap:4px;align-items:center;">' + incTags;
+      if (created) h += '<span style="font-size:10px;color:var(--text-muted);margin-left:8px;">' + esc(created) + '</span>';
+      h += '</div></div>';
+      h += '<button onclick="copySpokeShareLink(\\'' + esc(s.token) + '\\')" style="padding:6px 14px;background:var(--bg-tertiary);border:1px solid var(--border-primary);border-radius:6px;font-size:0.78rem;cursor:pointer;white-space:nowrap;">Copy</button>';
+      h += '<button onclick="revokeSpokeShare(\\'' + esc(s.token) + '\\')" style="padding:6px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:6px;font-size:0.78rem;color:#DC2626;cursor:pointer;white-space:nowrap;">Revoke</button>';
+      h += '</div>';
+    }
+  } else {
+    h += '<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:0.9rem;">No active share links. Create one above.</div>';
+  }
+
+  h += '</div>';
+  return h;
+}
+
+function showClientWorkspace(spokeId, tab) {
+  if (!spokeId) return;
+  _selectedSpoke = spokeId;
+  _activeClientTab = tab || 'completeness';
+  selectedView = 'client_workspace';
+
+  // Find spoke name
+  var spokeName = spokeId;
+  for (var i = 0; i < _spokesList.length; i++) {
+    if (_spokesList[i].id === spokeId) { spokeName = _spokesList[i].name; break; }
+  }
+
+  // Build breadcrumb + tab header
+  breadcrumbs = [
+    { label: 'Clients', action: 'showClientDashboard()' },
+    { label: spokeName }
+  ];
+  renderBreadcrumbs();
+
+  // Render tab bar + content
+  var mainEl = document.getElementById('main');
+  var tabHtml = '<div class="client-tab-bar">';
+  var tabs = [
+    { id: 'completeness', label: 'Completeness', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>' },
+    { id: 'export', label: 'Data Export', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' },
+    { id: 'documents', label: 'Documents', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>' },
+    { id: 'share', label: 'Share', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>' }
+  ];
+  for (var t = 0; t < tabs.length; t++) {
+    var isActive = (_activeClientTab === tabs[t].id);
+    tabHtml += '<div class="client-tab' + (isActive ? ' active' : '') + '" onclick="switchClientTab(\\'' + tabs[t].id + '\\')">';
+    tabHtml += tabs[t].icon + ' ' + tabs[t].label;
+    tabHtml += '</div>';
+  }
+  tabHtml += '</div>';
+  tabHtml += '<div id="clientTabContent"></div>';
+  mainEl.innerHTML = tabHtml;
+
+  // Load tab content
+  loadClientTabContent(tab);
+}
+
+function switchClientTab(tab) {
+  _activeClientTab = tab;
+  // Update active tab visual
+  var tabEls = document.querySelectorAll('.client-tab');
+  for (var i = 0; i < tabEls.length; i++) {
+    tabEls[i].classList.remove('active');
+    if (tabEls[i].textContent.toLowerCase().indexOf(tab === 'export' ? 'data' : tab) >= 0) {
+      tabEls[i].classList.add('active');
+    }
+  }
+  // Simpler: rebuild tabs
+  showClientWorkspace(_selectedSpoke, tab);
+}
+
+function loadClientTabContent(tab) {
+  var container = document.getElementById('clientTabContent');
+  if (!container) return;
+  container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Loading...</div>';
+
+  // Update right panel context based on tab
+  if (tab === 'completeness' || tab === 'export') {
+    // Load export data for review queue (needed by both tabs)
+    api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/export').then(function(data) {
+      _exportData = data;
+      if (tab === 'completeness') updateContextRightPanel('review_queue');
+    }).catch(function() {});
+  }
+
+  if (tab === 'completeness') {
+    api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/gaps').then(function(data) {
+      _gapData = data;
+      container.innerHTML = _buildCompletenessHtml(data);
+      // Populate template selector async
+      api('GET', '/api/templates').then(function(tData) {
+        var sel = document.getElementById('gapTemplateSelect');
+        if (!sel) return;
+        var templates = tData.templates || [];
+        sel.innerHTML = '';
+        for (var i = 0; i < templates.length; i++) {
+          var opt = document.createElement('option');
+          opt.value = templates[i].id;
+          opt.textContent = templates[i].label;
+          if (templates[i].id === data.template_type) opt.selected = true;
+          sel.appendChild(opt);
+        }
+      });
+    }).catch(function(err) {
+      if (err.message && err.message.indexOf('No template') >= 0) {
+        api('GET', '/api/templates').then(function(tData) {
+          var templates = tData.templates || [];
+          var h = '<div class="gap-dashboard"><div class="gap-dashboard-title">';
+          h += '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>';
+          h += ' Completeness Analysis</div>';
+          h += '<p style="color:var(--text-muted);margin:16px 0 24px;">Select a matter type to begin analyzing completeness for this client.</p>';
+          h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;">';
+          for (var i = 0; i < templates.length; i++) {
+            var t = templates[i];
+            h += '<div class="gap-missing-item" style="cursor:pointer;transition:border-color 0.15s;" onclick="setMatterType(\\'' + esc(t.id) + '\\')" onmouseover="this.style.borderColor=\\'#0a66c2\\'" onmouseout="this.style.borderColor=\\'#e0e0e0\\'">';
+            h += '<svg viewBox="0 0 24 24" fill="none" stroke="#0a66c2" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+            h += '<div><div class="gap-item-name">' + esc(t.label) + '</div>';
+            h += '<div class="gap-item-detail">' + t.category_count + ' categories &middot; ' + t.entity_roles + ' roles</div></div>';
+            h += '</div>';
+          }
+          h += '</div></div>';
+          container.innerHTML = h;
+        });
+      } else {
+        container.innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Failed to load') + '</div>';
+      }
+    });
+  } else if (tab === 'export') {
+    api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/export').then(function(data) {
+      _exportData = data;
+      container.innerHTML = _buildExportHtml(data);
+    }).catch(function(err) {
+      container.innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Failed to load export') + '</div>';
+    });
+  } else if (tab === 'documents') {
+    // Show file list + upload zone for this spoke
+    api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/files').then(function(data) {
+      renderDocumentsTab(container, data.files || []);
+    }).catch(function(err) {
+      container.innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Failed to load files') + '</div>';
+    });
+  } else if (tab === 'share') {
+    api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/shares').then(function(data) {
+      _spokeShares = data.shares || [];
+      container.innerHTML = _buildShareHtml();
+    }).catch(function(err) {
+      container.innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Failed to load shares') + '</div>';
+    });
+  }
+}
+
+function renderDocumentsTab(container, files) {
+  var h = '<div style="padding:24px 28px;">';
+
+  // Upload zone
+  h += '<div class="pp-dropzone" id="docTabDropzone" onclick="document.getElementById(\\'docTabFileInput\\').click()">';
+  h += '<div class="pp-drop-icon"><svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>';
+  h += '<div>Drop files here or click to upload</div>';
+  h += '<div class="pp-drop-sub">PDF, DOCX, CSV, TXT, JSON, and more</div>';
+  h += '</div>';
+  h += '<input type="file" id="docTabFileInput" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.json" style="display:none" onchange="handleDocTabUpload(event)" />';
+
+  // File list
+  if (files.length > 0) {
+    h += '<div style="margin-top:24px;">';
+    h += '<div style="font-size:15px;font-weight:600;color:var(--text-primary);margin-bottom:12px;">Uploaded Documents (' + files.length + ')</div>';
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i];
+      var fName = f.original_name || f.filename || f.id;
+      var fDate = f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString() : '';
+      var fSize = f.size ? (f.size > 1024*1024 ? (f.size/(1024*1024)).toFixed(1) + ' MB' : (f.size/1024).toFixed(1) + ' KB') : '';
+      h += '<div class="doc-file-item" onclick="selectDocumentDetail(\\'' + esc(f.id || f.filename) + '\\')" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid #e8e8e8;border-radius:8px;margin-bottom:6px;cursor:pointer;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\\'#0a66c2\\'" onmouseout="this.style.borderColor=\\'#e8e8e8\\'">';
+      h += '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+      h += '<div style="flex:1;min-width:0;">';
+      h += '<div style="font-size:14px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(fName) + '</div>';
+      h += '<div style="font-size:12px;color:var(--text-muted);">' + esc(fDate) + (fSize ? ' &middot; ' + esc(fSize) : '') + '</div>';
+      h += '</div></div>';
+    }
+    h += '</div>';
+  } else {
+    h += '<div style="text-align:center;padding:32px;color:var(--text-muted);font-size:14px;margin-top:16px;">No documents uploaded yet. Drop files above to get started.</div>';
+  }
+
+  h += '</div>';
+  container.innerHTML = h;
+
+  // Set up drag and drop
+  var dz = document.getElementById('docTabDropzone');
+  if (dz) {
+    dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.classList.add('dragover'); });
+    dz.addEventListener('dragleave', function() { dz.classList.remove('dragover'); });
+    dz.addEventListener('drop', function(e) {
+      e.preventDefault(); dz.classList.remove('dragover');
+      if (e.dataTransfer.files.length > 0) uploadFilesToSpoke(e.dataTransfer.files);
+    });
+  }
+}
+
+function handleDocTabUpload(event) {
+  var files = event.target.files;
+  if (files && files.length > 0) uploadFilesToSpoke(files);
+}
+
+function uploadFilesToSpoke(files) {
+  if (!_selectedSpoke) { toast('No client selected'); return; }
+  var formData = new FormData();
+  for (var i = 0; i < files.length; i++) {
+    formData.append('files', files[i]);
+  }
+  formData.append('spoke_id', _selectedSpoke);
+  toast('Uploading ' + files.length + ' file(s)...');
+  fetch('/api/ingest/files', {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: formData
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    toast('Upload complete! ' + (data.clusters_created || 0) + ' signals created.');
+    // Refresh documents tab
+    if (_activeClientTab === 'documents') {
+      loadClientTabContent('documents');
+    }
+    refreshReviewQueueBadge();
+  }).catch(function(err) {
+    toast('Upload failed: ' + (err.message || err));
+  });
+}
+
+function selectDocumentDetail(fileId) {
+  if (!_selectedSpoke) return;
+  api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/files').then(function(data) {
+    var files = data.files || [];
+    var file = files.find(function(f) { return (f.id || f.filename) === fileId; });
+    if (file) {
+      updateContextRightPanel('document_detail', file);
+    }
+  });
+}
+
+function promptNewClient() {
+  var name = prompt('Client name:');
+  if (!name || !name.trim()) return;
+
+  // Show template selection
+  api('GET', '/api/templates').then(function(tData) {
+    var templates = tData.templates || [];
+    var templateOptions = templates.map(function(t) { return t.label; }).join('\\n');
+    var templateChoice = prompt('Select template type:\\n\\n' + templates.map(function(t, i) { return (i+1) + '. ' + t.label; }).join('\\n') + '\\n\\nEnter number:');
+    var templateType = null;
+    if (templateChoice) {
+      var idx = parseInt(templateChoice) - 1;
+      if (idx >= 0 && idx < templates.length) templateType = templates[idx].id;
+    }
+
+    // Create the spoke
+    api('POST', '/api/spoke', { name: name.trim(), description: '' }).then(function(spokeData) {
+      toast('Client "' + name.trim() + '" created!');
+      // Assign template if selected
+      if (templateType && spokeData.id) {
+        api('PUT', '/api/spoke/' + encodeURIComponent(spokeData.id) + '/template', { template_type: templateType }).then(function() {
+          loadSpokes();
+          selectClient(spokeData.id);
+        });
+      } else {
+        loadSpokes();
+        selectClient(spokeData.id);
+      }
+    }).catch(function(err) {
+      toast('Failed to create client: ' + (err.message || err));
+    });
+  });
+}
+
+function showTemplateDetail(templateId) {
+  selectedView = 'template_detail';
+  window._selectedTemplate = templateId;
+  _selectedSpoke = null;
+  renderSidebar();
+
+  api('GET', '/api/templates/' + encodeURIComponent(templateId)).then(function(data) {
+    breadcrumbs = [{ label: 'Templates' }, { label: data.label || templateId }];
+    renderBreadcrumbs();
+
+    var h = '<div style="padding:24px 28px;">';
+    h += '<div style="font-size:22px;font-weight:700;color:var(--text-primary);margin-bottom:8px;">' + esc(data.label || templateId) + '</div>';
+    h += '<div style="font-size:14px;color:var(--text-muted);margin-bottom:24px;">' + esc(data.description || '') + '</div>';
+
+    // Required documents
+    if (data.required_documents && data.required_documents.length > 0) {
+      h += '<div style="margin-bottom:24px;">';
+      h += '<div style="font-size:16px;font-weight:600;margin-bottom:12px;">Required Documents (' + data.required_documents.length + ')</div>';
+      h += '<div class="gap-category-grid">';
+      for (var d = 0; d < data.required_documents.length; d++) {
+        var doc = data.required_documents[d];
+        h += '<div class="gap-missing-item">';
+        h += '<svg viewBox="0 0 24 24" fill="none" stroke="#666" stroke-width="1.5" style="width:16px;height:16px;flex-shrink:0;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+        h += '<div><div class="gap-item-name">' + esc((doc.name || doc.item || '').replace(/_/g, ' ')) + '</div>';
+        h += '<div class="gap-item-detail">' + esc((doc.category || '').replace(/_/g, ' ')) + '</div></div>';
+        h += '</div>';
+      }
+      h += '</div></div>';
+    }
+
+    // Required entities / roles
+    if (data.required_entities && data.required_entities.length > 0) {
+      h += '<div style="margin-bottom:24px;">';
+      h += '<div style="font-size:16px;font-weight:600;margin-bottom:12px;">Required Entity Roles (' + data.required_entities.length + ')</div>';
+      for (var e = 0; e < data.required_entities.length; e++) {
+        var role = data.required_entities[e];
+        h += '<div style="border:1px solid #e8e8e8;border-radius:8px;padding:14px;margin-bottom:8px;">';
+        h += '<div style="font-size:14px;font-weight:600;">' + esc((role.role || '').replace(/_/g, ' ')) + '</div>';
+        if (role.required_fields && role.required_fields.length > 0) {
+          h += '<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:4px;">';
+          for (var f = 0; f < role.required_fields.length; f++) {
+            h += '<span style="display:inline-block;padding:2px 8px;background:#f0f0f0;border-radius:10px;font-size:11px;color:#555;">' + esc((role.required_fields[f] || '').replace(/_/g, ' ')) + '</span>';
+          }
+          h += '</div>';
+        }
+        h += '</div>';
+      }
+      h += '</div>';
+    }
+
+    h += '</div>';
+    document.getElementById('main').innerHTML = h;
+  }).catch(function(err) {
+    document.getElementById('main').innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Failed to load template') + '</div>';
+  });
+}
+
+function showClientDashboard() {
+  _selectedSpoke = null;
+  selectedView = 'client_dashboard';
+  selectedId = null;
+  selectedCategory = null;
+  breadcrumbs = [{ label: 'Clients' }];
+  renderBreadcrumbs();
+  renderSidebar();
+  renderClientDashboard();
+}
+
+function renderClientDashboard() {
+  var clientSpokes = _spokesList.filter(function(s) { return s.id !== 'default'; });
+  var mainEl = document.getElementById('main');
+
+  if (clientSpokes.length === 0) {
+    mainEl.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg><div>No clients yet.<br/><span style="color:#0a66c2;cursor:pointer;" onclick="promptNewClient()">+ Add your first client</span></div></div>';
+    return;
+  }
+
+  // Summary stats
+  var total = clientSpokes.length;
+  var critical = 0, inProgress = 0, complete = 0;
+  for (var i = 0; i < clientSpokes.length; i++) {
+    var cs = clientSpokes[i];
+    if (!cs._hasTemplate) continue;
+    if (cs._completeness >= 0.8) complete++;
+    else if (cs._completeness >= 0.5) inProgress++;
+    else critical++;
+  }
+
+  var h = '<div style="padding:24px 28px;">';
+  h += '<div style="font-size:22px;font-weight:700;margin-bottom:20px;">Clients</div>';
+
+  // Stats row
+  h += '<div style="display:flex;gap:16px;margin-bottom:24px;flex-wrap:wrap;">';
+  h += '<div style="padding:12px 20px;background:#f8f8fa;border-radius:10px;font-size:13px;"><strong style="font-size:20px;display:block;">' + total + '</strong> Total</div>';
+  if (critical > 0) h += '<div style="padding:12px 20px;background:#fef2f2;border-radius:10px;font-size:13px;color:#991B1B;"><strong style="font-size:20px;display:block;">' + critical + '</strong> Critical</div>';
+  if (inProgress > 0) h += '<div style="padding:12px 20px;background:#fefce8;border-radius:10px;font-size:13px;color:#92400E;"><strong style="font-size:20px;display:block;">' + inProgress + '</strong> In Progress</div>';
+  if (complete > 0) h += '<div style="padding:12px 20px;background:#f0fdf4;border-radius:10px;font-size:13px;color:#065F46;"><strong style="font-size:20px;display:block;">' + complete + '</strong> Complete</div>';
+  h += '</div>';
+
+  // Client table
+  h += '<table style="width:100%;border-collapse:collapse;font-size:14px;">';
+  h += '<thead><tr style="border-bottom:2px solid #e8e8e8;text-align:left;">';
+  h += '<th style="padding:10px 12px;font-weight:600;color:var(--text-secondary);">Name</th>';
+  h += '<th style="padding:10px 12px;font-weight:600;color:var(--text-secondary);">Template</th>';
+  h += '<th style="padding:10px 12px;font-weight:600;color:var(--text-secondary);">Completeness</th>';
+  h += '<th style="padding:10px 12px;font-weight:600;color:var(--text-secondary);">Entities</th>';
+  h += '<th style="padding:10px 12px;font-weight:600;color:var(--text-secondary);">Updated</th>';
+  h += '</tr></thead><tbody>';
+
+  // Sort: worst completeness first
+  var sorted = clientSpokes.slice().sort(function(a, b) {
+    var aS = a._hasTemplate ? a._completeness : 2;
+    var bS = b._hasTemplate ? b._completeness : 2;
+    return aS - bS;
+  });
+
+  for (var i = 0; i < sorted.length; i++) {
+    var cs = sorted[i];
+    var pct = cs._hasTemplate ? Math.round((cs._completeness || 0) * 100) : -1;
+    var barColor = pct >= 80 ? '#16A34A' : pct >= 50 ? '#CA8A04' : '#DC2626';
+    var updated = cs.updated_at ? new Date(cs.updated_at).toLocaleDateString() : '—';
+    var templateLabel = cs.template_type ? cs.template_type.replace(/_/g, ' ').replace(/\\b[a-z]/g, function(l) { return l.toUpperCase(); }) : '—';
+
+    h += '<tr style="border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background 0.15s;" onclick="selectClient(\\'' + esc(cs.id) + '\\')" onmouseover="this.style.background=\\'#f8f8fa\\'" onmouseout="this.style.background=\\'\\'">';
+    h += '<td style="padding:12px;font-weight:500;">' + esc(cs.name) + '</td>';
+    h += '<td style="padding:12px;color:var(--text-muted);">' + esc(templateLabel) + '</td>';
+    h += '<td style="padding:12px;">';
+    if (pct >= 0) {
+      h += '<div style="display:flex;align-items:center;gap:8px;">';
+      h += '<div style="width:80px;height:6px;background:#e8e8e8;border-radius:3px;overflow:hidden;"><div style="width:' + pct + '%;height:100%;background:' + barColor + ';border-radius:3px;"></div></div>';
+      h += '<span style="font-size:13px;font-weight:600;color:' + barColor + ';">' + pct + '%</span>';
+      h += '</div>';
+    } else {
+      h += '<span style="color:var(--text-muted);font-size:12px;">No template</span>';
+    }
+    h += '</td>';
+    h += '<td style="padding:12px;color:var(--text-muted);">' + (cs.entity_count || 0) + '</td>';
+    h += '<td style="padding:12px;color:var(--text-muted);font-size:13px;">' + esc(updated) + '</td>';
+    h += '</tr>';
+  }
+
+  h += '</tbody></table></div>';
+  mainEl.innerHTML = h;
+}
+
+/* --- End Client Navigation (Build 8) --- */
 
 /* --- Entity Detail --- */
 function confirmDeleteEntity(id, name) {
@@ -15060,6 +16020,371 @@ function togglePpSection(secId) {
   if (body) body.classList.toggle('collapsed', !!ppCollapsed[secId]);
   if (chev) chev.classList.toggle('collapsed', !!ppCollapsed[secId]);
 }
+
+/* --- Context-Sensitive Right Panel (Build 8) --- */
+var _rpContext = 'pipeline'; // 'pipeline' | 'review_queue' | 'field_detail' | 'document_detail'
+var _rpSelectedField = null; // {ri, ei, fi, field, value, status, provenance, entity_id, entity_name}
+
+function updateContextRightPanel(context, detail) {
+  _rpContext = context;
+  var rp = document.getElementById('rightPanelContent');
+  if (!rp) return;
+
+  if (context === 'review_queue') {
+    renderReviewQueuePanel(rp);
+  } else if (context === 'field_detail' && detail) {
+    _rpSelectedField = detail;
+    renderFieldDetailPanel(rp, detail);
+  } else if (context === 'document_detail' && detail) {
+    renderDocumentDetailPanel(rp, detail);
+  } else {
+    // Fall back to pipeline
+    renderRightPanel(null);
+  }
+}
+
+function renderReviewQueuePanel(rp) {
+  if (!_selectedSpoke || !_exportData) {
+    rp.innerHTML = '<div style="padding:24px;color:var(--text-muted);font-size:13px;">Select a client to view review queue.</div>';
+    return;
+  }
+
+  var roles = _exportData.roles || [];
+  var pending = [];
+  var verified = [];
+
+  // Scan all fields for review status
+  for (var ri = 0; ri < roles.length; ri++) {
+    var role = roles[ri];
+    for (var ei = 0; ei < (role.entities || []).length; ei++) {
+      var ent = role.entities[ei];
+      for (var fi = 0; fi < (ent.fields || []).length; fi++) {
+        var f = ent.fields[fi];
+        if (f.status === 'missing') continue;
+        var item = {
+          ri: ri, ei: ei, fi: fi,
+          field: f.field, value: f.value, status: f.status,
+          provenance: f.provenance || {},
+          entity_id: ent.entity_id, entity_name: ent.entity_name,
+          review: f.review || null
+        };
+        if (f.review && f.review.status === 'approved') {
+          verified.push(item);
+        } else {
+          pending.push(item);
+        }
+      }
+    }
+  }
+
+  // Sort pending: critical fields first, then by confidence
+  var criticalKeys = ['ssn', 'ein', 'tax_id', 'account', 'bank', 'social_security'];
+  pending.sort(function(a, b) {
+    var aIsCritical = criticalKeys.some(function(k) { return (a.field || '').toLowerCase().indexOf(k) >= 0; });
+    var bIsCritical = criticalKeys.some(function(k) { return (b.field || '').toLowerCase().indexOf(k) >= 0; });
+    if (aIsCritical && !bIsCritical) return -1;
+    if (!aIsCritical && bIsCritical) return 1;
+    return 0;
+  });
+
+  var h = '<div style="padding:4px 0;">';
+
+  // Header
+  h += '<div class="rp-section-title">';
+  h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>';
+  h += 'REVIEW QUEUE</div>';
+
+  if (pending.length > 0) {
+    h += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">' + pending.length + ' item' + (pending.length !== 1 ? 's' : '') + ' need review</div>';
+
+    for (var i = 0; i < Math.min(pending.length, 15); i++) {
+      var p = pending[i];
+      h += '<div class="rp-review-item" onclick="showFieldInRightPanel(' + p.ri + ',' + p.ei + ',' + p.fi + ')">';
+      h += '<div class="rp-review-field">' + esc(_exportFormatLabel(p.field)) + '</div>';
+      if (p.value) h += '<div class="rp-review-value">' + esc(String(p.value)) + '</div>';
+      if (p.provenance && p.provenance.filename) {
+        h += '<div class="rp-review-source">';
+        h += '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+        h += esc(p.provenance.filename);
+        h += '</div>';
+      }
+      h += '<div class="rp-actions">';
+      h += '<button class="rp-btn approve" onclick="event.stopPropagation();reviewField(' + p.ri + ',' + p.ei + ',' + p.fi + ',\\'approved\\')">&#10003; Approve</button>';
+      h += '<button class="rp-btn reject" onclick="event.stopPropagation();reviewField(' + p.ri + ',' + p.ei + ',' + p.fi + ',\\'rejected\\')">&#10007; Reject</button>';
+      h += '<button class="rp-btn edit" onclick="event.stopPropagation();showFieldInRightPanel(' + p.ri + ',' + p.ei + ',' + p.fi + ')">&#9998; Edit</button>';
+      h += '</div></div>';
+    }
+    if (pending.length > 15) {
+      h += '<div style="text-align:center;padding:8px;font-size:12px;color:var(--text-muted);">+ ' + (pending.length - 15) + ' more items</div>';
+    }
+  } else {
+    h += '<div style="text-align:center;padding:20px;color:#059669;font-size:13px;">All fields reviewed!</div>';
+  }
+
+  // Verified section
+  if (verified.length > 0) {
+    h += '<div class="rp-section-title" style="margin-top:24px;">';
+    h += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
+    h += 'VERIFIED (' + verified.length + ')</div>';
+    h += '<div style="max-height:200px;overflow-y:auto;">';
+    for (var v = 0; v < verified.length; v++) {
+      var vi = verified[v];
+      h += '<div class="rp-verified-item">';
+      h += '<span class="rp-verified-check">&#10003;</span>';
+      h += '<span>' + esc(_exportFormatLabel(vi.field)) + '</span>';
+      if (vi.review && vi.review.reviewed_at) {
+        h += '<span style="margin-left:auto;font-size:10px;">' + new Date(vi.review.reviewed_at).toLocaleDateString() + '</span>';
+      }
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  h += '</div>';
+  rp.innerHTML = h;
+}
+
+function renderFieldDetailPanel(rp, detail) {
+  var h = '<div class="rp-field-detail" style="padding:4px 0;">';
+
+  h += '<div class="rp-section-title">';
+  h += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0a66c2" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+  h += 'FIELD DETAIL</div>';
+
+  h += '<div class="rp-field-header">' + esc(_exportFormatLabel(detail.field)) + '</div>';
+
+  // Value
+  if (detail.value) {
+    h += '<div class="rp-field-value" id="rpFieldValue">' + esc(String(detail.value)) + '</div>';
+  } else {
+    h += '<div class="rp-field-value" style="color:var(--text-muted);font-style:italic;">No value</div>';
+  }
+
+  // Status badge
+  var statusLabel = { verified: 'Verified', low_confidence: 'Low Confidence', conflict: 'Conflict', missing: 'Missing' };
+  h += '<div class="rp-field-status ' + esc(detail.status || '') + '">' + (statusLabel[detail.status] || detail.status || 'Unknown') + '</div>';
+
+  // Confidence
+  if (detail.provenance && detail.provenance.confidence) {
+    h += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Confidence: <strong>' + (detail.provenance.confidence * 100).toFixed(0) + '%</strong></div>';
+  }
+
+  // Evidence
+  if (detail.provenance && (detail.provenance.snippet || detail.provenance.filename)) {
+    h += '<div class="rp-evidence-label">SOURCE EVIDENCE</div>';
+    h += '<div class="rp-evidence">';
+    if (detail.provenance.snippet) {
+      h += '<div class="rp-evidence-snippet">&ldquo;' + esc(detail.provenance.snippet) + '&rdquo;</div>';
+    }
+    h += '<div class="rp-evidence-file">';
+    h += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+    h += esc(detail.provenance.filename || '');
+    if (detail.provenance.location) h += ' &middot; ' + esc(detail.provenance.location);
+    h += '</div>';
+    if (detail.provenance.file_id && _selectedSpoke) {
+      h += '<a href="/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/file/' + encodeURIComponent(detail.provenance.file_id) + '" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:#0a66c2;margin-top:8px;text-decoration:none;">';
+      h += '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>';
+      h += 'View Original</a>';
+    }
+    h += '</div>';
+  }
+
+  // Action buttons
+  h += '<div style="margin-top:20px;">';
+  h += '<div class="rp-actions" style="margin-bottom:12px;">';
+  h += '<button class="rp-btn approve" onclick="reviewField(' + detail.ri + ',' + detail.ei + ',' + detail.fi + ',\\'approved\\')">&#10003; Approve</button>';
+  h += '<button class="rp-btn reject" onclick="reviewField(' + detail.ri + ',' + detail.ei + ',' + detail.fi + ',\\'rejected\\')">&#10007; Reject</button>';
+  h += '</div>';
+
+  // Edit inline
+  h += '<div id="rpEditSection">';
+  h += '<button class="rp-btn edit" onclick="showFieldEditInline()" style="width:100%;">&#9998; Edit Value</button>';
+  h += '</div>';
+  h += '</div>';
+
+  // Back to review queue
+  h += '<div style="margin-top:24px;padding-top:16px;border-top:1px solid #e8e8e8;">';
+  h += '<span style="font-size:12px;color:#0a66c2;cursor:pointer;" onclick="updateContextRightPanel(\\'review_queue\\')">&larr; Back to Review Queue</span>';
+  h += '</div>';
+
+  h += '</div>';
+  rp.innerHTML = h;
+}
+
+function renderDocumentDetailPanel(rp, detail) {
+  var h = '<div style="padding:4px 0;">';
+
+  h += '<div class="rp-section-title">';
+  h += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+  h += 'DOCUMENT DETAIL</div>';
+
+  var fName = detail.original_name || detail.filename || detail.id || '';
+  h += '<div style="font-size:16px;font-weight:600;margin-bottom:12px;">' + esc(fName) + '</div>';
+
+  // Meta
+  h += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">';
+  if (detail.uploaded_at) h += 'Uploaded: ' + new Date(detail.uploaded_at).toLocaleDateString() + '<br/>';
+  if (detail.size) {
+    var sz = detail.size > 1024*1024 ? (detail.size/(1024*1024)).toFixed(1) + ' MB' : (detail.size/1024).toFixed(1) + ' KB';
+    h += 'Size: ' + sz + '<br/>';
+  }
+  if (detail.content_type) h += 'Type: ' + esc(detail.content_type);
+  h += '</div>';
+
+  // Extracted fields from this file (scan export data)
+  if (_exportData) {
+    var extractedFromFile = [];
+    var roles = _exportData.roles || [];
+    for (var ri = 0; ri < roles.length; ri++) {
+      for (var ei = 0; ei < (roles[ri].entities || []).length; ei++) {
+        for (var fi = 0; fi < (roles[ri].entities[ei].fields || []).length; fi++) {
+          var f = roles[ri].entities[ei].fields[fi];
+          if (f.provenance && (f.provenance.file_id === detail.id || f.provenance.filename === fName)) {
+            extractedFromFile.push({
+              field: f.field, value: f.value, status: f.status,
+              ri: ri, ei: ei, fi: fi
+            });
+          }
+        }
+      }
+    }
+
+    if (extractedFromFile.length > 0) {
+      h += '<div class="rp-section-title" style="margin-top:8px;">EXTRACTED FROM THIS FILE</div>';
+      for (var i = 0; i < extractedFromFile.length; i++) {
+        var ef = extractedFromFile[i];
+        var statusIcon = ef.status === 'verified' ? '&#10003;' : (ef.status === 'conflict' ? '&#9888;' : '&#9679;');
+        var statusColor = ef.status === 'verified' ? '#059669' : (ef.status === 'conflict' ? '#dc2626' : '#6b7280');
+        h += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;border-bottom:1px solid #f0f0f0;cursor:pointer;" onclick="showFieldInRightPanel(' + ef.ri + ',' + ef.ei + ',' + ef.fi + ')">';
+        h += '<span style="color:' + statusColor + ';">' + statusIcon + '</span>';
+        h += '<span style="font-weight:500;">' + esc(_exportFormatLabel(ef.field)) + ':</span> ';
+        h += '<span style="color:var(--text-secondary);">' + esc(String(ef.value || '—')) + '</span>';
+        h += '</div>';
+      }
+    } else {
+      h += '<div style="font-size:12px;color:var(--text-muted);margin-top:16px;">No fields extracted from this file yet.</div>';
+    }
+  }
+
+  // Action buttons
+  h += '<div style="margin-top:20px;display:flex;flex-direction:column;gap:8px;">';
+  if (detail.id && _selectedSpoke) {
+    h += '<a href="/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/file/' + encodeURIComponent(detail.id) + '" target="_blank" class="rp-btn" style="text-align:center;text-decoration:none;display:block;">View Full Document</a>';
+  }
+  h += '</div>';
+
+  h += '</div>';
+  rp.innerHTML = h;
+}
+
+function showFieldInRightPanel(ri, ei, fi) {
+  if (!_exportData) return;
+  var f = _exportData.roles[ri].entities[ei].fields[fi];
+  if (!f) return;
+  updateContextRightPanel('field_detail', {
+    ri: ri, ei: ei, fi: fi,
+    field: f.field, value: f.value, status: f.status,
+    provenance: f.provenance || {},
+    entity_id: _exportData.roles[ri].entities[ei].entity_id,
+    entity_name: _exportData.roles[ri].entities[ei].entity_name,
+    review: f.review || null
+  });
+}
+
+function showFieldEditInline() {
+  var section = document.getElementById('rpEditSection');
+  if (!section || !_rpSelectedField) return;
+  var h = '<input class="rp-edit-input" id="rpEditInput" value="' + esc(String(_rpSelectedField.value || '')) + '" />';
+  h += '<div class="rp-actions">';
+  h += '<button class="rp-btn approve" onclick="saveFieldEdit()">Save</button>';
+  h += '<button class="rp-btn" onclick="showFieldInRightPanel(' + _rpSelectedField.ri + ',' + _rpSelectedField.ei + ',' + _rpSelectedField.fi + ')">Cancel</button>';
+  h += '</div>';
+  section.innerHTML = h;
+  var inp = document.getElementById('rpEditInput');
+  if (inp) { inp.focus(); inp.select(); }
+}
+
+function saveFieldEdit() {
+  if (!_rpSelectedField || !_selectedSpoke) return;
+  var inp = document.getElementById('rpEditInput');
+  if (!inp) return;
+  var newValue = inp.value.trim();
+  if (!newValue) { toast('Value cannot be empty'); return; }
+  if (!_rpSelectedField.entity_id) { toast('No entity ID for this field'); return; }
+
+  // Update via entity observation
+  var payload = {
+    type: 'human_review',
+    content: _rpSelectedField.field + ': ' + newValue,
+    confidence_label: 'confirmed',
+    facts_layer: { key: _rpSelectedField.field, value: newValue },
+    source: 'human_review'
+  };
+  api('POST', '/api/entity/' + encodeURIComponent(_rpSelectedField.entity_id) + '/observe', payload).then(function() {
+    toast('Field updated: ' + _exportFormatLabel(_rpSelectedField.field));
+    // Refresh export data and right panel
+    loadClientTabContent('export');
+  }).catch(function(err) {
+    toast('Update failed: ' + (err.message || err));
+  });
+}
+
+function reviewField(ri, ei, fi, status) {
+  if (!_exportData || !_selectedSpoke) return;
+  var f = _exportData.roles[ri].entities[ei].fields[fi];
+  if (!f) return;
+  var entityId = _exportData.roles[ri].entities[ei].entity_id;
+  if (!entityId) { toast('No entity ID for this field'); return; }
+
+  // Find the observation index for this field
+  api('GET', '/api/entity/' + encodeURIComponent(entityId)).then(function(entityData) {
+    var obs = entityData.observations || [];
+    var attrs = entityData.attributes || [];
+    var fieldKey = (f.field || '').toLowerCase().replace(/\\s+/g, '_');
+
+    // Search observations for matching field
+    var obsIndex = -1;
+    for (var i = 0; i < obs.length; i++) {
+      var obsText = (obs[i].content || obs[i].text || '').toLowerCase();
+      if (obsText.indexOf(fieldKey) >= 0 || obsText.indexOf(String(f.value || '').toLowerCase()) >= 0) {
+        obsIndex = i;
+        break;
+      }
+    }
+
+    // Try attributes if not found in observations
+    if (obsIndex === -1) {
+      for (var i = 0; i < attrs.length; i++) {
+        if ((attrs[i].key || '').toLowerCase() === fieldKey) {
+          obsIndex = i;
+          break;
+        }
+      }
+    }
+
+    // Call review endpoint
+    api('PATCH', '/api/entity/' + encodeURIComponent(entityId) + '/observation/' + (obsIndex >= 0 ? obsIndex : 0) + '/review', {
+      status: status,
+      reviewed_by: (sessionUser && sessionUser.name) || 'user',
+      field_key: f.field
+    }).then(function() {
+      toast(status === 'approved' ? 'Field approved!' : 'Field rejected');
+      // Update local export data
+      f.review = { status: status, reviewed_at: new Date().toISOString(), reviewed_by: (sessionUser && sessionUser.name) || 'user' };
+      // Refresh right panel
+      if (_rpContext === 'review_queue') {
+        renderReviewQueuePanel(document.getElementById('rightPanelContent'));
+      } else if (_rpContext === 'field_detail') {
+        showFieldInRightPanel(ri, ei, fi);
+      }
+    }).catch(function(err) {
+      toast('Review failed: ' + (err.message || err));
+    });
+  });
+}
+
+// Wire right panel update on tab switch
+var _origShowClientWorkspace = showClientWorkspace;
 
 function renderRightPanel(data) {
   var rp = document.getElementById('rightPanelContent');
