@@ -1,0 +1,401 @@
+{
+  "template_id": "personal_injury",
+  "version": "1.0.0",
+  "display_name": "Personal Injury",
+  "description": "PI case management — tracks all documents from incident through settlement",
+  "created_by": "Context Architecture",
+  "created_at": "2026-02-25T00:00:00Z",
+
+  "document_types": [
+    {
+      "type_id": "police_report",
+      "display_name": "Police Report",
+      "category": "Liability",
+      "priority": "HIGH",
+      "classification_signals": ["police report", "incident report", "accident report", "officer", "badge number", "case number", "responding officer"],
+      "extraction_spec": [
+        { "field_id": "liability.case_number", "display_name": "Police Case Number", "field_type": "text", "sensitivity": "HIGH", "entity_type": "gov", "source_hint": "Header or first page — usually labeled 'Case #' or 'Report #'", "extraction_notes": "Unique identifier for the police report. Cross-ref with insurance claim.", "auto_approve": false },
+        { "field_id": "liability.incident_date", "display_name": "Incident Date", "field_type": "date", "sensitivity": "HIGH", "entity_type": "event", "source_hint": "First page — 'Date of Incident' or 'Date/Time'", "extraction_notes": "Must match across all documents.", "auto_approve": false },
+        { "field_id": "liability.incident_location", "display_name": "Incident Location", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Address or intersection of incident", "auto_approve": true },
+        { "field_id": "liability.responding_officer", "display_name": "Responding Officer", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Officer name and badge number", "auto_approve": true },
+        { "field_id": "liability.plaintiff_name", "display_name": "Plaintiff Name (on report)", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Party 1 or Victim section", "extraction_notes": "Cross-ref with plaintiff entity name.", "auto_approve": false },
+        { "field_id": "liability.defendant_name", "display_name": "Defendant Name (on report)", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Party 2 or At-Fault Driver section", "auto_approve": false },
+        { "field_id": "liability.citations_issued", "display_name": "Citations Issued", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Citations or violations section", "auto_approve": true },
+        { "field_id": "liability.narrative_summary", "display_name": "Narrative Summary", "field_type": "text", "sensitivity": "LOW", "source_hint": "Officer narrative section", "auto_approve": true }
+      ]
+    },
+    {
+      "type_id": "accident_photos",
+      "display_name": "Accident Photos",
+      "category": "Liability",
+      "priority": "MEDIUM",
+      "classification_signals": ["accident photo", "damage photo", "scene photo", "vehicle damage", "injury photo"],
+      "extraction_spec": [
+        { "field_id": "liability.photo_date", "display_name": "Photo Date", "field_type": "date", "sensitivity": "STANDARD", "source_hint": "EXIF metadata or file date", "auto_approve": true },
+        { "field_id": "liability.photo_description", "display_name": "Photo Description", "field_type": "text", "sensitivity": "LOW", "source_hint": "Visual description of damage or scene", "auto_approve": true }
+      ]
+    },
+    {
+      "type_id": "witness_statements",
+      "display_name": "Witness Statements",
+      "category": "Liability",
+      "priority": "HIGH",
+      "classification_signals": ["witness statement", "witness", "deposition", "testimony", "sworn statement", "affidavit"],
+      "extraction_spec": [
+        { "field_id": "liability.witness_name", "display_name": "Witness Name", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Header or signature line", "auto_approve": true },
+        { "field_id": "liability.witness_contact", "display_name": "Witness Contact Info", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Phone or address in header", "auto_approve": true },
+        { "field_id": "liability.statement_date", "display_name": "Statement Date", "field_type": "date", "sensitivity": "STANDARD", "source_hint": "Date signed or notarized", "auto_approve": true },
+        { "field_id": "liability.statement_summary", "display_name": "Statement Summary", "field_type": "text", "sensitivity": "LOW", "source_hint": "Key facts from witness account", "auto_approve": true }
+      ]
+    },
+    {
+      "type_id": "incident_report",
+      "display_name": "Incident Report",
+      "category": "Liability",
+      "priority": "HIGH",
+      "classification_signals": ["incident report", "accident report", "claim report", "loss report"],
+      "extraction_spec": [
+        { "field_id": "liability.report_number", "display_name": "Report Number", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Header", "auto_approve": true },
+        { "field_id": "liability.report_date", "display_name": "Report Date", "field_type": "date", "sensitivity": "STANDARD", "source_hint": "Date filed", "auto_approve": true },
+        { "field_id": "liability.report_summary", "display_name": "Report Summary", "field_type": "text", "sensitivity": "LOW", "source_hint": "Description of incident", "auto_approve": true }
+      ]
+    },
+    {
+      "type_id": "medical_records",
+      "display_name": "Medical Records",
+      "category": "Medical",
+      "priority": "HIGH",
+      "classification_signals": ["medical record", "patient", "diagnosis", "treatment", "physician", "hospital", "clinic", "provider", "medical chart"],
+      "extraction_spec": [
+        { "field_id": "medical.patient_name", "display_name": "Patient Name", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Patient header on every page", "extraction_notes": "Must match plaintiff name.", "auto_approve": false },
+        { "field_id": "medical.provider_name", "display_name": "Provider Name", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Letterhead or facility name", "auto_approve": false },
+        { "field_id": "medical.provider_npi", "display_name": "Provider NPI", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Usually in header or billing section", "auto_approve": true },
+        { "field_id": "medical.treatment_date", "display_name": "Treatment Date", "field_type": "date", "sensitivity": "HIGH", "source_hint": "Date of service or visit date", "auto_approve": false },
+        { "field_id": "medical.diagnosis_codes", "display_name": "Diagnosis Codes (ICD)", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Diagnosis section — ICD-10 codes", "auto_approve": false },
+        { "field_id": "medical.procedures", "display_name": "Procedures Performed", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Treatment or procedure section — CPT codes", "auto_approve": true },
+        { "field_id": "medical.treating_physician", "display_name": "Treating Physician", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Attending or treating physician signature", "auto_approve": true }
+      ]
+    },
+    {
+      "type_id": "treatment_plans",
+      "display_name": "Treatment Plans",
+      "category": "Medical",
+      "priority": "MEDIUM",
+      "classification_signals": ["treatment plan", "care plan", "rehabilitation plan", "therapy plan", "physical therapy"],
+      "extraction_spec": [
+        { "field_id": "medical.plan_date", "display_name": "Plan Date", "field_type": "date", "sensitivity": "STANDARD", "source_hint": "Date of plan creation", "auto_approve": true },
+        { "field_id": "medical.plan_provider", "display_name": "Plan Provider", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Provider creating the plan", "auto_approve": true },
+        { "field_id": "medical.plan_duration", "display_name": "Treatment Duration", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Expected duration or number of visits", "auto_approve": true },
+        { "field_id": "medical.plan_summary", "display_name": "Treatment Summary", "field_type": "text", "sensitivity": "LOW", "source_hint": "Recommended treatments and frequency", "auto_approve": true }
+      ]
+    },
+    {
+      "type_id": "surgical_reports",
+      "display_name": "Surgical Reports",
+      "category": "Medical",
+      "priority": "HIGH",
+      "classification_signals": ["surgical report", "operative report", "surgery", "operative note", "procedure report"],
+      "extraction_spec": [
+        { "field_id": "medical.surgery_date", "display_name": "Surgery Date", "field_type": "date", "sensitivity": "HIGH", "source_hint": "Date of procedure", "auto_approve": false },
+        { "field_id": "medical.surgeon_name", "display_name": "Surgeon Name", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Operating surgeon", "auto_approve": false },
+        { "field_id": "medical.procedure_name", "display_name": "Procedure Name", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Procedure description", "auto_approve": true },
+        { "field_id": "medical.surgical_findings", "display_name": "Surgical Findings", "field_type": "text", "sensitivity": "LOW", "source_hint": "Intraoperative findings", "auto_approve": true }
+      ]
+    },
+    {
+      "type_id": "prescription_records",
+      "display_name": "Prescription Records",
+      "category": "Medical",
+      "priority": "MEDIUM",
+      "classification_signals": ["prescription", "medication", "rx", "pharmacy", "drug"],
+      "extraction_spec": [
+        { "field_id": "medical.medication_name", "display_name": "Medication Name", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Drug name and dosage", "auto_approve": true },
+        { "field_id": "medical.prescribing_physician", "display_name": "Prescribing Physician", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Prescriber name", "auto_approve": true },
+        { "field_id": "medical.prescription_date", "display_name": "Prescription Date", "field_type": "date", "sensitivity": "STANDARD", "source_hint": "Date prescribed", "auto_approve": true }
+      ]
+    },
+    {
+      "type_id": "ime_reports",
+      "display_name": "Independent Medical Examination",
+      "category": "Medical",
+      "priority": "HIGH",
+      "classification_signals": ["independent medical examination", "IME", "defense medical exam", "medical examination report"],
+      "extraction_spec": [
+        { "field_id": "medical.examiner_name", "display_name": "Examiner Name", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Examining physician name and credentials", "auto_approve": false },
+        { "field_id": "medical.examination_date", "display_name": "Examination Date", "field_type": "date", "sensitivity": "HIGH", "source_hint": "Date of examination", "auto_approve": false },
+        { "field_id": "medical.findings_summary", "display_name": "Findings Summary", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Summary of examiner findings", "auto_approve": true },
+        { "field_id": "medical.disability_rating", "display_name": "Disability Rating", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Impairment or disability percentage", "auto_approve": false },
+        { "field_id": "medical.max_medical_improvement", "display_name": "Max Medical Improvement", "field_type": "text", "sensitivity": "HIGH", "source_hint": "MMI date or status", "auto_approve": false }
+      ]
+    },
+    {
+      "type_id": "insurance_policy",
+      "display_name": "Insurance Policy",
+      "category": "Insurance",
+      "priority": "HIGH",
+      "classification_signals": ["insurance policy", "policy", "coverage", "insured", "underwriting", "premium"],
+      "extraction_spec": [
+        { "field_id": "insurance.policy_number", "display_name": "Policy Number", "field_type": "text", "sensitivity": "CRITICAL", "source_hint": "Policy declarations page — top right or header", "extraction_notes": "Must match declarations page.", "auto_approve": false },
+        { "field_id": "insurance.insurer_name", "display_name": "Insurer Name", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Insurance company name on letterhead", "auto_approve": false },
+        { "field_id": "insurance.insured_name", "display_name": "Insured Name", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Named insured on declarations", "auto_approve": false },
+        { "field_id": "insurance.coverage_limits", "display_name": "Coverage Limits", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Per-person and per-occurrence limits", "auto_approve": false },
+        { "field_id": "insurance.effective_dates", "display_name": "Policy Effective Dates", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Policy period start and end dates", "auto_approve": true },
+        { "field_id": "insurance.policy_type", "display_name": "Policy Type", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Auto, homeowner, commercial, umbrella", "auto_approve": true }
+      ]
+    },
+    {
+      "type_id": "declarations_page",
+      "display_name": "Declarations Page",
+      "category": "Insurance",
+      "priority": "HIGH",
+      "classification_signals": ["declarations page", "dec page", "policy declarations", "coverage summary", "limits of liability"],
+      "extraction_spec": [
+        { "field_id": "insurance.bodily_injury_limit", "display_name": "Bodily Injury Limit", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "BI limits — per person / per occurrence", "auto_approve": false },
+        { "field_id": "insurance.property_damage_limit", "display_name": "Property Damage Limit", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "PD limit", "auto_approve": false },
+        { "field_id": "insurance.um_uim_limit", "display_name": "UM/UIM Limit", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Uninsured/underinsured motorist limits", "auto_approve": false },
+        { "field_id": "insurance.med_pay_limit", "display_name": "Med Pay Limit", "field_type": "currency", "sensitivity": "STANDARD", "source_hint": "Medical payments coverage limit", "auto_approve": true }
+      ]
+    },
+    {
+      "type_id": "coverage_confirmation",
+      "display_name": "Coverage Confirmation",
+      "category": "Insurance",
+      "priority": "MEDIUM",
+      "classification_signals": ["coverage confirmation", "proof of insurance", "insurance verification", "certificate of insurance"],
+      "extraction_spec": [
+        { "field_id": "insurance.confirmation_date", "display_name": "Confirmation Date", "field_type": "date", "sensitivity": "STANDARD", "source_hint": "Date of confirmation letter", "auto_approve": true },
+        { "field_id": "insurance.confirmed_limits", "display_name": "Confirmed Limits", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Confirmed coverage amounts", "auto_approve": false }
+      ]
+    },
+    {
+      "type_id": "adjuster_correspondence",
+      "display_name": "Adjuster Correspondence",
+      "category": "Insurance",
+      "priority": "MEDIUM",
+      "classification_signals": ["adjuster", "claims adjuster", "claim handler", "insurance adjuster", "claim correspondence"],
+      "extraction_spec": [
+        { "field_id": "insurance.adjuster_name", "display_name": "Adjuster Name", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Adjuster signature or header", "auto_approve": true },
+        { "field_id": "insurance.claim_number", "display_name": "Claim Number", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Reference or claim number in header", "auto_approve": false },
+        { "field_id": "insurance.correspondence_date", "display_name": "Correspondence Date", "field_type": "date", "sensitivity": "STANDARD", "source_hint": "Letter date", "auto_approve": true }
+      ]
+    },
+    {
+      "type_id": "medical_bills",
+      "display_name": "Medical Bills",
+      "category": "Financial",
+      "priority": "HIGH",
+      "classification_signals": ["medical bill", "invoice", "statement of charges", "billing statement", "patient statement", "amount due"],
+      "extraction_spec": [
+        { "field_id": "financial.bill_provider_name", "display_name": "Provider Name", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Billing entity on letterhead", "extraction_notes": "Should match a medical_provider entity.", "auto_approve": false },
+        { "field_id": "financial.bill_amount", "display_name": "Bill Amount", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Total charges or amount due", "auto_approve": false },
+        { "field_id": "financial.bill_date", "display_name": "Bill Date", "field_type": "date", "sensitivity": "STANDARD", "source_hint": "Statement date or date of service", "auto_approve": true },
+        { "field_id": "financial.service_description", "display_name": "Service Description", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Itemized services or CPT codes", "auto_approve": true },
+        { "field_id": "financial.patient_account_number", "display_name": "Patient Account Number", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Account or patient number on statement", "auto_approve": true }
+      ]
+    },
+    {
+      "type_id": "lien_notices",
+      "display_name": "Lien Notices",
+      "category": "Financial",
+      "priority": "HIGH",
+      "classification_signals": ["lien", "lien notice", "subrogation", "medicare lien", "medicaid lien", "ERISA", "hospital lien"],
+      "extraction_spec": [
+        { "field_id": "financial.lienholder_name", "display_name": "Lienholder Name", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Entity asserting the lien", "auto_approve": false },
+        { "field_id": "financial.lien_amount", "display_name": "Lien Amount", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Total lien amount asserted", "auto_approve": false },
+        { "field_id": "financial.lien_date", "display_name": "Lien Date", "field_type": "date", "sensitivity": "STANDARD", "source_hint": "Date lien filed or asserted", "auto_approve": true },
+        { "field_id": "financial.lien_type", "display_name": "Lien Type", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Medicare, Medicaid, ERISA, hospital, or other", "extraction_notes": "Determines negotiation strategy.", "auto_approve": false }
+      ]
+    },
+    {
+      "type_id": "lost_wage_docs",
+      "display_name": "Lost Wage Documentation",
+      "category": "Financial",
+      "priority": "HIGH",
+      "classification_signals": ["lost wages", "wage verification", "employment verification", "pay stub", "salary", "time off", "FMLA"],
+      "extraction_spec": [
+        { "field_id": "financial.employer_name", "display_name": "Employer Name", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Employer on verification letter", "auto_approve": false },
+        { "field_id": "financial.employee_name", "display_name": "Employee Name", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Employee name on verification", "extraction_notes": "Must match plaintiff name.", "auto_approve": false },
+        { "field_id": "financial.daily_rate", "display_name": "Daily Rate / Salary", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Daily or annual rate of pay", "auto_approve": false },
+        { "field_id": "financial.dates_missed", "display_name": "Dates Missed", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Work dates missed due to injury", "auto_approve": true },
+        { "field_id": "financial.employer_ein", "display_name": "Employer EIN", "field_type": "ein", "sensitivity": "CRITICAL", "source_hint": "Federal tax ID on W-2 or verification letter", "extraction_notes": "Handle with care — PII.", "auto_approve": false }
+      ]
+    },
+    {
+      "type_id": "tax_returns_income",
+      "display_name": "Tax Returns (Income Verification)",
+      "category": "Financial",
+      "priority": "MEDIUM",
+      "classification_signals": ["tax return", "1040", "income tax", "W-2", "adjusted gross income"],
+      "extraction_spec": [
+        { "field_id": "financial.tax_year", "display_name": "Tax Year", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Tax year on form", "auto_approve": true },
+        { "field_id": "financial.gross_income", "display_name": "Gross Income", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Line 9 on 1040 or total income", "auto_approve": false }
+      ]
+    },
+    {
+      "type_id": "demand_letter",
+      "display_name": "Demand Letter",
+      "category": "Legal",
+      "priority": "HIGH",
+      "classification_signals": ["demand letter", "demand for settlement", "settlement demand", "pre-suit demand"],
+      "extraction_spec": [
+        { "field_id": "legal.demand_amount", "display_name": "Demand Amount", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Total demand figure — usually near end of letter", "auto_approve": false },
+        { "field_id": "legal.addressed_to", "display_name": "Addressed To", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Recipient adjuster or attorney", "auto_approve": true },
+        { "field_id": "legal.demand_date", "display_name": "Demand Date", "field_type": "date", "sensitivity": "STANDARD", "source_hint": "Date of letter", "auto_approve": true }
+      ]
+    },
+    {
+      "type_id": "settlement_statement",
+      "display_name": "Settlement Statement",
+      "category": "Legal",
+      "priority": "HIGH",
+      "classification_signals": ["settlement statement", "settlement distribution", "closing statement", "disbursement sheet", "settlement breakdown"],
+      "extraction_spec": [
+        { "field_id": "legal.settlement_amount", "display_name": "Settlement Amount", "field_type": "currency", "sensitivity": "CRITICAL", "source_hint": "Gross settlement amount at top", "extraction_notes": "Core case outcome — verify carefully.", "auto_approve": false },
+        { "field_id": "legal.attorney_fees", "display_name": "Attorney Fees", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Fee calculation — usually percentage of gross", "auto_approve": false },
+        { "field_id": "legal.costs", "display_name": "Case Costs", "field_type": "currency", "sensitivity": "STANDARD", "source_hint": "Itemized costs (filing fees, expert fees, etc.)", "auto_approve": true },
+        { "field_id": "legal.net_to_client", "display_name": "Net to Client", "field_type": "currency", "sensitivity": "CRITICAL", "source_hint": "Bottom line — net disbursement to plaintiff", "extraction_notes": "Must equal settlement - fees - costs - liens.", "auto_approve": false },
+        { "field_id": "legal.lien_payoffs", "display_name": "Lien Payoffs", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Total lien payoffs from settlement", "auto_approve": false }
+      ]
+    },
+    {
+      "type_id": "release_agreements",
+      "display_name": "Release Agreements",
+      "category": "Legal",
+      "priority": "MEDIUM",
+      "classification_signals": ["release", "release agreement", "general release", "settlement release", "hold harmless"],
+      "extraction_spec": [
+        { "field_id": "legal.release_date", "display_name": "Release Date", "field_type": "date", "sensitivity": "STANDARD", "source_hint": "Date of execution", "auto_approve": true },
+        { "field_id": "legal.releasing_party", "display_name": "Releasing Party", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Party granting the release", "auto_approve": true },
+        { "field_id": "legal.released_party", "display_name": "Released Party", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Party being released", "auto_approve": true }
+      ]
+    },
+    {
+      "type_id": "court_filings",
+      "display_name": "Court Filings",
+      "category": "Legal",
+      "priority": "MEDIUM",
+      "classification_signals": ["court filing", "complaint", "summons", "motion", "court order", "docket", "case number"],
+      "extraction_spec": [
+        { "field_id": "legal.court_case_number", "display_name": "Court Case Number", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Case number in caption", "auto_approve": true },
+        { "field_id": "legal.filing_date", "display_name": "Filing Date", "field_type": "date", "sensitivity": "STANDARD", "source_hint": "Date stamp on filing", "auto_approve": true },
+        { "field_id": "legal.filing_type", "display_name": "Filing Type", "field_type": "text", "sensitivity": "LOW", "source_hint": "Complaint, motion, order, etc.", "auto_approve": true }
+      ]
+    }
+  ],
+
+  "entity_roles": [
+    {
+      "role_id": "plaintiff",
+      "display_name": "Plaintiff / Injured Party",
+      "type": "person",
+      "required_fields": [
+        { "field_id": "plaintiff.full_name", "display_name": "Full Legal Name", "field_type": "text", "sensitivity": "HIGH" },
+        { "field_id": "plaintiff.ssn", "display_name": "Social Security Number", "field_type": "ssn", "sensitivity": "CRITICAL" },
+        { "field_id": "plaintiff.dob", "display_name": "Date of Birth", "field_type": "date", "sensitivity": "HIGH" },
+        { "field_id": "plaintiff.address", "display_name": "Home Address", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "plaintiff.phone", "display_name": "Phone Number", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "plaintiff.insurance_info", "display_name": "Insurance Information", "field_type": "text", "sensitivity": "HIGH" }
+      ]
+    },
+    {
+      "role_id": "defendant",
+      "display_name": "Defendant / At-Fault Party",
+      "type": "person",
+      "required_fields": [
+        { "field_id": "defendant.full_name", "display_name": "Full Name", "field_type": "text", "sensitivity": "HIGH" },
+        { "field_id": "defendant.address", "display_name": "Address", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "defendant.insurance_carrier", "display_name": "Insurance Carrier", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "defendant.policy_number", "display_name": "Policy Number", "field_type": "text", "sensitivity": "HIGH" }
+      ]
+    },
+    {
+      "role_id": "insurance_carrier",
+      "display_name": "Insurance Carrier",
+      "type": "business",
+      "required_fields": [
+        { "field_id": "carrier.company_name", "display_name": "Company Name", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "carrier.adjuster_name", "display_name": "Adjuster Name", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "carrier.adjuster_phone", "display_name": "Adjuster Phone", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "carrier.claim_number", "display_name": "Claim Number", "field_type": "text", "sensitivity": "HIGH" },
+        { "field_id": "carrier.policy_number", "display_name": "Policy Number", "field_type": "text", "sensitivity": "CRITICAL" }
+      ]
+    },
+    {
+      "role_id": "medical_provider",
+      "display_name": "Medical Provider",
+      "type": "business",
+      "min_count": 1,
+      "required_fields": [
+        { "field_id": "provider.name", "display_name": "Provider Name", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "provider.npi", "display_name": "NPI Number", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "provider.address", "display_name": "Address", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "provider.phone", "display_name": "Phone", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "provider.specialty", "display_name": "Specialty", "field_type": "text", "sensitivity": "LOW" },
+        { "field_id": "provider.tax_id", "display_name": "Tax ID / EIN", "field_type": "ein", "sensitivity": "CRITICAL" }
+      ]
+    },
+    {
+      "role_id": "lien_holder",
+      "display_name": "Lien Holder",
+      "type": "business",
+      "optional": true,
+      "required_fields": [
+        { "field_id": "lien.entity_name", "display_name": "Entity Name", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "lien.lien_type", "display_name": "Lien Type", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "lien.contact_info", "display_name": "Contact Info", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "lien.lien_amount", "display_name": "Lien Amount", "field_type": "currency", "sensitivity": "HIGH" },
+        { "field_id": "lien.account_number", "display_name": "Account Number", "field_type": "text", "sensitivity": "HIGH" }
+      ]
+    },
+    {
+      "role_id": "attorney_of_record",
+      "display_name": "Attorney of Record",
+      "type": "person",
+      "required_fields": [
+        { "field_id": "attorney.name", "display_name": "Attorney Name", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "attorney.bar_number", "display_name": "Bar Number", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "attorney.firm_name", "display_name": "Firm Name", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "attorney.phone", "display_name": "Phone", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "attorney.email", "display_name": "Email", "field_type": "text", "sensitivity": "STANDARD" }
+      ]
+    }
+  ],
+
+  "cross_doc_rules": [
+    {
+      "rule_id": "plaintiff_name_consistency",
+      "description": "Plaintiff name must match across all documents",
+      "fields": ["liability.plaintiff_name", "medical.patient_name", "financial.employee_name"],
+      "validation": "exact",
+      "severity": "HIGH"
+    },
+    {
+      "rule_id": "incident_date_consistency",
+      "description": "Incident date must match across police report and all medical records",
+      "fields": ["liability.incident_date", "medical.treatment_date"],
+      "validation": "exact",
+      "severity": "HIGH"
+    },
+    {
+      "rule_id": "policy_number_consistency",
+      "description": "Policy number must match between insurance policy and declarations page",
+      "fields": ["insurance.policy_number", "carrier.policy_number"],
+      "validation": "exact",
+      "severity": "HIGH"
+    },
+    {
+      "rule_id": "lien_total_vs_settlement",
+      "description": "Total lien amounts should not exceed settlement amount",
+      "fields": ["financial.lien_amount", "legal.settlement_amount"],
+      "validation": "comparison",
+      "severity": "HIGH"
+    },
+    {
+      "rule_id": "provider_billing_consistency",
+      "description": "Provider names on medical bills should appear in medical records",
+      "fields": ["financial.bill_provider_name", "medical.provider_name"],
+      "validation": "fuzzy",
+      "severity": "MEDIUM"
+    }
+  ]
+}

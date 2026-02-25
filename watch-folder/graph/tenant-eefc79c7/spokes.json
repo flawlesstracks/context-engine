@@ -9,7 +9,117 @@
     "external_id": null,
     "sync_status": null,
     "created_at": "2026-02-23T17:42:26.953Z",
-    "updated_at": "2026-02-23T17:42:26.953Z"
+    "updated_at": "2026-02-24T23:45:45.138Z",
+    "template_type": "general",
+    "gap_analysis": {
+      "spoke_id": "default",
+      "spoke_name": "Default (Personal)",
+      "template_type": "general",
+      "template_name": "General Matter",
+      "overall_score": 0.5,
+      "document_score": 0,
+      "entity_score": 0.75,
+      "relationship_score": 1,
+      "missing_documents": [
+        {
+          "category": "identification",
+          "item": "government_id",
+          "priority": "high"
+        },
+        {
+          "category": "legal",
+          "item": "relevant_contracts",
+          "priority": "high"
+        },
+        {
+          "category": "legal",
+          "item": "correspondence",
+          "priority": "high"
+        },
+        {
+          "category": "legal",
+          "item": "court_filings",
+          "priority": "high"
+        },
+        {
+          "category": "financial",
+          "item": "financial_statements",
+          "priority": "high"
+        },
+        {
+          "category": "financial",
+          "item": "invoices",
+          "priority": "high"
+        },
+        {
+          "category": "financial",
+          "item": "payment_records",
+          "priority": "high"
+        },
+        {
+          "category": "supporting",
+          "item": "supporting_documentation",
+          "priority": "low"
+        },
+        {
+          "category": "supporting",
+          "item": "evidence",
+          "priority": "low"
+        },
+        {
+          "category": "supporting",
+          "item": "exhibits",
+          "priority": "low"
+        }
+      ],
+      "missing_entity_fields": [
+        {
+          "role": "primary_client",
+          "entity": "Andre Burgin",
+          "missing": "contact_info"
+        }
+      ],
+      "missing_relationships": [],
+      "found_documents": [],
+      "suggestions": [
+        "Request Government Id from client",
+        "Request Relevant Contracts from client",
+        "Request Correspondence from client",
+        "Request Court Filings from client",
+        "Request Financial Statements from client",
+        "Obtain Contact Info for primary client"
+      ],
+      "source_documents": [
+        "MEM-RELATIONSHIPS_7_29_2025.txt",
+        "https://www.linkedin.com/in/andreburgin/",
+        "Steve master.txt",
+        "linkedin_import",
+        "CJ_Relationships_Markham_Era.txt",
+        "CJ_LOLA_RELATIONSHIP_TIMELINE.txt",
+        "https://www.linkedin.com/in/williamhgates",
+        "CJ_Mitchell_Resume_2026.docx (1).pdf",
+        "test-relationships.txt",
+        "web_enrichment",
+        "Steven Hughes_Master Profile.txt",
+        "Steve Hughes_Work.txt",
+        "(26) Clarence Mitchell _ LinkedIn.pdf",
+        "https://x.com/putchuon",
+        "AUTHOR_PROFILE_RAIYA.json",
+        "decomposed from ENT-CM-001",
+        "decomposed from ENT-AB-051",
+        "https://x.com/elonmusk",
+        "x_profile",
+        "manual_entry",
+        "Steve_Relationships.txt",
+        "decomposed from ENT-BG-106",
+        "decomposed from ENT-BG-107",
+        "Steve_master_profile",
+        "conversation"
+      ],
+      "entity_count": 160,
+      "analyzed_at": "2026-02-24T23:45:45.137Z"
+    },
+    "document_classification": null
   },
   "spoke-e4156bc9d18b12b2": {
     "id": "spoke-e4156bc9d18b12b2",
@@ -21,73 +131,18 @@
     "external_id": null,
     "sync_status": null,
     "created_at": "2026-02-24T22:31:47.824Z",
-    "updated_at": "2026-02-24T22:37:10.494Z",
-    "template_type": "tax_preparation",
+    "updated_at": "2026-02-25T00:42:11.516Z",
+    "template_type": "corporate_formation",
     "gap_analysis": {
       "spoke_id": "spoke-e4156bc9d18b12b2",
       "spoke_name": "Acme Consulting LLC",
-      "template_type": "tax_preparation",
-      "template_name": "Business Tax Preparation",
-      "overall_score": 0.37,
-      "document_score": 0.13,
-      "entity_score": 0.46,
-      "relationship_score": 0.67,
+      "template_type": "corporate_formation",
+      "template_name": "Corporate Formation",
+      "overall_score": 0.36,
+      "document_score": 0,
+      "entity_score": 0.5,
+      "relationship_score": 0.8,
       "missing_documents": [
-        {
-          "category": "incorporation",
-          "item": "articles_of_incorporation",
-          "priority": "high"
-        },
-        {
-          "category": "incorporation",
-          "item": "operating_agreement",
-          "priority": "high"
-        },
-        {
-          "category": "incorporation",
-          "item": "ein_letter",
-          "priority": "high"
-        },
-        {
-          "category": "incorporation",
-          "item": "state_registration",
-          "priority": "high"
-        },
-        {
-          "category": "financial_statements",
-          "item": "profit_and_loss",
-          "priority": "high"
-        },
-        {
-          "category": "financial_statements",
-          "item": "balance_sheet",
-          "priority": "high"
-        },
-        {
-          "category": "financial_statements",
-          "item": "cashflow_statement",
-          "priority": "high"
-        },
-        {
-          "category": "payroll",
-          "item": "1099_forms",
-          "priority": "high"
-        },
-        {
-          "category": "payroll",
-          "item": "w2_forms",
-          "priority": "high"
-        },
-        {
-          "category": "payroll",
-          "item": "payroll_register",
-          "priority": "high"
-        },
-        {
-          "category": "prior_returns",
-          "item": "extension_filing",
-          "priority": "medium"
-        },
         {
           "category": "identification",
           "item": "government_id",
@@ -95,15 +150,90 @@
         },
         {
           "category": "identification",
-          "item": "ein_confirmation",
+          "item": "ssn_card",
           "priority": "high"
+        },
+        {
+          "category": "formation",
+          "item": "articles_of_incorporation",
+          "priority": "medium"
+        },
+        {
+          "category": "formation",
+          "item": "operating_agreement",
+          "priority": "medium"
+        },
+        {
+          "category": "formation",
+          "item": "bylaws",
+          "priority": "medium"
+        },
+        {
+          "category": "formation",
+          "item": "ein_letter",
+          "priority": "medium"
+        },
+        {
+          "category": "financial",
+          "item": "initial_capital_contribution",
+          "priority": "high"
+        },
+        {
+          "category": "financial",
+          "item": "bank_account_setup",
+          "priority": "high"
+        },
+        {
+          "category": "financial",
+          "item": "funding_agreements",
+          "priority": "high"
+        },
+        {
+          "category": "regulatory",
+          "item": "business_license",
+          "priority": "medium"
+        },
+        {
+          "category": "regulatory",
+          "item": "state_registration",
+          "priority": "medium"
+        },
+        {
+          "category": "regulatory",
+          "item": "registered_agent_designation",
+          "priority": "medium"
+        },
+        {
+          "category": "agreements",
+          "item": "shareholder_agreement",
+          "priority": "medium"
+        },
+        {
+          "category": "agreements",
+          "item": "partnership_agreement",
+          "priority": "medium"
+        },
+        {
+          "category": "agreements",
+          "item": "non_compete",
+          "priority": "medium"
+        },
+        {
+          "category": "agreements",
+          "item": "ip_assignment",
+          "priority": "medium"
         }
       ],
       "missing_entity_fields": [
         {
+          "role": "primary_client",
+          "entity": "John R. Smith",
+          "missing": "ssn"
+        },
+        {
           "role": "business_entity",
           "entity": null,
-          "missing": "legal_name"
+          "missing": "full_name"
         },
         {
           "role": "business_entity",
@@ -113,27 +243,22 @@
         {
           "role": "business_entity",
           "entity": null,
-          "missing": "entity_type"
+          "missing": "address"
         },
         {
-          "role": "business_entity",
-          "entity": null,
-          "missing": "state_of_formation"
-        },
-        {
-          "role": "business_entity",
-          "entity": null,
-          "missing": "fiscal_year_end"
-        },
-        {
-          "role": "owner_member",
+          "role": "officer",
           "entity": "John R. Smith",
-          "missing": "ssn"
+          "missing": "relationship"
         },
         {
-          "role": "tax_preparer",
+          "role": "officer",
           "entity": "John R. Smith",
-          "missing": "ptin"
+          "missing": "contact_info"
+        },
+        {
+          "role": "registered_agent",
+          "entity": "John R. Smith",
+          "missing": "contact_info"
         }
       ],
       "missing_relationships": [
@@ -143,29 +268,18 @@
           "to": "(not found)"
         }
       ],
-      "found_documents": [
-        {
-          "category": "payroll",
-          "item": "w9_or_w8",
-          "source_file": "acme_w9_john_smith.txt"
-        },
-        {
-          "category": "prior_returns",
-          "item": "prior_year_return",
-          "source_file": "acme_prior_year_return_2024.txt"
-        }
-      ],
+      "found_documents": [],
       "suggestions": [
+        "Request Government Id from client",
+        "Request Ssn Card from client",
         "Request Articles Of Incorporation from client",
         "Request Operating Agreement from client",
-        "Request Ein Letter from client",
-        "Request State Registration from client",
-        "Request Profit And Loss from client",
-        "Obtain Legal Name for business entity",
+        "Request Bylaws from client",
+        "Obtain Ssn for primary client",
+        "Obtain Full Name for business entity",
         "Obtain Ein for business entity",
-        "Obtain Entity Type for business entity",
-        "Obtain State Of Formation for business entity",
-        "Obtain Fiscal Year End for business entity",
+        "Obtain Address for business entity",
+        "Obtain Relationship for officer",
         "Identify and add business entity to the matter"
       ],
       "source_documents": [
@@ -173,7 +287,7 @@
         "acme_w9_john_smith.txt"
       ],
       "entity_count": 3,
-      "analyzed_at": "2026-02-24T22:37:10.494Z"
+      "analyzed_at": "2026-02-25T00:42:11.515Z"
     },
     "document_classification": null,
     "files": [

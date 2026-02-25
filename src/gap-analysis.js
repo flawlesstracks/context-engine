@@ -6,21 +6,157 @@ const { listEntities, readEntity } = require('./graph-ops');
 const { getSpoke, loadSpokes } = require('./spoke-ops');
 
 // ---------------------------------------------------------------------------
-// Template CRUD
+// Template CRUD (Build 10 — supports new extraction spec schema + backward compat)
 // ---------------------------------------------------------------------------
 
 const TEMPLATES_PATH = path.resolve(__dirname, '..', 'data', 'matter-templates.json');
+const TEMPLATES_DIR = path.resolve(__dirname, '..', 'data', 'templates');
 
+/**
+ * Load all templates from both the legacy flat file and the new templates directory.
+ * New-format templates in data/templates/ override legacy templates with the same key.
+ * All templates are normalized into the new schema format with backward-compat fields.
+ */
 function loadTemplates() {
+  const templates = {};
+
+  // 1. Load legacy flat file
   const dir = path.dirname(TEMPLATES_PATH);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  if (!fs.existsSync(TEMPLATES_PATH)) return {};
-  try {
-    return JSON.parse(fs.readFileSync(TEMPLATES_PATH, 'utf-8'));
-  } catch (err) {
-    console.warn('Failed to load matter templates:', err.message);
-    return {};
+  if (fs.existsSync(TEMPLATES_PATH)) {
+    try {
+      const legacy = JSON.parse(fs.readFileSync(TEMPLATES_PATH, 'utf-8'));
+      for (const [key, tmpl] of Object.entries(legacy)) {
+        templates[key] = normalizeTemplate(key, tmpl);
+      }
+    } catch (err) {
+      console.warn('Failed to load matter templates:', err.message);
+    }
   }
+
+  // 2. Load new-format templates from data/templates/ directory (override legacy)
+  if (fs.existsSync(TEMPLATES_DIR)) {
+    try {
+      const files = fs.readdirSync(TEMPLATES_DIR).filter(f => f.endsWith('.json'));
+      for (const file of files) {
+        try {
+          const raw = JSON.parse(fs.readFileSync(path.join(TEMPLATES_DIR, file), 'utf-8'));
+          const key = raw.template_id || file.replace('.json', '');
+          templates[key] = normalizeTemplate(key, raw);
+        } catch (err) {
+          console.warn(`Failed to load template ${file}:`, err.message);
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to scan templates directory:', err.message);
+    }
+  }
+
+  return templates;
+}
+
+/**
+ * Normalize any template (old or new format) into a unified schema that
+ * supports both the new extraction spec fields AND the legacy fields
+ * that existing code (buildSpokeExportData, scoreEntities, etc.) relies on.
+ */
+function normalizeTemplate(key, tmpl) {
+  // Detect new-format: has document_types array
+  const isNewFormat = Array.isArray(tmpl.document_types);
+
+  if (isNewFormat) {
+    // New format → generate backward-compat fields
+    const result = { ...tmpl };
+    result.label = tmpl.display_name || tmpl.label || key;
+
+    // Generate required_documents from document_types (backward compat)
+    if (!result.required_documents) {
+      const catMap = {};
+      for (const dt of (tmpl.document_types || [])) {
+        const cat = (dt.category || 'other').toLowerCase().replace(/\s+/g, '_');
+        if (!catMap[cat]) catMap[cat] = [];
+        catMap[cat].push(dt.type_id);
+      }
+      result.required_documents = Object.entries(catMap).map(([category, items]) => ({ category, items }));
+    }
+
+    // Generate required_entities from entity_roles (backward compat)
+    if (!result.required_entities && tmpl.entity_roles) {
+      result.required_entities = tmpl.entity_roles.map(role => ({
+        role: role.role_id || role.role,
+        type: role.type || 'person',
+        required_fields: (role.required_fields || []).map(f =>
+          typeof f === 'string' ? f : (f.field_id ? f.field_id.split('.').pop() : f.display_name)
+        ),
+        optional: role.optional || false,
+        min_count: role.min_count || undefined
+      }));
+    }
+
+    return result;
+  }
+
+  // Old format → auto-wrap into new schema with defaults
+  const result = { ...tmpl };
+  result.label = tmpl.label || key;
+  result.template_id = key;
+  result.version = '0.1.0';
+  result.display_name = tmpl.label || key;
+
+  // Generate document_types from required_documents
+  if (!result.document_types && tmpl.required_documents) {
+    result.document_types = [];
+    for (const cat of tmpl.required_documents) {
+      for (const item of (cat.items || [])) {
+        result.document_types.push({
+          type_id: item,
+          display_name: _formatLabel(item),
+          category: _formatLabel(cat.category),
+          priority: getCategoryPriority(cat.category).toUpperCase(),
+          classification_signals: [item.replace(/_/g, ' ')],
+          extraction_spec: []
+        });
+      }
+    }
+  }
+
+  // Generate entity_roles from required_entities
+  if (!result.entity_roles && tmpl.required_entities) {
+    result.entity_roles = tmpl.required_entities.map(role => ({
+      role_id: role.role,
+      display_name: _formatLabel(role.role),
+      type: role.type || 'person',
+      optional: role.optional || false,
+      min_count: role.min_count,
+      required_fields: (role.required_fields || []).map(f => {
+        if (typeof f === 'object') return f;
+        const sensitivity = _inferSensitivity(f);
+        return {
+          field_id: `${role.role}.${f}`,
+          display_name: _formatLabel(f),
+          field_type: 'text',
+          sensitivity: sensitivity
+        };
+      })
+    }));
+  }
+
+  // No cross-doc rules for legacy templates
+  if (!result.cross_doc_rules) result.cross_doc_rules = [];
+
+  return result;
+}
+
+/**
+ * Infer sensitivity level from field name for auto-wrapping legacy templates.
+ */
+function _inferSensitivity(fieldName) {
+  const lower = (fieldName || '').toLowerCase();
+  if (['ssn', 'social_security', 'social_security_number'].includes(lower)) return 'CRITICAL';
+  if (['ein', 'tax_id', 'employer_identification_number'].includes(lower)) return 'CRITICAL';
+  if (['full_name', 'legal_name', 'date_of_birth', 'dob'].includes(lower)) return 'HIGH';
+  if (['address', 'contact_info', 'phone', 'email'].includes(lower)) return 'STANDARD';
+  return 'STANDARD';
 }
 
 function getTemplate(type) {
@@ -53,6 +189,20 @@ const FIELD_ALIASES = {
   state_of_formation: ['state_of_formation', 'state_of_incorporation', 'formation_state', 'organized_in', 'incorporated_in'],
   fiscal_year_end: ['fiscal_year_end', 'year_end', 'fiscal_year', 'tax_year_end', 'accounting_period'],
   ptin: ['ptin', 'preparer_tax_id', 'preparer_identification'],
+  // PI-specific aliases (Build 10)
+  insurance_info: ['insurance_info', 'insurance', 'insurance_policy', 'policy_number', 'coverage'],
+  policy_number: ['policy_number', 'policy', 'policy_no', 'claim_number'],
+  npi: ['npi', 'national_provider_identifier', 'provider_npi'],
+  bar_number: ['bar_number', 'bar_no', 'attorney_number', 'bar_id'],
+  specialty: ['specialty', 'specialization', 'practice_area'],
+  lien_amount: ['lien_amount', 'lien', 'lien_balance'],
+  lien_type: ['lien_type', 'lien_category'],
+  account_number: ['account_number', 'account_no', 'patient_account', 'account'],
+  claim_number: ['claim_number', 'claim_no', 'claim'],
+  adjuster_name: ['adjuster_name', 'adjuster', 'claims_adjuster'],
+  firm_name: ['firm_name', 'law_firm', 'firm'],
+  phone: ['phone', 'phone_number', 'telephone', 'mobile'],
+  insurance_carrier: ['insurance_carrier', 'insurer', 'insurance_company'],
 };
 
 // ---------------------------------------------------------------------------
@@ -61,7 +211,8 @@ const FIELD_ALIASES = {
 
 const HIGH_PRIORITY_CATEGORIES = new Set([
   'identification', 'legal', 'financial', 'medical', 'incident',
-  'incorporation', 'financial_statements', 'payroll'
+  'incorporation', 'financial_statements', 'payroll',
+  'liability', 'insurance'
 ]);
 
 const LOW_PRIORITY_CATEGORIES = new Set([
@@ -69,8 +220,8 @@ const LOW_PRIORITY_CATEGORIES = new Set([
 ]);
 
 function getCategoryPriority(category) {
-  if (HIGH_PRIORITY_CATEGORIES.has(category)) return 'high';
-  if (LOW_PRIORITY_CATEGORIES.has(category)) return 'low';
+  if (HIGH_PRIORITY_CATEGORIES.has((category || '').toLowerCase())) return 'high';
+  if (LOW_PRIORITY_CATEGORIES.has((category || '').toLowerCase())) return 'low';
   return 'medium';
 }
 
@@ -136,10 +287,41 @@ function extractSourceDocuments(entities) {
 }
 
 // ---------------------------------------------------------------------------
-// LLM Document Classification
+// Signal-Based Document Classification (Build 10)
 // ---------------------------------------------------------------------------
 
-async function classifyDocuments(spokeId, graphDir) {
+/**
+ * Classify a filename + snippets against a template's document_types using
+ * classification_signals. Returns the best-matching type_id or null.
+ */
+function classifyBySignals(filename, snippets, documentTypes) {
+  if (!documentTypes || documentTypes.length === 0) return null;
+  const text = ((filename || '') + ' ' + (snippets || []).join(' ')).toLowerCase();
+
+  let bestMatch = null;
+  let bestScore = 0;
+
+  for (const dt of documentTypes) {
+    const signals = dt.classification_signals || [];
+    let matches = 0;
+    for (const sig of signals) {
+      if (text.includes(sig.toLowerCase())) matches++;
+    }
+    const score = signals.length > 0 ? matches / signals.length : 0;
+    if (score > bestScore && matches >= 1) {
+      bestScore = score;
+      bestMatch = dt.type_id;
+    }
+  }
+
+  return bestMatch;
+}
+
+// ---------------------------------------------------------------------------
+// LLM Document Classification (legacy + enhanced)
+// ---------------------------------------------------------------------------
+
+async function classifyDocuments(spokeId, graphDir, template) {
   // Collect entities from spoke
   const allEnts = listEntities(graphDir);
   const spokeEntities = allEnts
@@ -152,7 +334,18 @@ async function classifyDocuments(spokeId, graphDir) {
   const filenames = Array.from(docMap.keys()).slice(0, 100);
 
   if (filenames.length === 0) {
-    return { classifications: [], unclassified: [] };
+    return { classifications: [], unclassified: [], signal_classifications: {} };
+  }
+
+  // Build signal-based classifications first (no LLM, instant)
+  const signalClassifications = {};
+  const documentTypes = template?.document_types || [];
+  for (const fn of filenames) {
+    const entry = docMap.get(fn);
+    const typeId = classifyBySignals(fn, entry.observation_snippets, documentTypes);
+    if (typeId) {
+      signalClassifications[fn] = typeId;
+    }
   }
 
   // Build snippet context
@@ -174,6 +367,16 @@ async function classifyDocuments(spokeId, graphDir) {
         category: cat.category,
         items: cat.items
       });
+    }
+  }
+
+  // Also include document_types from new-format templates
+  for (const [key, tmpl] of Object.entries(templates)) {
+    for (const dt of (tmpl.document_types || [])) {
+      const cat = (dt.category || 'other').toLowerCase();
+      if (!allCategories.some(c => c.items.includes(dt.type_id))) {
+        allCategories.push({ template: key, category: cat, items: [dt.type_id] });
+      }
     }
   }
 
@@ -215,46 +418,68 @@ Respond with ONLY valid JSON (no markdown fences):
 
     return {
       classifications: parsed.classifications || [],
-      unclassified: parsed.unclassified || []
+      unclassified: parsed.unclassified || [],
+      signal_classifications: signalClassifications
     };
   } catch (err) {
     console.warn('Document classification failed:', err.message);
-    return { classifications: [], unclassified: filenames };
+    return { classifications: [], unclassified: filenames, signal_classifications: signalClassifications };
   }
 }
 
 // ---------------------------------------------------------------------------
-// Scoring: Document Score (40%)
+// Scoring: Document Score
 // ---------------------------------------------------------------------------
 
-function scoreDocuments(template, classifications) {
+function scoreDocuments(template, classifications, signalClassifications) {
   const totalItems = [];
   const foundItems = [];
   const missing = [];
   const found = [];
 
-  for (const cat of (template.required_documents || [])) {
-    for (const item of cat.items) {
-      totalItems.push({ category: cat.category, item });
+  // Use document_types if available (new format), otherwise required_documents (legacy)
+  if (template.document_types && template.document_types.length > 0) {
+    for (const dt of template.document_types) {
+      totalItems.push({ type_id: dt.type_id, display_name: dt.display_name, category: dt.category, priority: dt.priority });
 
-      // Check if any classification detected this item
-      const match = classifications.find(c =>
-        c.detected_items && c.detected_items.includes(item)
+      // Check signal classifications first
+      const signalMatch = Object.entries(signalClassifications || {}).find(([fn, typeId]) => typeId === dt.type_id);
+      // Then check LLM classifications
+      const llmMatch = classifications.find(c =>
+        c.detected_items && (c.detected_items.includes(dt.type_id) || c.detected_items.some(i => dt.classification_signals && dt.classification_signals.some(s => i.toLowerCase().includes(s.toLowerCase()))))
       );
 
-      if (match) {
-        foundItems.push({ category: cat.category, item });
+      if (signalMatch || llmMatch) {
+        foundItems.push({ type_id: dt.type_id, category: dt.category });
         found.push({
-          category: cat.category,
-          item,
-          source_file: match.filename
+          type_id: dt.type_id,
+          display_name: dt.display_name,
+          category: dt.category,
+          source_file: signalMatch ? signalMatch[0] : (llmMatch ? llmMatch.filename : null)
         });
       } else {
         missing.push({
-          category: cat.category,
-          item,
-          priority: getCategoryPriority(cat.category)
+          type_id: dt.type_id,
+          display_name: dt.display_name,
+          category: dt.category,
+          priority: dt.priority || getCategoryPriority(dt.category).toUpperCase()
         });
+      }
+    }
+  } else {
+    // Legacy format
+    for (const cat of (template.required_documents || [])) {
+      for (const item of cat.items) {
+        totalItems.push({ category: cat.category, item });
+        const match = classifications.find(c =>
+          c.detected_items && c.detected_items.includes(item)
+        );
+        if (match) {
+          foundItems.push({ category: cat.category, item });
+          found.push({ category: cat.category, item, source_file: match.filename });
+        } else {
+          missing.push({ category: cat.category, item, priority: getCategoryPriority(cat.category) });
+        }
       }
     }
   }
@@ -264,21 +489,188 @@ function scoreDocuments(template, classifications) {
 }
 
 // ---------------------------------------------------------------------------
-// Scoring: Entity Score (40%)
+// Scoring: Field-Level within Documents (Build 10 — new)
+// ---------------------------------------------------------------------------
+
+/**
+ * Score field-level extraction within found document types.
+ * Checks which extraction_spec fields were actually extracted in spoke entities.
+ */
+function scoreDocumentFields(template, foundDocTypes, spokeEntities) {
+  const docTypes = template.document_types || [];
+  if (docTypes.length === 0) return { score: 1, missing_fields: [], total: 0, extracted: 0 };
+
+  let totalFields = 0;
+  let extractedFields = 0;
+  const missingFields = [];
+
+  // Build a set of found type_ids
+  const foundTypeIds = new Set((foundDocTypes || []).map(d => d.type_id));
+
+  // Collect all entity attribute keys + observation text for matching
+  const allAttrKeys = new Set();
+  const allText = [];
+  for (const ent of spokeEntities) {
+    for (const attr of (ent.attributes || [])) {
+      allAttrKeys.add((attr.key || '').toLowerCase().replace(/\s+/g, '_'));
+      allText.push(((attr.key || '') + ' ' + (attr.value || '')).toLowerCase());
+    }
+    for (const obs of (ent.observations || [])) {
+      allText.push(((obs.observation || '') + ' ' + (obs.value || '')).toLowerCase());
+    }
+  }
+  const fullText = allText.join(' ');
+
+  for (const dt of docTypes) {
+    // Only check fields for documents that are present
+    if (!foundTypeIds.has(dt.type_id)) continue;
+
+    for (const field of (dt.extraction_spec || [])) {
+      totalFields++;
+      // Check if this field was extracted: look for field_id suffix or display_name in entity data
+      const fieldKey = (field.field_id || '').split('.').pop().toLowerCase().replace(/\s+/g, '_');
+      const displayKey = (field.display_name || '').toLowerCase().replace(/\s+/g, '_');
+      const aliases = FIELD_ALIASES[fieldKey] || [fieldKey, displayKey];
+
+      const found = aliases.some(a => allAttrKeys.has(a) || fullText.includes(a.replace(/_/g, ' ')));
+
+      if (found) {
+        extractedFields++;
+      } else {
+        missingFields.push({
+          field_id: field.field_id,
+          display_name: field.display_name,
+          sensitivity: field.sensitivity,
+          from_document_type: dt.type_id
+        });
+      }
+    }
+  }
+
+  const score = totalFields > 0 ? extractedFields / totalFields : 1;
+  return { score, missing_fields: missingFields, total: totalFields, extracted: extractedFields };
+}
+
+// ---------------------------------------------------------------------------
+// Cross-Doc Rule Checking (Build 10 — new)
+// ---------------------------------------------------------------------------
+
+/**
+ * Check cross-document rules against extracted data in spoke entities.
+ * Returns violations where conflicting values are detected.
+ */
+function checkCrossDocRules(template, spokeEntities) {
+  const rules = template.cross_doc_rules || [];
+  if (rules.length === 0) return [];
+
+  // Build a field-value map from all entity attributes
+  const fieldValues = {}; // fieldKey → [{value, entity_id, source}]
+  for (const ent of spokeEntities) {
+    const entityId = ent.entity?.entity_id || ent.entity_id || '';
+    for (const attr of (ent.attributes || [])) {
+      const key = (attr.key || '').toLowerCase().replace(/\s+/g, '_');
+      if (!fieldValues[key]) fieldValues[key] = [];
+      fieldValues[key].push({
+        value: attr.value,
+        entity_id: entityId,
+        source: attr.provenance?.source || ''
+      });
+    }
+  }
+
+  const violations = [];
+
+  for (const rule of rules) {
+    if (rule.validation === 'exact') {
+      // Collect all values for the rule's fields
+      const values = [];
+      for (const fieldRef of (rule.fields || [])) {
+        const fieldKey = fieldRef.split('.').pop().toLowerCase().replace(/\s+/g, '_');
+        // Check direct match and aliases
+        const aliases = FIELD_ALIASES[fieldKey] || [fieldKey];
+        for (const alias of aliases) {
+          if (fieldValues[alias]) {
+            for (const v of fieldValues[alias]) {
+              values.push({ field_id: fieldRef, ...v });
+            }
+          }
+        }
+      }
+
+      // Check if values conflict
+      if (values.length >= 2) {
+        const uniqueValues = [...new Set(values.map(v => (v.value || '').toString().trim().toLowerCase()))];
+        if (uniqueValues.length > 1) {
+          violations.push({
+            rule_id: rule.rule_id,
+            description: rule.description,
+            severity: rule.severity,
+            conflicting_values: values.map(v => ({
+              field_id: v.field_id,
+              value: v.value,
+              source: v.entity_id
+            }))
+          });
+        }
+      }
+    }
+    // comparison and fuzzy rules: only flag if we have data for both sides
+    else if (rule.validation === 'comparison' || rule.validation === 'fuzzy') {
+      // Collect values for comparison
+      const valueGroups = {};
+      for (const fieldRef of (rule.fields || [])) {
+        const fieldKey = fieldRef.split('.').pop().toLowerCase().replace(/\s+/g, '_');
+        const aliases = FIELD_ALIASES[fieldKey] || [fieldKey];
+        for (const alias of aliases) {
+          if (fieldValues[alias]) {
+            if (!valueGroups[fieldRef]) valueGroups[fieldRef] = [];
+            valueGroups[fieldRef].push(...fieldValues[alias]);
+          }
+        }
+      }
+      // Only flag if multiple field groups have data and they differ
+      const groupsWithData = Object.entries(valueGroups).filter(([, vals]) => vals.length > 0);
+      if (groupsWithData.length >= 2) {
+        if (rule.validation === 'fuzzy') {
+          // Fuzzy: check if any pair of values is dissimilar
+          const allVals = groupsWithData.flatMap(([fid, vals]) => vals.map(v => ({ field_id: fid, ...v })));
+          const lowerVals = allVals.map(v => (v.value || '').toString().trim().toLowerCase());
+          const hasMismatch = lowerVals.some((v, i) => lowerVals.some((v2, j) => i !== j && !v.includes(v2) && !v2.includes(v)));
+          if (hasMismatch) {
+            violations.push({
+              rule_id: rule.rule_id,
+              description: rule.description,
+              severity: rule.severity,
+              conflicting_values: allVals.map(v => ({ field_id: v.field_id, value: v.value, source: v.entity_id }))
+            });
+          }
+        }
+        // comparison: would need numeric parsing — skip automated flagging for now
+      }
+    }
+  }
+
+  return violations;
+}
+
+// ---------------------------------------------------------------------------
+// Scoring: Entity Score
 // ---------------------------------------------------------------------------
 
 function _entityHasField(entity, fieldName) {
-  const aliases = FIELD_ALIASES[fieldName] || [fieldName];
+  // fieldName can be a string (legacy) or extracted from field_id
+  const key = typeof fieldName === 'string' ? fieldName : (fieldName.field_id || '').split('.').pop();
+  const aliases = FIELD_ALIASES[key] || [key];
 
   // 1. Check attributes[].key
   const attrs = entity.attributes || [];
   for (const attr of attrs) {
-    const key = (attr.key || '').toLowerCase();
-    if (aliases.some(a => key.includes(a))) return true;
+    const attrKey = (attr.key || '').toLowerCase();
+    if (aliases.some(a => attrKey.includes(a))) return true;
   }
 
   // 2. Check entity.name for name fields
-  if (fieldName === 'full_name' || fieldName === 'legal_name') {
+  if (key === 'full_name' || key === 'legal_name' || key === 'name') {
     const name = entity.entity?.name || entity.name || {};
     if (name.full || name.common || name.preferred) return true;
   }
@@ -342,7 +734,8 @@ function scoreEntities(template, spokeEntities) {
         // All fields are missing
         for (const field of (role.required_fields || [])) {
           totalFields++;
-          missingFields.push({ role: role.role, entity: null, missing: field });
+          const fieldName = typeof field === 'string' ? field : (field.field_id || field.display_name || '').split('.').pop();
+          missingFields.push({ role: role.role, entity: null, missing: fieldName });
         }
       }
       continue;
@@ -355,13 +748,14 @@ function scoreEntities(template, spokeEntities) {
 
       for (const field of (role.required_fields || [])) {
         totalFields++;
-        if (_entityHasField(entity, field)) {
+        const fieldName = typeof field === 'string' ? field : (field.field_id || field.display_name || '').split('.').pop();
+        if (_entityHasField(entity, fieldName)) {
           filledFields++;
         } else {
           missingFields.push({
             role: role.role,
             entity: entityName,
-            missing: field
+            missing: fieldName
           });
         }
       }
@@ -373,7 +767,7 @@ function scoreEntities(template, spokeEntities) {
 }
 
 // ---------------------------------------------------------------------------
-// Scoring: Relationship Score (20%)
+// Scoring: Relationship Score
 // ---------------------------------------------------------------------------
 
 function scoreRelationships(template, spokeEntities) {
@@ -430,22 +824,26 @@ function scoreRelationships(template, spokeEntities) {
 // ---------------------------------------------------------------------------
 
 function _formatLabel(item) {
-  return item.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  return (item || '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
 }
 
-function generateSuggestions(missingDocs, missingFields, missingRels) {
+function generateSuggestions(missingDocs, missingFields, missingRels, missingDocFields) {
   const suggestions = [];
 
   for (const doc of (missingDocs || []).slice(0, 5)) {
-    suggestions.push(`Request ${_formatLabel(doc.item)} from client`);
+    const label = doc.display_name || _formatLabel(doc.item || doc.type_id || '');
+    suggestions.push(`Request ${label} from client`);
   }
 
   for (const field of (missingFields || []).slice(0, 5)) {
-    if (field.entity) {
-      suggestions.push(`Obtain ${_formatLabel(field.missing)} for ${field.role.replace(/_/g, ' ')}`);
-    } else {
-      suggestions.push(`Obtain ${_formatLabel(field.missing)} for ${field.role.replace(/_/g, ' ')}`);
-    }
+    const missing = field.display_name || _formatLabel(field.missing || '');
+    suggestions.push(`Obtain ${missing} for ${(field.role || '').replace(/_/g, ' ')}`);
+  }
+
+  for (const field of (missingDocFields || []).slice(0, 3)) {
+    const label = field.display_name || _formatLabel(field.field_id || '');
+    const docLabel = _formatLabel(field.from_document_type || '');
+    suggestions.push(`Extract ${label} from ${docLabel}`);
   }
 
   for (const rel of (missingRels || []).slice(0, 3)) {
@@ -456,7 +854,7 @@ function generateSuggestions(missingDocs, missingFields, missingRels) {
 }
 
 // ---------------------------------------------------------------------------
-// Main Orchestrator — analyzeGaps
+// Main Orchestrator — analyzeGaps (Build 10 — two-level scoring)
 // ---------------------------------------------------------------------------
 
 async function analyzeGaps(spokeId, graphDir, templateType) {
@@ -478,43 +876,70 @@ async function analyzeGaps(spokeId, graphDir, templateType) {
   const docMap = extractSourceDocuments(spokeEntities);
   const sourceDocuments = Array.from(docMap.keys());
 
-  // LLM document classification
+  // Document classification (LLM + signal-based)
   let classifications = [];
+  let signalClassifications = {};
   try {
-    const result = await classifyDocuments(spokeId, graphDir);
+    const result = await classifyDocuments(spokeId, graphDir, template);
     classifications = result.classifications || [];
+    signalClassifications = result.signal_classifications || {};
   } catch (err) {
     console.warn('Classification failed, scoring with empty classifications:', err.message);
   }
 
-  // Score all three dimensions
-  const docResult = scoreDocuments(template, classifications);
+  // Score documents (document-level)
+  const docResult = scoreDocuments(template, classifications, signalClassifications);
+
+  // Score fields within found documents (field-level — Build 10)
+  const fieldResult = scoreDocumentFields(template, docResult.found, spokeEntities);
+
+  // Score entities
   const entityResult = scoreEntities(template, spokeEntities);
+
+  // Score relationships
   const relResult = scoreRelationships(template, spokeEntities);
 
-  // Weighted average
-  const overallScore = Math.round(
-    (docResult.score * 0.4 + entityResult.score * 0.4 + relResult.score * 0.2) * 100
-  ) / 100;
+  // Check cross-doc rules (Build 10)
+  const crossDocViolations = checkCrossDocRules(template, spokeEntities);
+
+  // Two-level completeness score (Build 10):
+  // (docs_present / docs_required * 0.5) + (fields_extracted / fields_required * 0.5)
+  const hasDocTypes = (template.document_types || []).length > 0;
+  let overallScore;
+  if (hasDocTypes) {
+    overallScore = Math.round(
+      (docResult.score * 0.5 + fieldResult.score * 0.5) * 100
+    ) / 100;
+  } else {
+    // Legacy: weighted average of 3 dimensions
+    overallScore = Math.round(
+      (docResult.score * 0.4 + entityResult.score * 0.4 + relResult.score * 0.2) * 100
+    ) / 100;
+  }
 
   const suggestions = generateSuggestions(
     docResult.missing,
     entityResult.missingFields,
-    relResult.missing
+    relResult.missing,
+    fieldResult.missing_fields
   );
 
   return {
     spoke_id: spokeId,
     spoke_name: spokeName,
     template_type: templateType,
-    template_name: template.label,
+    template_name: template.label || template.display_name,
+    template_version: template.version || '0.1.0',
     overall_score: overallScore,
     document_score: Math.round(docResult.score * 100) / 100,
+    field_score: Math.round(fieldResult.score * 100) / 100,
     entity_score: Math.round(entityResult.score * 100) / 100,
     relationship_score: Math.round(relResult.score * 100) / 100,
     missing_documents: docResult.missing,
+    missing_fields: fieldResult.missing_fields,
     missing_entity_fields: entityResult.missingFields,
     missing_relationships: relResult.missing,
+    cross_doc_violations: crossDocViolations,
     found_documents: docResult.found,
     suggestions,
     source_documents: sourceDocuments,
@@ -527,8 +952,12 @@ module.exports = {
   loadTemplates,
   getTemplate,
   saveTemplates,
+  normalizeTemplate,
   extractSourceDocuments,
   classifyDocuments,
+  classifyBySignals,
+  scoreDocumentFields,
+  checkCrossDocRules,
   analyzeGaps,
   FIELD_ALIASES,
   TYPE_ALIASES,

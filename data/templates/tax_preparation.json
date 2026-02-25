@@ -1,0 +1,206 @@
+{
+  "template_id": "tax_preparation",
+  "version": "1.0.0",
+  "display_name": "Business Tax Preparation",
+  "description": "Business tax preparation — tracks all documents from incorporation through filing",
+  "created_by": "Context Architecture",
+  "created_at": "2026-02-25T00:00:00Z",
+
+  "document_types": [
+    {
+      "type_id": "w2_forms",
+      "display_name": "W-2 Wage and Tax Statement",
+      "category": "Payroll",
+      "priority": "HIGH",
+      "classification_signals": ["W-2", "Wage and Tax Statement", "employer identification", "wages tips", "federal income tax withheld", "social security wages"],
+      "extraction_spec": [
+        { "field_id": "payroll.employee_ssn", "display_name": "Employee SSN", "field_type": "ssn", "sensitivity": "CRITICAL", "source_hint": "Box a — Employee's social security number", "extraction_notes": "Must match across all tax documents.", "auto_approve": false },
+        { "field_id": "payroll.employer_ein", "display_name": "Employer EIN", "field_type": "ein", "sensitivity": "CRITICAL", "source_hint": "Box b — Employer identification number", "extraction_notes": "Cross-ref with K-1 employer EIN.", "auto_approve": false },
+        { "field_id": "payroll.employer_name", "display_name": "Employer Name", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Box c — Employer's name, address, and ZIP", "auto_approve": false },
+        { "field_id": "payroll.wages_tips", "display_name": "Wages, Tips, Other Compensation", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Box 1", "auto_approve": false },
+        { "field_id": "payroll.federal_tax_withheld", "display_name": "Federal Income Tax Withheld", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Box 2", "auto_approve": false },
+        { "field_id": "payroll.ss_wages", "display_name": "Social Security Wages", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Box 3", "auto_approve": false },
+        { "field_id": "payroll.state_wages", "display_name": "State Wages", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Box 16", "auto_approve": false },
+        { "field_id": "payroll.employee_name", "display_name": "Employee Name", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Box e — Employee's name", "auto_approve": false },
+        { "field_id": "payroll.employee_address", "display_name": "Employee Address", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Box f — Employee's address", "auto_approve": true }
+      ]
+    },
+    {
+      "type_id": "1099_int",
+      "display_name": "1099-INT Interest Income",
+      "category": "Income",
+      "priority": "HIGH",
+      "classification_signals": ["1099-INT", "Interest Income", "interest income", "payer's federal identification"],
+      "extraction_spec": [
+        { "field_id": "income.payer_name", "display_name": "Payer Name", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Payer's name field", "auto_approve": false },
+        { "field_id": "income.payer_tin", "display_name": "Payer TIN", "field_type": "ein", "sensitivity": "CRITICAL", "source_hint": "Payer's TIN / Federal identification number", "auto_approve": false },
+        { "field_id": "income.recipient_tin", "display_name": "Recipient TIN", "field_type": "ssn", "sensitivity": "CRITICAL", "source_hint": "Recipient's identification number", "auto_approve": false },
+        { "field_id": "income.interest_income", "display_name": "Interest Income", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Box 1 — Interest income", "auto_approve": false },
+        { "field_id": "income.tax_exempt_interest", "display_name": "Tax-Exempt Interest", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Box 8", "auto_approve": false }
+      ]
+    },
+    {
+      "type_id": "1099_div",
+      "display_name": "1099-DIV Dividends and Distributions",
+      "category": "Income",
+      "priority": "HIGH",
+      "classification_signals": ["1099-DIV", "Dividends and Distributions", "ordinary dividends", "qualified dividends", "capital gain"],
+      "extraction_spec": [
+        { "field_id": "income.div_payer_name", "display_name": "Payer Name", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Payer's name field", "auto_approve": false },
+        { "field_id": "income.div_payer_tin", "display_name": "Payer TIN", "field_type": "ein", "sensitivity": "CRITICAL", "source_hint": "Payer's TIN", "auto_approve": false },
+        { "field_id": "income.ordinary_dividends", "display_name": "Ordinary Dividends", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Box 1a", "auto_approve": false },
+        { "field_id": "income.qualified_dividends", "display_name": "Qualified Dividends", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Box 1b", "auto_approve": false },
+        { "field_id": "income.capital_gain_distributions", "display_name": "Capital Gain Distributions", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Box 2a", "auto_approve": false }
+      ]
+    },
+    {
+      "type_id": "1099_nec",
+      "display_name": "1099-NEC Nonemployee Compensation",
+      "category": "Income",
+      "priority": "HIGH",
+      "classification_signals": ["1099-NEC", "Nonemployee Compensation", "nonemployee", "independent contractor"],
+      "extraction_spec": [
+        { "field_id": "income.nec_payer_name", "display_name": "Payer Name", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Payer's name", "auto_approve": false },
+        { "field_id": "income.nec_payer_tin", "display_name": "Payer TIN", "field_type": "ein", "sensitivity": "CRITICAL", "source_hint": "Payer's TIN", "auto_approve": false },
+        { "field_id": "income.nec_recipient_tin", "display_name": "Recipient TIN", "field_type": "ssn", "sensitivity": "CRITICAL", "source_hint": "Recipient's TIN", "auto_approve": false },
+        { "field_id": "income.nonemployee_compensation", "display_name": "Nonemployee Compensation", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Box 1", "auto_approve": false }
+      ]
+    },
+    {
+      "type_id": "k1_form",
+      "display_name": "Schedule K-1 (Partner/Shareholder)",
+      "category": "Income",
+      "priority": "HIGH",
+      "classification_signals": ["K-1", "Schedule K-1", "partner's share", "shareholder's share", "partnership", "S corporation", "Form 1065", "Form 1120-S"],
+      "extraction_spec": [
+        { "field_id": "income.k1_entity_name", "display_name": "Entity Name", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Partnership/S-Corp name — Part II, Box E", "auto_approve": false },
+        { "field_id": "income.k1_entity_ein", "display_name": "Entity EIN", "field_type": "ein", "sensitivity": "CRITICAL", "source_hint": "Partnership/S-Corp EIN — Part II, Box D", "extraction_notes": "Cross-ref with employer EIN on W-2.", "auto_approve": false },
+        { "field_id": "income.k1_partner_ssn", "display_name": "Partner/Shareholder SSN", "field_type": "ssn", "sensitivity": "CRITICAL", "source_hint": "Partner's SSN — Part III, Box H", "auto_approve": false },
+        { "field_id": "income.k1_partner_name", "display_name": "Partner/Shareholder Name", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Partner name — Part III, Box F", "auto_approve": false },
+        { "field_id": "income.k1_ordinary_income", "display_name": "Ordinary Business Income", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Line 1 — Ordinary business income (loss)", "auto_approve": false },
+        { "field_id": "income.k1_rental_income", "display_name": "Rental Income", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Line 2 — Net rental real estate income", "auto_approve": false },
+        { "field_id": "income.k1_distributions", "display_name": "Distributions", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Line 19 — Distributions", "auto_approve": false },
+        { "field_id": "income.k1_ownership_pct", "display_name": "Ownership Percentage", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Profit/loss/capital sharing percentages", "auto_approve": true }
+      ]
+    },
+    {
+      "type_id": "prior_year_return",
+      "display_name": "Prior Year Tax Return (Form 1040)",
+      "category": "Prior Returns",
+      "priority": "HIGH",
+      "classification_signals": ["1040", "prior year", "tax return", "Form 1040", "adjusted gross income", "taxable income", "individual income tax"],
+      "extraction_spec": [
+        { "field_id": "prior.taxpayer_ssn", "display_name": "Taxpayer SSN", "field_type": "ssn", "sensitivity": "CRITICAL", "source_hint": "SSN field at top of 1040", "auto_approve": false },
+        { "field_id": "prior.taxpayer_name", "display_name": "Taxpayer Name", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Name on 1040", "auto_approve": false },
+        { "field_id": "prior.filing_status", "display_name": "Filing Status", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Filing status checkbox — single, married, etc.", "auto_approve": true },
+        { "field_id": "prior.adjusted_gross_income", "display_name": "Adjusted Gross Income", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Line 11 — AGI", "auto_approve": false },
+        { "field_id": "prior.taxable_income", "display_name": "Taxable Income", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Line 15 — Taxable income", "auto_approve": false },
+        { "field_id": "prior.total_tax", "display_name": "Total Tax", "field_type": "currency", "sensitivity": "HIGH", "source_hint": "Line 24 — Total tax", "auto_approve": false },
+        { "field_id": "prior.tax_year", "display_name": "Tax Year", "field_type": "text", "sensitivity": "LOW", "source_hint": "Year on form header", "auto_approve": true }
+      ]
+    },
+    {
+      "type_id": "ein_letter",
+      "display_name": "EIN Confirmation Letter (CP 575)",
+      "category": "Incorporation",
+      "priority": "HIGH",
+      "classification_signals": ["CP 575", "EIN", "employer identification", "EIN confirmation", "assigned EIN", "Internal Revenue Service"],
+      "extraction_spec": [
+        { "field_id": "formation.entity_ein", "display_name": "Entity EIN", "field_type": "ein", "sensitivity": "CRITICAL", "source_hint": "EIN assigned — prominent in letter body", "auto_approve": false },
+        { "field_id": "formation.entity_legal_name", "display_name": "Entity Legal Name", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Entity name on IRS letter", "auto_approve": false },
+        { "field_id": "formation.ein_date", "display_name": "EIN Issue Date", "field_type": "date", "sensitivity": "LOW", "source_hint": "Date of letter", "auto_approve": true }
+      ]
+    },
+    {
+      "type_id": "articles_of_incorporation",
+      "display_name": "Articles of Incorporation / Operating Agreement",
+      "category": "Incorporation",
+      "priority": "HIGH",
+      "classification_signals": ["articles of incorporation", "operating agreement", "certificate of formation", "articles of organization", "bylaws"],
+      "extraction_spec": [
+        { "field_id": "formation.entity_name", "display_name": "Entity Name", "field_type": "text", "sensitivity": "HIGH", "source_hint": "Name of entity being formed", "auto_approve": false },
+        { "field_id": "formation.entity_type", "display_name": "Entity Type", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "LLC, Corp, LP, etc.", "auto_approve": true },
+        { "field_id": "formation.state_of_formation", "display_name": "State of Formation", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "State where filed", "auto_approve": true },
+        { "field_id": "formation.formation_date", "display_name": "Formation Date", "field_type": "date", "sensitivity": "STANDARD", "source_hint": "Date filed with Secretary of State", "auto_approve": true },
+        { "field_id": "formation.fiscal_year_end", "display_name": "Fiscal Year End", "field_type": "text", "sensitivity": "STANDARD", "source_hint": "Fiscal year specification in operating agreement", "auto_approve": true }
+      ]
+    }
+  ],
+
+  "entity_roles": [
+    {
+      "role_id": "business_entity",
+      "display_name": "Business Entity",
+      "type": "organization",
+      "required_fields": [
+        { "field_id": "business.legal_name", "display_name": "Legal Name", "field_type": "text", "sensitivity": "HIGH" },
+        { "field_id": "business.ein", "display_name": "EIN", "field_type": "ein", "sensitivity": "CRITICAL" },
+        { "field_id": "business.entity_type", "display_name": "Entity Type", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "business.state_of_formation", "display_name": "State of Formation", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "business.fiscal_year_end", "display_name": "Fiscal Year End", "field_type": "text", "sensitivity": "STANDARD" }
+      ]
+    },
+    {
+      "role_id": "owner_member",
+      "display_name": "Owner / Member / Partner",
+      "type": "person",
+      "min_count": 1,
+      "required_fields": [
+        { "field_id": "owner.full_name", "display_name": "Full Name", "field_type": "text", "sensitivity": "HIGH" },
+        { "field_id": "owner.ssn", "display_name": "SSN", "field_type": "ssn", "sensitivity": "CRITICAL" },
+        { "field_id": "owner.ownership_percentage", "display_name": "Ownership Percentage", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "owner.address", "display_name": "Address", "field_type": "text", "sensitivity": "STANDARD" }
+      ]
+    },
+    {
+      "role_id": "registered_agent",
+      "display_name": "Registered Agent",
+      "type": "person",
+      "required_fields": [
+        { "field_id": "agent.full_name", "display_name": "Full Name", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "agent.address", "display_name": "Address", "field_type": "text", "sensitivity": "STANDARD" }
+      ]
+    },
+    {
+      "role_id": "tax_preparer",
+      "display_name": "Tax Preparer",
+      "type": "person",
+      "optional": true,
+      "required_fields": [
+        { "field_id": "preparer.full_name", "display_name": "Full Name", "field_type": "text", "sensitivity": "STANDARD" },
+        { "field_id": "preparer.ptin", "display_name": "PTIN", "field_type": "text", "sensitivity": "HIGH" }
+      ]
+    }
+  ],
+
+  "cross_doc_rules": [
+    {
+      "rule_id": "ssn_consistency",
+      "description": "SSN must match across all tax documents",
+      "fields": ["payroll.employee_ssn", "income.recipient_tin", "income.nec_recipient_tin", "income.k1_partner_ssn", "prior.taxpayer_ssn"],
+      "validation": "exact",
+      "severity": "CRITICAL"
+    },
+    {
+      "rule_id": "employer_ein_consistency",
+      "description": "Employer EIN should match between W-2 and K-1",
+      "fields": ["payroll.employer_ein", "income.k1_entity_ein", "formation.entity_ein"],
+      "validation": "exact",
+      "severity": "HIGH"
+    },
+    {
+      "rule_id": "total_income_cross_ref",
+      "description": "Total income from W-2 + 1099 + K-1 should approximate prior year AGI",
+      "fields": ["payroll.wages_tips", "income.interest_income", "income.nonemployee_compensation", "income.k1_ordinary_income", "prior.adjusted_gross_income"],
+      "validation": "comparison",
+      "severity": "MEDIUM"
+    },
+    {
+      "rule_id": "taxpayer_name_consistency",
+      "description": "Taxpayer name should match across all documents",
+      "fields": ["payroll.employee_name", "income.k1_partner_name", "prior.taxpayer_name"],
+      "validation": "exact",
+      "severity": "HIGH"
+    }
+  ]
+}

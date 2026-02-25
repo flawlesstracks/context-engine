@@ -4185,14 +4185,18 @@ app.post('/api/spokes/migrate', apiAuth, (req, res) => {
 // Gap Analysis Endpoints (MECE-019)
 // ---------------------------------------------------------------------------
 
-// GET /api/templates — List all matter templates (id, label, category count)
+// GET /api/templates — List all matter templates (id, label, category count) (Build 10: enriched)
 app.get('/api/templates', apiAuth, (req, res) => {
   const templates = loadTemplates();
   const list = Object.entries(templates).map(([id, t]) => ({
     id,
-    label: t.label,
+    label: t.label || t.display_name || id,
+    version: t.version || '0.1.0',
     category_count: (t.required_documents || []).length,
-    entity_roles: (t.required_entities || []).length
+    document_types: (t.document_types || []).length,
+    entity_roles: (t.required_entities || []).length,
+    cross_doc_rules: (t.cross_doc_rules || []).length,
+    has_extraction_specs: (t.document_types || []).some(dt => (dt.extraction_spec || []).length > 0)
   }));
   res.json({ templates: list });
 });
@@ -4216,7 +4220,7 @@ app.post('/api/templates/custom', apiAuth, (req, res) => {
   res.json({ status: 'created', id, label });
 });
 
-// PUT /api/spoke/:id/template — Assign template to spoke, clear cached analysis
+// PUT /api/spoke/:id/template — Assign template to spoke, clear cached analysis (Build 10: re-analysis on change)
 app.put('/api/spoke/:id/template', apiAuth, (req, res) => {
   const { template_type } = req.body || {};
   if (!template_type) return res.status(400).json({ error: 'template_type is required' });
@@ -4224,7 +4228,14 @@ app.put('/api/spoke/:id/template', apiAuth, (req, res) => {
   if (!template) return res.status(404).json({ error: 'Template not found', available_templates: Object.keys(loadTemplates()) });
   const spoke = getSpoke(req.graphDir, req.params.id);
   if (!spoke) return res.status(404).json({ error: 'Spoke not found' });
-  const updated = updateSpoke(req.graphDir, req.params.id, { template_type, gap_analysis: null, document_classification: null });
+  // Clear cached analysis + classification so re-analysis is triggered on next gaps request
+  const updated = updateSpoke(req.graphDir, req.params.id, {
+    template_type,
+    gap_analysis: null,
+    document_classification: null,
+    review_status: null,
+    review_summary: null
+  });
   res.json({ status: 'assigned', spoke_id: req.params.id, template_type, spoke: updated });
 });
 
@@ -5032,20 +5043,59 @@ app.patch('/api/entity/:id', apiAuth, (req, res) => {
   });
 });
 
-// PATCH /api/entity/:id/observation/:index/review — Set review status on a field (Build 8)
+// PATCH /api/entity/:id/observation/:index/review — Set review status on a field (Build 8, upgraded Build 9)
 app.patch('/api/entity/:id/observation/:index/review', apiAuth, (req, res) => {
   const entity = readEntity(req.params.id, req.graphDir);
   if (!entity) return res.status(404).json({ error: 'Entity not found' });
 
-  const { status, reviewed_by, notes, field_key } = req.body;
-  if (!status || !['approved', 'rejected', 'pending'].includes(status)) {
-    return res.status(400).json({ error: 'Invalid status. Must be approved, rejected, or pending.' });
+  // Build 9: action-based logic with backward compat
+  const { action, corrected_value, reason, reviewed_by, field_key, status: legacyStatus, notes } = req.body;
+  const effectiveAction = action || (legacyStatus === 'approved' ? 'approve' : legacyStatus === 'rejected' ? 'reject' : null);
+  if (!effectiveAction || !['approve', 'reject', 'correct'].includes(effectiveAction)) {
+    return res.status(400).json({ error: 'Invalid action. Must be approve, reject, or correct.' });
   }
 
   const now = new Date().toISOString();
-  const review = { status, reviewed_by: reviewed_by || 'user', reviewed_at: now, notes: notes || '' };
+  const reviewStatus = effectiveAction === 'approve' ? 'approved' : effectiveAction === 'reject' ? 'rejected' : 'corrected';
+  const review = {
+    status: reviewStatus,
+    reviewed_by: reviewed_by || 'user',
+    reviewed_at: now,
+    notes: reason || notes || ''
+  };
 
-  // Store review in a reviews map on the entity keyed by field_key
+  // Handle correction: update the attribute value on the entity
+  if (effectiveAction === 'correct' && corrected_value !== undefined && field_key) {
+    const attrs = entity.attributes || [];
+    const fieldKeyLower = field_key.toLowerCase().replace(/\s+/g, '_');
+    let corrected = false;
+    for (let i = 0; i < attrs.length; i++) {
+      if ((attrs[i].key || '').toLowerCase().replace(/\s+/g, '_') === fieldKeyLower) {
+        review.correction = { original_value: attrs[i].value, corrected_value: corrected_value };
+        attrs[i].value = corrected_value;
+        attrs[i].confidence = 1.0;
+        if (!attrs[i].provenance) attrs[i].provenance = {};
+        attrs[i].provenance.extraction_type = 'human_review';
+        attrs[i].provenance.corrected_at = now;
+        corrected = true;
+        break;
+      }
+    }
+    if (!corrected) {
+      // Try nested entity fields (entity.entity.*)
+      const entObj = entity.entity || {};
+      const dotParts = field_key.split('.');
+      if (dotParts.length === 2 && entObj[dotParts[0]]) {
+        review.correction = { original_value: entObj[dotParts[0]][dotParts[1]], corrected_value: corrected_value };
+        entObj[dotParts[0]][dotParts[1]] = corrected_value;
+      } else if (dotParts.length === 1 && entObj[dotParts[0]] !== undefined) {
+        review.correction = { original_value: entObj[dotParts[0]], corrected_value: corrected_value };
+        entObj[dotParts[0]] = corrected_value;
+      }
+    }
+  }
+
+  // Store review in field_reviews map
   if (!entity.field_reviews) entity.field_reviews = {};
   if (field_key) {
     entity.field_reviews[field_key] = review;
@@ -5060,7 +5110,95 @@ app.patch('/api/entity/:id/observation/:index/review', apiAuth, (req, res) => {
 
   writeEntity(req.params.id, entity, req.graphDir);
 
+  // Check if all fields for this entity's spoke are reviewed — update spoke status
+  if (entity.spoke_id) {
+    try {
+      const spoke = getSpoke(req.graphDir, entity.spoke_id);
+      if (spoke) {
+        const exportData = buildSpokeExportData(spoke, req.graphDir);
+        if (exportData) {
+          const summary = computeReviewSummary(exportData);
+          const updates = { review_summary: summary };
+          if (summary.pending === 0 && summary.total > 0) {
+            updates.review_status = 'complete';
+          } else {
+            updates.review_status = 'in_progress';
+          }
+          updateSpoke(req.graphDir, entity.spoke_id, updates);
+        }
+      }
+    } catch (e) { /* non-critical */ }
+  }
+
   res.json({ status: 'reviewed', entity_id: req.params.id, field_key, review });
+});
+
+// POST /api/spoke/:id/bulk-review — Bulk approve high-confidence non-critical fields (Build 9)
+app.post('/api/spoke/:id/bulk-review', apiAuth, (req, res) => {
+  const spoke = getSpoke(req.graphDir, req.params.id);
+  if (!spoke) return res.status(404).json({ error: `Spoke ${req.params.id} not found` });
+
+  const exportData = buildSpokeExportData(spoke, req.graphDir);
+  if (!exportData) return res.status(400).json({ error: 'No export data available' });
+
+  const criticalKeys = ['ssn', 'ein', 'tax_id', 'account_number', 'bank', 'social_security', 'routing_number'];
+  const now = new Date().toISOString();
+  const reviewer = req.body.reviewed_by || 'user';
+  let approvedCount = 0, skippedCount = 0;
+  const modifiedEntities = {};
+
+  for (const role of (exportData.roles || [])) {
+    for (const ent of (role.entities || [])) {
+      if (!ent.entity_id) { skippedCount += (ent.fields || []).length; continue; }
+      for (const f of (ent.fields || [])) {
+        // Skip already-reviewed fields
+        if (f.review && ['approved', 'rejected', 'corrected'].includes(f.review.status)) {
+          continue;
+        }
+        // Skip missing fields
+        if (f.status === 'missing' || !f.value) { skippedCount++; continue; }
+        // Skip critical fields
+        const fieldLower = (f.field || '').toLowerCase();
+        const isCritical = criticalKeys.some(k => fieldLower.indexOf(k) >= 0);
+        if (isCritical) { skippedCount++; continue; }
+        // Skip low-confidence fields
+        if (f.confidence != null && f.confidence < 0.85) { skippedCount++; continue; }
+
+        // Approve this field
+        if (!modifiedEntities[ent.entity_id]) {
+          modifiedEntities[ent.entity_id] = readEntity(ent.entity_id, req.graphDir);
+        }
+        const entity = modifiedEntities[ent.entity_id];
+        if (!entity) { skippedCount++; continue; }
+        if (!entity.field_reviews) entity.field_reviews = {};
+        entity.field_reviews[f.field] = {
+          status: 'approved',
+          reviewed_by: reviewer,
+          reviewed_at: now,
+          notes: 'Bulk approved (high confidence)'
+        };
+        approvedCount++;
+      }
+    }
+  }
+
+  // Write all modified entities to disk
+  for (const [entityId, entity] of Object.entries(modifiedEntities)) {
+    writeEntity(entityId, entity, req.graphDir);
+  }
+
+  // Recompute review summary and update spoke
+  const updatedExport = buildSpokeExportData(spoke, req.graphDir);
+  const summary = updatedExport ? computeReviewSummary(updatedExport) : { total: 0, pending: 0, approved: 0, rejected: 0, corrected: 0 };
+  const spokeUpdates = { review_summary: summary };
+  if (summary.pending === 0 && summary.total > 0) {
+    spokeUpdates.review_status = 'complete';
+  } else {
+    spokeUpdates.review_status = 'in_progress';
+  }
+  updateSpoke(req.graphDir, req.params.id, spokeUpdates);
+
+  res.json({ approved: approvedCount, skipped: skippedCount, review_summary: summary });
 });
 
 // POST /api/observe — Append an observation to an existing entity
@@ -5503,6 +5641,25 @@ function _exportFindField(provenanceReport, entity, fieldName) {
   return null;
 }
 
+// --- Review summary computation helper (Build 9) ---
+function computeReviewSummary(exportData, graphDir) {
+  if (!exportData || !exportData.roles) return { total: 0, pending: 0, approved: 0, rejected: 0, corrected: 0 };
+  var total = 0, pending = 0, approved = 0, rejected = 0, corrected = 0;
+  for (const role of exportData.roles) {
+    for (const ent of (role.entities || [])) {
+      for (const f of (ent.fields || [])) {
+        if (f.status === 'missing') continue;
+        total++;
+        if (f.review && f.review.status === 'approved') approved++;
+        else if (f.review && f.review.status === 'rejected') rejected++;
+        else if (f.review && f.review.status === 'corrected') corrected++;
+        else pending++;
+      }
+    }
+  }
+  return { total, pending, approved, rejected, corrected };
+}
+
 // --- Reusable spoke export data builder ---
 function buildSpokeExportData(spoke, graphDir) {
   const templateType = spoke.template_type;
@@ -5577,6 +5734,14 @@ function buildSpokeExportData(spoke, graphDir) {
           }
         }
 
+        // Attach persisted review state from entity.field_reviews (Build 9 — critical page-refresh fix)
+        const reviews = entity.field_reviews || {};
+        for (const fd of fields) {
+          if (reviews[fd.field]) {
+            fd.review = reviews[fd.field];
+          }
+        }
+
         roleData.entities.push({ entity_id: entityId, entity_name: entityName, fields });
       }
     }
@@ -5584,7 +5749,7 @@ function buildSpokeExportData(spoke, graphDir) {
     roles.push(roleData);
   }
 
-  return {
+  const exportResult = {
     spoke_id: spoke.id,
     spoke_name: spoke.name,
     template_type: templateType,
@@ -5592,6 +5757,11 @@ function buildSpokeExportData(spoke, graphDir) {
     roles,
     summary: { total_fields: totalFields, verified, low_confidence: lowConf, missing, conflicts: conflictCount }
   };
+
+  // Compute review summary (Build 9)
+  exportResult.review_summary = computeReviewSummary(exportResult);
+
+  return exportResult;
 }
 
 // GET /api/spoke/:id/export — Structured data export with provenance table
@@ -9151,6 +9321,79 @@ const WIKI_HTML = `<!DOCTYPE html>
   .rp-verified-check {
     color: #059669; font-size: 14px;
   }
+
+  /* --- Build 9: Validation Backend styles --- */
+  .rp-critical-badge {
+    display: inline-block; font-size: 9px; font-weight: 700;
+    color: #fff; background: #dc2626; border-radius: 3px;
+    padding: 1px 5px; margin-left: 6px; letter-spacing: 0.5px;
+    vertical-align: middle;
+  }
+  .rp-field-status.corrected {
+    background: #dbeafe; color: #1d4ed8; border-color: #93c5fd;
+  }
+  .rp-field-status.rejected {
+    background: #fef2f2; color: #dc2626; border-color: #fecaca;
+  }
+  .rp-progress-bar {
+    background: #e5e7eb; border-radius: 6px; height: 8px;
+    overflow: hidden; margin-bottom: 6px;
+  }
+  .rp-progress-fill {
+    height: 100%; border-radius: 6px;
+    background: linear-gradient(90deg, #059669, #10b981);
+    transition: width 0.4s ease;
+  }
+  .rp-progress-summary {
+    font-size: 11px; color: var(--text-muted); margin-bottom: 16px;
+    line-height: 1.5;
+  }
+  .rp-flagged-item {
+    background: #fff; border: 1px solid #fecaca; border-radius: 8px;
+    padding: 12px; margin-bottom: 8px; border-left: 3px solid #dc2626;
+  }
+  .rp-flagged-item .rp-review-field { color: #991b1b; }
+  .rp-corrected-item {
+    background: #fff; border: 1px solid #93c5fd; border-radius: 8px;
+    padding: 12px; margin-bottom: 8px; border-left: 3px solid #1d4ed8;
+  }
+  .rp-corrected-item .rp-review-field { color: #1e40af; }
+  .rp-bulk-approve {
+    display: block; width: 100%; padding: 10px 16px;
+    background: #059669; color: #fff; border: none; border-radius: 8px;
+    font-size: 13px; font-weight: 600; cursor: pointer;
+    margin-bottom: 16px; transition: background 0.15s;
+  }
+  .rp-bulk-approve:hover { background: #047857; }
+  .rp-bulk-approve:disabled { background: #9ca3af; cursor: not-allowed; }
+  .rp-modal-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5); z-index: 1000;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .rp-modal {
+    background: #fff; border-radius: 12px; padding: 28px;
+    max-width: 420px; width: 90%; box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+  }
+  .rp-modal h3 { margin: 0 0 12px; font-size: 18px; }
+  .rp-modal p { margin: 0 0 20px; font-size: 14px; color: #555; line-height: 1.5; }
+  .rp-modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .rp-modal-actions button {
+    padding: 8px 20px; border-radius: 8px; font-size: 13px;
+    font-weight: 600; cursor: pointer; border: 1px solid #e0e0e0;
+    transition: all 0.15s;
+  }
+  .rp-modal-actions .confirm {
+    background: #059669; color: #fff; border-color: #059669;
+  }
+  .rp-modal-actions .confirm:hover { background: #047857; }
+  .rp-modal-actions .cancel { background: #fff; color: #555; }
+  .rp-modal-actions .cancel:hover { background: #f5f5f5; }
+  .rp-spoke-progress {
+    background: #fff; border: 1px solid #e0e0e0; border-radius: 8px;
+    padding: 12px 16px; margin-bottom: 16px;
+  }
+  .rp-spoke-progress .rp-progress-bar { margin-bottom: 4px; }
 
   /* Field Detail */
   .rp-field-detail { padding: 0; }
@@ -15228,6 +15471,7 @@ function showClientWorkspace(spokeId, tab) {
     tabHtml += '</div>';
   }
   tabHtml += '</div>';
+  tabHtml += '<div id="spokeReviewProgress"></div>';
   tabHtml += '<div id="clientTabContent"></div>';
   mainEl.innerHTML = tabHtml;
 
@@ -15260,6 +15504,7 @@ function loadClientTabContent(tab) {
     api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/export').then(function(data) {
       _exportData = data;
       if (tab === 'completeness') updateContextRightPanel('review_queue');
+      renderSpokeReviewProgress();
     }).catch(function() {});
   }
 
@@ -16089,6 +16334,27 @@ function updateContextRightPanel(context, detail) {
   }
 }
 
+// renderSpokeReviewProgress — spoke header progress bar (Build 9)
+function renderSpokeReviewProgress() {
+  var el = document.getElementById('spokeReviewProgress');
+  if (!el || !_exportData) return;
+  var rs = _exportData.review_summary;
+  if (!rs || !rs.total) { el.innerHTML = ''; return; }
+  var reviewed = rs.approved + rs.rejected + rs.corrected;
+  var pct = Math.round((reviewed / rs.total) * 100);
+  var h = '<div class="rp-spoke-progress">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">';
+  h += '<span style="font-size:12px;font-weight:600;color:var(--text-primary);">Review Progress</span>';
+  h += '<span style="font-size:12px;color:var(--text-muted);">' + pct + '%</span>';
+  h += '</div>';
+  h += '<div class="rp-progress-bar"><div class="rp-progress-fill" style="width:' + pct + '%"></div></div>';
+  h += '<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">';
+  h += reviewed + ' of ' + rs.total + ' fields reviewed';
+  if (reviewed === rs.total) h += ' &mdash; <strong style="color:#059669;">Complete</strong>';
+  h += '</div></div>';
+  el.innerHTML = h;
+}
+
 function renderReviewQueuePanel(rp) {
   if (!_selectedSpoke || !_exportData) {
     rp.innerHTML = '<div style="padding:24px;color:var(--text-muted);font-size:13px;">Select a client to view review queue.</div>';
@@ -16096,10 +16362,13 @@ function renderReviewQueuePanel(rp) {
   }
 
   var roles = _exportData.roles || [];
-  var pending = [];
-  var verified = [];
+  var pending = [], verified = [], flagged = [], corrected = [];
+  var criticalKeys = ['ssn', 'ein', 'tax_id', 'account_number', 'bank', 'social_security', 'routing_number'];
+  var totalReviewable = 0;
+  var bulkEligible = 0;
+  var criticalPending = 0;
 
-  // Scan all fields for review status
+  // Scan all fields into 4 buckets
   for (var ri = 0; ri < roles.length; ri++) {
     var role = roles[ri];
     for (var ei = 0; ei < (role.entities || []).length; ei++) {
@@ -16107,32 +16376,41 @@ function renderReviewQueuePanel(rp) {
       for (var fi = 0; fi < (ent.fields || []).length; fi++) {
         var f = ent.fields[fi];
         if (f.status === 'missing') continue;
+        totalReviewable++;
+        var fieldLower = (f.field || '').toLowerCase();
+        var isCritical = criticalKeys.some(function(k) { return fieldLower.indexOf(k) >= 0; });
         var item = {
           ri: ri, ei: ei, fi: fi,
           field: f.field, value: f.value, status: f.status,
+          confidence: f.confidence,
           provenance: f.provenance || {},
           entity_id: ent.entity_id, entity_name: ent.entity_name,
-          review: f.review || null
+          review: f.review || null,
+          isCritical: isCritical
         };
         if (f.review && f.review.status === 'approved') {
           verified.push(item);
+        } else if (f.review && f.review.status === 'rejected') {
+          flagged.push(item);
+        } else if (f.review && f.review.status === 'corrected') {
+          corrected.push(item);
         } else {
           pending.push(item);
+          if (isCritical) criticalPending++;
+          else if (f.confidence != null && f.confidence >= 0.85 && f.value) bulkEligible++;
         }
       }
     }
   }
 
-  // Sort pending: critical fields first, then by confidence
-  var criticalKeys = ['ssn', 'ein', 'tax_id', 'account', 'bank', 'social_security'];
+  // Sort pending: critical fields first
   pending.sort(function(a, b) {
-    var aIsCritical = criticalKeys.some(function(k) { return (a.field || '').toLowerCase().indexOf(k) >= 0; });
-    var bIsCritical = criticalKeys.some(function(k) { return (b.field || '').toLowerCase().indexOf(k) >= 0; });
-    if (aIsCritical && !bIsCritical) return -1;
-    if (!aIsCritical && bIsCritical) return 1;
+    if (a.isCritical && !b.isCritical) return -1;
+    if (!a.isCritical && b.isCritical) return 1;
     return 0;
   });
 
+  var reviewed = verified.length + flagged.length + corrected.length;
   var h = '<div style="padding:4px 0;">';
 
   // Header
@@ -16140,13 +16418,34 @@ function renderReviewQueuePanel(rp) {
   h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>';
   h += 'REVIEW QUEUE</div>';
 
+  // Progress bar
+  var pct = totalReviewable > 0 ? Math.round((reviewed / totalReviewable) * 100) : 0;
+  h += '<div class="rp-progress-bar"><div class="rp-progress-fill" style="width:' + pct + '%"></div></div>';
+  h += '<div class="rp-progress-summary">';
+  h += reviewed + ' of ' + totalReviewable + ' reviewed.';
+  if (verified.length > 0) h += ' ' + verified.length + ' approved.';
+  if (corrected.length > 0) h += ' ' + corrected.length + ' corrected.';
+  if (flagged.length > 0) h += ' ' + flagged.length + ' rejected.';
+  h += '</div>';
+
+  // Bulk Approve button
+  if (bulkEligible > 0) {
+    h += '<button class="rp-bulk-approve" onclick="showBulkApproveModal(' + bulkEligible + ',' + criticalPending + ',' + totalReviewable + ')">';
+    h += '&#9889; Bulk Approve ' + bulkEligible + ' High-Confidence Field' + (bulkEligible !== 1 ? 's' : '') + '</button>';
+  }
+
+  // PENDING section
   if (pending.length > 0) {
-    h += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">' + pending.length + ' item' + (pending.length !== 1 ? 's' : '') + ' need review</div>';
+    h += '<div class="rp-section-title" style="margin-top:8px;">';
+    h += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+    h += 'PENDING (' + pending.length + ')</div>';
 
     for (var i = 0; i < Math.min(pending.length, 15); i++) {
       var p = pending[i];
       h += '<div class="rp-review-item" onclick="showFieldInRightPanel(' + p.ri + ',' + p.ei + ',' + p.fi + ')">';
-      h += '<div class="rp-review-field">' + esc(_exportFormatLabel(p.field)) + '</div>';
+      h += '<div class="rp-review-field">' + esc(_exportFormatLabel(p.field));
+      if (p.isCritical) h += '<span class="rp-critical-badge">CRITICAL</span>';
+      h += '</div>';
       if (p.value) h += '<div class="rp-review-value">' + esc(String(p.value)) + '</div>';
       if (p.provenance && p.provenance.filename) {
         h += '<div class="rp-review-source">';
@@ -16156,18 +16455,18 @@ function renderReviewQueuePanel(rp) {
       }
       h += '<div class="rp-actions">';
       h += '<button class="rp-btn approve" title="Approve" onclick="event.stopPropagation();reviewField(' + p.ri + ',' + p.ei + ',' + p.fi + ',\\'approved\\')"><span class="rp-btn-icon">&#10003;</span></button>';
-      h += '<button class="rp-btn reject" title="Reject" onclick="event.stopPropagation();reviewField(' + p.ri + ',' + p.ei + ',' + p.fi + ',\\'rejected\\')"><span class="rp-btn-icon">&#10007;</span></button>';
+      h += '<button class="rp-btn reject" title="Reject" onclick="event.stopPropagation();promptRejectField(' + p.ri + ',' + p.ei + ',' + p.fi + ')"><span class="rp-btn-icon">&#10007;</span></button>';
       h += '<button class="rp-btn edit" title="Edit" onclick="event.stopPropagation();showFieldInRightPanel(' + p.ri + ',' + p.ei + ',' + p.fi + ')"><span class="rp-btn-icon">&#9998;</span></button>';
       h += '</div></div>';
     }
     if (pending.length > 15) {
       h += '<div style="text-align:center;padding:8px;font-size:12px;color:var(--text-muted);">+ ' + (pending.length - 15) + ' more items</div>';
     }
-  } else {
-    h += '<div style="text-align:center;padding:20px;color:#059669;font-size:13px;">All fields reviewed!</div>';
+  } else if (reviewed === totalReviewable && totalReviewable > 0) {
+    h += '<div style="text-align:center;padding:20px;color:#059669;font-size:13px;font-weight:600;">All fields reviewed!</div>';
   }
 
-  // Verified section
+  // VERIFIED section
   if (verified.length > 0) {
     h += '<div class="rp-section-title" style="margin-top:24px;">';
     h += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>';
@@ -16184,6 +16483,42 @@ function renderReviewQueuePanel(rp) {
       h += '</div>';
     }
     h += '</div>';
+  }
+
+  // FLAGGED (rejected) section
+  if (flagged.length > 0) {
+    h += '<div class="rp-section-title" style="margin-top:24px;">';
+    h += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>';
+    h += 'FLAGGED (' + flagged.length + ')</div>';
+    for (var fg = 0; fg < flagged.length; fg++) {
+      var fi2 = flagged[fg];
+      h += '<div class="rp-flagged-item" onclick="showFieldInRightPanel(' + fi2.ri + ',' + fi2.ei + ',' + fi2.fi + ')">';
+      h += '<div class="rp-review-field">' + esc(_exportFormatLabel(fi2.field)) + '</div>';
+      if (fi2.value) h += '<div style="font-size:13px;color:#991b1b;margin-bottom:4px;">' + esc(String(fi2.value)) + '</div>';
+      if (fi2.review && fi2.review.notes) {
+        h += '<div style="font-size:11px;color:#b91c1c;font-style:italic;">Note: ' + esc(fi2.review.notes) + '</div>';
+      }
+      h += '</div>';
+    }
+  }
+
+  // CORRECTED section
+  if (corrected.length > 0) {
+    h += '<div class="rp-section-title" style="margin-top:24px;">';
+    h += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+    h += 'CORRECTED (' + corrected.length + ')</div>';
+    for (var ci = 0; ci < corrected.length; ci++) {
+      var cr = corrected[ci];
+      h += '<div class="rp-corrected-item" onclick="showFieldInRightPanel(' + cr.ri + ',' + cr.ei + ',' + cr.fi + ')">';
+      h += '<div class="rp-review-field">' + esc(_exportFormatLabel(cr.field)) + '</div>';
+      if (cr.review && cr.review.correction) {
+        h += '<div style="font-size:12px;color:var(--text-muted);text-decoration:line-through;">' + esc(String(cr.review.correction.original_value || '')) + '</div>';
+        h += '<div style="font-size:14px;color:#1d4ed8;font-weight:600;">' + esc(String(cr.review.correction.corrected_value || cr.value || '')) + '</div>';
+      } else if (cr.value) {
+        h += '<div style="font-size:14px;color:#1d4ed8;font-weight:600;">' + esc(String(cr.value)) + '</div>';
+      }
+      h += '</div>';
+    }
   }
 
   h += '</div>';
@@ -16206,13 +16541,30 @@ function renderFieldDetailPanel(rp, detail) {
     h += '<div class="rp-field-value" style="color:var(--text-muted);font-style:italic;">No value</div>';
   }
 
-  // Status badge
-  var statusLabel = { verified: 'Verified', low_confidence: 'Low Confidence', conflict: 'Conflict', missing: 'Missing' };
-  h += '<div class="rp-field-status ' + esc(detail.status || '') + '">' + (statusLabel[detail.status] || detail.status || 'Unknown') + '</div>';
+  // Status badge (Build 9: added corrected/rejected)
+  var statusLabel = { verified: 'Verified', low_confidence: 'Low Confidence', conflict: 'Conflict', missing: 'Missing', corrected: 'Corrected', rejected: 'Rejected' };
+  var displayStatus = detail.status;
+  if (detail.review && detail.review.status === 'corrected') displayStatus = 'corrected';
+  if (detail.review && detail.review.status === 'rejected') displayStatus = 'rejected';
+  if (detail.review && detail.review.status === 'approved') displayStatus = 'verified';
+  h += '<div class="rp-field-status ' + esc(displayStatus || '') + '">' + (statusLabel[displayStatus] || displayStatus || 'Unknown') + '</div>';
 
-  // Confidence
-  if (detail.provenance && detail.provenance.confidence) {
-    h += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Confidence: <strong>' + (detail.provenance.confidence * 100).toFixed(0) + '%</strong></div>';
+  // Confidence (Build 9: use detail.confidence directly)
+  var conf = detail.confidence || (detail.provenance && detail.provenance.confidence);
+  if (conf) {
+    h += '<div style="font-size:12px;color:var(--text-muted);margin-bottom:16px;">Confidence: <strong>' + (conf * 100).toFixed(0) + '%</strong></div>';
+  }
+
+  // Review state info (Build 9)
+  if (detail.review) {
+    h += '<div style="font-size:11px;color:var(--text-muted);margin-bottom:12px;padding:8px;background:#f9fafb;border-radius:6px;">';
+    h += 'Reviewed by <strong>' + esc(detail.review.reviewed_by || 'user') + '</strong>';
+    if (detail.review.reviewed_at) h += ' on ' + new Date(detail.review.reviewed_at).toLocaleDateString();
+    if (detail.review.notes) h += '<br/>Note: <em>' + esc(detail.review.notes) + '</em>';
+    if (detail.review.correction && detail.review.correction.original_value) {
+      h += '<br/>Original: <span style="text-decoration:line-through;">' + esc(String(detail.review.correction.original_value)) + '</span>';
+    }
+    h += '</div>';
   }
 
   // Evidence
@@ -16239,7 +16591,7 @@ function renderFieldDetailPanel(rp, detail) {
   h += '<div style="margin-top:20px;">';
   h += '<div class="rp-actions" style="margin-bottom:12px;">';
   h += '<button class="rp-btn approve" onclick="reviewField(' + detail.ri + ',' + detail.ei + ',' + detail.fi + ',\\'approved\\')">&#10003; Approve</button>';
-  h += '<button class="rp-btn reject" onclick="reviewField(' + detail.ri + ',' + detail.ei + ',' + detail.fi + ',\\'rejected\\')">&#10007; Reject</button>';
+  h += '<button class="rp-btn reject" onclick="promptRejectField(' + detail.ri + ',' + detail.ei + ',' + detail.fi + ')">&#10007; Reject</button>';
   h += '</div>';
 
   // Edit inline
@@ -16330,6 +16682,7 @@ function showFieldInRightPanel(ri, ei, fi) {
   updateContextRightPanel('field_detail', {
     ri: ri, ei: ei, fi: fi,
     field: f.field, value: f.value, status: f.status,
+    confidence: f.confidence,
     provenance: f.provenance || {},
     entity_id: _exportData.roles[ri].entities[ei].entity_id,
     entity_name: _exportData.roles[ri].entities[ei].entity_name,
@@ -16358,24 +16711,18 @@ function saveFieldEdit() {
   if (!newValue) { toast('Value cannot be empty'); return; }
   if (!_rpSelectedField.entity_id) { toast('No entity ID for this field'); return; }
 
-  // Update via entity observation
-  var payload = {
-    type: 'human_review',
-    content: _rpSelectedField.field + ': ' + newValue,
-    confidence_label: 'confirmed',
-    facts_layer: { key: _rpSelectedField.field, value: newValue },
-    source: 'human_review'
-  };
-  api('POST', '/api/entity/' + encodeURIComponent(_rpSelectedField.entity_id) + '/observe', payload).then(function() {
-    toast('Field updated: ' + _exportFormatLabel(_rpSelectedField.field));
-    // Refresh export data and right panel
-    loadClientTabContent('export');
-  }).catch(function(err) {
-    toast('Update failed: ' + (err.message || err));
-  });
+  // Build 9: Use correct action instead of posting a new observation
+  reviewFieldWithAction(_rpSelectedField.ri, _rpSelectedField.ei, _rpSelectedField.fi, 'correct', newValue, null);
 }
 
+// reviewField — backward-compat wrapper (Build 9)
 function reviewField(ri, ei, fi, status) {
+  var action = status === 'approved' ? 'approve' : status === 'rejected' ? 'reject' : 'approve';
+  reviewFieldWithAction(ri, ei, fi, action, null, null);
+}
+
+// reviewFieldWithAction — action-based review (Build 9)
+function reviewFieldWithAction(ri, ei, fi, action, correctedValue, reason) {
   if (!_exportData || !_selectedSpoke) return;
   var f = _exportData.roles[ri].entities[ei].fields[fi];
   if (!f) return;
@@ -16386,9 +16733,8 @@ function reviewField(ri, ei, fi, status) {
   api('GET', '/api/entity/' + encodeURIComponent(entityId)).then(function(entityData) {
     var obs = entityData.observations || [];
     var attrs = entityData.attributes || [];
-    var fieldKey = (f.field || '').toLowerCase().replace(/\\s+/g, '_');
+    var fieldKey = (f.field || '').toLowerCase().replace(/\s+/g, '_');
 
-    // Search observations for matching field
     var obsIndex = -1;
     for (var i = 0; i < obs.length; i++) {
       var obsText = (obs[i].content || obs[i].text || '').toLowerCase();
@@ -16397,8 +16743,6 @@ function reviewField(ri, ei, fi, status) {
         break;
       }
     }
-
-    // Try attributes if not found in observations
     if (obsIndex === -1) {
       for (var i = 0; i < attrs.length; i++) {
         if ((attrs[i].key || '').toLowerCase() === fieldKey) {
@@ -16408,24 +16752,87 @@ function reviewField(ri, ei, fi, status) {
       }
     }
 
-    // Call review endpoint
-    api('PATCH', '/api/entity/' + encodeURIComponent(entityId) + '/observation/' + (obsIndex >= 0 ? obsIndex : 0) + '/review', {
-      status: status,
+    var payload = {
+      action: action,
       reviewed_by: (sessionUser && sessionUser.name) || 'user',
       field_key: f.field
-    }).then(function() {
-      toast(status === 'approved' ? 'Field approved!' : 'Field rejected');
+    };
+    if (correctedValue !== null && correctedValue !== undefined) payload.corrected_value = correctedValue;
+    if (reason) payload.reason = reason;
+
+    api('PATCH', '/api/entity/' + encodeURIComponent(entityId) + '/observation/' + (obsIndex >= 0 ? obsIndex : 0) + '/review', payload).then(function(resp) {
+      var reviewStatus = action === 'approve' ? 'approved' : action === 'reject' ? 'rejected' : 'corrected';
+      var toastMsg = action === 'approve' ? 'Field approved!' : action === 'reject' ? 'Field rejected' : 'Field corrected';
+      toast(toastMsg);
       // Update local export data
-      f.review = { status: status, reviewed_at: new Date().toISOString(), reviewed_by: (sessionUser && sessionUser.name) || 'user' };
+      f.review = resp.review || { status: reviewStatus, reviewed_at: new Date().toISOString(), reviewed_by: (sessionUser && sessionUser.name) || 'user' };
+      if (action === 'correct' && correctedValue) {
+        f.value = correctedValue;
+      }
       // Refresh right panel
       if (_rpContext === 'review_queue') {
         renderReviewQueuePanel(document.getElementById('rightPanelContent'));
       } else if (_rpContext === 'field_detail') {
         showFieldInRightPanel(ri, ei, fi);
       }
+      // Also update spoke header progress if visible
+      if (typeof renderSpokeReviewProgress === 'function') renderSpokeReviewProgress();
     }).catch(function(err) {
       toast('Review failed: ' + (err.message || err));
     });
+  });
+}
+
+// promptRejectField — prompt for optional rejection reason (Build 9)
+function promptRejectField(ri, ei, fi) {
+  var reason = window.prompt('Rejection reason (optional):');
+  if (reason === null) return; // user cancelled
+  reviewFieldWithAction(ri, ei, fi, 'reject', null, reason || '');
+}
+
+// showBulkApproveModal — confirmation modal before bulk approve (Build 9)
+function showBulkApproveModal(eligibleCount, criticalCount, totalCount) {
+  var overlay = document.createElement('div');
+  overlay.className = 'rp-modal-overlay';
+  overlay.id = 'bulkApproveModal';
+  overlay.onclick = function(e) { if (e.target === overlay) closeBulkApproveModal(); };
+  var h = '<div class="rp-modal">';
+  h += '<h3>Bulk Approve Fields</h3>';
+  h += '<p>Approve <strong>' + eligibleCount + '</strong> of <strong>' + totalCount + '</strong> fields with high confidence (&ge;85%)?</p>';
+  if (criticalCount > 0) {
+    h += '<p style="color:#dc2626;font-size:13px;"><strong>' + criticalCount + '</strong> critical field' + (criticalCount !== 1 ? 's' : '') + ' require individual review and will be skipped.</p>';
+  }
+  h += '<div class="rp-modal-actions">';
+  h += '<button class="cancel" onclick="closeBulkApproveModal()">Cancel</button>';
+  h += '<button class="confirm" onclick="executeBulkApprove()">Approve ' + eligibleCount + ' Fields</button>';
+  h += '</div></div>';
+  overlay.innerHTML = h;
+  document.body.appendChild(overlay);
+}
+
+function closeBulkApproveModal() {
+  var modal = document.getElementById('bulkApproveModal');
+  if (modal) modal.remove();
+}
+
+function executeBulkApprove() {
+  closeBulkApproveModal();
+  if (!_selectedSpoke) return;
+  toast('Bulk approving...');
+  api('POST', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/bulk-review', {
+    reviewed_by: (sessionUser && sessionUser.name) || 'user'
+  }).then(function(resp) {
+    toast(resp.approved + ' field' + (resp.approved !== 1 ? 's' : '') + ' approved, ' + resp.skipped + ' skipped');
+    // Re-fetch export data and refresh panel
+    api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/export').then(function(data) {
+      _exportData = data;
+      if (_rpContext === 'review_queue') {
+        renderReviewQueuePanel(document.getElementById('rightPanelContent'));
+      }
+      if (typeof renderSpokeReviewProgress === 'function') renderSpokeReviewProgress();
+    });
+  }).catch(function(err) {
+    toast('Bulk approve failed: ' + (err.message || err));
   });
 }
 
