@@ -4837,6 +4837,283 @@ app.delete('/api/templates/:type', apiAuth, (req, res) => {
   res.json({ status: 'deleted', id: templateId });
 });
 
+// ---------------------------------------------------------------------------
+// Build 15: AI Template Generation from Uploaded Forms
+// ---------------------------------------------------------------------------
+
+const templateGenUpload = multer({ storage: multer.memoryStorage(), limits: { files: 1, fileSize: 50 * 1024 * 1024 } });
+
+const TEMPLATE_GEN_PROMPT = `You are an extraction specialist for legal and professional service firms.
+
+The user has uploaded a form, checklist, or document that defines what information they need to collect from clients for a specific type of matter.
+
+Analyze this document and extract:
+
+1. DOCUMENT TYPES: What categories of documents does this form expect or reference? For each:
+   - type_id (snake_case identifier)
+   - display_name (client-facing name)
+   - category (grouping label, e.g. "Financial Documents", "Identity Documents")
+   - classification_signals (keywords the AI should look for to auto-detect this document type)
+   - priority: HIGH (critical to the matter) / MEDIUM (standard) / LOW (supplementary)
+   - extraction_spec: array of fields that belong to this document type (see FIELDS below)
+
+2. FIELDS (nested inside each document_type's extraction_spec): What specific data points does this form collect? For each:
+   - field_id (snake_case, prefixed with document type, e.g. "w2.employer_name")
+   - display_name (the label as written on the form, cleaned up for clarity)
+   - field_type: text / number / date / ssn / ein / phone / email / currency / address / boolean
+   - necessity_tier: BLOCKING (cannot proceed without) / EXPECTED (professionally standard) / ENRICHING (nice to have)
+   - sensitivity: CRITICAL (SSN, EIN, bank accounts) / HIGH (financial data, medical info) / STANDARD (names, addresses, dates) / LOW (preferences, notes)
+   - entity_type: person / business / address / financial / medical / legal / observation
+   - source_hint: where on the original form this field appears
+   - auto_approve: true if sensitivity is STANDARD or LOW AND necessity is not BLOCKING, false otherwise
+
+3. ENTITY ROLES: What types of people/organizations does this form reference? For each:
+   - role_id (snake_case)
+   - display_name
+   - type: person / business / institution
+   - required_fields: array of { field_id, display_name, field_type, necessity_tier } that belong to this role
+
+4. CROSS-DOCUMENT RULES: What consistency checks should be enforced across documents? For each:
+   - rule_id (snake_case)
+   - description
+   - severity: CRITICAL / WARNING
+   - doc_a and field_a (source document type and field)
+   - doc_b and field_b (target document type and field)
+   - check_type: field_value_match / sum_check / date_sequence / mutual_exclusion
+
+Respond ONLY with valid JSON matching this exact schema:
+{
+  "template_id": "snake_case_id",
+  "display_name": "Human Readable Name",
+  "description": "One-sentence description of what this template covers",
+  "document_types": [
+    {
+      "type_id": "string",
+      "display_name": "string",
+      "category": "string",
+      "priority": "HIGH|MEDIUM|LOW",
+      "classification_signals": ["string"],
+      "extraction_spec": [
+        {
+          "field_id": "string",
+          "display_name": "string",
+          "field_type": "text|number|date|ssn|ein|phone|email|currency|address|boolean",
+          "necessity_tier": "BLOCKING|EXPECTED|ENRICHING",
+          "sensitivity": "CRITICAL|HIGH|STANDARD|LOW",
+          "entity_type": "string",
+          "source_hint": "string",
+          "auto_approve": true
+        }
+      ]
+    }
+  ],
+  "entity_roles": [
+    {
+      "role_id": "string",
+      "display_name": "string",
+      "type": "person|business|institution",
+      "required_fields": [
+        { "field_id": "string", "display_name": "string", "field_type": "string", "necessity_tier": "string" }
+      ]
+    }
+  ],
+  "cross_doc_rules": [
+    {
+      "rule_id": "string",
+      "description": "string",
+      "severity": "CRITICAL|WARNING",
+      "doc_a": "string",
+      "field_a": "string",
+      "doc_b": "string",
+      "field_b": "string",
+      "check_type": "string"
+    }
+  ]
+}
+
+No commentary, no markdown fences. ONLY valid JSON.`;
+
+app.post('/api/templates/generate', apiAuth, templateGenUpload.single('file'), async (req, res) => {
+  try {
+    const { name, description, practice_area, text_input } = req.body || {};
+    const file = req.file;
+
+    if (!file && !text_input) {
+      return res.status(400).json({ error: 'Provide a file upload or text_input with requirements' });
+    }
+
+    let fileContent = '';
+    let sourceFilename = 'text_input';
+
+    if (file) {
+      sourceFilename = file.originalname;
+      const ext = path.extname(file.originalname).toLowerCase();
+
+      // Multi-format parsing
+      if (ext === '.pdf') {
+        try {
+          const pdfParse = require('pdf-parse');
+          const pdfData = await pdfParse(file.buffer);
+          fileContent = pdfData.text;
+        } catch (err) {
+          return res.status(400).json({ error: 'Failed to parse PDF: ' + err.message });
+        }
+      } else if (ext === '.docx' || ext === '.doc') {
+        try {
+          const mammoth = require('mammoth');
+          const result = await mammoth.extractRawText({ buffer: file.buffer });
+          fileContent = result.value;
+        } catch (err) {
+          return res.status(400).json({ error: 'Failed to parse DOCX: ' + err.message });
+        }
+      } else if (ext === '.xlsx' || ext === '.xls') {
+        try {
+          const XLSX = require('xlsx');
+          const workbook = XLSX.read(file.buffer, { type: 'buffer' });
+          const lines = [];
+          for (const sheetName of workbook.SheetNames) {
+            const sheet = workbook.Sheets[sheetName];
+            lines.push('=== Sheet: ' + sheetName + ' ===');
+            const csv = XLSX.utils.sheet_to_csv(sheet);
+            lines.push(csv);
+          }
+          fileContent = lines.join('\n');
+        } catch (err) {
+          return res.status(400).json({ error: 'Failed to parse spreadsheet: ' + err.message });
+        }
+      } else if (ext === '.csv') {
+        fileContent = file.buffer.toString('utf-8');
+      } else if (ext === '.txt' || ext === '.md') {
+        fileContent = file.buffer.toString('utf-8');
+      } else if (['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext)) {
+        // Image — use Claude vision API
+        try {
+          const client = new Anthropic();
+          const base64 = file.buffer.toString('base64');
+          const mediaType = file.mimetype || 'image/jpeg';
+          const message = await client.messages.create({
+            model: 'claude-sonnet-4-5-20250929',
+            max_tokens: 8192,
+            messages: [{
+              role: 'user',
+              content: [
+                { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+                { type: 'text', text: TEMPLATE_GEN_PROMPT + (practice_area ? '\n\nPractice area context: ' + practice_area : '') }
+              ]
+            }]
+          });
+          const rawResponse = message.content[0].text;
+          const generated = parseAITemplateResponse(rawResponse, name, description, sourceFilename);
+          return res.json({ status: 'generated', template: generated, source: sourceFilename, ai_generated: true });
+        } catch (err) {
+          return res.status(500).json({ error: 'Vision API failed: ' + err.message + '. For best results, upload a searchable PDF or text file.' });
+        }
+      } else {
+        // Try as text
+        fileContent = file.buffer.toString('utf-8');
+      }
+    } else {
+      // Plain text / bullet point input
+      fileContent = text_input;
+    }
+
+    if (!fileContent || fileContent.trim().length < 10) {
+      return res.status(400).json({ error: 'Could not extract meaningful content from the uploaded file. Try a different format.' });
+    }
+
+    // Truncate to ~100K chars to stay within context limits
+    if (fileContent.length > 100000) fileContent = fileContent.substring(0, 100000) + '\n[...truncated]';
+
+    // Send to Claude for template generation
+    const client = new Anthropic();
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 8192,
+      messages: [{
+        role: 'user',
+        content: TEMPLATE_GEN_PROMPT
+          + (practice_area ? '\n\nPractice area context: ' + practice_area : '')
+          + '\n\n--- UPLOADED DOCUMENT CONTENT ---\n\n' + fileContent
+      }]
+    });
+
+    const rawResponse = message.content[0].text;
+    const generated = parseAITemplateResponse(rawResponse, name, description, sourceFilename);
+
+    res.json({ status: 'generated', template: generated, source: sourceFilename, ai_generated: true });
+  } catch (err) {
+    console.error('Template generation error:', err);
+    res.status(500).json({ error: 'Template generation failed: ' + err.message });
+  }
+});
+
+function parseAITemplateResponse(rawResponse, nameOverride, descOverride, sourceFilename) {
+  // Strip markdown fences if present
+  let cleaned = rawResponse.trim();
+  if (cleaned.startsWith('```')) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch (err) {
+    // Try to extract JSON from the response
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      parsed = JSON.parse(jsonMatch[0]);
+    } else {
+      throw new Error('AI did not return valid JSON. Raw response: ' + cleaned.substring(0, 200));
+    }
+  }
+
+  // Apply overrides
+  if (nameOverride) parsed.display_name = nameOverride;
+  if (descOverride) parsed.description = descOverride;
+
+  // Ensure required structure
+  parsed.template_id = parsed.template_id || (nameOverride || 'ai_generated').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  parsed.version = '1.0.0';
+  parsed.document_types = parsed.document_types || [];
+  parsed.entity_roles = parsed.entity_roles || [];
+  parsed.cross_doc_rules = parsed.cross_doc_rules || [];
+  parsed.created_at = new Date().toISOString();
+  parsed.created_by = 'ai_generator';
+  parsed.ai_generated = true;
+  parsed.source_file = sourceFilename;
+
+  // Tag all fields with ai_generated flag
+  for (const dt of parsed.document_types) {
+    dt.ai_generated = true;
+    for (const field of (dt.extraction_spec || [])) {
+      field.ai_generated = true;
+    }
+  }
+  for (const role of parsed.entity_roles) {
+    role.ai_generated = true;
+  }
+  for (const rule of parsed.cross_doc_rules) {
+    rule.ai_generated = true;
+  }
+
+  return parsed;
+}
+
+// POST /api/templates/generate/save — Save an AI-generated template after review
+app.post('/api/templates/generate/save', apiAuth, (req, res) => {
+  const template = req.body;
+  if (!template || !template.template_id) return res.status(400).json({ error: 'template_id is required' });
+  if (!template.display_name) return res.status(400).json({ error: 'display_name is required' });
+
+  const existing = getTemplate(template.template_id);
+  if (existing) return res.status(409).json({ error: `Template '${template.template_id}' already exists. Change the template_id or delete the existing one.` });
+
+  template.version = template.version || '1.0.0';
+  template.created_at = template.created_at || new Date().toISOString();
+  saveTemplate(template.template_id, template);
+  res.json({ status: 'saved', id: template.template_id, version: template.version });
+});
+
 // PUT /api/spoke/:id/template — Assign template to spoke, clear cached analysis (Build 10: re-analysis on change)
 app.put('/api/spoke/:id/template', apiAuth, (req, res) => {
   const { template_type } = req.body || {};
@@ -8121,6 +8398,7 @@ const HTML = `<!DOCTYPE html>
   }
 
   @keyframes spin { to { transform: rotate(360deg); } }
+  .spin { animation: spin 0.8s linear infinite; }
 
   .loading-text { color: #6b7280; font-size: 0.9rem; }
 
@@ -15928,6 +16206,9 @@ function renderSidebar() {
   html += '<div class="sb-add-btn" onclick="showTemplateEditor(null)">';
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
   html += '+ New Template</div>';
+  html += '<div class="sb-add-btn" onclick="showAITemplateGenerator()" style="color:#8b5cf6;">';
+  html += '<svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>';
+  html += 'AI Generate from Form</div>';
 
   // ── PROJECTS section ──
   var allProjects = [].concat(data.projects.active || [], data.projects.rnd || [], data.projects.archive || []);
@@ -16731,9 +17012,17 @@ function renderTemplateEditor() {
   if (!t) return;
   var h = '<div style="padding:24px 28px;max-width:900px;">';
 
+  // ── AI Preview Banner (Build 15) ──
+  if (t._ai_preview) {
+    h += '<div style="padding:14px 18px;background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1px solid #c4b5fd;border-radius:10px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">';
+    h += '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>';
+    h += '<div style="flex:1;"><div style="font-size:14px;font-weight:600;color:#6d28d9;">AI-generated template from ' + esc(t._ai_source || 'uploaded document') + '</div>';
+    h += '<div style="font-size:12px;color:#7c3aed;margin-top:2px;">Review and adjust before saving. Fields marked with AI badge were auto-generated.</div></div></div>';
+  }
+
   // ── Header row: title + Save button ──
   h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;">';
-  h += '<div style="font-size:22px;font-weight:700;color:var(--text-primary);">' + (window._tplIsNew ? 'New Template' : 'Edit Template') + '</div>';
+  h += '<div style="font-size:22px;font-weight:700;color:var(--text-primary);">' + (window._tplIsNew ? (t._ai_preview ? 'AI-Generated Template' : 'New Template') : 'Edit Template') + '</div>';
   h += '<div style="display:flex;gap:8px;">';
   if (!window._tplIsNew) {
     h += '<button onclick="deleteCurrentTemplate()" style="padding:8px 16px;border:1px solid #fca5a5;border-radius:8px;background:#fff;color:#dc2626;font-size:13px;font-weight:600;cursor:pointer;">Delete</button>';
@@ -17146,6 +17435,142 @@ function deleteCurrentTemplate() {
     showClientDashboard();
   }).catch(function(err) {
     toast('Error: ' + (err.message || err));
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Build 15: AI Template Generator UI
+// ---------------------------------------------------------------------------
+
+window._aiGenInProgress = false;
+
+function showAITemplateGenerator() {
+  selectedView = 'ai_template_gen';
+  _selectedSpoke = null;
+  breadcrumbs = [{ label: 'Templates' }, { label: 'AI Generate' }];
+  renderBreadcrumbs();
+  renderSidebar();
+
+  var mainEl = document.getElementById('main');
+  var h = '<div style="padding:28px;max-width:700px;">';
+  h += '<div style="font-size:22px;font-weight:700;margin-bottom:6px;">AI Template Generator</div>';
+  h += '<div style="font-size:14px;color:var(--text-secondary);margin-bottom:28px;">Upload an existing intake form, checklist, or spreadsheet and the AI will generate a complete template with document types, field definitions, necessity tiers, and cross-document rules.</div>';
+
+  // Upload zone
+  h += '<div id="aiGenDropzone" class="pp-dropzone" onclick="document.getElementById(\\'aiGenFileInput\\').click()" style="margin-bottom:20px;border:2px dashed #c4b5fd;background:rgba(139,92,246,0.04);">';
+  h += '<div class="pp-drop-icon"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>';
+  h += '<div style="font-weight:600;color:#6366f1;">Drop intake form here or click to browse</div>';
+  h += '<div class="pp-drop-sub">PDF, DOCX, XLSX, CSV, TXT, or images of paper forms</div>';
+  h += '</div>';
+  h += '<input type="file" id="aiGenFileInput" accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.jpg,.jpeg,.png,.webp" style="display:none" onchange="aiGenFileSelected(event)" />';
+  h += '<div id="aiGenFileName" style="display:none;margin-bottom:16px;padding:10px 14px;background:#f5f3ff;border:1px solid #c4b5fd;border-radius:8px;font-size:13px;color:#6366f1;font-weight:500;"></div>';
+
+  // Or: text input
+  h += '<div style="margin-bottom:16px;text-align:center;font-size:13px;color:var(--text-muted);font-weight:600;">— OR —</div>';
+  h += '<textarea id="aiGenTextInput" rows="5" placeholder="Type or paste your requirements here, e.g.:\\n\\nFor a new PI case I need:\\n- Client name and DOB\\n- Date of accident\\n- Police report\\n- Photos of damage\\n- Insurance policy number\\n- All medical records" style="width:100%;padding:12px 14px;border:1px solid #ddd;border-radius:8px;font-size:13px;outline:none;font-family:inherit;resize:vertical;background:#fff;"></textarea>';
+
+  // Optional metadata
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;">';
+  h += '<div><label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Template Name (optional)</label>';
+  h += '<input id="aiGenName" placeholder="e.g. Personal Injury Intake" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;outline:none;" /></div>';
+  h += '<div><label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:4px;">Practice Area (optional)</label>';
+  h += '<input id="aiGenArea" placeholder="e.g. Personal Injury, Tax, Estate" style="width:100%;padding:8px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;outline:none;" /></div>';
+  h += '</div>';
+
+  // Generate button
+  h += '<div style="margin-top:24px;display:flex;gap:10px;">';
+  h += '<button id="aiGenBtn" onclick="runAITemplateGeneration()" style="flex:1;padding:12px;border:none;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity=\\'0.9\\'" onmouseout="this.style.opacity=\\'1\\'">Generate Template</button>';
+  h += '</div>';
+  h += '<div id="aiGenStatus" style="margin-top:16px;display:none;text-align:center;"></div>';
+  h += '</div>';
+
+  mainEl.innerHTML = h;
+
+  // Drag-and-drop handlers
+  var dz = document.getElementById('aiGenDropzone');
+  if (dz) {
+    dz.ondragover = function(e) { e.preventDefault(); dz.style.borderColor = '#6366f1'; dz.style.background = 'rgba(99,102,241,0.08)'; };
+    dz.ondragleave = function() { dz.style.borderColor = '#c4b5fd'; dz.style.background = 'rgba(139,92,246,0.04)'; };
+    dz.ondrop = function(e) {
+      e.preventDefault();
+      dz.style.borderColor = '#c4b5fd'; dz.style.background = 'rgba(139,92,246,0.04)';
+      if (e.dataTransfer.files.length > 0) {
+        window._aiGenFile = e.dataTransfer.files[0];
+        var fn = document.getElementById('aiGenFileName');
+        fn.style.display = 'block';
+        fn.textContent = 'Selected: ' + window._aiGenFile.name + ' (' + (window._aiGenFile.size / 1024).toFixed(1) + ' KB)';
+      }
+    };
+  }
+}
+
+window._aiGenFile = null;
+
+function aiGenFileSelected(event) {
+  var files = event.target.files;
+  if (files.length > 0) {
+    window._aiGenFile = files[0];
+    var fn = document.getElementById('aiGenFileName');
+    fn.style.display = 'block';
+    fn.textContent = 'Selected: ' + window._aiGenFile.name + ' (' + (window._aiGenFile.size / 1024).toFixed(1) + ' KB)';
+  }
+}
+
+function runAITemplateGeneration() {
+  if (window._aiGenInProgress) return;
+
+  var textInput = (document.getElementById('aiGenTextInput') || {}).value || '';
+  var nameVal = (document.getElementById('aiGenName') || {}).value || '';
+  var areaVal = (document.getElementById('aiGenArea') || {}).value || '';
+
+  if (!window._aiGenFile && !textInput.trim()) {
+    toast('Upload a file or enter requirements text');
+    return;
+  }
+
+  window._aiGenInProgress = true;
+  var btn = document.getElementById('aiGenBtn');
+  if (btn) { btn.textContent = 'Generating...'; btn.style.opacity = '0.6'; btn.style.cursor = 'wait'; }
+  var status = document.getElementById('aiGenStatus');
+  if (status) { status.style.display = 'block'; status.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;gap:10px;color:var(--accent-primary);font-size:14px;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg> AI is analyzing your document...</div>'; }
+
+  var formData = new FormData();
+  if (window._aiGenFile) formData.append('file', window._aiGenFile);
+  if (textInput.trim()) formData.append('text_input', textInput.trim());
+  if (nameVal.trim()) formData.append('name', nameVal.trim());
+  if (areaVal.trim()) formData.append('practice_area', areaVal.trim());
+
+  fetch('/api/templates/generate', {
+    method: 'POST',
+    headers: getAuthHeaders(),
+    body: formData
+  }).then(function(r) {
+    if (!r.ok) return r.json().then(function(d) { throw new Error(d.error || 'Generation failed'); });
+    return r.json();
+  }).then(function(data) {
+    window._aiGenInProgress = false;
+    if (data.template) {
+      // Load into template editor in preview mode
+      window._tplIsNew = true;
+      window._tplEdit = data.template;
+      window._tplEdit._ai_preview = true;
+      window._tplEdit._ai_source = data.source;
+      window._tplExpandedDt = {};
+      window._tplExpandedRole = {};
+      window._tplExpandedRule = {};
+      selectedView = 'template_detail';
+      breadcrumbs = [{ label: 'Templates' }, { label: 'AI Preview' }];
+      renderBreadcrumbs();
+      renderTemplateEditor();
+      toast('Template generated! Review and save.');
+    }
+  }).catch(function(err) {
+    window._aiGenInProgress = false;
+    var btn2 = document.getElementById('aiGenBtn');
+    if (btn2) { btn2.textContent = 'Generate Template'; btn2.style.opacity = '1'; btn2.style.cursor = 'pointer'; }
+    var st2 = document.getElementById('aiGenStatus');
+    if (st2) { st2.innerHTML = '<div style="color:#dc2626;font-size:13px;">' + esc(err.message || 'Generation failed') + '</div>'; }
+    toast('Error: ' + (err.message || 'Generation failed'));
   });
 }
 
