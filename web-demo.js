@@ -4390,7 +4390,22 @@ app.get('/api/dashboard', apiAuth, (req, res) => {
         last_updated: spoke.updated_at || spoke.created_at || null,
         missing_documents: missingDocs,
         found_documents: foundDocs,
-        cross_doc_violations: crossDocViolations
+        cross_doc_violations: crossDocViolations,
+        // Build 17 — event/deadline data
+        next_deadline: (() => {
+          const now = new Date();
+          const deadlines = (spoke.events || []).filter(e => e.type === 'deadline' && new Date(e.date) > now).sort((a, b) => new Date(a.date) - new Date(b.date));
+          if (deadlines.length === 0) return null;
+          const d = deadlines[0];
+          const days = Math.ceil((new Date(d.date) - now) / (24 * 60 * 60 * 1000));
+          return { title: d.title, date: d.date, days_remaining: days };
+        })(),
+        overdue_deadlines: (spoke.events || []).filter(e => e.type === 'deadline' && new Date(e.date) < new Date()).length,
+        event_count: (spoke.events || []).length,
+        last_event: (() => {
+          const evts = (spoke.events || []).sort((a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date));
+          return evts.length > 0 ? { type: evts[0].type, title: evts[0].title, date: evts[0].date } : null;
+        })()
       };
     });
 
@@ -4426,6 +4441,8 @@ app.get('/api/dashboard', apiAuth, (req, res) => {
     // Build 11.5 — tier-aware chips
     filterChips.push({ id: 'filing_not_ready', label: 'Filing Not Ready', type: 'universal', filter: { filing_not_ready: true } });
     filterChips.push({ id: 'low_quality', label: 'Low Quality (<70%)', type: 'universal', filter: { quality_max: 69 } });
+    filterChips.push({ id: 'upcoming_deadlines', label: 'Upcoming Deadlines (7d)', type: 'universal', filter: { has_upcoming_deadline: true } });
+    filterChips.push({ id: 'overdue_deadlines', label: 'Overdue Deadlines', type: 'universal', filter: { has_overdue_deadline: true } });
 
     for (const tmplType of activeTemplateTypes) {
       const tmpl = templates[tmplType];
@@ -9979,6 +9996,1205 @@ app.post('/shared/:token/upload', sharedViewLimiter, sharedUpload.array('files',
     res.status(500).json({ error: 'Upload failed: ' + err.message });
   }
 });
+
+// ---------------------------------------------------------------------------
+// Build 16: Client-Facing Smart Form
+// ---------------------------------------------------------------------------
+
+// GET /api/spoke/:id/form — Generate form schema from template
+app.get('/api/spoke/:id/form', apiAuth, (req, res) => {
+  const spoke = getSpoke(req.graphDir, req.params.id);
+  if (!spoke) return res.status(404).json({ error: 'Spoke not found' });
+  if (!spoke.template_type) return res.status(400).json({ error: 'No template assigned to this spoke' });
+
+  const template = getTemplate(spoke.template_type);
+  if (!template) return res.status(404).json({ error: 'Template not found: ' + spoke.template_type });
+
+  const sections = [];
+  for (const dt of (template.document_types || [])) {
+    const fields = [];
+    for (const field of (dt.extraction_spec || [])) {
+      // Only include BLOCKING and EXPECTED fields for client form
+      if (field.necessity_tier === 'ENRICHING') continue;
+      fields.push({
+        field_id: field.field_id,
+        display_name: field.display_name,
+        field_type: field.field_type || field.type || 'text',
+        necessity_tier: field.necessity_tier || 'EXPECTED',
+        sensitivity: field.sensitivity || 'STANDARD',
+        required: field.necessity_tier === 'BLOCKING',
+        source_hint: field.source_hint,
+        conditional: field.conditional || null
+      });
+    }
+    if (fields.length > 0) {
+      sections.push({
+        section_id: dt.type_id,
+        title: dt.display_name || dt.type_id,
+        category: dt.category,
+        priority: dt.priority,
+        fields,
+        allows_upload: true,
+        upload_hint: 'Upload your ' + (dt.display_name || dt.type_id) + ' here'
+      });
+    }
+  }
+
+  // Also build sections from entity_roles
+  for (const role of (template.entity_roles || [])) {
+    const roleFields = [];
+    for (const rf of (role.required_fields || [])) {
+      const fieldObj = typeof rf === 'string' ? { field_id: rf, display_name: rf.replace(/_/g, ' '), field_type: 'text' } : rf;
+      if (fieldObj.necessity_tier === 'ENRICHING') continue;
+      roleFields.push({
+        field_id: fieldObj.field_id,
+        display_name: fieldObj.display_name || fieldObj.field_id,
+        field_type: fieldObj.field_type || 'text',
+        necessity_tier: fieldObj.necessity_tier || 'EXPECTED',
+        required: fieldObj.necessity_tier === 'BLOCKING',
+        conditional: fieldObj.conditional || null
+      });
+    }
+    if (roleFields.length > 0) {
+      sections.push({
+        section_id: 'role_' + role.role_id,
+        title: role.display_name || role.role_id,
+        category: 'Parties',
+        fields: roleFields,
+        allows_upload: false
+      });
+    }
+  }
+
+  res.json({
+    spoke_id: spoke.id,
+    spoke_name: spoke.name,
+    template_type: spoke.template_type,
+    template_name: template.display_name || template.label,
+    sections,
+    total_fields: sections.reduce((s, sec) => s + sec.fields.length, 0),
+    required_fields: sections.reduce((s, sec) => s + sec.fields.filter(f => f.required).length, 0)
+  });
+});
+
+// Public smart form route: /form/:shareToken
+app.get('/form/:shareToken', sharedViewLimiter, async (req, res) => {
+  const spokeResult = findSpokeByShareToken(GRAPH_DIR, req.params.shareToken);
+  if (!spokeResult) return res.status(404).send(renderSharedErrorPage('Form Not Found', 'This form link is invalid or has been revoked.'));
+
+  const { spoke, graphDir: spokeGraphDir, share } = spokeResult;
+  if (!spoke.template_type) return res.status(400).send(renderSharedErrorPage('Form Not Available', 'No template has been configured for this matter yet.'));
+
+  const template = getTemplate(spoke.template_type);
+  if (!template) return res.status(400).send(renderSharedErrorPage('Form Not Available', 'Template configuration error.'));
+
+  // Build form sections
+  const sections = [];
+  for (const dt of (template.document_types || [])) {
+    const fields = [];
+    for (const field of (dt.extraction_spec || [])) {
+      if (field.necessity_tier === 'ENRICHING') continue;
+      fields.push({
+        field_id: field.field_id,
+        display_name: field.display_name,
+        field_type: field.field_type || field.type || 'text',
+        required: field.necessity_tier === 'BLOCKING',
+        sensitivity: field.sensitivity || 'STANDARD',
+        conditional: field.conditional || null
+      });
+    }
+    if (fields.length > 0) {
+      sections.push({ section_id: dt.type_id, title: dt.display_name, fields, allows_upload: true });
+    }
+  }
+  for (const role of (template.entity_roles || [])) {
+    const roleFields = [];
+    for (const rf of (role.required_fields || [])) {
+      const fObj = typeof rf === 'string' ? { field_id: rf, display_name: rf.replace(/_/g, ' '), field_type: 'text' } : rf;
+      if (fObj.necessity_tier === 'ENRICHING') continue;
+      roleFields.push({
+        field_id: fObj.field_id, display_name: fObj.display_name || fObj.field_id,
+        field_type: fObj.field_type || 'text', required: fObj.necessity_tier === 'BLOCKING',
+        conditional: fObj.conditional || null
+      });
+    }
+    if (roleFields.length > 0) {
+      sections.push({ section_id: 'role_' + role.role_id, title: role.display_name, fields: roleFields, allows_upload: false });
+    }
+  }
+
+  // Load saved form state
+  const savedState = spoke.form_state || {};
+
+  res.send(renderSmartFormPage(spoke, template, sections, savedState, req.params.shareToken));
+});
+
+// POST /shared/:token/form-save — Save form state (partial save/resume)
+app.post('/shared/:token/form-save', sharedViewLimiter, express.json(), (req, res) => {
+  const spokeResult = findSpokeByShareToken(GRAPH_DIR, req.params.token);
+  if (!spokeResult) return res.status(404).json({ error: 'Invalid form link' });
+
+  const { spoke, graphDir: spokeGraphDir } = spokeResult;
+  const { fields } = req.body || {};
+  if (!fields) return res.status(400).json({ error: 'No field data provided' });
+
+  updateSpoke(spokeGraphDir, spoke.id, { form_state: fields });
+  res.json({ ok: true, saved_fields: Object.keys(fields).length });
+});
+
+// POST /shared/:token/form-submit — Full form submission
+const formUpload = multer({ storage: multer.memoryStorage(), limits: { files: 20, fileSize: 50 * 1024 * 1024 } });
+app.post('/shared/:token/form-submit', sharedViewLimiter, formUpload.array('files', 20), async (req, res) => {
+  try {
+    const spokeResult = findSpokeByShareToken(GRAPH_DIR, req.params.token);
+    if (!spokeResult) return res.status(404).json({ error: 'Invalid form link' });
+
+    const { spoke, graphDir: spokeGraphDir, share } = spokeResult;
+    const fieldsRaw = req.body.fields;
+    let fields = {};
+    try { fields = typeof fieldsRaw === 'string' ? JSON.parse(fieldsRaw) : (fieldsRaw || {}); } catch { fields = {}; }
+
+    const fieldCount = Object.keys(fields).length;
+    const fileCount = (req.files || []).length;
+
+    // Save field values as form_submitted data on the spoke
+    const formSubmission = {
+      submitted_at: new Date().toISOString(),
+      fields,
+      file_count: fileCount,
+      source: 'smart_form',
+      share_token: req.params.token,
+      review_status: 'pending'
+    };
+
+    // Process file uploads if any
+    const spokeFilesDir = path.join(spokeGraphDir, 'spoke_files', spoke.id);
+    if (!fs.existsSync(spokeFilesDir)) fs.mkdirSync(spokeFilesDir, { recursive: true });
+
+    const processedFiles = [];
+    for (const file of (req.files || [])) {
+      const fileId = 'FILE-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+      const ext = path.extname(file.originalname).toLowerCase();
+      const savedName = fileId + ext;
+      fs.writeFileSync(path.join(spokeFilesDir, savedName), file.buffer);
+      processedFiles.push({
+        id: fileId, original_name: file.originalname, saved_name: savedName,
+        mime_type: file.mimetype, size: file.size,
+        uploaded_at: new Date().toISOString(), uploaded_via: 'smart_form',
+        share_token: req.params.token, status: 'pending_review'
+      });
+    }
+
+    // Update spoke
+    const existingFiles = spoke.files || [];
+    const activity = spoke.recent_activity || [];
+    activity.unshift({
+      type: 'form_submission',
+      description: `Client form submitted — ${fieldCount} fields filled, ${fileCount} documents uploaded`,
+      timestamp: new Date().toISOString(),
+      uploaded_via: 'smart_form'
+    });
+
+    const submissions = spoke.form_submissions || [];
+    submissions.push(formSubmission);
+
+    updateSpoke(spokeGraphDir, spoke.id, {
+      files: existingFiles.concat(processedFiles),
+      form_submissions: submissions,
+      form_state: fields,
+      recent_activity: activity.slice(0, 50),
+      gap_analysis: null
+    });
+
+    res.json({
+      ok: true,
+      fields_submitted: fieldCount,
+      files_uploaded: fileCount,
+      message: 'Thank you! Your information has been submitted successfully. Your attorney will review it shortly.'
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Submission failed: ' + err.message });
+  }
+});
+
+// Smart Form Page Renderer
+function renderSmartFormPage(spoke, template, sections, savedState, shareToken) {
+  const sectionsJSON = JSON.stringify(sections).replace(/</g, '\\u003c');
+  const savedJSON = JSON.stringify(savedState).replace(/</g, '\\u003c');
+  const totalFields = sections.reduce((s, sec) => s + sec.fields.length, 0);
+  const requiredFields = sections.reduce((s, sec) => s + sec.fields.filter(f => f.required).length, 0);
+
+  return `<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escHtml(spoke.name)} — Intake Form | Context Architecture</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%236366f1'/><text x='16' y='22' font-size='16' font-weight='bold' fill='white' text-anchor='middle' font-family='system-ui'>CA</text></svg>">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#f8f9fa; color:#1a1a2e; min-height:100vh; }
+.form-header { background:linear-gradient(135deg,#6366f1,#8b5cf6); padding:36px 24px 28px; text-align:center; color:#fff; }
+.form-logo { width:40px; height:40px; border-radius:10px; background:rgba(255,255,255,0.2); display:inline-flex; align-items:center; justify-content:center; font-size:1rem; font-weight:800; margin-bottom:12px; border:2px solid rgba(255,255,255,0.3); }
+.form-title { font-size:1.4rem; font-weight:700; margin-bottom:6px; }
+.form-sub { font-size:0.85rem; opacity:0.85; }
+.progress-bar { width:100%; height:6px; background:rgba(255,255,255,0.2); border-radius:3px; margin-top:16px; overflow:hidden; }
+.progress-fill { height:100%; background:#fff; border-radius:3px; transition:width 0.3s ease; }
+.progress-text { font-size:0.78rem; margin-top:6px; opacity:0.8; }
+.form-body { max-width:600px; margin:0 auto; padding:20px 16px 100px; }
+.section { background:#fff; border-radius:14px; padding:24px 20px; margin-bottom:16px; box-shadow:0 1px 4px rgba(0,0,0,0.05); display:none; }
+.section.active { display:block; }
+.section-title { font-size:1.1rem; font-weight:700; margin-bottom:4px; color:#1a1a2e; }
+.section-count { font-size:0.8rem; color:#6b7280; margin-bottom:20px; }
+.field-group { margin-bottom:18px; }
+.field-label { display:block; font-size:0.85rem; font-weight:600; color:#374151; margin-bottom:6px; }
+.field-required { color:#dc2626; margin-left:2px; }
+.field-input { width:100%; padding:11px 14px; border:1.5px solid #d1d5db; border-radius:10px; font-size:0.95rem; outline:none; transition:border-color 0.2s; font-family:inherit; background:#fff; }
+.field-input:focus { border-color:#6366f1; box-shadow:0 0 0 3px rgba(99,102,241,0.1); }
+.field-input.filled { border-color:#059669; background:#f0fdf4; }
+select.field-input { -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; }
+.field-toggle { display:flex; align-items:center; gap:10px; }
+.toggle-switch { width:44px; height:24px; background:#d1d5db; border-radius:12px; position:relative; cursor:pointer; transition:background 0.2s; }
+.toggle-switch.on { background:#6366f1; }
+.toggle-switch::after { content:''; position:absolute; width:20px; height:20px; background:#fff; border-radius:50%; top:2px; left:2px; transition:transform 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.2); }
+.toggle-switch.on::after { transform:translateX(20px); }
+.ssn-container { position:relative; }
+.ssn-toggle { position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:#6366f1; font-size:0.8rem; cursor:pointer; font-weight:600; }
+.address-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+.address-grid .full-width { grid-column:1/-1; }
+.upload-zone { border:2px dashed #d1d5db; border-radius:10px; padding:20px; text-align:center; cursor:pointer; transition:border-color 0.2s,background 0.2s; margin-top:8px; }
+.upload-zone:hover { border-color:#6366f1; background:rgba(99,102,241,0.03); }
+.upload-zone-label { font-size:0.85rem; color:#6b7280; margin-top:6px; }
+.nav-buttons { position:fixed; bottom:0; left:0; right:0; background:#fff; padding:14px 16px; border-top:1px solid #e5e7eb; display:flex; gap:10px; max-width:600px; margin:0 auto; z-index:10; }
+.nav-btn { flex:1; padding:12px; border:none; border-radius:10px; font-size:0.95rem; font-weight:600; cursor:pointer; transition:opacity 0.2s; }
+.nav-prev { background:#f3f4f6; color:#374151; }
+.nav-next { background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; }
+.nav-next:disabled { opacity:0.5; cursor:not-allowed; }
+.nav-submit { background:linear-gradient(135deg,#059669,#10b981); color:#fff; }
+.submitted-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; z-index:100; }
+.submitted-card { background:#fff; border-radius:16px; padding:40px 32px; text-align:center; max-width:400px; width:90%; }
+.submitted-icon { width:64px; height:64px; background:#ecfdf5; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; margin-bottom:16px; }
+@media(max-width:500px) { .address-grid { grid-template-columns:1fr; } .form-header { padding:28px 16px 20px; } }
+</style></head><body>
+<div class="form-header">
+  <div class="form-logo">CA</div>
+  <div class="form-title">${escHtml(spoke.name)}</div>
+  <div class="form-sub">${escHtml(template.display_name || '')} Intake Form</div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  <div class="progress-text" id="progressText">0 of ${requiredFields} required items</div>
+</div>
+<div class="form-body" id="formBody"></div>
+<div class="nav-buttons" id="navButtons"></div>
+
+<script>
+var SECTIONS = ${sectionsJSON};
+var SAVED = ${savedJSON};
+var TOKEN = '${shareToken}';
+var currentSection = 0;
+var formData = Object.assign({}, SAVED);
+var uploadedFiles = [];
+
+function init() {
+  renderSection(0);
+  restoreSavedState();
+  updateProgress();
+}
+
+function restoreSavedState() {
+  for (var key in SAVED) {
+    formData[key] = SAVED[key];
+    var el = document.getElementById('field-' + key);
+    if (el) {
+      if (el.type === 'checkbox') el.checked = !!SAVED[key];
+      else el.value = SAVED[key];
+      if (SAVED[key]) el.classList.add('filled');
+    }
+  }
+}
+
+function renderSection(idx) {
+  currentSection = idx;
+  var body = document.getElementById('formBody');
+  var html = '';
+
+  for (var s = 0; s < SECTIONS.length; s++) {
+    var sec = SECTIONS[s];
+    html += '<div class="section' + (s === idx ? ' active' : '') + '" id="sec-' + s + '">';
+    html += '<div class="section-title">' + esc(sec.title) + '</div>';
+    html += '<div class="section-count">Section ' + (s + 1) + ' of ' + SECTIONS.length + ' &middot; ' + sec.fields.length + ' fields</div>';
+
+    for (var f = 0; f < sec.fields.length; f++) {
+      var field = sec.fields[f];
+      // Conditional visibility
+      if (field.conditional) {
+        var depVal = formData[field.conditional.depends_on];
+        if (field.conditional.type === 'show_if' && depVal != field.conditional.value) continue;
+        if (field.conditional.type === 'hide_if' && depVal == field.conditional.value) continue;
+      }
+      html += renderField(field);
+    }
+
+    if (sec.allows_upload) {
+      html += '<div class="upload-zone" onclick="triggerUpload(\\'' + esc(sec.section_id) + '\\')">';
+      html += '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
+      html += '<div class="upload-zone-label">' + esc(sec.title) + ' — drag file here or tap to upload</div>';
+      html += '</div>';
+      html += '<input type="file" id="upload-' + esc(sec.section_id) + '" style="display:none" multiple onchange="handleFormUpload(event)" />';
+    }
+    html += '</div>';
+  }
+  body.innerHTML = html;
+
+  restoreSavedState();
+  renderNav();
+  checkConditionals();
+}
+
+function renderField(field) {
+  var val = formData[field.field_id] || '';
+  var filledClass = val ? ' filled' : '';
+  var h = '<div class="field-group" id="group-' + esc(field.field_id) + '">';
+  h += '<label class="field-label">' + esc(field.display_name);
+  if (field.required) h += '<span class="field-required"> *</span>';
+  h += '</label>';
+
+  var ft = field.field_type || 'text';
+  if (ft === 'boolean') {
+    var isOn = !!formData[field.field_id];
+    h += '<div class="field-toggle">';
+    h += '<div class="toggle-switch' + (isOn ? ' on' : '') + '" id="field-' + esc(field.field_id) + '" onclick="toggleBool(\\'' + esc(field.field_id) + '\\')"></div>';
+    h += '<span>' + (isOn ? 'Yes' : 'No') + '</span>';
+    h += '</div>';
+  } else if (ft === 'ssn') {
+    h += '<div class="ssn-container">';
+    h += '<input class="field-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="password" maxlength="11" placeholder="XXX-XX-XXXX" value="' + esc(val) + '" oninput="maskSSN(this);fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
+    h += '<button class="ssn-toggle" onclick="toggleSSN(\\'' + esc(field.field_id) + '\\')">Show</button>';
+    h += '</div>';
+  } else if (ft === 'ein') {
+    h += '<input class="field-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="text" maxlength="10" placeholder="XX-XXXXXXX" value="' + esc(val) + '" oninput="maskEIN(this);fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
+  } else if (ft === 'date') {
+    h += '<input class="field-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="date" value="' + esc(val) + '" onchange="fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
+  } else if (ft === 'email') {
+    h += '<input class="field-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="email" placeholder="email@example.com" value="' + esc(val) + '" oninput="fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
+  } else if (ft === 'phone') {
+    h += '<input class="field-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="tel" placeholder="(555) 123-4567" value="' + esc(val) + '" oninput="maskPhone(this);fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
+  } else if (ft === 'currency' || ft === 'number') {
+    h += '<input class="field-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="' + (ft === 'currency' ? 'text' : 'number') + '" placeholder="' + (ft === 'currency' ? '$0.00' : '0') + '" value="' + esc(val) + '" oninput="fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
+  } else if (ft === 'address') {
+    var addr = (typeof val === 'object' && val) ? val : {};
+    h += '<div class="address-grid">';
+    h += '<input class="field-input full-width" placeholder="Street Address" value="' + esc(addr.street || '') + '" oninput="addrChanged(\\'' + esc(field.field_id) + '\\',\\'street\\',this.value)" />';
+    h += '<input class="field-input" placeholder="City" value="' + esc(addr.city || '') + '" oninput="addrChanged(\\'' + esc(field.field_id) + '\\',\\'city\\',this.value)" />';
+    h += '<input class="field-input" placeholder="State" value="' + esc(addr.state || '') + '" oninput="addrChanged(\\'' + esc(field.field_id) + '\\',\\'state\\',this.value)" />';
+    h += '<input class="field-input" placeholder="ZIP Code" value="' + esc(addr.zip || '') + '" oninput="addrChanged(\\'' + esc(field.field_id) + '\\',\\'zip\\',this.value)" />';
+    h += '</div>';
+  } else {
+    h += '<input class="field-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="text" value="' + esc(val) + '" oninput="fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
+  }
+  h += '</div>';
+  return h;
+}
+
+function esc(s) { return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+function fieldChanged(id, val) {
+  formData[id] = val;
+  var el = document.getElementById('field-' + id);
+  if (el) { if (val) el.classList.add('filled'); else el.classList.remove('filled'); }
+  updateProgress();
+  checkConditionals();
+  autoSave();
+}
+
+function addrChanged(id, key, val) {
+  if (!formData[id] || typeof formData[id] !== 'object') formData[id] = {};
+  formData[id][key] = val;
+  updateProgress();
+  autoSave();
+}
+
+function toggleBool(id) {
+  formData[id] = !formData[id];
+  renderSection(currentSection);
+}
+
+function maskSSN(el) {
+  var v = el.value.replace(/\\D/g, '').substring(0, 9);
+  if (v.length > 5) v = v.substring(0,3) + '-' + v.substring(3,5) + '-' + v.substring(5);
+  else if (v.length > 3) v = v.substring(0,3) + '-' + v.substring(3);
+  el.value = v;
+}
+
+function maskEIN(el) {
+  var v = el.value.replace(/\\D/g, '').substring(0, 9);
+  if (v.length > 2) v = v.substring(0,2) + '-' + v.substring(2);
+  el.value = v;
+}
+
+function maskPhone(el) {
+  var v = el.value.replace(/\\D/g, '').substring(0, 10);
+  if (v.length > 6) v = '(' + v.substring(0,3) + ') ' + v.substring(3,6) + '-' + v.substring(6);
+  else if (v.length > 3) v = '(' + v.substring(0,3) + ') ' + v.substring(3);
+  el.value = v;
+}
+
+function toggleSSN(id) {
+  var el = document.getElementById('field-' + id);
+  if (el) {
+    el.type = (el.type === 'password') ? 'text' : 'password';
+    el.nextElementSibling.textContent = (el.type === 'password') ? 'Show' : 'Hide';
+  }
+}
+
+function checkConditionals() {
+  for (var s = 0; s < SECTIONS.length; s++) {
+    for (var f = 0; f < SECTIONS[s].fields.length; f++) {
+      var field = SECTIONS[s].fields[f];
+      if (!field.conditional) continue;
+      var group = document.getElementById('group-' + field.field_id);
+      if (!group) continue;
+      var depVal = formData[field.conditional.depends_on];
+      var show = true;
+      if (field.conditional.type === 'show_if') show = (depVal == field.conditional.value);
+      if (field.conditional.type === 'hide_if') show = (depVal != field.conditional.value);
+      group.style.display = show ? 'block' : 'none';
+    }
+  }
+}
+
+function updateProgress() {
+  var filled = 0, total = 0;
+  for (var s = 0; s < SECTIONS.length; s++) {
+    for (var f = 0; f < SECTIONS[s].fields.length; f++) {
+      var field = SECTIONS[s].fields[f];
+      if (!field.required) continue;
+      total++;
+      var val = formData[field.field_id];
+      if (val && (typeof val !== 'object' || Object.values(val).some(function(v){return !!v;}))) filled++;
+    }
+  }
+  var pct = total > 0 ? Math.round(filled / total * 100) : 0;
+  var bar = document.getElementById('progressFill');
+  var text = document.getElementById('progressText');
+  if (bar) bar.style.width = pct + '%';
+  if (text) text.textContent = filled + ' of ' + total + ' required items completed';
+}
+
+function renderNav() {
+  var nav = document.getElementById('navButtons');
+  var h = '';
+  if (currentSection > 0) h += '<button class="nav-btn nav-prev" onclick="goSection(' + (currentSection - 1) + ')">Back</button>';
+  if (currentSection < SECTIONS.length - 1) {
+    h += '<button class="nav-btn nav-next" onclick="goSection(' + (currentSection + 1) + ')">Next</button>';
+  } else {
+    h += '<button class="nav-btn nav-submit" onclick="submitForm()">Submit</button>';
+  }
+  nav.innerHTML = h;
+}
+
+function goSection(idx) {
+  if (idx < 0 || idx >= SECTIONS.length) return;
+  renderSection(idx);
+  window.scrollTo(0, 0);
+}
+
+var _saveTimer = null;
+function autoSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(function() {
+    fetch('/shared/' + TOKEN + '/form-save', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: formData })
+    }).catch(function(){});
+  }, 2000);
+}
+
+function triggerUpload(sectionId) {
+  document.getElementById('upload-' + sectionId).click();
+}
+
+function handleFormUpload(event) {
+  var files = event.target.files;
+  for (var i = 0; i < files.length; i++) uploadedFiles.push(files[i]);
+  event.target.parentElement.querySelector('.upload-zone-label').textContent = files.length + ' file(s) selected';
+}
+
+function submitForm() {
+  // Check required fields
+  var missing = [];
+  for (var s = 0; s < SECTIONS.length; s++) {
+    for (var f = 0; f < SECTIONS[s].fields.length; f++) {
+      var field = SECTIONS[s].fields[f];
+      if (!field.required) continue;
+      var val = formData[field.field_id];
+      if (!val || (typeof val === 'object' && !Object.values(val).some(function(v){return !!v;}))) {
+        missing.push(field.display_name);
+      }
+    }
+  }
+  if (missing.length > 0) {
+    alert('Please fill in the following required fields:\\n\\n' + missing.join('\\n'));
+    return;
+  }
+
+  var fd = new FormData();
+  fd.append('fields', JSON.stringify(formData));
+  for (var i = 0; i < uploadedFiles.length; i++) fd.append('files', uploadedFiles[i]);
+
+  var btn = document.querySelector('.nav-submit');
+  if (btn) { btn.textContent = 'Submitting...'; btn.disabled = true; }
+
+  fetch('/shared/' + TOKEN + '/form-submit', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) {
+        document.getElementById('formBody').innerHTML = '';
+        document.getElementById('navButtons').innerHTML = '';
+        var overlay = document.createElement('div');
+        overlay.className = 'submitted-overlay';
+        overlay.innerHTML = '<div class="submitted-card">'
+          + '<div class="submitted-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>'
+          + '<div style="font-size:1.3rem;font-weight:700;margin-bottom:8px;">Submitted!</div>'
+          + '<div style="color:#6b7280;font-size:0.95rem;">' + (data.message || 'Your information has been received.') + '</div>'
+          + '</div>';
+        document.body.appendChild(overlay);
+      } else {
+        alert(data.error || 'Submission failed');
+        if (btn) { btn.textContent = 'Submit'; btn.disabled = false; }
+      }
+    }).catch(function(err) {
+      alert('Error: ' + err.message);
+      if (btn) { btn.textContent = 'Submit'; btn.disabled = false; }
+    });
+}
+
+init();
+</script>
+</body></html>`;
+}
+
+// ---------------------------------------------------------------------------
+// Build 17: Event & Timeline Tracking
+// ---------------------------------------------------------------------------
+
+// Event CRUD Endpoints
+
+app.post('/api/spoke/:id/events', apiAuth, express.json(), (req, res) => {
+  const spoke = getSpoke(req.graphDir, req.params.id);
+  if (!spoke) return res.status(404).json({ error: 'Spoke not found' });
+
+  const body = req.body || {};
+  const event = {
+    event_id: 'evt_' + crypto.randomBytes(8).toString('hex'),
+    type: body.type || 'custom',
+    title: body.title || '',
+    date: body.date || new Date().toISOString(),
+    end_date: body.end_date || null,
+    description: body.description || '',
+    related_entities: body.related_entities || [],
+    related_documents: body.related_documents || [],
+    metadata: body.metadata || {},
+    source: body.source || 'manual',
+    created_at: new Date().toISOString(),
+    created_by: body.created_by || 'user'
+  };
+
+  if (!event.title) return res.status(400).json({ error: 'Event title is required' });
+
+  const events = spoke.events || [];
+  events.push(event);
+  updateSpoke(req.graphDir, req.params.id, { events });
+
+  // Activity log
+  const activity = spoke.recent_activity || [];
+  activity.unshift({ type: 'event_created', description: `Event created: ${event.title} (${event.type})`, timestamp: new Date().toISOString() });
+  updateSpoke(req.graphDir, req.params.id, { recent_activity: activity.slice(0, 50) });
+
+  res.json({ status: 'created', event });
+});
+
+app.get('/api/spoke/:id/events', apiAuth, (req, res) => {
+  const spoke = getSpoke(req.graphDir, req.params.id);
+  if (!spoke) return res.status(404).json({ error: 'Spoke not found' });
+
+  let events = spoke.events || [];
+
+  // Filters
+  if (req.query.type) events = events.filter(e => e.type === req.query.type);
+  if (req.query.from) events = events.filter(e => new Date(e.date) >= new Date(req.query.from));
+  if (req.query.to) events = events.filter(e => new Date(e.date) <= new Date(req.query.to));
+
+  // Sort
+  const sortDir = req.query.sort === 'asc' ? 1 : -1;
+  events.sort((a, b) => sortDir * (new Date(a.date) - new Date(b.date)));
+
+  // Payment summary
+  const payments = (spoke.events || []).filter(e => e.type === 'payment');
+  const paymentSummary = {
+    total: payments.reduce((s, e) => s + (parseFloat(e.metadata?.amount) || 0), 0),
+    by_method: {}
+  };
+  for (const p of payments) {
+    const method = p.metadata?.payment_method || 'unknown';
+    paymentSummary.by_method[method] = (paymentSummary.by_method[method] || 0) + (parseFloat(p.metadata?.amount) || 0);
+  }
+
+  // Deadlines
+  const now = new Date();
+  const deadlines = (spoke.events || []).filter(e => e.type === 'deadline' && new Date(e.date) > now)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+  const nextDeadline = deadlines[0] || null;
+
+  res.json({
+    events,
+    count: events.length,
+    payment_summary: paymentSummary,
+    next_deadline: nextDeadline,
+    overdue_deadlines: (spoke.events || []).filter(e => e.type === 'deadline' && new Date(e.date) < now).length
+  });
+});
+
+app.put('/api/spoke/:id/events/:eventId', apiAuth, express.json(), (req, res) => {
+  const spoke = getSpoke(req.graphDir, req.params.id);
+  if (!spoke) return res.status(404).json({ error: 'Spoke not found' });
+
+  const events = spoke.events || [];
+  const idx = events.findIndex(e => e.event_id === req.params.eventId);
+  if (idx === -1) return res.status(404).json({ error: 'Event not found' });
+
+  const body = req.body || {};
+  const updated = { ...events[idx] };
+  if (body.title !== undefined) updated.title = body.title;
+  if (body.date !== undefined) updated.date = body.date;
+  if (body.end_date !== undefined) updated.end_date = body.end_date;
+  if (body.description !== undefined) updated.description = body.description;
+  if (body.type !== undefined) updated.type = body.type;
+  if (body.metadata !== undefined) updated.metadata = { ...updated.metadata, ...body.metadata };
+  if (body.related_entities !== undefined) updated.related_entities = body.related_entities;
+  if (body.related_documents !== undefined) updated.related_documents = body.related_documents;
+  updated.updated_at = new Date().toISOString();
+  events[idx] = updated;
+
+  updateSpoke(req.graphDir, req.params.id, { events });
+  res.json({ status: 'updated', event: updated });
+});
+
+app.delete('/api/spoke/:id/events/:eventId', apiAuth, (req, res) => {
+  const spoke = getSpoke(req.graphDir, req.params.id);
+  if (!spoke) return res.status(404).json({ error: 'Spoke not found' });
+
+  const events = spoke.events || [];
+  const idx = events.findIndex(e => e.event_id === req.params.eventId);
+  if (idx === -1) return res.status(404).json({ error: 'Event not found' });
+
+  events.splice(idx, 1);
+  updateSpoke(req.graphDir, req.params.id, { events });
+  res.json({ status: 'deleted' });
+});
+
+// Dashboard event enrichment — patch the dashboard endpoint to include deadline info
+// (The actual dashboard endpoint already exists; we add event data to spoke listings)
+
+// ---------------------------------------------------------------------------
+// Build 18: Conversational Intake Agent
+// ---------------------------------------------------------------------------
+
+// Conversation session store (in-memory, keyed by session_id)
+const _convSessions = {};
+
+app.post('/api/spoke/:id/conversation', apiAuth, express.json(), async (req, res) => {
+  const spoke = getSpoke(req.graphDir, req.params.id);
+  if (!spoke) return res.status(404).json({ error: 'Spoke not found' });
+  if (!spoke.template_type) return res.status(400).json({ error: 'No template assigned' });
+
+  const template = getTemplate(spoke.template_type);
+  if (!template) return res.status(404).json({ error: 'Template not found' });
+
+  const { message, session_id } = req.body || {};
+  if (!message) return res.status(400).json({ error: 'Message is required' });
+
+  const sessId = session_id || 'sess_' + crypto.randomBytes(8).toString('hex');
+  if (!_convSessions[sessId]) {
+    _convSessions[sessId] = {
+      spoke_id: spoke.id,
+      messages: [],
+      captured_fields: {},
+      created_at: new Date().toISOString()
+    };
+  }
+
+  const session = _convSessions[sessId];
+  session.messages.push({ role: 'user', content: message });
+
+  // Build field inventory
+  const allFields = [];
+  for (const dt of (template.document_types || [])) {
+    for (const field of (dt.extraction_spec || [])) {
+      if (field.necessity_tier === 'ENRICHING') continue;
+      allFields.push(field);
+    }
+  }
+  for (const role of (template.entity_roles || [])) {
+    for (const rf of (role.required_fields || [])) {
+      const fObj = typeof rf === 'string' ? { field_id: rf, display_name: rf, field_type: 'text', necessity_tier: 'EXPECTED' } : rf;
+      if (fObj.necessity_tier === 'ENRICHING') continue;
+      allFields.push(fObj);
+    }
+  }
+
+  const capturedIds = Object.keys(session.captured_fields);
+  const blockingRemaining = allFields.filter(f => f.necessity_tier === 'BLOCKING' && !capturedIds.includes(f.field_id));
+  const expectedRemaining = allFields.filter(f => f.necessity_tier === 'EXPECTED' && !capturedIds.includes(f.field_id));
+  const remaining = blockingRemaining.concat(expectedRemaining);
+
+  try {
+    const client = new Anthropic();
+    const systemPrompt = `You are a friendly intake assistant helping collect information for a legal matter.
+
+TEMPLATE: ${template.display_name || spoke.template_type}
+CLIENT NAME: ${spoke.name}
+
+FIELDS ALREADY CAPTURED: ${JSON.stringify(Object.entries(session.captured_fields).map(([id, val]) => ({ field_id: id, value: val })))}
+
+FIELDS STILL NEEDED (BLOCKING first, then EXPECTED):
+${remaining.map(f => `- ${f.field_id}: "${f.display_name}" (type: ${f.field_type || 'text'}, tier: ${f.necessity_tier})`).join('\n')}
+
+Rules:
+- Ask for ONE piece of information at a time
+- Use the field's display_name, never the field_id
+- For sensitive fields (SSN, EIN, DOB), explain why it's needed
+- If the client's response contains information for multiple fields, capture all of them
+- If the client's response is unclear, ask a clarifying follow-up
+- If all BLOCKING fields are captured, let the client know and offer to continue with EXPECTED fields
+- After all fields are captured, thank them and close
+- Be warm, professional, plain-English. No legal jargon unless the client uses it first.
+- If the client asks a question about the process, answer briefly and return to the next field.
+
+IMPORTANT: Return ONLY valid JSON in this format:
+{ "response": "your message to client", "captured_fields": [{ "field_id": "the_field_id", "value": "extracted_value", "confidence": 0.85 }], "is_complete": false }`;
+
+    const aiResponse = await client.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: session.messages
+    });
+
+    const rawText = aiResponse.content[0].text;
+    let parsed;
+    try {
+      let cleaned = rawText.trim();
+      if (cleaned.startsWith('```')) cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+      parsed = JSON.parse(cleaned);
+    } catch {
+      parsed = { response: rawText, captured_fields: [], is_complete: false };
+    }
+
+    // Store captured fields
+    for (const cf of (parsed.captured_fields || [])) {
+      if (cf.field_id && cf.value) {
+        session.captured_fields[cf.field_id] = cf.value;
+      }
+    }
+
+    session.messages.push({ role: 'assistant', content: parsed.response });
+
+    const totalRequired = allFields.filter(f => f.necessity_tier === 'BLOCKING').length;
+    const capturedRequired = allFields.filter(f => f.necessity_tier === 'BLOCKING' && Object.keys(session.captured_fields).includes(f.field_id)).length;
+
+    res.json({
+      response: parsed.response,
+      session_id: sessId,
+      captured_fields: parsed.captured_fields || [],
+      fields_captured_total: Object.keys(session.captured_fields).length,
+      fields_remaining: remaining.length - (parsed.captured_fields || []).length,
+      progress: {
+        required_filled: capturedRequired,
+        required_total: totalRequired,
+        all_filled: Object.keys(session.captured_fields).length,
+        all_total: allFields.length
+      },
+      is_complete: parsed.is_complete || false
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Conversation failed: ' + err.message });
+  }
+});
+
+// Public conversation route: /chat/:shareToken
+app.get('/chat/:shareToken', sharedViewLimiter, async (req, res) => {
+  const spokeResult = findSpokeByShareToken(GRAPH_DIR, req.params.shareToken);
+  if (!spokeResult) return res.status(404).send(renderSharedErrorPage('Chat Not Found', 'This conversation link is invalid or has been revoked.'));
+
+  const { spoke, graphDir: spokeGraphDir, share } = spokeResult;
+  if (!spoke.template_type) return res.status(400).send(renderSharedErrorPage('Chat Not Available', 'No template configured for this matter.'));
+
+  const template = getTemplate(spoke.template_type);
+  if (!template) return res.status(400).send(renderSharedErrorPage('Chat Not Available', 'Template configuration error.'));
+
+  // Count fields
+  let totalFields = 0, requiredFields = 0;
+  for (const dt of (template.document_types || [])) {
+    for (const f of (dt.extraction_spec || [])) {
+      if (f.necessity_tier === 'ENRICHING') continue;
+      totalFields++;
+      if (f.necessity_tier === 'BLOCKING') requiredFields++;
+    }
+  }
+
+  res.send(renderChatPage(spoke, template, totalFields, requiredFields, req.params.shareToken));
+});
+
+// Public conversation message endpoint
+app.post('/chat/:shareToken/message', sharedViewLimiter, express.json(), async (req, res) => {
+  const spokeResult = findSpokeByShareToken(GRAPH_DIR, req.params.shareToken);
+  if (!spokeResult) return res.status(404).json({ error: 'Invalid chat link' });
+
+  const { spoke, graphDir: spokeGraphDir } = spokeResult;
+  if (!spoke.template_type) return res.status(400).json({ error: 'No template assigned' });
+
+  const template = getTemplate(spoke.template_type);
+  if (!template) return res.status(404).json({ error: 'Template not found' });
+
+  const { message, session_id } = req.body || {};
+  if (!message) return res.status(400).json({ error: 'Message is required' });
+
+  const sessId = session_id || 'sess_' + crypto.randomBytes(8).toString('hex');
+  if (!_convSessions[sessId]) {
+    _convSessions[sessId] = { spoke_id: spoke.id, messages: [], captured_fields: {}, created_at: new Date().toISOString() };
+  }
+
+  const session = _convSessions[sessId];
+  session.messages.push({ role: 'user', content: message });
+
+  const allFields = [];
+  for (const dt of (template.document_types || [])) {
+    for (const field of (dt.extraction_spec || [])) {
+      if (field.necessity_tier === 'ENRICHING') continue;
+      allFields.push(field);
+    }
+  }
+  for (const role of (template.entity_roles || [])) {
+    for (const rf of (role.required_fields || [])) {
+      const fObj = typeof rf === 'string' ? { field_id: rf, display_name: rf, field_type: 'text', necessity_tier: 'EXPECTED' } : rf;
+      if (fObj.necessity_tier === 'ENRICHING') continue;
+      allFields.push(fObj);
+    }
+  }
+
+  const capturedIds = Object.keys(session.captured_fields);
+  const remaining = allFields.filter(f => !capturedIds.includes(f.field_id));
+  const blockingRemaining = remaining.filter(f => f.necessity_tier === 'BLOCKING');
+
+  try {
+    const client = new Anthropic();
+    const systemPrompt = `You are a friendly intake assistant helping collect information for a legal matter.
+
+TEMPLATE: ${template.display_name || spoke.template_type}
+CLIENT NAME: ${spoke.name}
+
+FIELDS ALREADY CAPTURED: ${JSON.stringify(Object.entries(session.captured_fields).map(([id, val]) => ({ field_id: id, value: val })))}
+
+FIELDS STILL NEEDED (BLOCKING first, then EXPECTED):
+${remaining.slice(0, 20).map(f => `- ${f.field_id}: "${f.display_name}" (type: ${f.field_type || 'text'}, tier: ${f.necessity_tier})`).join('\n')}
+
+Rules:
+- Ask for ONE piece of information at a time
+- Use the field's display_name, never the field_id
+- For sensitive fields (SSN, EIN, DOB), explain why it's needed
+- If the client's response contains information for multiple fields, capture all of them
+- Be warm, professional, plain-English.
+- Return ONLY valid JSON: { "response": "your message", "captured_fields": [{ "field_id": "id", "value": "val", "confidence": 0.85 }], "is_complete": false }`;
+
+    const aiResponse = await client.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 1024,
+      system: systemPrompt,
+      messages: session.messages
+    });
+
+    let parsed;
+    try {
+      let cleaned = aiResponse.content[0].text.trim();
+      if (cleaned.startsWith('```')) cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+      parsed = JSON.parse(cleaned);
+    } catch {
+      parsed = { response: aiResponse.content[0].text, captured_fields: [], is_complete: false };
+    }
+
+    for (const cf of (parsed.captured_fields || [])) {
+      if (cf.field_id && cf.value) session.captured_fields[cf.field_id] = cf.value;
+    }
+
+    session.messages.push({ role: 'assistant', content: parsed.response });
+
+    // Save captured fields to spoke form_state for handoff to smart form
+    if (Object.keys(session.captured_fields).length > 0) {
+      const existingState = spoke.form_state || {};
+      updateSpoke(spokeGraphDir, spoke.id, { form_state: { ...existingState, ...session.captured_fields } });
+    }
+
+    const totalRequired = allFields.filter(f => f.necessity_tier === 'BLOCKING').length;
+    const capturedRequired = allFields.filter(f => f.necessity_tier === 'BLOCKING' && Object.keys(session.captured_fields).includes(f.field_id)).length;
+
+    res.json({
+      response: parsed.response,
+      session_id: sessId,
+      captured_fields: parsed.captured_fields || [],
+      progress: { required_filled: capturedRequired, required_total: totalRequired, all_filled: Object.keys(session.captured_fields).length, all_total: allFields.length },
+      is_complete: parsed.is_complete || false
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Chat failed: ' + err.message });
+  }
+});
+
+// Chat upload endpoint (file upload mid-conversation)
+const chatUpload = multer({ storage: multer.memoryStorage(), limits: { files: 5, fileSize: 50 * 1024 * 1024 } });
+app.post('/chat/:shareToken/upload', sharedViewLimiter, chatUpload.array('files', 5), async (req, res) => {
+  const spokeResult = findSpokeByShareToken(GRAPH_DIR, req.params.shareToken);
+  if (!spokeResult) return res.status(404).json({ error: 'Invalid chat link' });
+
+  const { spoke, graphDir: spokeGraphDir } = spokeResult;
+  const files = req.files || [];
+  if (files.length === 0) return res.status(400).json({ error: 'No files' });
+
+  const spokeFilesDir = path.join(spokeGraphDir, 'spoke_files', spoke.id);
+  if (!fs.existsSync(spokeFilesDir)) fs.mkdirSync(spokeFilesDir, { recursive: true });
+
+  const processed = [];
+  for (const file of files) {
+    const fileId = 'FILE-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4);
+    const ext = path.extname(file.originalname).toLowerCase();
+    fs.writeFileSync(path.join(spokeFilesDir, fileId + ext), file.buffer);
+    processed.push({
+      id: fileId, original_name: file.originalname, saved_name: fileId + ext,
+      mime_type: file.mimetype, size: file.size,
+      uploaded_at: new Date().toISOString(), uploaded_via: 'chat_intake', status: 'pending_review'
+    });
+  }
+
+  const existingFiles = spoke.files || [];
+  const activity = spoke.recent_activity || [];
+  activity.unshift({ type: 'chat_upload', description: `${files.length} file(s) uploaded via chat: ${files.map(f => f.originalname).join(', ')}`, timestamp: new Date().toISOString() });
+  updateSpoke(spokeGraphDir, spoke.id, { files: existingFiles.concat(processed), recent_activity: activity.slice(0, 50), gap_analysis: null });
+
+  res.json({ ok: true, files_uploaded: processed.length });
+});
+
+// Chat Page Renderer
+function renderChatPage(spoke, template, totalFields, requiredFields, shareToken) {
+  const formToken = shareToken;
+  return `<!DOCTYPE html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>${escHtml(spoke.name)} — Intake Chat | Context Architecture</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%236366f1'/><text x='16' y='22' font-size='16' font-weight='bold' fill='white' text-anchor='middle' font-family='system-ui'>CA</text></svg>">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#f8f9fa; color:#1a1a2e; height:100vh; display:flex; flex-direction:column; }
+.chat-header { background:linear-gradient(135deg,#6366f1,#8b5cf6); padding:20px 16px 14px; color:#fff; flex-shrink:0; }
+.chat-header-row { display:flex; align-items:center; gap:12px; }
+.chat-logo { width:36px; height:36px; border-radius:10px; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.9rem; border:2px solid rgba(255,255,255,0.3); }
+.chat-title { font-size:1.1rem; font-weight:700; }
+.chat-sub { font-size:0.78rem; opacity:0.85; }
+.chat-progress { font-size:0.75rem; background:rgba(255,255,255,0.15); padding:4px 10px; border-radius:12px; margin-top:8px; display:inline-block; }
+.chat-actions { display:flex; gap:8px; margin-top:8px; }
+.chat-action-btn { padding:5px 12px; border:1px solid rgba(255,255,255,0.3); border-radius:8px; background:rgba(255,255,255,0.1); color:#fff; font-size:0.75rem; cursor:pointer; text-decoration:none; font-weight:500; }
+.chat-action-btn:hover { background:rgba(255,255,255,0.2); }
+.chat-messages { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px; }
+.msg { max-width:85%; padding:12px 16px; border-radius:16px; font-size:0.93rem; line-height:1.5; word-wrap:break-word; }
+.msg-ai { background:#fff; align-self:flex-start; border-bottom-left-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+.msg-user { background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; align-self:flex-end; border-bottom-right-radius:4px; }
+.msg-typing { background:#fff; align-self:flex-start; border-bottom-left-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+.typing-dots { display:flex; gap:4px; padding:4px 0; }
+.typing-dots span { width:8px; height:8px; background:#c4b5fd; border-radius:50%; animation:dotPulse 1.2s infinite; }
+.typing-dots span:nth-child(2) { animation-delay:0.2s; }
+.typing-dots span:nth-child(3) { animation-delay:0.4s; }
+@keyframes dotPulse { 0%,80%,100% { opacity:0.3; transform:scale(0.8); } 40% { opacity:1; transform:scale(1); } }
+.chat-input-bar { flex-shrink:0; background:#fff; border-top:1px solid #e5e7eb; padding:10px 12px; display:flex; gap:8px; align-items:flex-end; }
+.chat-input { flex:1; padding:10px 14px; border:1.5px solid #d1d5db; border-radius:20px; font-size:0.93rem; outline:none; resize:none; max-height:120px; font-family:inherit; line-height:1.4; }
+.chat-input:focus { border-color:#6366f1; }
+.chat-send { width:40px; height:40px; border:none; border-radius:50%; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.chat-send:disabled { opacity:0.4; cursor:not-allowed; }
+.chat-mic { width:40px; height:40px; border:none; border-radius:50%; background:#f3f4f6; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.chat-mic.recording { background:#fee2e2; animation:micPulse 1.5s infinite; }
+@keyframes micPulse { 0%,100% { box-shadow:0 0 0 0 rgba(220,38,38,0.3); } 50% { box-shadow:0 0 0 8px rgba(220,38,38,0); } }
+.chat-upload-btn { width:40px; height:40px; border:none; border-radius:50%; background:#f3f4f6; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+</style></head><body>
+<div class="chat-header">
+  <div class="chat-header-row">
+    <div class="chat-logo">CA</div>
+    <div><div class="chat-title">${escHtml(spoke.name)}</div>
+    <div class="chat-sub">${escHtml(template.display_name || '')} Intake</div></div>
+  </div>
+  <div class="chat-progress" id="chatProgress">0 of ${requiredFields} required items</div>
+  <div class="chat-actions">
+    <a class="chat-action-btn" href="/form/${escHtml(shareToken)}">Switch to Form</a>
+  </div>
+</div>
+<div class="chat-messages" id="chatMessages"></div>
+<div class="chat-input-bar">
+  <input type="file" id="chatFileInput" multiple style="display:none" onchange="chatUploadFiles(event)" />
+  <button class="chat-upload-btn" onclick="document.getElementById('chatFileInput').click()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+  </button>
+  <button class="chat-mic" id="micBtn" onclick="toggleVoice()" style="display:none">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+  </button>
+  <textarea class="chat-input" id="chatInput" rows="1" placeholder="Type a message..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage();}"></textarea>
+  <button class="chat-send" id="sendBtn" onclick="sendMessage()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+  </button>
+</div>
+
+<script>
+var TOKEN = '${shareToken}';
+var sessionId = null;
+var isProcessing = false;
+
+function esc(s) { return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function addMessage(text, role) {
+  var el = document.createElement('div');
+  el.className = 'msg msg-' + role;
+  el.textContent = text;
+  document.getElementById('chatMessages').appendChild(el);
+  el.scrollIntoView({ behavior: 'smooth' });
+}
+
+function showTyping() {
+  var el = document.createElement('div');
+  el.className = 'msg msg-typing';
+  el.id = 'typingIndicator';
+  el.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
+  document.getElementById('chatMessages').appendChild(el);
+  el.scrollIntoView({ behavior: 'smooth' });
+}
+
+function hideTyping() {
+  var el = document.getElementById('typingIndicator');
+  if (el) el.remove();
+}
+
+function sendMessage() {
+  if (isProcessing) return;
+  var input = document.getElementById('chatInput');
+  var text = input.value.trim();
+  if (!text) return;
+
+  addMessage(text, 'user');
+  input.value = '';
+  input.style.height = 'auto';
+  isProcessing = true;
+  document.getElementById('sendBtn').disabled = true;
+  showTyping();
+
+  fetch('/chat/' + TOKEN + '/message', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: text, session_id: sessionId })
+  }).then(function(r) { return r.json(); })
+  .then(function(data) {
+    hideTyping();
+    isProcessing = false;
+    document.getElementById('sendBtn').disabled = false;
+    if (data.error) { addMessage('Error: ' + data.error, 'ai'); return; }
+    sessionId = data.session_id;
+    addMessage(data.response, 'ai');
+    if (data.progress) {
+      document.getElementById('chatProgress').textContent = data.progress.required_filled + ' of ' + data.progress.required_total + ' required items';
+    }
+  }).catch(function(err) {
+    hideTyping();
+    isProcessing = false;
+    document.getElementById('sendBtn').disabled = false;
+    addMessage('Connection error. Please try again.', 'ai');
+  });
+}
+
+function chatUploadFiles(event) {
+  var files = event.target.files;
+  if (!files.length) return;
+  var fd = new FormData();
+  for (var i = 0; i < files.length; i++) fd.append('files', files[i]);
+
+  addMessage('Uploading ' + files.length + ' file(s)...', 'user');
+  fetch('/chat/' + TOKEN + '/upload', { method: 'POST', body: fd })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      if (data.ok) addMessage('Files uploaded successfully! Your attorney will review them.', 'ai');
+      else addMessage('Upload failed: ' + (data.error || 'Unknown error'), 'ai');
+    }).catch(function() { addMessage('Upload failed. Please try again.', 'ai'); });
+}
+
+// Voice input
+var recognition = null;
+var isRecording = false;
+
+function initVoice() {
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (SpeechRecognition) {
+    document.getElementById('micBtn').style.display = 'flex';
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.lang = 'en-US';
+    recognition.onresult = function(e) {
+      var transcript = e.results[0][0].transcript;
+      document.getElementById('chatInput').value = transcript;
+      stopRecording();
+      sendMessage();
+    };
+    recognition.onerror = function() { stopRecording(); };
+    recognition.onend = function() { stopRecording(); };
+  }
+}
+
+function toggleVoice() {
+  if (isRecording) stopRecording();
+  else startRecording();
+}
+
+function startRecording() {
+  if (!recognition) return;
+  isRecording = true;
+  document.getElementById('micBtn').classList.add('recording');
+  recognition.start();
+}
+
+function stopRecording() {
+  isRecording = false;
+  document.getElementById('micBtn').classList.remove('recording');
+  try { recognition.stop(); } catch(e) {}
+}
+
+// Auto-resize textarea
+document.getElementById('chatInput').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+// Init
+initVoice();
+
+// Send initial greeting
+setTimeout(function() {
+  fetch('/chat/' + TOKEN + '/message', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: 'Hello, I\\'m ready to start the intake process.', session_id: sessionId })
+  }).then(function(r) { return r.json(); })
+  .then(function(data) {
+    sessionId = data.session_id;
+    addMessage(data.response, 'ai');
+    if (data.progress) {
+      document.getElementById('chatProgress').textContent = data.progress.required_filled + ' of ' + data.progress.required_total + ' required items';
+    }
+  }).catch(function() {
+    addMessage('Welcome! I\\'ll help you provide the information your attorney needs. Let\\'s get started — what is your full legal name?', 'ai');
+  });
+}, 500);
+</script>
+</body></html>`;
+}
 
 const WIKI_HTML = `<!DOCTYPE html>
 <html lang="en">
@@ -16056,6 +17272,62 @@ function revokeSpokeShare(token) {
   });
 }
 
+// Build 16+18: Generate Smart Form / Conversation links
+function generateFormLink() {
+  if (!_selectedSpoke) { toast('No client selected'); return; }
+  // Ensure an upload-enabled share exists
+  api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/shares').then(function(data) {
+    var shares = data.shares || [];
+    var uploadShare = shares.find(function(s) { return s.includes && s.includes.indexOf('upload') >= 0; });
+    if (uploadShare) {
+      var formUrl = location.origin + '/form/' + uploadShare.token;
+      showIntakeLinkResult('Smart Form', formUrl);
+    } else {
+      // Create one
+      api('POST', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/share', {
+        label: 'Client Smart Form',
+        includes: ['gaps', 'upload']
+      }).then(function(d) {
+        var formUrl = location.origin + '/form/' + d.token;
+        showIntakeLinkResult('Smart Form', formUrl);
+        _refreshShareView();
+      }).catch(function(err) { toast('Error: ' + (err.message || err)); });
+    }
+  });
+}
+
+function generateChatLink() {
+  if (!_selectedSpoke) { toast('No client selected'); return; }
+  api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/shares').then(function(data) {
+    var shares = data.shares || [];
+    var uploadShare = shares.find(function(s) { return s.includes && s.includes.indexOf('upload') >= 0; });
+    if (uploadShare) {
+      var chatUrl = location.origin + '/chat/' + uploadShare.token;
+      showIntakeLinkResult('Conversation', chatUrl);
+    } else {
+      api('POST', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/share', {
+        label: 'Client Chat Intake',
+        includes: ['gaps', 'upload']
+      }).then(function(d) {
+        var chatUrl = location.origin + '/chat/' + d.token;
+        showIntakeLinkResult('Conversation', chatUrl);
+        _refreshShareView();
+      }).catch(function(err) { toast('Error: ' + (err.message || err)); });
+    }
+  });
+}
+
+function showIntakeLinkResult(type, url) {
+  var el = document.getElementById('intakeLinkResult');
+  if (!el) return;
+  el.style.display = 'block';
+  el.innerHTML = '<div style="padding:12px 16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;">'
+    + '<div style="font-size:12px;font-weight:600;color:#1e40af;margin-bottom:4px;">' + esc(type) + ' Link</div>'
+    + '<div style="font-size:13px;color:#1e40af;word-break:break-all;">' + esc(url) + '</div>'
+    + '<button onclick="navigator.clipboard.writeText(\\'' + esc(url) + '\\');toast(\\'Link copied!\\')" style="margin-top:8px;padding:6px 14px;border:none;border-radius:6px;background:#6366f1;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Copy Link</button>'
+    + '</div>';
+}
+
 // --- Spoke Selector ---
 
 function loadSpokes() {
@@ -16537,6 +17809,21 @@ function _buildShareHtml() {
   h += '<button onclick="confirmSpokeShare()" style="padding:8px 20px;background:var(--accent-primary);color:#fff;border:none;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;">Create Share Link</button>';
   h += '</div>';
 
+  // Build 16+18: Client intake links
+  h += '<div style="background:var(--bg-card);border:1px solid var(--border-primary);border-radius:12px;padding:20px;margin-bottom:24px;">';
+  h += '<h3 style="font-size:0.9rem;font-weight:600;margin:0 0 12px;color:var(--text-primary);">Client Intake Links</h3>';
+  h += '<div style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:16px;">Send these to your client for self-service intake.</div>';
+  h += '<div style="display:flex;gap:10px;flex-wrap:wrap;">';
+  h += '<button onclick="generateFormLink()" style="display:flex;align-items:center;gap:6px;padding:10px 16px;border:1px solid #c4b5fd;border-radius:8px;background:#f5f3ff;color:#6d28d9;font-size:13px;font-weight:600;cursor:pointer;">';
+  h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6d28d9" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+  h += 'Send Smart Form</button>';
+  h += '<button onclick="generateChatLink()" style="display:flex;align-items:center;gap:6px;padding:10px 16px;border:1px solid #a7f3d0;border-radius:8px;background:#ecfdf5;color:#065f46;font-size:13px;font-weight:600;cursor:pointer;">';
+  h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#065f46" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>';
+  h += 'Send Conversation Link</button>';
+  h += '</div>';
+  h += '<div id="intakeLinkResult" style="margin-top:12px;display:none;"></div>';
+  h += '</div>';
+
   if (_spokeShares.length > 0) {
     h += '<div style="margin-bottom:8px;font-size:0.85rem;font-weight:600;color:var(--text-primary);">Active Links (' + _spokeShares.length + ')</div>';
     for (var i = 0; i < _spokeShares.length; i++) {
@@ -16598,6 +17885,7 @@ function showClientWorkspace(spokeId, tab) {
     { id: 'completeness', label: 'Completeness', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>' },
     { id: 'export', label: 'Data Export', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' },
     { id: 'documents', label: 'Documents', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>' },
+    { id: 'timeline', label: 'Timeline', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' },
     { id: 'share', label: 'Share', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>' }
   ];
   for (var t = 0; t < tabs.length; t++) {
@@ -16700,6 +17988,12 @@ function loadClientTabContent(tab) {
     }).catch(function(err) {
       container.innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Failed to load files') + '</div>';
     });
+  } else if (tab === 'timeline') {
+    api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/events').then(function(data) {
+      container.innerHTML = _buildTimelineHtml(data);
+    }).catch(function(err) {
+      container.innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Failed to load timeline') + '</div>';
+    });
   } else if (tab === 'share') {
     api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/shares').then(function(data) {
       _spokeShares = data.shares || [];
@@ -16708,6 +18002,211 @@ function loadClientTabContent(tab) {
       container.innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Failed to load shares') + '</div>';
     });
   }
+}
+
+// ---------------------------------------------------------------------------
+// Build 17: Timeline Tab UI
+// ---------------------------------------------------------------------------
+
+var _timelineFilter = 'all';
+
+function _buildTimelineHtml(data) {
+  var events = data.events || [];
+  var h = '<div style="padding:24px 28px;">';
+
+  // Header
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">';
+  h += '<div style="font-size:18px;font-weight:700;">Timeline</div>';
+  h += '<button onclick="showAddEventModal()" style="padding:8px 16px;border:none;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">+ Add Event</button>';
+  h += '</div>';
+
+  // Filter chips
+  var types = ['all','medical_visit','payment','court_date','filing','deadline','treatment','communication','custom'];
+  var typeLabels = { all:'All', medical_visit:'Medical', payment:'Payment', court_date:'Court', filing:'Filing', deadline:'Deadline', treatment:'Treatment', communication:'Comm', custom:'Custom' };
+  h += '<div style="display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;">';
+  for (var i = 0; i < types.length; i++) {
+    var active = (_timelineFilter === types[i]);
+    h += '<button onclick="_timelineFilter=\\'' + types[i] + '\\';switchClientTab(\\'timeline\\')" style="padding:5px 12px;border:1px solid ' + (active ? '#6366f1' : '#e5e7eb') + ';border-radius:16px;background:' + (active ? '#6366f1' : '#fff') + ';color:' + (active ? '#fff' : '#374151') + ';font-size:12px;font-weight:500;cursor:pointer;">' + (typeLabels[types[i]] || types[i]) + '</button>';
+  }
+  h += '</div>';
+
+  // Payment summary if payment events exist
+  if (data.payment_summary && data.payment_summary.total > 0) {
+    var ps = data.payment_summary;
+    h += '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:16px;margin-bottom:20px;">';
+    h += '<div style="font-size:14px;font-weight:600;color:#166534;margin-bottom:8px;">Payment Summary</div>';
+    h += '<div style="font-size:20px;font-weight:700;color:#166534;">$' + ps.total.toLocaleString('en-US', {minimumFractionDigits:2}) + '</div>';
+    var methods = Object.entries(ps.by_method || {});
+    if (methods.length > 0) {
+      h += '<div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">';
+      for (var m = 0; m < methods.length; m++) {
+        h += '<span style="font-size:12px;color:#166534;background:#dcfce7;padding:3px 8px;border-radius:8px;">' + esc(methods[m][0]) + ': $' + methods[m][1].toLocaleString('en-US', {minimumFractionDigits:2}) + '</span>';
+      }
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  // Overdue deadlines warning
+  if (data.overdue_deadlines > 0) {
+    h += '<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:center;gap:10px;">';
+    h += '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+    h += '<span style="font-size:13px;font-weight:600;color:#dc2626;">' + data.overdue_deadlines + ' overdue deadline' + (data.overdue_deadlines > 1 ? 's' : '') + '</span>';
+    h += '</div>';
+  }
+
+  // Filter events
+  var filtered = events;
+  if (_timelineFilter !== 'all') filtered = events.filter(function(e) { return e.type === _timelineFilter; });
+
+  // Timeline
+  if (filtered.length === 0) {
+    h += '<div style="padding:40px;text-align:center;color:var(--text-muted);font-size:14px;">No events yet. Click "+ Add Event" to track medical visits, payments, deadlines, and more.</div>';
+  } else {
+    var typeColors = { medical_visit:'#3b82f6', payment:'#059669', court_date:'#dc2626', deadline:'#f59e0b', filing:'#8b5cf6', communication:'#6b7280', treatment:'#06b6d4', custom:'#374151' };
+    var typeIcons = { medical_visit:'M22 12h-4l-3 9L9 3l-3 9H2', payment:'M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6', court_date:'M3 21h18M3 10h18M3 7l9-4 9 4M4 10v11M20 10v11', deadline:'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', filing:'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z', communication:'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z', treatment:'M22 12h-4l-3 9L9 3l-3 9H2', custom:'M12 2L2 7l10 5 10-5-10-5z' };
+
+    h += '<div style="position:relative;padding-left:40px;">';
+    // Vertical line
+    h += '<div style="position:absolute;left:15px;top:0;bottom:0;width:2px;background:#e5e7eb;"></div>';
+
+    for (var e = 0; e < filtered.length; e++) {
+      var evt = filtered[e];
+      var color = typeColors[evt.type] || '#374151';
+      var now = new Date();
+      var evtDate = new Date(evt.date);
+      var isOverdue = (evt.type === 'deadline' && evtDate < now);
+      var isUpcoming = (evt.type === 'deadline' && evtDate > now && (evtDate - now) < 7 * 24 * 60 * 60 * 1000);
+      var dateStr = evtDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+      h += '<div style="position:relative;margin-bottom:20px;">';
+      // Dot on timeline
+      h += '<div style="position:absolute;left:-33px;top:4px;width:14px;height:14px;border-radius:50%;background:' + color + ';border:3px solid #fff;box-shadow:0 0 0 2px ' + color + ';"></div>';
+
+      // Event card
+      h += '<div style="background:#fff;border-radius:10px;padding:16px;border:1px solid ' + (isOverdue ? '#fecaca' : '#e8e8e8') + ';' + (isOverdue ? 'border-left:3px solid #dc2626;' : '') + '">';
+      h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;">';
+      h += '<div style="flex:1;">';
+      h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">';
+      h += '<span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;background:' + color + '20;color:' + color + ';">' + esc(evt.type.replace(/_/g, ' ')) + '</span>';
+      if (isOverdue) {
+        var daysOver = Math.ceil((now - evtDate) / (24*60*60*1000));
+        h += '<span style="font-size:11px;font-weight:600;color:#dc2626;">' + daysOver + ' days overdue</span>';
+      }
+      if (isUpcoming) {
+        var daysLeft = Math.ceil((evtDate - now) / (24*60*60*1000));
+        h += '<span style="font-size:11px;font-weight:600;color:#f59e0b;">' + daysLeft + ' day' + (daysLeft !== 1 ? 's' : '') + ' left</span>';
+      }
+      h += '</div>';
+      h += '<div style="font-size:15px;font-weight:600;color:#1a1a2e;">' + esc(evt.title) + '</div>';
+      if (evt.description) h += '<div style="font-size:13px;color:#6b7280;margin-top:4px;">' + esc(evt.description) + '</div>';
+
+      // Payment amount
+      if (evt.type === 'payment' && evt.metadata && evt.metadata.amount) {
+        h += '<div style="font-size:16px;font-weight:700;color:#059669;margin-top:6px;">$' + parseFloat(evt.metadata.amount).toLocaleString('en-US', {minimumFractionDigits:2}) + '</div>';
+        if (evt.metadata.payment_method) h += '<span style="font-size:11px;color:#6b7280;">' + esc(evt.metadata.payment_method) + '</span>';
+      }
+
+      // Source badge
+      if (evt.source === 'extracted') h += '<span style="display:inline-block;margin-top:6px;padding:2px 6px;font-size:10px;background:#ede9fe;color:#7c3aed;border-radius:4px;font-weight:600;">AI-extracted</span>';
+      h += '</div>';
+      h += '<div style="font-size:12px;color:#9ca3af;white-space:nowrap;">' + esc(dateStr) + '</div>';
+      h += '</div>';
+
+      // Actions
+      h += '<div style="display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid #f3f4f6;">';
+      h += '<button onclick="editTimelineEvent(\\'' + esc(evt.event_id) + '\\')" style="padding:4px 10px;border:1px solid #e5e7eb;border-radius:6px;background:#fff;font-size:11px;color:#6b7280;cursor:pointer;">Edit</button>';
+      h += '<button onclick="deleteTimelineEvent(\\'' + esc(evt.event_id) + '\\')" style="padding:4px 10px;border:1px solid #fecaca;border-radius:6px;background:#fff;font-size:11px;color:#dc2626;cursor:pointer;">Delete</button>';
+      h += '</div>';
+      h += '</div></div>';
+    }
+    h += '</div>';
+  }
+
+  h += '</div>';
+  return h;
+}
+
+function showAddEventModal() {
+  var overlay = document.createElement('div');
+  overlay.id = 'eventModal';
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:9999;';
+
+  var types = ['medical_visit','payment','court_date','filing','deadline','treatment','communication','custom'];
+  var mh = '<div style="background:#fff;border-radius:16px;padding:28px;max-width:500px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">';
+  mh += '<div style="display:flex;justify-content:space-between;margin-bottom:20px;">';
+  mh += '<div style="font-size:18px;font-weight:700;">Add Event</div>';
+  mh += '<button onclick="document.getElementById(\\'eventModal\\').remove()" style="border:none;background:none;font-size:24px;cursor:pointer;color:#999;">&times;</button>';
+  mh += '</div>';
+
+  var ist = 'width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:13px;outline:none;margin-bottom:12px;font-family:inherit;';
+  mh += '<select id="evtType" style="' + ist + '">';
+  for (var i = 0; i < types.length; i++) mh += '<option value="' + types[i] + '">' + types[i].replace(/_/g, ' ') + '</option>';
+  mh += '</select>';
+  mh += '<input id="evtTitle" placeholder="Event title" style="' + ist + '" />';
+  mh += '<input id="evtDate" type="date" style="' + ist + '" value="' + new Date().toISOString().split('T')[0] + '" />';
+  mh += '<textarea id="evtDesc" placeholder="Description (optional)" rows="2" style="' + ist + 'resize:vertical;"></textarea>';
+
+  // Payment-specific fields
+  mh += '<div id="evtPaymentFields" style="display:none;">';
+  mh += '<input id="evtAmount" type="number" step="0.01" placeholder="Amount ($)" style="' + ist + '" />';
+  mh += '<select id="evtPayMethod" style="' + ist + '"><option value="lien">Lien</option><option value="insurance">Insurance</option><option value="out_of_pocket">Out of Pocket</option><option value="attorney_funded">Attorney Funded</option></select>';
+  mh += '</div>';
+
+  // Medical-specific fields
+  mh += '<div id="evtMedicalFields" style="display:none;">';
+  mh += '<input id="evtProvider" placeholder="Provider name" style="' + ist + '" />';
+  mh += '<input id="evtFacility" placeholder="Facility" style="' + ist + '" />';
+  mh += '</div>';
+
+  mh += '<button onclick="saveNewEvent()" style="width:100%;padding:12px;border:none;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;">Save Event</button>';
+  mh += '</div>';
+
+  overlay.innerHTML = mh;
+  document.body.appendChild(overlay);
+
+  // Toggle payment/medical fields
+  document.getElementById('evtType').onchange = function() {
+    document.getElementById('evtPaymentFields').style.display = (this.value === 'payment') ? 'block' : 'none';
+    document.getElementById('evtMedicalFields').style.display = (this.value === 'medical_visit' || this.value === 'treatment') ? 'block' : 'none';
+  };
+}
+
+function saveNewEvent() {
+  var type = document.getElementById('evtType').value;
+  var title = document.getElementById('evtTitle').value.trim();
+  var date = document.getElementById('evtDate').value;
+  var desc = document.getElementById('evtDesc').value.trim();
+  if (!title) { toast('Event title is required'); return; }
+
+  var body = { type: type, title: title, date: date || new Date().toISOString(), description: desc, metadata: {} };
+
+  if (type === 'payment') {
+    body.metadata.amount = parseFloat(document.getElementById('evtAmount').value) || 0;
+    body.metadata.payment_method = document.getElementById('evtPayMethod').value;
+  }
+  if (type === 'medical_visit' || type === 'treatment') {
+    body.metadata.provider_name = (document.getElementById('evtProvider').value || '').trim();
+    body.metadata.facility = (document.getElementById('evtFacility').value || '').trim();
+  }
+
+  api('POST', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/events', body).then(function() {
+    document.getElementById('eventModal').remove();
+    toast('Event added');
+    switchClientTab('timeline');
+  }).catch(function(err) { toast('Error: ' + (err.message || err)); });
+}
+
+function deleteTimelineEvent(eventId) {
+  if (!confirm('Delete this event?')) return;
+  api('DELETE', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/events/' + encodeURIComponent(eventId)).then(function() {
+    toast('Event deleted');
+    switchClientTab('timeline');
+  }).catch(function(err) { toast('Error: ' + (err.message || err)); });
+}
+
+function editTimelineEvent(eventId) {
+  toast('Edit coming — use the API for now: PUT /api/spoke/:id/events/' + eventId);
 }
 
 function renderDocumentsTab(container, files) {
