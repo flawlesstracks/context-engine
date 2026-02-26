@@ -15846,31 +15846,31 @@ function renderSidebar() {
 
   // About
   var aboutActive = (!_selectedSpoke || _selectedSpoke === 'default') && (selectedId === primaryEntityId && window._liActiveTab === 'overview');
-  html += '<div class="sb-nav-item' + (aboutActive ? ' active' : '') + '" onclick="selectView(\\'overview\\')">';
+  html += '<div class="sb-nav-item' + (aboutActive ? ' active' : '') + '" data-nav="overview">';
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>';
   html += 'About</div>';
 
   // Career
   var careerActive = (!_selectedSpoke || _selectedSpoke === 'default') && (selectedId === primaryEntityId && window._liActiveTab === 'career');
-  html += '<div class="sb-nav-item' + (careerActive ? ' active' : '') + '" onclick="selectView(\\'career\\')">';
+  html += '<div class="sb-nav-item' + (careerActive ? ' active' : '') + '" data-nav="career">';
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>';
   html += 'Career</div>';
 
   // Family
   var familyActive = (!_selectedSpoke || _selectedSpoke === 'default') && (selectedCategory === 'people_hub' && window._peopleHubTab === 'family');
-  html += '<div class="sb-nav-item' + (familyActive ? ' active' : '') + '" onclick="selectPersonalGraph();showPeopleHub(\\'family\\')">';
+  html += '<div class="sb-nav-item' + (familyActive ? ' active' : '') + '" data-nav="family">';
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>';
   html += 'Family</div>';
 
   // Friends
   var friendsActive = (!_selectedSpoke || _selectedSpoke === 'default') && (selectedCategory === 'people_hub' && window._peopleHubTab === 'friends');
-  html += '<div class="sb-nav-item' + (friendsActive ? ' active' : '') + '" onclick="selectPersonalGraph();showPeopleHub(\\'friends\\')">';
+  html += '<div class="sb-nav-item' + (friendsActive ? ' active' : '') + '" data-nav="friends">';
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>';
   html += 'Friends</div>';
 
   // Affiliations
   var affilActive = (!_selectedSpoke || _selectedSpoke === 'default') && (selectedCategory === 'affiliations_hub');
-  html += '<div class="sb-nav-item' + (affilActive ? ' active' : '') + '" onclick="selectPersonalGraph();showAffiliationsHub()">';
+  html += '<div class="sb-nav-item' + (affilActive ? ' active' : '') + '" data-nav="affiliations">';
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>';
   html += 'Affiliations</div>';
 
@@ -15951,7 +15951,32 @@ function renderSidebar() {
     }
   }
 
-  document.getElementById('entityList').innerHTML = html || '<div style="padding:16px;color:#3a3a4a;font-size:0.82rem;">No entities found</div>';
+  var elList = document.getElementById('entityList');
+  elList.innerHTML = html || '<div style="padding:16px;color:#3a3a4a;font-size:0.82rem;">No entities found</div>';
+
+  // Delegated click handler for sidebar nav items (data-nav attribute)
+  // This replaces inline onclick handlers which can break due to HTML escaping issues
+  elList.onclick = function(e) {
+    var target = e.target;
+    // Walk up to find the element with data-nav
+    while (target && target !== elList) {
+      var nav = target.getAttribute && target.getAttribute('data-nav');
+      if (nav) {
+        console.log('[sidebar click] data-nav:', nav);
+        if (nav === 'overview' || nav === 'career') {
+          selectView(nav);
+        } else if (nav === 'family' || nav === 'friends') {
+          selectPersonalGraph();
+          showPeopleHub(nav);
+        } else if (nav === 'affiliations') {
+          selectPersonalGraph();
+          showAffiliationsHub();
+        }
+        return;
+      }
+      target = target.parentNode;
+    }
+  };
 }
 
 // Backward-compat alias
