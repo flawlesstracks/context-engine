@@ -13484,15 +13484,18 @@ function buildSidebarData() {
 
 function selectView(viewId) {
   if (!primaryEntityId) return;
+  // Fully reset navigation state to personal graph
   selectedId = primaryEntityId;
   selectedView = null;
   selectedCategory = null;
+  _selectedSpoke = null;
   // Map sidebar lens IDs to tab bar IDs
   var tabMap = { 'overview': 'overview', 'career': 'career', 'network-map': 'network', 'intelligence-brief': 'intel-brief', 'org-brief': 'org-brief', 'source-provenance': 'sources' };
   window._liActiveTab = tabMap[viewId] || 'overview';
   var mainEl = document.getElementById('main');
   if (mainEl) mainEl.className = '';
   breadcrumbs = [{ label: 'My Profile' }];
+  renderBreadcrumbs();
   var empty = document.getElementById('emptyState');
   if (empty) empty.style.display = 'none';
 
@@ -15951,10 +15954,11 @@ function selectClient(spokeId) {
 }
 
 function selectPersonalGraph() {
-  if (!_selectedSpoke && selectedView !== 'client_workspace') return; // Already on personal graph
+  if (!_selectedSpoke && !selectedView) return; // Already on personal graph with no active view
   _selectedSpoke = null;
   selectedView = null;
   selectedCategory = null;
+  selectedId = primaryEntityId;
   // Don't re-render sidebar here — let the nav item onclick handler do that
 }
 
@@ -17136,9 +17140,12 @@ function renderClientDashboard() {
 
   // Fetch from the dashboard API for rich data
   api('GET', '/api/dashboard').then(function(data) {
+    // Guard: only render if user is still on the dashboard (prevents async overwrite)
+    if (selectedView !== 'client_dashboard') return;
     window._dashboardData = data;
     renderDashboardContent(data);
   }).catch(function(err) {
+    if (selectedView !== 'client_dashboard') return;
     // Fallback to local spoke data
     var clientSpokes = _spokesList.filter(function(s) { return s.id !== 'default'; });
     if (clientSpokes.length === 0) {
