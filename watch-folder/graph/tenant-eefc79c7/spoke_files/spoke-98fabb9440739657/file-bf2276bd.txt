@@ -1,0 +1,63 @@
+ACME CONSULTING LLC
+BALANCE SHEET
+As of December 31, 2025
+EIN: 88-4923156
+
+                                              2025            2024
+                                          -----------     -----------
+ASSETS
+
+Current Assets
+  Chase Business Checking (****7241)        $187,400        $142,300
+  Chase Business Savings (****8893)         $250,000        $200,000
+  Accounts Receivable                       $198,600        $167,800
+  Prepaid Expenses                           $24,200         $18,500
+  Employee Advances                           $3,800          $2,400
+                                          -----------     -----------
+  Total Current Assets                      $664,000        $531,000
+
+Fixed Assets
+  Office Equipment                           $48,200         $42,600
+  Computer Equipment                         $67,400         $54,800
+  Furniture and Fixtures                     $28,000         $28,000
+  Less: Accumulated Depreciation            ($58,400)       ($46,000)
+                                          -----------     -----------
+  Total Fixed Assets                         $85,200         $79,400
+
+Other Assets
+  Security Deposit (Suite 310)               $12,000         $12,000
+  Organization Costs                          $2,400          $2,400
+                                          -----------     -----------
+  Total Other Assets                         $14,400         $14,400
+
+TOTAL ASSETS                                $763,600        $624,800
+
+
+LIABILITIES AND MEMBERS' EQUITY
+
+Current Liabilities
+  Accounts Payable                           $42,800         $38,200
+  Accrued Expenses                           $28,400         $22,600
+  Payroll Liabilities                        $18,200         $15,800
+  Credit Card (Chase Ink ****3347)           $12,400          $8,900
+  Current Portion — Line of Credit           $25,000         $25,000
+                                          -----------     -----------
+  Total Current Liabilities                 $126,800        $110,500
+
+Long-Term Liabilities
+  Line of Credit (Chase, ****6612)           $50,000         $75,000
+                                          -----------     -----------
+  Total Long-Term Liabilities                $50,000         $75,000
+
+TOTAL LIABILITIES                           $176,800        $185,500
+
+Members' Equity
+  John R. Smith — Capital Account           $351,480        $263,580
+  Maria L. Garcia — Capital Account         $235,320        $175,720
+                                          -----------     -----------
+  Total Members' Equity                     $586,800        $439,300
+
+TOTAL LIABILITIES AND MEMBERS' EQUITY       $763,600        $624,800
+
+Prepared by: Peachtree Bookkeeping Services
+Date: January 28, 2026

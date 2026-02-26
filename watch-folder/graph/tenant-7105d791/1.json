@@ -1,0 +1,171 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-25T00:10:36.275Z",
+    "updated_at": "2026-02-25T00:10:36.275Z",
+    "source_description": "demo_ingest:business_entity_synthesis",
+    "extraction_model": "demo",
+    "extraction_confidence": 0.95,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "business",
+    "name": {
+      "common": "Acme Consulting LLC",
+      "legal": "Acme Consulting LLC",
+      "confidence": 0.95,
+      "facts_layer": 1
+    },
+    "summary": {
+      "value": "Georgia limited liability company providing management consulting, business advisory, and technology consulting services. Founded March 2022.",
+      "confidence": 0.95,
+      "facts_layer": 1
+    }
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "legal_name",
+      "value": "Acme Consulting LLC",
+      "confidence": 0.95,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-5c1c5c0f",
+        "original_filename": "acme_articles_of_incorporation.txt",
+        "snippet": "NAME OF LIMITED LIABILITY COMPANY: Acme Consulting LLC",
+        "location": "Section 1",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:10:36.275Z"
+      }
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "ein",
+      "value": "88-4923156",
+      "confidence": 0.95,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-45720eb0",
+        "original_filename": "acme_ein_letter.txt",
+        "snippet": "We assigned you EIN 88-4923156",
+        "location": "CP 575 A",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:10:36.275Z"
+      }
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "entity_type",
+      "value": "Limited Liability Company",
+      "confidence": 0.95,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-45720eb0",
+        "original_filename": "acme_ein_letter.txt",
+        "snippet": "Entity Type: Limited Liability Company",
+        "location": "CP 575 A",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:10:36.275Z"
+      }
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "state_of_formation",
+      "value": "Georgia",
+      "confidence": 0.95,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-5c1c5c0f",
+        "original_filename": "acme_articles_of_incorporation.txt",
+        "snippet": "forming a Georgia limited liability company",
+        "location": "Preamble",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:10:36.275Z"
+      }
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "fiscal_year_end",
+      "value": "December 31",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-45720eb0",
+        "original_filename": "acme_ein_letter.txt",
+        "snippet": "Fiscal Year End: December",
+        "location": "CP 575 A",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:10:36.275Z"
+      }
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "address",
+      "value": "1847 Peachtree Road NE, Suite 310, Atlanta, GA 30309",
+      "confidence": 0.95,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-5c1c5c0f",
+        "original_filename": "acme_articles_of_incorporation.txt",
+        "snippet": "1847 Peachtree Road NE, Suite 310, Atlanta, Georgia 30309",
+        "location": "Section 2",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:10:36.275Z"
+      }
+    },
+    {
+      "attribute_id": "ATTR-007",
+      "key": "formation_date",
+      "value": "March 15, 2022",
+      "confidence": 0.95,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-5c1c5c0f",
+        "original_filename": "acme_articles_of_incorporation.txt",
+        "snippet": "EFFECTIVE DATE: March 15, 2022",
+        "location": "Section 8",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:10:36.275Z"
+      }
+    },
+    {
+      "attribute_id": "ATTR-008",
+      "key": "purpose",
+      "value": "Management consulting, business advisory services, and technology consulting",
+      "confidence": 0.9,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-5c1c5c0f",
+        "original_filename": "acme_articles_of_incorporation.txt",
+        "snippet": "management consulting, business advisory services, and technology consulting",
+        "location": "Section 6",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:10:36.275Z"
+      }
+    }
+  ],
+  "relationships": [],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [],
+  "provenance_chain": {
+    "created_at": "2026-02-25T00:10:36.275Z",
+    "created_by": "demo",
+    "source_documents": [
+      {
+        "source": "demo_ingest:acme_ein_letter.txt",
+        "ingested_at": "2026-02-25T00:10:36.275Z"
+      },
+      {
+        "source": "demo_ingest:acme_articles_of_incorporation.txt",
+        "ingested_at": "2026-02-25T00:10:36.275Z"
+      }
+    ],
+    "merge_history": []
+  },
+  "spoke_id": "spoke-3b4965d1c9f5663b",
+  "source": "manual",
+  "source_ref": "demo_business_entity"
+}

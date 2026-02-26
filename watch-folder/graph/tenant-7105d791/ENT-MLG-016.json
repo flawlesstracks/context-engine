@@ -1,0 +1,158 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-24T19:19:28.852Z",
+    "updated_at": "2026-02-24T19:19:28.852Z",
+    "source_description": "demo_ingest:acme_profit_and_loss_2025.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.8,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Maria L. Garcia",
+      "confidence": 0.8,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "Maria L. Garcia (Guaranteed Payment)",
+      "confidence": 0.8,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-MLG-016"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "Member with Guaranteed Payment",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-6c63bc41",
+        "original_filename": "acme_profit_and_loss_2025.txt",
+        "snippet": "Maria L. Garcia (Guaranteed Payment)    $150,000        $140,000",
+        "location": "Row 27, Salaries and Wages",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T19:19:28.852Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-46cc7238-f93"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "ownership_percentage",
+      "value": "40%",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-6c63bc41",
+        "original_filename": "acme_profit_and_loss_2025.txt",
+        "snippet": "Maria L. Garcia (40%):  $155,980",
+        "location": "section: Note",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T19:19:28.852Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-46cc7238-f93"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "guaranteed_payment_2025",
+      "value": "$150,000",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-6c63bc41",
+        "original_filename": "acme_profit_and_loss_2025.txt",
+        "snippet": "Maria L. Garcia (Guaranteed Payment)    $150,000        $140,000",
+        "location": "Row 27, Salaries and Wages",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T19:19:28.852Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-46cc7238-f93"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "guaranteed_payment_2024",
+      "value": "$140,000",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-6c63bc41",
+        "original_filename": "acme_profit_and_loss_2025.txt",
+        "snippet": "Maria L. Garcia (Guaranteed Payment)    $150,000        $140,000",
+        "location": "Row 27, Salaries and Wages",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T19:19:28.852Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-46cc7238-f93"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "pass_through_income_2025",
+      "value": "$155,980",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-6c63bc41",
+        "original_filename": "acme_profit_and_loss_2025.txt",
+        "snippet": "Maria L. Garcia (40%):  $155,980",
+        "location": "section: Note",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T19:19:28.852Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-46cc7238-f93"
+      ]
+    }
+  ],
+  "relationships": [],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [],
+  "provenance_chain": {
+    "created_at": "2026-02-24T19:19:28.852Z",
+    "created_by": "demo",
+    "source_documents": [
+      {
+        "source": "demo_ingest:acme_profit_and_loss_2025.txt",
+        "ingested_at": "2026-02-24T19:19:28.852Z"
+      }
+    ],
+    "merge_history": []
+  },
+  "spoke_id": "spoke-41825c0315b96cda",
+  "source": "manual",
+  "source_ref": "acme_profit_and_loss_2025.txt",
+  "ownership": "referenced",
+  "access_rules": {
+    "visibility": "private",
+    "shared_with": []
+  },
+  "projection_config": {
+    "lenses": [
+      "default"
+    ]
+  },
+  "perspectives": []
+}

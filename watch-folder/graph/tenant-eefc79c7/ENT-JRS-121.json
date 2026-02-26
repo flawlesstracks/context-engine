@@ -1,0 +1,237 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-24T21:48:41.965Z",
+    "updated_at": "2026-02-24T21:48:41.965Z",
+    "source_description": "demo_ingest:acme_profit_and_loss_2025.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.8,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "John R. Smith",
+      "confidence": 0.8,
+      "facts_layer": 2,
+      "aliases": []
+    },
+    "summary": {
+      "value": "John R. Smith (Guaranteed Payment)",
+      "confidence": 0.8,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-JRS-121"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "Member with Guaranteed Payment",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-a719e5a7",
+        "original_filename": "acme_profit_and_loss_2025.txt",
+        "snippet": "John R. Smith (Guaranteed Payment)      $180,000        $165,000",
+        "location": "Row: John R. Smith, Column: Salaries and Wages",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T22:36:40.745Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-c0a2d75e-fe3",
+        "SIG-88bd0c55-978"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "ownership_percentage",
+      "value": "60%",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-a719e5a7",
+        "original_filename": "acme_profit_and_loss_2025.txt",
+        "snippet": "John R. Smith (60%):    $233,970",
+        "location": "section: Note",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T22:36:40.745Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-c0a2d75e-fe3",
+        "SIG-88bd0c55-978"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "guaranteed_payment_2025",
+      "value": "$180,000",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-a719e5a7",
+        "original_filename": "acme_profit_and_loss_2025.txt",
+        "snippet": "John R. Smith (Guaranteed Payment)      $180,000        $165,000",
+        "location": "Row: John R. Smith, Column: 2025",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T22:36:40.745Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-c0a2d75e-fe3",
+        "SIG-88bd0c55-978"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "guaranteed_payment_2024",
+      "value": "$165,000",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-a719e5a7",
+        "original_filename": "acme_profit_and_loss_2025.txt",
+        "snippet": "John R. Smith (Guaranteed Payment)      $180,000        $165,000",
+        "location": "Row: John R. Smith, Column: 2024",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T22:36:40.745Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-c0a2d75e-fe3",
+        "SIG-88bd0c55-978"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "pass_through_income_2025",
+      "value": "$233,970",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-a719e5a7",
+        "original_filename": "acme_profit_and_loss_2025.txt",
+        "snippet": "John R. Smith (60%):    $233,970",
+        "location": "section: Note",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T22:36:40.745Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-c0a2d75e-fe3",
+        "SIG-88bd0c55-978"
+      ]
+    }
+  ],
+  "relationships": [],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [],
+  "provenance_chain": {
+    "created_at": "2026-02-24T21:48:41.965Z",
+    "created_by": "demo",
+    "source_documents": [
+      {
+        "source": "demo_ingest:acme_profit_and_loss_2025.txt",
+        "ingested_at": "2026-02-24T21:48:41.965Z"
+      },
+      {
+        "source": "Demo: acme_profit_and_loss_2025.txt",
+        "url": "",
+        "ingested_at": "2026-02-24T22:36:40.766Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-24T22:36:40.766Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_profit_and_loss_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "Member receiving Guaranteed Payment",
+            "old_confidence": 0.75,
+            "new_value": "Member with Guaranteed Payment",
+            "new_confidence": 0.8,
+            "timestamp": "2026-02-24T22:36:40.766Z"
+          },
+          {
+            "type": "attribute_replaced",
+            "attribute_id": "ATTR-003",
+            "key": "guaranteed_payment_2025",
+            "old_value": "$180,000",
+            "old_confidence": 0.75,
+            "new_value": "$180,000",
+            "new_confidence": 0.8,
+            "timestamp": "2026-02-24T22:36:40.766Z"
+          },
+          {
+            "type": "attribute_replaced",
+            "attribute_id": "ATTR-004",
+            "key": "guaranteed_payment_2024",
+            "old_value": "$165,000",
+            "old_confidence": 0.75,
+            "new_value": "$165,000",
+            "new_confidence": 0.8,
+            "timestamp": "2026-02-24T22:36:40.766Z"
+          },
+          {
+            "type": "attribute_replaced",
+            "attribute_id": "ATTR-002",
+            "key": "ownership_percentage",
+            "old_value": "60%",
+            "old_confidence": 0.75,
+            "new_value": "60%",
+            "new_confidence": 0.8,
+            "timestamp": "2026-02-24T22:36:40.766Z"
+          },
+          {
+            "type": "attribute_replaced",
+            "attribute_id": "ATTR-005",
+            "key": "pass_through_income_2025",
+            "old_value": "$233,970",
+            "old_confidence": 0.75,
+            "new_value": "$233,970",
+            "new_confidence": 0.8,
+            "timestamp": "2026-02-24T22:36:40.766Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-24T22:36:40.766Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-88bd0c55-978: merged data and 0 observations"
+        ]
+      }
+    ]
+  },
+  "spoke_id": "spoke-98fabb9440739657",
+  "source": "manual",
+  "source_ref": "acme_profit_and_loss_2025.txt",
+  "ownership": "referenced",
+  "access_rules": {
+    "visibility": "private",
+    "shared_with": []
+  },
+  "projection_config": {
+    "lenses": [
+      "default"
+    ]
+  },
+  "perspectives": [],
+  "active_projects": [],
+  "translations": []
+}

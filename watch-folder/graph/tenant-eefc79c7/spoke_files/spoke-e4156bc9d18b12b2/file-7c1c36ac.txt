@@ -1,0 +1,84 @@
+OPERATING AGREEMENT
+OF
+ACME CONSULTING LLC
+A GEORGIA LIMITED LIABILITY COMPANY
+
+Effective Date: March 15, 2022
+
+This Operating Agreement ("Agreement") is entered into by and between the Members
+of Acme Consulting LLC, a Georgia limited liability company (the "Company").
+
+ARTICLE I — ORGANIZATION
+
+1.1 Formation. The Company was formed on March 15, 2022, by filing Articles of
+Organization with the Georgia Secretary of State.
+
+1.2 Name. The name of the Company is Acme Consulting LLC.
+
+1.3 Principal Office. The principal office of the Company is located at:
+    1847 Peachtree Road NE, Suite 310
+    Atlanta, Georgia 30309
+
+1.4 Registered Agent. The registered agent is Sarah Chen, located at the
+    principal office address.
+
+1.5 Purpose. Management consulting, business advisory, and technology consulting services.
+
+1.6 Term. The Company shall continue in perpetuity unless dissolved in accordance
+    with this Agreement or the Georgia LLC Act.
+
+ARTICLE II — MEMBERS AND CAPITAL CONTRIBUTIONS
+
+2.1 Members. The Members of the Company are:
+
+    Member Name:         John R. Smith
+    Address:             245 Magnolia Lane, Decatur, GA 30030
+    SSN:                 XXX-XX-4271
+    Membership Interest: 60%
+    Initial Capital:     $120,000
+
+    Member Name:         Maria L. Garcia
+    Address:             782 Oakwood Drive, Marietta, GA 30060
+    SSN:                 XXX-XX-8834
+    Membership Interest: 40%
+    Initial Capital:     $80,000
+
+2.2 Total Initial Capital: $200,000
+
+ARTICLE III — MANAGEMENT
+
+3.1 Member-Managed. The Company shall be managed by its Members.
+
+3.2 Managing Member. John R. Smith shall serve as Managing Member with day-to-day
+    operational authority.
+
+ARTICLE IV — ALLOCATIONS AND DISTRIBUTIONS
+
+4.1 Profits and Losses. Net profits and losses shall be allocated to Members in
+    proportion to their Membership Interests.
+
+4.2 Distributions. Distributions shall be made quarterly, at the discretion of the
+    Members, in proportion to their Membership Interests.
+
+4.3 Tax Elections. The Company shall be taxed as a partnership for federal income tax purposes.
+
+4.4 Fiscal Year. The fiscal year of the Company shall end on December 31 of each year.
+
+ARTICLE V — TAX MATTERS
+
+5.1 Tax Matters Partner. John R. Smith shall serve as the Tax Matters Partner.
+
+5.2 Tax Returns. The Company shall prepare and file all required federal, state,
+    and local tax returns, including IRS Form 1065 (U.S. Return of Partnership Income).
+
+5.3 Schedule K-1. The Company shall provide each Member with a Schedule K-1
+    reflecting their share of income, deductions, and credits.
+
+IN WITNESS WHEREOF, the Members have executed this Operating Agreement as of the
+date first written above.
+
+_____________________________
+John R. Smith, Member (60%)
+
+_____________________________
+Maria L. Garcia, Member (40%)

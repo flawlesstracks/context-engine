@@ -12,3 +12,6 @@ watch-folder/errors/
 **/connections.json
 dist/
 dxt/node_modules/
+~$*
+*.m4a
+.claude/worktrees/

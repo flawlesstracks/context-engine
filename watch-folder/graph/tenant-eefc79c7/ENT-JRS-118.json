@@ -1,0 +1,123 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-24T21:46:42.669Z",
+    "updated_at": "2026-02-24T21:46:42.669Z",
+    "source_description": "demo_ingest:acme_ein_letter.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.7,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "JOHN R SMITH",
+      "confidence": 0.7,
+      "facts_layer": 2,
+      "aliases": []
+    },
+    "summary": {
+      "value": "JOHN R SMITH",
+      "confidence": 0.7,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-JRS-118"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "address",
+      "value": "1847 PEACHTREE ROAD NE STE 310, ATLANTA GA 30309",
+      "confidence": 0.9099999999999999,
+      "confidence_label": "MODERATE",
+      "provenance": {
+        "file_id": "file-b4f59273",
+        "original_filename": "acme_ein_letter.txt",
+        "snippet": "ACME CONSULTING LLC JOHN R SMITH 1847 PEACHTREE ROAD NE STE 310 ATLANTA GA 30309",
+        "location": "header, line 7-10",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T21:46:42.669Z"
+      },
+      "_base_confidence": 0.7,
+      "_source_clusters": [
+        "SIG-8f0bd810-973",
+        "SIG-45542fd8-7c2"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "role",
+      "value": "Representative of ACME CONSULTING LLC",
+      "confidence": 0.9099999999999999,
+      "confidence_label": "MODERATE",
+      "provenance": {
+        "file_id": "file-b4f59273",
+        "original_filename": "acme_ein_letter.txt",
+        "snippet": "ACME CONSULTING LLC JOHN R SMITH 1847 PEACHTREE ROAD NE STE 310",
+        "location": "header, line 7-9",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "inferred",
+        "extracted_at": "2026-02-24T21:46:42.669Z"
+      },
+      "_base_confidence": 0.7,
+      "_source_clusters": [
+        "SIG-8f0bd810-973",
+        "SIG-45542fd8-7c2"
+      ]
+    }
+  ],
+  "relationships": [],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [],
+  "provenance_chain": {
+    "created_at": "2026-02-24T21:46:42.669Z",
+    "created_by": "demo",
+    "source_documents": [
+      {
+        "source": "demo_ingest:acme_ein_letter.txt",
+        "ingested_at": "2026-02-24T21:46:42.669Z"
+      },
+      {
+        "source": "Demo: acme_ein_letter.txt",
+        "url": "",
+        "ingested_at": "2026-02-24T22:34:45.967Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-24T22:34:45.967Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_ein_letter.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-24T22:34:45.967Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-45542fd8-7c2: merged data and 0 observations"
+        ]
+      }
+    ]
+  },
+  "spoke_id": "spoke-98fabb9440739657",
+  "source": "manual",
+  "source_ref": "acme_ein_letter.txt",
+  "ownership": "referenced",
+  "access_rules": {
+    "visibility": "private",
+    "shared_with": []
+  },
+  "projection_config": {
+    "lenses": [
+      "default"
+    ]
+  },
+  "perspectives": [],
+  "active_projects": [],
+  "translations": []
+}

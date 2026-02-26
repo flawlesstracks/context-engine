@@ -1,0 +1,58 @@
+U.S. RETURN OF PARTNERSHIP INCOME — SUMMARY
+Form 1065 — Tax Year 2024
+(Filed March 14, 2025)
+
+PARTNERSHIP INFORMATION
+  Name:                    Acme Consulting LLC
+  EIN:                     88-4923156
+  Address:                 1847 Peachtree Road NE, Suite 310
+                           Atlanta, GA 30309
+  Business Code:           541610 (Management Consulting Services)
+  Date Business Started:   03/15/2022
+  Accounting Method:       Accrual
+  Number of Schedules K-1: 2
+
+INCOME
+  1a. Gross receipts or sales:                    $1,573,600
+  1b. Returns and allowances:                             $0
+  1c. Balance:                                    $1,573,600
+  2.  Cost of goods sold:                                 $0
+  3.  Gross profit:                               $1,573,600
+  7.  Net farm profit:                                    $0
+  8.  Other income:                                   $2,800
+  Total income:                                   $1,576,400
+
+DEDUCTIONS
+  9.  Salaries and wages:                           $248,600
+  10. Guaranteed payments to partners:              $305,000
+  13. Rent:                                          $72,000
+  14. Taxes and licenses:                            $42,300
+  15. Interest:                                       $3,400
+  16a. Depreciation:                                 $11,800
+  19. Employee benefit programs:                     $34,100
+  20. Other deductions (see statement):             $554,500
+  Total deductions:                               $1,271,700
+
+  Ordinary business income (loss):                  $304,700
+
+SCHEDULE K — PARTNERS' DISTRIBUTIVE SHARE ITEMS
+  1.  Ordinary business income:                     $304,700
+  5.  Interest income:                                $2,800
+  13a. Contributions:                                $12,400
+  13c. Section 179 deduction:                        $18,200
+  14a. Net earnings from self-employment:           $609,700
+  16c. Foreign transactions:                              $0
+
+ANALYSIS OF NET INCOME
+  Partner             Type       Share %    Ordinary Income
+  John R. Smith       General    60%        $182,820
+  Maria L. Garcia     General    40%        $121,880
+                                            --------
+  Total:                                    $304,700
+
+Prepared by: Johnson & Associates Tax Services
+PTIN: P01234567
+Date: March 14, 2025
+
+Note: This is a summary page only. Full return including all schedules,
+statements, and Schedules K-1 are maintained in the permanent tax file.

@@ -1,0 +1,583 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-24T19:17:08.459Z",
+    "updated_at": "2026-02-24T19:17:08.459Z",
+    "source_description": "demo_ingest:acme_balance_sheet_2025.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.8,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "Maria L. Garcia",
+      "confidence": 0.8,
+      "facts_layer": 2,
+      "aliases": []
+    },
+    "summary": {
+      "value": "Maria L. Garcia, Member (40%)",
+      "confidence": 0.8,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-MLG-011"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "Member",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-db4427e9",
+        "original_filename": "acme_operating_agreement.txt",
+        "snippet": "Member Name: Maria L. Garcia",
+        "location": "section: ARTICLE II — MEMBERS AND CAPITAL CONTRIBUTIONS, 2.1 Members",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T19:18:20.884Z"
+      },
+      "_base_confidence": 0.75,
+      "_source_clusters": [
+        "SIG-2f28e46f-f80",
+        "SIG-adb2e557-a5e",
+        "SIG-3fddc913-c34",
+        "SIG-f20d8fb6-4e9",
+        "SIG-ab596241-d92",
+        "SIG-d9e7e76d-163",
+        "SIG-11f0a61b-874",
+        "SIG-8991122c-85d",
+        "SIG-ce1779c2-62a",
+        "SIG-0ea8b6a8-0eb",
+        "SIG-01d4717c-c35"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "capital_account_2025",
+      "value": "$235,320",
+      "confidence": 1,
+      "confidence_label": "MODERATE",
+      "provenance": {
+        "file_id": "file-1ba2527e",
+        "original_filename": "acme_balance_sheet_2025.txt",
+        "snippet": "Maria L. Garcia — Capital Account         $235,320        $175,720",
+        "location": "Row: Maria L. Garcia — Capital Account, Column: 2025",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T19:17:08.459Z"
+      },
+      "_base_confidence": 0.75,
+      "_source_clusters": [
+        "SIG-2f28e46f-f80",
+        "SIG-3fddc913-c34",
+        "SIG-d9e7e76d-163",
+        "SIG-ce1779c2-62a"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "capital_account_2024",
+      "value": "$175,720",
+      "confidence": 1,
+      "confidence_label": "MODERATE",
+      "provenance": {
+        "file_id": "file-1ba2527e",
+        "original_filename": "acme_balance_sheet_2025.txt",
+        "snippet": "Maria L. Garcia — Capital Account         $235,320        $175,720",
+        "location": "Row: Maria L. Garcia — Capital Account, Column: 2024",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T19:17:08.459Z"
+      },
+      "_base_confidence": 0.75,
+      "_source_clusters": [
+        "SIG-2f28e46f-f80",
+        "SIG-3fddc913-c34",
+        "SIG-d9e7e76d-163",
+        "SIG-ce1779c2-62a"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "address",
+      "value": "782 Oakwood Drive, Marietta, GA 30060",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-db4427e9",
+        "original_filename": "acme_operating_agreement.txt",
+        "snippet": "Address: 782 Oakwood Drive, Marietta, GA 30060",
+        "location": "section: ARTICLE II — MEMBERS AND CAPITAL CONTRIBUTIONS, 2.1 Members",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T19:18:20.884Z"
+      },
+      "_source_clusters": [
+        "SIG-adb2e557-a5e",
+        "SIG-f20d8fb6-4e9",
+        "SIG-11f0a61b-874",
+        "SIG-0ea8b6a8-0eb"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "ssn_last_four",
+      "value": "8834",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-db4427e9",
+        "original_filename": "acme_operating_agreement.txt",
+        "snippet": "SSN: XXX-XX-8834",
+        "location": "section: ARTICLE II — MEMBERS AND CAPITAL CONTRIBUTIONS, 2.1 Members",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T19:18:20.884Z"
+      },
+      "_source_clusters": [
+        "SIG-adb2e557-a5e",
+        "SIG-f20d8fb6-4e9",
+        "SIG-0ea8b6a8-0eb"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "membership_interest",
+      "value": "40%",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-db4427e9",
+        "original_filename": "acme_operating_agreement.txt",
+        "snippet": "Membership Interest: 40%",
+        "location": "section: ARTICLE II — MEMBERS AND CAPITAL CONTRIBUTIONS, 2.1 Members",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T19:18:20.884Z"
+      },
+      "_source_clusters": [
+        "SIG-adb2e557-a5e",
+        "SIG-f20d8fb6-4e9",
+        "SIG-11f0a61b-874",
+        "SIG-0ea8b6a8-0eb"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-007",
+      "key": "initial_capital",
+      "value": "$80,000",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-db4427e9",
+        "original_filename": "acme_operating_agreement.txt",
+        "snippet": "Initial Capital: $80,000",
+        "location": "section: ARTICLE II — MEMBERS AND CAPITAL CONTRIBUTIONS, 2.1 Members",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T19:18:20.884Z"
+      },
+      "_source_clusters": [
+        "SIG-adb2e557-a5e",
+        "SIG-11f0a61b-874"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-008",
+      "key": "initial_capital_contribution",
+      "value": "$80,000",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-01f8f22a",
+        "original_filename": "acme_operating_agreement.txt",
+        "snippet": "Initial Capital: $80,000",
+        "location": "section: ARTICLE II - MEMBERS AND CAPITAL CONTRIBUTIONS, 2.1 Members",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T21:21:06.794Z"
+      },
+      "_source_clusters": [
+        "SIG-f20d8fb6-4e9",
+        "SIG-0ea8b6a8-0eb"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-009",
+      "key": "ownership_percentage",
+      "value": "40%",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-35448417",
+        "original_filename": "acme_profit_and_loss_2025.txt",
+        "snippet": "Maria L. Garcia (40%):  $155,980",
+        "location": "section: Note after NET INCOME BEFORE TAX",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T21:22:22.200Z"
+      },
+      "_source_clusters": [
+        "SIG-ab596241-d92",
+        "SIG-8991122c-85d",
+        "SIG-01d4717c-c35"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-010",
+      "key": "guaranteed_payment_2025",
+      "value": "$150,000",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-35448417",
+        "original_filename": "acme_profit_and_loss_2025.txt",
+        "snippet": "Maria L. Garcia (Guaranteed Payment)    $150,000        $140,000",
+        "location": "Row: Maria L. Garcia, Salaries and Wages section",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T21:22:22.200Z"
+      },
+      "_source_clusters": [
+        "SIG-ab596241-d92",
+        "SIG-8991122c-85d",
+        "SIG-01d4717c-c35"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-011",
+      "key": "guaranteed_payment_2024",
+      "value": "$140,000",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-35448417",
+        "original_filename": "acme_profit_and_loss_2025.txt",
+        "snippet": "Maria L. Garcia (Guaranteed Payment)    $150,000        $140,000",
+        "location": "Row: Maria L. Garcia, Salaries and Wages section",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T21:22:22.200Z"
+      },
+      "_source_clusters": [
+        "SIG-ab596241-d92",
+        "SIG-8991122c-85d",
+        "SIG-01d4717c-c35"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-012",
+      "key": "income_allocation_2025",
+      "value": "$155,980",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-35448417",
+        "original_filename": "acme_profit_and_loss_2025.txt",
+        "snippet": "Maria L. Garcia (40%):  $155,980",
+        "location": "section: Note after NET INCOME BEFORE TAX",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T21:22:22.200Z"
+      },
+      "_source_clusters": [
+        "SIG-ab596241-d92"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-013",
+      "key": "ssn_partial",
+      "value": "XXX-XX-8834",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-29180ab7",
+        "original_filename": "acme_operating_agreement.txt",
+        "snippet": "SSN: XXX-XX-8834",
+        "location": "section: ARTICLE II — MEMBERS AND CAPITAL CONTRIBUTIONS, 2.1 Members",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:09:03.637Z"
+      },
+      "_source_clusters": [
+        "SIG-11f0a61b-874"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-014",
+      "key": "tax_allocation_2025",
+      "value": "$155,980",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-1353f745",
+        "original_filename": "acme_profit_and_loss_2025.txt",
+        "snippet": "Maria L. Garcia (40%):  $155,980",
+        "location": "section: Note",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:10:07.608Z"
+      },
+      "_source_clusters": [
+        "SIG-8991122c-85d"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-015",
+      "key": "pass_through_income_2025",
+      "value": "$155,980",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-4169f7ac",
+        "original_filename": "acme_profit_and_loss_2025.txt",
+        "snippet": "Maria L. Garcia (40%):  $155,980",
+        "location": "section: Note after Net Income Before Tax",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:16:42.946Z"
+      },
+      "_source_clusters": [
+        "SIG-01d4717c-c35"
+      ]
+    }
+  ],
+  "relationships": [],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [],
+  "provenance_chain": {
+    "created_at": "2026-02-24T19:17:08.459Z",
+    "created_by": "demo",
+    "source_documents": [
+      {
+        "source": "demo_ingest:acme_balance_sheet_2025.txt",
+        "ingested_at": "2026-02-24T19:17:08.459Z"
+      },
+      {
+        "source": "Demo: acme_operating_agreement.txt",
+        "url": "",
+        "ingested_at": "2026-02-24T19:18:20.895Z"
+      },
+      {
+        "source": "Demo: acme_balance_sheet_2025.txt",
+        "url": "",
+        "ingested_at": "2026-02-24T21:19:53.584Z"
+      },
+      {
+        "source": "Demo: acme_operating_agreement.txt",
+        "url": "",
+        "ingested_at": "2026-02-24T21:21:06.803Z"
+      },
+      {
+        "source": "Demo: acme_profit_and_loss_2025.txt",
+        "url": "",
+        "ingested_at": "2026-02-24T21:22:22.206Z"
+      },
+      {
+        "source": "Demo: acme_balance_sheet_2025.txt",
+        "url": "",
+        "ingested_at": "2026-02-25T00:07:55.750Z"
+      },
+      {
+        "source": "Demo: acme_operating_agreement.txt",
+        "url": "",
+        "ingested_at": "2026-02-25T00:09:03.645Z"
+      },
+      {
+        "source": "Demo: acme_profit_and_loss_2025.txt",
+        "url": "",
+        "ingested_at": "2026-02-25T00:10:07.614Z"
+      },
+      {
+        "source": "Demo: acme_balance_sheet_2025.txt",
+        "url": "",
+        "ingested_at": "2026-02-25T00:14:12.152Z"
+      },
+      {
+        "source": "Demo: acme_operating_agreement.txt",
+        "url": "",
+        "ingested_at": "2026-02-25T00:15:28.739Z"
+      },
+      {
+        "source": "Demo: acme_profit_and_loss_2025.txt",
+        "url": "",
+        "ingested_at": "2026-02-25T00:16:42.953Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-24T19:18:20.895Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_operating_agreement.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced",
+            "attribute_id": "ATTR-001",
+            "key": "role",
+            "old_value": "Member",
+            "old_confidence": 0.75,
+            "new_value": "Member",
+            "new_confidence": 0.8,
+            "timestamp": "2026-02-24T19:18:20.896Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-24T19:18:20.895Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-adb2e557-a5e: merged data and 0 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-24T21:19:53.584Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_balance_sheet_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-24T21:19:53.584Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-3fddc913-c34: merged data and 0 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-24T21:21:06.803Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_operating_agreement.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-24T21:21:06.803Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-f20d8fb6-4e9: merged data and 0 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-24T21:22:22.206Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_profit_and_loss_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-24T21:22:22.206Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-ab596241-d92: merged data and 0 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-25T00:07:55.751Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_balance_sheet_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-25T00:07:55.750Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-d9e7e76d-163: merged data and 0 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-25T00:09:03.646Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_operating_agreement.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-25T00:09:03.645Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-11f0a61b-874: merged data and 0 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-25T00:10:07.614Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_profit_and_loss_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-25T00:10:07.614Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-8991122c-85d: merged data and 0 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-25T00:14:12.152Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_balance_sheet_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-25T00:14:12.152Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-ce1779c2-62a: merged data and 0 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-25T00:15:28.739Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_operating_agreement.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-25T00:15:28.739Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-0ea8b6a8-0eb: merged data and 0 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-25T00:16:42.953Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_profit_and_loss_2025.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-25T00:16:42.953Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-01d4717c-c35: merged data and 0 observations"
+        ]
+      }
+    ]
+  },
+  "spoke_id": "spoke-41825c0315b96cda",
+  "source": "manual",
+  "source_ref": "acme_balance_sheet_2025.txt",
+  "ownership": "referenced",
+  "access_rules": {
+    "visibility": "private",
+    "shared_with": []
+  },
+  "projection_config": {
+    "lenses": [
+      "default"
+    ]
+  },
+  "perspectives": [],
+  "active_projects": [],
+  "translations": []
+}

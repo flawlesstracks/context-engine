@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context Architecture — Corporate Formation Extraction Spec v1</title>
+<style>
+  :root {
+    --navy: #1B2A4A;
+    --blue: #2E5090;
+    --orange: #E67E22;
+    --green: #27AE60;
+    --red: #E74C3C;
+    --gray-bg: #F8F9FA;
+    --gray-border: #DEE2E6;
+    --gray-text: #6C757D;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fff; color: #333; line-height: 1.5; }
+
+  .header { background: var(--navy); color: white; padding: 32px 40px; }
+  .header h1 { font-size: 24px; font-weight: 700; margin-bottom: 4px; }
+  .header .subtitle { font-size: 14px; color: #94A3B8; }
+  .header .meta { margin-top: 12px; font-size: 12px; color: #64748B; display: flex; gap: 20px; flex-wrap: wrap; }
+  .header .meta span { background: rgba(255,255,255,0.1); padding: 2px 10px; border-radius: 4px; }
+
+  .controls { padding: 16px 40px; background: var(--gray-bg); border-bottom: 1px solid var(--gray-border); display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .controls label { font-size: 13px; font-weight: 600; color: var(--gray-text); margin-right: 8px; }
+  .chip { padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; border: 1px solid var(--gray-border); background: white; transition: all 0.2s; }
+  .chip:hover { border-color: var(--blue); color: var(--blue); }
+  .chip.active { background: var(--blue); color: white; border-color: var(--blue); }
+  .chip.critical { border-color: var(--red); }
+  .chip.critical.active { background: var(--red); border-color: var(--red); }
+
+  .stats-bar { padding: 12px 40px; background: white; border-bottom: 1px solid var(--gray-border); display: flex; gap: 24px; flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat .num { font-size: 24px; font-weight: 700; color: var(--navy); }
+  .stat .label { font-size: 11px; color: var(--gray-text); text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .content { padding: 24px 40px; }
+
+  .doc-section { margin-bottom: 32px; border: 1px solid var(--gray-border); border-radius: 8px; overflow: hidden; }
+  .doc-header { padding: 16px 20px; background: var(--gray-bg); border-bottom: 1px solid var(--gray-border); display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+  .doc-header:hover { background: #EDF2F7; }
+  .doc-header h2 { font-size: 16px; font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 10px; }
+  .doc-header .doc-badge { font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 600; text-transform: uppercase; }
+  .doc-header .badge-irs { background: #DBEAFE; color: #1E40AF; }
+  .doc-header .badge-state { background: #D1FAE5; color: #065F46; }
+  .doc-header .badge-corp { background: #FEF3C7; color: #92400E; }
+  .doc-header .field-count { font-size: 12px; color: var(--gray-text); }
+  .doc-header .chevron { transition: transform 0.2s; font-size: 18px; color: var(--gray-text); }
+  .doc-header.collapsed .chevron { transform: rotate(-90deg); }
+
+  .doc-body { padding: 0; }
+  .doc-description { padding: 12px 20px; font-size: 13px; color: var(--gray-text); background: #FAFBFC; border-bottom: 1px solid var(--gray-border); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead { background: #F1F5F9; }
+  th { padding: 10px 14px; text-align: left; font-weight: 600; color: var(--navy); font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 2px solid var(--gray-border); }
+  td { padding: 10px 14px; border-bottom: 1px solid #F1F5F9; vertical-align: top; }
+  tr:hover { background: #FAFBFC; }
+  tr.critical-row { background: #FEF2F2; }
+  tr.critical-row:hover { background: #FEE2E2; }
+
+  .field-name { font-weight: 600; color: #1E293B; }
+  .field-id { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; color: var(--gray-text); }
+  .sensitivity-badge { font-size: 10px; padding: 2px 8px; border-radius: 4px; font-weight: 700; text-transform: uppercase; display: inline-block; }
+  .sens-critical { background: #FEE2E2; color: #991B1B; }
+  .sens-high { background: #FEF3C7; color: #92400E; }
+  .sens-standard { background: #E0F2FE; color: #0369A1; }
+  .sens-low { background: #F0FDF4; color: #166534; }
+
+  .source-ref { font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px; color: var(--blue); background: #EFF6FF; padding: 1px 6px; border-radius: 3px; }
+  .location-hint { font-size: 12px; color: var(--gray-text); margin-top: 2px; }
+
+  .entity-tag { font-size: 10px; padding: 1px 6px; border-radius: 3px; font-weight: 600; display: inline-block; margin-right: 4px; margin-bottom: 2px; }
+  .entity-business { background: #E0E7FF; color: #3730A3; }
+  .entity-person { background: #FCE7F3; color: #9D174D; }
+  .entity-gov { background: #ECFDF5; color: #065F46; }
+
+  .legend { padding: 20px 40px; background: var(--gray-bg); border-top: 1px solid var(--gray-border); }
+  .legend h3 { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 12px; }
+  .legend-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+
+  .ai-note { margin: 16px 40px; padding: 14px 18px; background: linear-gradient(135deg, #EFF6FF, #F0F9FF); border-left: 4px solid var(--blue); border-radius: 0 6px 6px 0; font-size: 13px; color: #1E40AF; }
+  .ai-note strong { display: block; margin-bottom: 4px; }
+
+  .footer { padding: 20px 40px; text-align: center; font-size: 12px; color: var(--gray-text); border-top: 1px solid var(--gray-border); }
+
+  @media (max-width: 768px) {
+    .header, .controls, .content, .stats-bar, .legend, .ai-note { padding-left: 16px; padding-right: 16px; }
+    td, th { padding: 8px 10px; }
+    .stats-bar { gap: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Corporate Formation — Master Extraction Spec</h1>
+  <div class="subtitle">Context Architecture · Template: corporate_formation_ga · v1.0</div>
+  <div class="meta">
+    <span>Source: LegalZoom GA Sample Docs</span>
+    <span>Created: Feb 25, 2026</span>
+    <span>6 Document Types · 67 Extractable Fields</span>
+    <span>Builder: CJ Mitchell + Claudine</span>
+  </div>
+</div>
+
+<div class="stats-bar">
+  <div class="stat"><div class="num">6</div><div class="label">Doc Types</div></div>
+  <div class="stat"><div class="num">67</div><div class="label">Total Fields</div></div>
+  <div class="stat"><div class="num" style="color:var(--red)">11</div><div class="label">Critical Fields</div></div>
+  <div class="stat"><div class="num" style="color:var(--orange)">18</div><div class="label">High Sensitivity</div></div>
+  <div class="stat"><div class="num">4</div><div class="label">Entity Types</div></div>
+  <div class="stat"><div class="num">3</div><div class="label">Cross-Doc Links</div></div>
+</div>
+
+<div class="controls">
+  <label>Filter:</label>
+  <span class="chip active" onclick="filterAll(this)">All Fields</span>
+  <span class="chip critical" onclick="filterSensitivity(this, 'critical')">Critical Only</span>
+  <span class="chip" onclick="filterSensitivity(this, 'high')">High</span>
+  <span class="chip" onclick="filterEntity(this, 'business')">Business Entity</span>
+  <span class="chip" onclick="filterEntity(this, 'person')">Person</span>
+  <span class="chip" onclick="filterEntity(this, 'gov')">Government</span>
+</div>
+
+<div class="ai-note">
+  <strong>How This Works for Justin's Workflow</strong>
+  When a document is uploaded, the AI matches it to a document type below, then extracts every field listed. Each extracted value gets tagged with: the source document, page location, confidence score, and sensitivity level. Critical fields route to manual review; standard fields are eligible for Bulk Approve.
+</div>
+
+<div class="content">
+
+<!-- DOC 1: Articles of Incorporation -->
+<div class="doc-section" data-doctype="articles">
+  <div class="doc-header" onclick="toggleDoc(this)">
+    <h2>
+      <span class="chevron">▼</span>
+      Articles of Incorporation (GA)
+      <span class="doc-badge badge-state">State Filing</span>
+    </h2>
+    <span class="field-count">12 fields</span>
+  </div>
+  <div class="doc-body">
+    <div class="doc-description">
+      <strong>Source:</strong> GA Secretary of State Certificate of Incorporation + Articles filing.
+      <strong>Purpose:</strong> Establishes the legal existence of the corporation. Contains foundational entity data.
+      <strong>AI Classification Signals:</strong> "Certificate of Incorporation", "Articles of Incorporation", "Secretary of State", state seal.
+    </div>
+    <table>
+      <thead><tr><th>Field</th><th>Sensitivity</th><th>Entities</th><th>Source Location</th><th>AI Extraction Notes</th></tr></thead>
+      <tbody>
+        <tr><td><div class="field-name">Business Name</div><div class="field-id">corp.business_name</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Page 2 → BUSINESS INFORMATION</span><div class="location-hint">First field in Business Information block</div></td><td>Exact legal name as registered. Must match EIN letter.</td></tr>
+        <tr><td><div class="field-name">Control Number</div><div class="field-id">corp.control_number</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-gov">Government</span></td><td><span class="source-ref">Page 1 → top right</span><div class="location-hint">Also in Page 2 BUSINESS INFORMATION block</div></td><td>State-assigned unique ID. Cross-ref with SOS database.</td></tr>
+        <tr><td><div class="field-name">Business Type</div><div class="field-id">corp.business_type</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Page 2 → BUSINESS INFORMATION</span></td><td>Corporation, LLC, LP, etc.</td></tr>
+        <tr><td><div class="field-name">Effective Date</div><div class="field-id">corp.effective_date</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Page 2 → BUSINESS INFORMATION</span></td><td>Date entity legally exists. May differ from filing date.</td></tr>
+        <tr><td><div class="field-name">Authorized Shares</div><div class="field-id">corp.authorized_shares</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Page 2 → SHARES field</span></td><td>Total authorized shares. Cross-ref with Preferred Stock Attachment if present.</td></tr>
+        <tr><td><div class="field-name">Principal Office Address</div><div class="field-id">corp.principal_address</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Page 2 → PRINCIPAL OFFICE ADDRESS</span></td><td>Business address. May differ from registered agent address.</td></tr>
+        <tr><td><div class="field-name">Registered Agent Name</div><div class="field-id">corp.registered_agent_name</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-person">Person</span></td><td><span class="source-ref">Page 2 → REGISTERED AGENT</span></td><td>Legal service of process contact. Often LegalZoom or attorney.</td></tr>
+        <tr><td><div class="field-name">Registered Agent Address</div><div class="field-id">corp.registered_agent_address</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-person">Person</span></td><td><span class="source-ref">Page 2 → REGISTERED AGENT</span></td><td>Must be physical GA address (no PO boxes).</td></tr>
+        <tr><td><div class="field-name">Incorporator Name</div><div class="field-id">corp.incorporator_name</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-person">Person</span></td><td><span class="source-ref">Page 2 → INCORPORATOR(S)</span></td><td>Person who filed. May differ from owner/officer.</td></tr>
+        <tr><td><div class="field-name">Incorporator Title</div><div class="field-id">corp.incorporator_title</div></td><td><span class="sensitivity-badge sens-low">LOW</span></td><td><span class="entity-tag entity-person">Person</span></td><td><span class="source-ref">Page 2 → INCORPORATOR(S)</span></td><td>Often "Authorized Representative" or specific officer title.</td></tr>
+        <tr><td><div class="field-name">State of Incorporation</div><div class="field-id">corp.state</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-gov">Government</span></td><td><span class="source-ref">Page 1 → Certificate header</span></td><td>Extract from "State of Georgia" or state seal.</td></tr>
+        <tr><td><div class="field-name">Filing Date</div><div class="field-id">corp.filing_date</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-gov">Government</span></td><td><span class="source-ref">Page 1 → WITNESS clause</span><div class="location-hint">Also in Page 2 electronically filed header</div></td><td>"on 08/31/2016" — parse from witness clause or header.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- DOC 2: EIN Confirmation Letter -->
+<div class="doc-section" data-doctype="ein_letter">
+  <div class="doc-header" onclick="toggleDoc(this)">
+    <h2>
+      <span class="chevron">▼</span>
+      EIN Confirmation Letter (CP 575 A)
+      <span class="doc-badge badge-irs">IRS</span>
+    </h2>
+    <span class="field-count">8 fields</span>
+  </div>
+  <div class="doc-body">
+    <div class="doc-description">
+      <strong>Source:</strong> IRS Notice CP 575 A — issued once upon EIN assignment.
+      <strong>Purpose:</strong> Official proof of Employer Identification Number. Cannot be reissued.
+      <strong>AI Classification Signals:</strong> "CP 575 A", "WE ASSIGNED YOU AN EMPLOYER IDENTIFICATION NUMBER", IRS header, "Department of the Treasury".
+    </div>
+    <table>
+      <thead><tr><th>Field</th><th>Sensitivity</th><th>Entities</th><th>Source Location</th><th>AI Extraction Notes</th></tr></thead>
+      <tbody>
+        <tr class="critical-row"><td><div class="field-name">Employer Identification Number (EIN)</div><div class="field-id">ein.number</div></td><td><span class="sensitivity-badge sens-critical">CRITICAL</span></td><td><span class="entity-tag entity-business">Business</span><span class="entity-tag entity-gov">Government</span></td><td><span class="source-ref">Page 1 → header right + body text</span><div class="location-hint">"EIN 27-5503527" in body; also in header field</div></td><td>Format: XX-XXXXXXX. Cross-validate header vs body. NEVER auto-approve — always route to human review.</td></tr>
+        <tr><td><div class="field-name">Business Name (as registered)</div><div class="field-id">ein.business_name</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Page 1 → header address block</span></td><td>Must match Articles exactly. Flag if mismatch.</td></tr>
+        <tr><td><div class="field-name">Notice Date</div><div class="field-id">ein.notice_date</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-gov">Government</span></td><td><span class="source-ref">Page 1 → "Date of this notice:"</span></td><td>May be blank in samples. Extract if present.</td></tr>
+        <tr><td><div class="field-name">Notice Number</div><div class="field-id">ein.notice_number</div></td><td><span class="sensitivity-badge sens-low">LOW</span></td><td><span class="entity-tag entity-gov">Government</span></td><td><span class="source-ref">Page 1 → "Number of this notice: CP 575 A"</span></td><td>Always "CP 575 A" for initial assignment.</td></tr>
+        <tr><td><div class="field-name">Form Type</div><div class="field-id">ein.form_type</div></td><td><span class="sensitivity-badge sens-low">LOW</span></td><td><span class="entity-tag entity-gov">Government</span></td><td><span class="source-ref">Page 1 → "Form: SS-4"</span></td><td>Indicates the application form used.</td></tr>
+        <tr><td><div class="field-name">IRS Office</div><div class="field-id">ein.irs_office</div></td><td><span class="sensitivity-badge sens-low">LOW</span></td><td><span class="entity-tag entity-gov">Government</span></td><td><span class="source-ref">Page 1 → header "CINCINNATI OH 45999-0023"</span></td><td>Processing center. Useful for correspondence tracking.</td></tr>
+        <tr><td><div class="field-name">IRS Contact Phone</div><div class="field-id">ein.irs_phone</div></td><td><span class="sensitivity-badge sens-low">LOW</span></td><td><span class="entity-tag entity-gov">Government</span></td><td><span class="source-ref">Page 1 → "1-800-829-4933"</span></td><td>Standard IRS business line.</td></tr>
+        <tr><td><div class="field-name">Tax Classification Note</div><div class="field-id">ein.tax_classification</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Page 1 → paragraph about classification</span></td><td>Extract any mention of LLC/S-Corp/C-Corp classification. Cross-ref with Form 2553.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- DOC 3: Form SS-4 -->
+<div class="doc-section" data-doctype="ss4">
+  <div class="doc-header" onclick="toggleDoc(this)">
+    <h2>
+      <span class="chevron">▼</span>
+      Form SS-4 (EIN Application)
+      <span class="doc-badge badge-irs">IRS</span>
+    </h2>
+    <span class="field-count">22 fields</span>
+  </div>
+  <div class="doc-body">
+    <div class="doc-description">
+      <strong>Source:</strong> IRS Form SS-4 — Application for Employer Identification Number.
+      <strong>Purpose:</strong> The application used to obtain the EIN. Contains the most comprehensive entity data of any single form.
+      <strong>AI Classification Signals:</strong> "Form SS-4", "Application for Employer Identification Number", OMB No. 1545-0003.
+    </div>
+    <table>
+      <thead><tr><th>Field</th><th>Sensitivity</th><th>Entities</th><th>Source Location</th><th>AI Extraction Notes</th></tr></thead>
+      <tbody>
+        <tr><td><div class="field-name">Legal Name of Entity</div><div class="field-id">ss4.legal_name</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Line 1</span></td><td>Cross-ref with Articles and EIN letter.</td></tr>
+        <tr><td><div class="field-name">Trade Name / DBA</div><div class="field-id">ss4.trade_name</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Line 2</span></td><td>May differ from legal name. Important for customer-facing identity.</td></tr>
+        <tr><td><div class="field-name">Executor / Trustee Name</div><div class="field-id">ss4.executor_name</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-person">Person</span></td><td><span class="source-ref">Line 3</span></td><td>Only if estate/trust. Otherwise blank.</td></tr>
+        <tr><td><div class="field-name">Mailing Address</div><div class="field-id">ss4.mailing_address</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Lines 4a-4b</span></td><td>Room, apt, suite included. May be PO Box.</td></tr>
+        <tr><td><div class="field-name">Street Address</div><div class="field-id">ss4.street_address</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Lines 5a-5b</span></td><td>Physical address if different from mailing.</td></tr>
+        <tr><td><div class="field-name">County & State of Business</div><div class="field-id">ss4.county_state</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Line 6</span></td><td>Where principal business is located.</td></tr>
+        <tr class="critical-row"><td><div class="field-name">Responsible Party Name</div><div class="field-id">ss4.responsible_party</div></td><td><span class="sensitivity-badge sens-critical">CRITICAL</span></td><td><span class="entity-tag entity-person">Person</span></td><td><span class="source-ref">Line 7a</span></td><td>Individual who controls/manages the entity. IRS holds this person accountable.</td></tr>
+        <tr class="critical-row"><td><div class="field-name">Responsible Party SSN/ITIN/EIN</div><div class="field-id">ss4.responsible_party_tin</div></td><td><span class="sensitivity-badge sens-critical">CRITICAL</span></td><td><span class="entity-tag entity-person">Person</span></td><td><span class="source-ref">Line 7b</span></td><td>SSN, ITIN, or EIN of responsible party. NEVER auto-approve.</td></tr>
+        <tr><td><div class="field-name">Is LLC?</div><div class="field-id">ss4.is_llc</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Line 8a</span></td><td>Yes/No checkbox. Affects Lines 8b-8c.</td></tr>
+        <tr><td><div class="field-name">LLC Member Count</div><div class="field-id">ss4.llc_members</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Line 8b</span></td><td>Number of LLC members. Single-member vs multi-member affects tax treatment.</td></tr>
+        <tr><td><div class="field-name">LLC Organized in US?</div><div class="field-id">ss4.llc_us_organized</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Line 8c</span></td><td>Yes/No.</td></tr>
+        <tr><td><div class="field-name">Entity Type</div><div class="field-id">ss4.entity_type</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Line 9a</span></td><td>Sole prop, Partnership, Corporation, etc. Multiple checkboxes — extract the checked one.</td></tr>
+        <tr><td><div class="field-name">State/Country of Incorporation</div><div class="field-id">ss4.incorporation_jurisdiction</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Line 9b</span></td><td>Only if corporation. Cross-ref with Articles.</td></tr>
+        <tr><td><div class="field-name">Reason for Applying</div><div class="field-id">ss4.reason_for_applying</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Line 10</span></td><td>Started new business, hired employees, etc.</td></tr>
+        <tr><td><div class="field-name">Date Business Started</div><div class="field-id">ss4.start_date</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Line 11</span></td><td>Month, day, year. Cross-ref with Articles effective date.</td></tr>
+        <tr><td><div class="field-name">Closing Month of Accounting Year</div><div class="field-id">ss4.fiscal_year_end</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Line 12</span></td><td>Usually December (12). Non-calendar years are notable.</td></tr>
+        <tr><td><div class="field-name">Expected Employee Count</div><div class="field-id">ss4.expected_employees</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Line 13</span></td><td>Agricultural, Household, Other categories.</td></tr>
+        <tr><td><div class="field-name">First Wage Date</div><div class="field-id">ss4.first_wage_date</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Line 15</span></td><td>When wages first paid. Triggers payroll filing requirements.</td></tr>
+        <tr><td><div class="field-name">Principal Business Activity</div><div class="field-id">ss4.business_activity</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Line 16</span></td><td>Checkbox category. Maps to NAICS codes.</td></tr>
+        <tr><td><div class="field-name">Principal Product/Service</div><div class="field-id">ss4.product_service</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Line 17</span></td><td>Free-text description.</td></tr>
+        <tr><td><div class="field-name">Previous EIN?</div><div class="field-id">ss4.previous_ein</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Line 18</span></td><td>If Yes, extract previous EIN. Indicates restructuring or prior entity.</td></tr>
+        <tr><td><div class="field-name">Third Party Designee</div><div class="field-id">ss4.designee</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-person">Person</span></td><td><span class="source-ref">Third Party Designee block</span></td><td>Name, address, phone, fax. Often the tax preparer or attorney.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- DOC 4: Form 2553 -->
+<div class="doc-section" data-doctype="form2553">
+  <div class="doc-header" onclick="toggleDoc(this)">
+    <h2>
+      <span class="chevron">▼</span>
+      Form 2553 (S-Corp Election)
+      <span class="doc-badge badge-irs">IRS</span>
+    </h2>
+    <span class="field-count">15 fields</span>
+  </div>
+  <div class="doc-body">
+    <div class="doc-description">
+      <strong>Source:</strong> IRS Form 2553 — Election by a Small Business Corporation.
+      <strong>Purpose:</strong> Elects S-Corporation tax status. Critical for pass-through taxation. Without this, entity is taxed as C-Corp.
+      <strong>AI Classification Signals:</strong> "Form 2553", "Election by a Small Business Corporation", "section 1362".
+    </div>
+    <table>
+      <thead><tr><th>Field</th><th>Sensitivity</th><th>Entities</th><th>Source Location</th><th>AI Extraction Notes</th></tr></thead>
+      <tbody>
+        <tr><td><div class="field-name">Corporation Name</div><div class="field-id">f2553.corp_name</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Part I → Name field</span></td><td>Must match Articles and EIN letter exactly.</td></tr>
+        <tr class="critical-row"><td><div class="field-name">Employer ID Number</div><div class="field-id">f2553.ein</div></td><td><span class="sensitivity-badge sens-critical">CRITICAL</span></td><td><span class="entity-tag entity-business">Business</span><span class="entity-tag entity-gov">Government</span></td><td><span class="source-ref">Part I → Box A</span></td><td>Cross-ref with CP 575 A letter. Mismatch = red flag.</td></tr>
+        <tr><td><div class="field-name">Corporation Address</div><div class="field-id">f2553.address</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Part I → Address lines</span></td><td>Street, city, state, ZIP.</td></tr>
+        <tr><td><div class="field-name">Date Incorporated</div><div class="field-id">f2553.date_incorporated</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Part I → Box B</span></td><td>Cross-ref with Articles filing date.</td></tr>
+        <tr><td><div class="field-name">State of Incorporation</div><div class="field-id">f2553.state</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Part I → Box C</span></td><td>Cross-ref with Articles.</td></tr>
+        <tr><td><div class="field-name">Election Effective Date</div><div class="field-id">f2553.effective_date</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Part I → Box E</span></td><td>When S-Corp status begins. Critical for tax year calculations.</td></tr>
+        <tr><td><div class="field-name">Tax Year Type</div><div class="field-id">f2553.tax_year_type</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Part I → Box F (1-4)</span></td><td>Calendar year, fiscal year, 52-53 week year. Check which box is marked.</td></tr>
+        <tr><td><div class="field-name">Officer Name</div><div class="field-id">f2553.officer_name</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-person">Person</span></td><td><span class="source-ref">Part I → Box H</span></td><td>Officer or legal representative the IRS may contact.</td></tr>
+        <tr><td><div class="field-name">Officer Phone</div><div class="field-id">f2553.officer_phone</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-person">Person</span></td><td><span class="source-ref">Part I → Box H (right)</span></td><td>Phone number of officer/representative.</td></tr>
+        <tr class="critical-row"><td><div class="field-name">Shareholder Names</div><div class="field-id">f2553.shareholders[].name</div></td><td><span class="sensitivity-badge sens-critical">CRITICAL</span></td><td><span class="entity-tag entity-person">Person</span></td><td><span class="source-ref">Part I → Column J</span></td><td>All shareholders who consent to election. Array — extract each row.</td></tr>
+        <tr class="critical-row"><td><div class="field-name">Shareholder SSN/EIN</div><div class="field-id">f2553.shareholders[].tin</div></td><td><span class="sensitivity-badge sens-critical">CRITICAL</span></td><td><span class="entity-tag entity-person">Person</span></td><td><span class="source-ref">Part I → Column M</span></td><td>SSN or EIN for each shareholder. NEVER auto-approve.</td></tr>
+        <tr><td><div class="field-name">Shares Owned / % Ownership</div><div class="field-id">f2553.shareholders[].ownership</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-person">Person</span></td><td><span class="source-ref">Part I → Column L</span></td><td>Number of shares or percentage. Should total 100%.</td></tr>
+        <tr><td><div class="field-name">Date Shares Acquired</div><div class="field-id">f2553.shareholders[].acquired_date</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-person">Person</span></td><td><span class="source-ref">Part I → Column L (Date(s) acquired)</span></td><td>When shares were acquired.</td></tr>
+        <tr><td><div class="field-name">Shareholder Tax Year End</div><div class="field-id">f2553.shareholders[].tax_year_end</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-person">Person</span></td><td><span class="source-ref">Part I → Column N</span></td><td>Month and day of shareholder's tax year end.</td></tr>
+        <tr><td><div class="field-name">Late Election Declaration</div><div class="field-id">f2553.late_election</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Part I → Box I</span></td><td>If checked, extract the explanation text. Late elections have compliance implications.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- DOC 5: Preferred Stock Attachment -->
+<div class="doc-section" data-doctype="preferred_stock">
+  <div class="doc-header" onclick="toggleDoc(this)">
+    <h2>
+      <span class="chevron">▼</span>
+      Preferred Stock Attachment
+      <span class="doc-badge badge-corp">Corporate</span>
+    </h2>
+    <span class="field-count">6 fields</span>
+  </div>
+  <div class="doc-body">
+    <div class="doc-description">
+      <strong>Source:</strong> Attachment to Certificate of Incorporation — optional preferred stock provision.
+      <strong>Purpose:</strong> Defines the stock structure including common and preferred share classes. Only present if corporation opts for preferred stock.
+      <strong>AI Classification Signals:</strong> "Attachment to Certificate of Incorporation", "Preferred Stock", "shares of par value".
+    </div>
+    <table>
+      <thead><tr><th>Field</th><th>Sensitivity</th><th>Entities</th><th>Source Location</th><th>AI Extraction Notes</th></tr></thead>
+      <tbody>
+        <tr><td><div class="field-name">Corporation Name</div><div class="field-id">pref.corp_name</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Title → "WXYZ, Inc."</span></td><td>Must match Articles. Sample shows "WXYZ, Inc." as placeholder.</td></tr>
+        <tr><td><div class="field-name">Total Authorized Shares</div><div class="field-id">pref.total_shares</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Body → "1,000,000"</span></td><td>Cross-ref with Articles SHARES field.</td></tr>
+        <tr><td><div class="field-name">Common Stock Shares</div><div class="field-id">pref.common_shares</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Body → "500,000 shares"</span></td><td>Designated as Common Stock.</td></tr>
+        <tr><td><div class="field-name">Common Stock Par Value</div><div class="field-id">pref.common_par_value</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Body → "$1.00 per share"</span></td><td>Par value of common shares.</td></tr>
+        <tr><td><div class="field-name">Preferred Stock Shares</div><div class="field-id">pref.preferred_shares</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Body → "500,000 shares"</span></td><td>Designated as Preferred Stock.</td></tr>
+        <tr><td><div class="field-name">Preferred Stock Par Value</div><div class="field-id">pref.preferred_par_value</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Body → "$1.00"</span></td><td>Par value of preferred shares.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- DOC 6: Professional Entity Attachment -->
+<div class="doc-section" data-doctype="prof_entity">
+  <div class="doc-header" onclick="toggleDoc(this)">
+    <h2>
+      <span class="chevron">▼</span>
+      Professional Entity Attachment (GA)
+      <span class="doc-badge badge-state">State Filing</span>
+    </h2>
+    <span class="field-count">4 fields</span>
+  </div>
+  <div class="doc-body">
+    <div class="doc-description">
+      <strong>Source:</strong> GA-specific attachment for professional corporations (doctors, lawyers, CPAs, etc.).
+      <strong>Purpose:</strong> Certifies the entity is a professional corporation under GA law. Only present for licensed professions.
+      <strong>AI Classification Signals:</strong> "Professional Entity Attachment", "licensed profession", state-specific heading.
+    </div>
+    <table>
+      <thead><tr><th>Field</th><th>Sensitivity</th><th>Entities</th><th>Source Location</th><th>AI Extraction Notes</th></tr></thead>
+      <tbody>
+        <tr><td><div class="field-name">Corporation Name</div><div class="field-id">prof.corp_name</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Header</span></td><td>Must match Articles.</td></tr>
+        <tr><td><div class="field-name">Professional Service Type</div><div class="field-id">prof.service_type</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-business">Business</span></td><td><span class="source-ref">Body text</span></td><td>Law, medicine, accounting, engineering, etc.</td></tr>
+        <tr><td><div class="field-name">License Number(s)</div><div class="field-id">prof.license_numbers</div></td><td><span class="sensitivity-badge sens-high">HIGH</span></td><td><span class="entity-tag entity-person">Person</span></td><td><span class="source-ref">Body text</span></td><td>Professional license number(s) of practitioners.</td></tr>
+        <tr><td><div class="field-name">Licensing Board</div><div class="field-id">prof.licensing_board</div></td><td><span class="sensitivity-badge sens-standard">STANDARD</span></td><td><span class="entity-tag entity-gov">Government</span></td><td><span class="source-ref">Body text</span></td><td>GA Board of [profession].</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</div><!-- end content -->
+
+<!-- CROSS-DOCUMENT VALIDATION RULES -->
+<div class="ai-note">
+  <strong>Cross-Document Validation Rules (AI should auto-flag mismatches)</strong>
+  <div style="margin-top:8px; display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:12px;">
+    <div><strong>Rule 1:</strong> corp.business_name = ein.business_name = f2553.corp_name = ss4.legal_name (exact match required)</div>
+    <div><strong>Rule 2:</strong> ein.number = f2553.ein (EIN must match across all docs)</div>
+    <div><strong>Rule 3:</strong> corp.authorized_shares = pref.total_shares (if preferred stock attachment exists)</div>
+    <div><strong>Rule 4:</strong> corp.filing_date ≈ ss4.start_date ≈ f2553.date_incorporated (should be same or very close)</div>
+    <div><strong>Rule 5:</strong> corp.state = f2553.state = ss4.incorporation_jurisdiction (all must be "Georgia")</div>
+    <div><strong>Rule 6:</strong> Sum of f2553.shareholders[].ownership should = 100%</div>
+  </div>
+</div>
+
+<div class="legend">
+  <h3>Legend</h3>
+  <div class="legend-grid">
+    <div class="legend-item"><span class="sensitivity-badge sens-critical">CRITICAL</span> Never auto-approve. SSN, EIN, TIN — malpractice-risk fields.</div>
+    <div class="legend-item"><span class="sensitivity-badge sens-high">HIGH</span> Human review recommended. Legal names, dates, share counts.</div>
+    <div class="legend-item"><span class="sensitivity-badge sens-standard">STANDARD</span> Eligible for Bulk Approve at ≥0.85 confidence.</div>
+    <div class="legend-item"><span class="sensitivity-badge sens-low">LOW</span> Informational. Auto-approve eligible.</div>
+    <div class="legend-item"><span class="entity-tag entity-business">Business</span> Entity: Corporation, LLC, partnership</div>
+    <div class="legend-item"><span class="entity-tag entity-person">Person</span> Entity: Officer, shareholder, agent, designee</div>
+    <div class="legend-item"><span class="entity-tag entity-gov">Government</span> Entity: IRS, Secretary of State, licensing board</div>
+    <div class="legend-item"><span class="source-ref">Page X → Field</span> Source attribution: document page + field location</div>
+  </div>
+</div>
+
+<div class="footer">
+  Context Architecture · Corporate Formation Extraction Spec v1.0 · February 25, 2026 · CJ Mitchell + Claudine<br>
+  Source: LegalZoom Georgia Sample Documents · 6 Document Types · 67 Fields · Template: corporate_formation_ga
+</div>
+
+<script>
+function toggleDoc(header) {
+  const body = header.nextElementSibling;
+  const chevron = header.querySelector('.chevron');
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    chevron.textContent = '▼';
+    header.classList.remove('collapsed');
+  } else {
+    body.style.display = 'none';
+    chevron.textContent = '▶';
+    header.classList.add('collapsed');
+  }
+}
+
+function clearChips() {
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+}
+
+function showAllRows() {
+  document.querySelectorAll('tbody tr').forEach(r => r.style.display = '');
+  document.querySelectorAll('.doc-section .doc-body').forEach(b => b.style.display = 'block');
+  document.querySelectorAll('.chevron').forEach(c => c.textContent = '▼');
+}
+
+function filterAll(chip) {
+  clearChips(); chip.classList.add('active');
+  showAllRows();
+}
+
+function filterSensitivity(chip, level) {
+  clearChips(); chip.classList.add('active');
+  showAllRows();
+  document.querySelectorAll('tbody tr').forEach(r => {
+    const badge = r.querySelector('.sensitivity-badge');
+    if (!badge) return;
+    const text = badge.textContent.trim().toLowerCase();
+    r.style.display = text === level ? '' : 'none';
+  });
+}
+
+function filterEntity(chip, type) {
+  clearChips(); chip.classList.add('active');
+  showAllRows();
+  document.querySelectorAll('tbody tr').forEach(r => {
+    const tags = r.querySelectorAll('.entity-tag');
+    const match = Array.from(tags).some(t => t.classList.contains('entity-' + type));
+    r.style.display = match ? '' : 'none';
+  });
+}
+</script>
+</body>
+</html>

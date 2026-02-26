@@ -1,0 +1,198 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-25T00:15:28.730Z",
+    "updated_at": "2026-02-25T00:15:28.730Z",
+    "source_description": "demo_ingest:acme_operating_agreement.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.8,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "John R. Smith",
+      "confidence": 0.8,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "Member Name: John R. Smith",
+      "confidence": 0.8,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-JRS-024"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "address",
+      "value": "245 Magnolia Lane, Decatur, GA 30030",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-2882a600",
+        "original_filename": "acme_operating_agreement.txt",
+        "snippet": "Address: 245 Magnolia Lane, Decatur, GA 30030",
+        "location": "section: ARTICLE II — MEMBERS AND CAPITAL CONTRIBUTIONS, 2.1 Members",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:15:28.730Z"
+      },
+      "_base_confidence": 0.85,
+      "_source_clusters": [
+        "SIG-afe87737-38f"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "ssn_last_four",
+      "value": "4271",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-2882a600",
+        "original_filename": "acme_operating_agreement.txt",
+        "snippet": "SSN: XXX-XX-4271",
+        "location": "section: ARTICLE II — MEMBERS AND CAPITAL CONTRIBUTIONS, 2.1 Members",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:15:28.730Z"
+      },
+      "_base_confidence": 0.85,
+      "_source_clusters": [
+        "SIG-afe87737-38f"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "membership_interest",
+      "value": "60%",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-2882a600",
+        "original_filename": "acme_operating_agreement.txt",
+        "snippet": "Membership Interest: 60%",
+        "location": "section: ARTICLE II — MEMBERS AND CAPITAL CONTRIBUTIONS, 2.1 Members",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:15:28.730Z"
+      },
+      "_base_confidence": 0.85,
+      "_source_clusters": [
+        "SIG-afe87737-38f"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "initial_capital_contribution",
+      "value": "$120,000",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-2882a600",
+        "original_filename": "acme_operating_agreement.txt",
+        "snippet": "Initial Capital: $120,000",
+        "location": "section: ARTICLE II — MEMBERS AND CAPITAL CONTRIBUTIONS, 2.1 Members",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:15:28.730Z"
+      },
+      "_base_confidence": 0.85,
+      "_source_clusters": [
+        "SIG-afe87737-38f"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "role",
+      "value": "Managing Member",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-2882a600",
+        "original_filename": "acme_operating_agreement.txt",
+        "snippet": "John R. Smith shall serve as Managing Member with day-to-day operational authority.",
+        "location": "section: ARTICLE III — MANAGEMENT, 3.2 Managing Member",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:15:28.730Z"
+      },
+      "_base_confidence": 0.85,
+      "_source_clusters": [
+        "SIG-afe87737-38f"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "authority",
+      "value": "day-to-day operational authority",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-2882a600",
+        "original_filename": "acme_operating_agreement.txt",
+        "snippet": "John R. Smith shall serve as Managing Member with day-to-day operational authority.",
+        "location": "section: ARTICLE III — MANAGEMENT, 3.2 Managing Member",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:15:28.730Z"
+      },
+      "_base_confidence": 0.85,
+      "_source_clusters": [
+        "SIG-afe87737-38f"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-007",
+      "key": "tax_matters_partner",
+      "value": "Yes",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-2882a600",
+        "original_filename": "acme_operating_agreement.txt",
+        "snippet": "John R. Smith shall serve as the Tax Matters Partner.",
+        "location": "section: ARTICLE V — TAX MATTERS, 5.1 Tax Matters Partner",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:15:28.730Z"
+      },
+      "_base_confidence": 0.85,
+      "_source_clusters": [
+        "SIG-afe87737-38f"
+      ]
+    }
+  ],
+  "relationships": [],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [],
+  "provenance_chain": {
+    "created_at": "2026-02-25T00:15:28.730Z",
+    "created_by": "demo",
+    "source_documents": [
+      {
+        "source": "demo_ingest:acme_operating_agreement.txt",
+        "ingested_at": "2026-02-25T00:15:28.730Z"
+      }
+    ],
+    "merge_history": []
+  },
+  "spoke_id": "spoke-a34dadd89a7182fc",
+  "source": "manual",
+  "source_ref": "acme_operating_agreement.txt",
+  "ownership": "referenced",
+  "access_rules": {
+    "visibility": "private",
+    "shared_with": []
+  },
+  "projection_config": {
+    "lenses": [
+      "default"
+    ]
+  },
+  "perspectives": []
+}

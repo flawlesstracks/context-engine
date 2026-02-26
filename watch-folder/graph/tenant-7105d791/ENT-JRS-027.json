@@ -1,0 +1,218 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-25T00:17:09.391Z",
+    "updated_at": "2026-02-25T00:17:09.391Z",
+    "source_description": "demo_ingest:acme_w9_john_smith.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 1,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "John R. Smith",
+      "confidence": 1,
+      "facts_layer": 2
+    },
+    "summary": {
+      "value": "1. Name (as shown on your income tax return):\n   John R. Smith",
+      "confidence": 1,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-JRS-027"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "full_name",
+      "value": "John R. Smith",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-d22e4412",
+        "original_filename": "acme_w9_john_smith.txt",
+        "snippet": "1. Name (as shown on your income tax return):\n   John R. Smith",
+        "location": "Field 1",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:17:09.391Z"
+      },
+      "_base_confidence": 1,
+      "_source_clusters": [
+        "SIG-eacfbf16-f3d"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "ssn_last_four",
+      "value": "4271",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-d22e4412",
+        "original_filename": "acme_w9_john_smith.txt",
+        "snippet": "Social Security Number: XXX-XX-4271",
+        "location": "Part I — Taxpayer Identification Number (TIN)",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:17:09.391Z"
+      },
+      "_base_confidence": 1,
+      "_source_clusters": [
+        "SIG-eacfbf16-f3d"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "address",
+      "value": "245 Magnolia Lane, Decatur, GA 30030",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-d22e4412",
+        "original_filename": "acme_w9_john_smith.txt",
+        "snippet": "5. Address (number, street, and apt. or suite no.):\n   245 Magnolia Lane\n\n6. City, state, and ZIP code:\n   Decatur, GA 30030",
+        "location": "Fields 5-6",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:17:09.391Z"
+      },
+      "_base_confidence": 1,
+      "_source_clusters": [
+        "SIG-eacfbf16-f3d"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "phone",
+      "value": "(404) 555-0127",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-d22e4412",
+        "original_filename": "acme_w9_john_smith.txt",
+        "snippet": "Phone: (404) 555-0127",
+        "location": "Contact information section",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:17:09.391Z"
+      },
+      "_base_confidence": 1,
+      "_source_clusters": [
+        "SIG-eacfbf16-f3d"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "email",
+      "value": "john.smith@acmeconsultingllc.com",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-d22e4412",
+        "original_filename": "acme_w9_john_smith.txt",
+        "snippet": "Email: john.smith@acmeconsultingllc.com",
+        "location": "Contact information section",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:17:09.391Z"
+      },
+      "_base_confidence": 1,
+      "_source_clusters": [
+        "SIG-eacfbf16-f3d"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "citizenship_status",
+      "value": "U.S. citizen or other U.S. person",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-d22e4412",
+        "original_filename": "acme_w9_john_smith.txt",
+        "snippet": "3. I am a U.S. citizen or other U.S. person, and",
+        "location": "Part II — Certification",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:17:09.391Z"
+      },
+      "_base_confidence": 1,
+      "_source_clusters": [
+        "SIG-eacfbf16-f3d"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-007",
+      "key": "signature_date",
+      "value": "January 15, 2026",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-d22e4412",
+        "original_filename": "acme_w9_john_smith.txt",
+        "snippet": "Date: January 15, 2026",
+        "location": "Part II — Certification",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:17:09.391Z"
+      },
+      "_base_confidence": 1,
+      "_source_clusters": [
+        "SIG-eacfbf16-f3d"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-008",
+      "key": "backup_withholding_status",
+      "value": "not subject to backup withholding",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-d22e4412",
+        "original_filename": "acme_w9_john_smith.txt",
+        "snippet": "2. I am not subject to backup withholding, and",
+        "location": "Part II — Certification",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-25T00:17:09.391Z"
+      },
+      "_base_confidence": 1,
+      "_source_clusters": [
+        "SIG-eacfbf16-f3d"
+      ]
+    }
+  ],
+  "relationships": [],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [],
+  "provenance_chain": {
+    "created_at": "2026-02-25T00:17:09.391Z",
+    "created_by": "demo",
+    "source_documents": [
+      {
+        "source": "demo_ingest:acme_w9_john_smith.txt",
+        "ingested_at": "2026-02-25T00:17:09.391Z"
+      }
+    ],
+    "merge_history": []
+  },
+  "spoke_id": "spoke-a34dadd89a7182fc",
+  "source": "manual",
+  "source_ref": "acme_w9_john_smith.txt",
+  "ownership": "referenced",
+  "access_rules": {
+    "visibility": "private",
+    "shared_with": []
+  },
+  "projection_config": {
+    "lenses": [
+      "default"
+    ]
+  },
+  "perspectives": []
+}

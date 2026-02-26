@@ -1,0 +1,501 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-24T21:44:51.462Z",
+    "updated_at": "2026-02-24T21:44:51.462Z",
+    "source_description": "demo_ingest:acme_1099_contractor.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.8,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "David Park",
+      "confidence": 0.8,
+      "facts_layer": 2,
+      "aliases": []
+    },
+    "summary": {
+      "value": "RECIPIENT'S name:\n  David Park",
+      "confidence": 0.8,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-DP-112"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "tax_id",
+      "value": "XXX-XX-6543",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-ecd71e86",
+        "original_filename": "acme_1099_contractor.txt",
+        "snippet": "RECIPIENT'S TIN: XXX-XX-6543",
+        "location": "RECIPIENT'S TIN field",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T21:44:51.462Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-50431bc0-a3a"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "street_address",
+      "value": "4521 Roswell Road, Apt 8B",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-bd7a72bf",
+        "original_filename": "acme_1099_contractor.txt",
+        "snippet": "Street address (including apt. no.):\n  4521 Roswell Road, Apt 8B",
+        "location": "RECIPIENT'S address section",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T22:32:16.460Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-50431bc0-a3a",
+        "SIG-09609881-74b"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "city",
+      "value": "Sandy Springs",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-bd7a72bf",
+        "original_filename": "acme_1099_contractor.txt",
+        "snippet": "City or town, state or province, country, and ZIP:\n  Sandy Springs, GA 30342",
+        "location": "RECIPIENT'S address section",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T22:32:16.460Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-50431bc0-a3a",
+        "SIG-09609881-74b"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "state",
+      "value": "GA",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-bd7a72bf",
+        "original_filename": "acme_1099_contractor.txt",
+        "snippet": "City or town, state or province, country, and ZIP:\n  Sandy Springs, GA 30342",
+        "location": "RECIPIENT'S address section",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T22:32:16.460Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-50431bc0-a3a",
+        "SIG-09609881-74b"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-005",
+      "key": "zip_code",
+      "value": "30342",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-bd7a72bf",
+        "original_filename": "acme_1099_contractor.txt",
+        "snippet": "City or town, state or province, country, and ZIP:\n  Sandy Springs, GA 30342",
+        "location": "RECIPIENT'S address section",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T22:32:16.460Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-50431bc0-a3a",
+        "SIG-09609881-74b"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-006",
+      "key": "nonemployee_compensation",
+      "value": "$87,400.00",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-bd7a72bf",
+        "original_filename": "acme_1099_contractor.txt",
+        "snippet": "1. Nonemployee compensation:        $87,400.00",
+        "location": "Box 1",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T22:32:16.460Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-50431bc0-a3a",
+        "SIG-09609881-74b"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-007",
+      "key": "federal_tax_withheld",
+      "value": "$0.00",
+      "confidence": 0.75,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-ecd71e86",
+        "original_filename": "acme_1099_contractor.txt",
+        "snippet": "4. Federal income tax withheld:      $0.00",
+        "location": "Box 4, Federal income tax withheld field",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T21:44:51.462Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-50431bc0-a3a"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-008",
+      "key": "state_tax_withheld",
+      "value": "$0.00",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-bd7a72bf",
+        "original_filename": "acme_1099_contractor.txt",
+        "snippet": "5. State tax withheld:               $0.00",
+        "location": "Box 5",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T22:32:16.460Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-50431bc0-a3a",
+        "SIG-09609881-74b"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-009",
+      "key": "state_income",
+      "value": "$87,400.00",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-bd7a72bf",
+        "original_filename": "acme_1099_contractor.txt",
+        "snippet": "State income:                     $87,400.00",
+        "location": "Box 5, State income field",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T22:32:16.460Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-50431bc0-a3a",
+        "SIG-09609881-74b"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-010",
+      "key": "account_number",
+      "value": "CONTRACTOR-2025-003",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-bd7a72bf",
+        "original_filename": "acme_1099_contractor.txt",
+        "snippet": "Account number: CONTRACTOR-2025-003",
+        "location": "Account number field",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T22:32:16.460Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-50431bc0-a3a",
+        "SIG-09609881-74b"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-011",
+      "key": "services_performed",
+      "value": "Technology consulting and software development services",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-bd7a72bf",
+        "original_filename": "acme_1099_contractor.txt",
+        "snippet": "Services performed: Technology consulting and software development services",
+        "location": "Services performed field at bottom of form",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T22:32:16.460Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-50431bc0-a3a",
+        "SIG-09609881-74b"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-012",
+      "key": "contract_period",
+      "value": "March 2025 through December 2025",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-bd7a72bf",
+        "original_filename": "acme_1099_contractor.txt",
+        "snippet": "Contract period: March 2025 through December 2025",
+        "location": "Contract period field at bottom of form",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T22:32:16.460Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-50431bc0-a3a",
+        "SIG-09609881-74b"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-013",
+      "key": "role",
+      "value": "Recipient/Contractor",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-bd7a72bf",
+        "original_filename": "acme_1099_contractor.txt",
+        "snippet": "RECIPIENT'S name:\n  David Park",
+        "location": "RECIPIENT'S name field",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T22:32:16.460Z"
+      },
+      "_base_confidence": 0.8,
+      "_source_clusters": [
+        "SIG-50431bc0-a3a",
+        "SIG-09609881-74b"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-014",
+      "key": "recipient_tin",
+      "value": "XXX-XX-6543",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-bd7a72bf",
+        "original_filename": "acme_1099_contractor.txt",
+        "snippet": "RECIPIENT'S TIN: XXX-XX-6543",
+        "location": "RECIPIENT'S TIN field",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T22:32:16.460Z"
+      },
+      "_source_clusters": [
+        "SIG-09609881-74b"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-015",
+      "key": "federal_income_tax_withheld",
+      "value": "$0.00",
+      "confidence": 1,
+      "confidence_label": "HIGH",
+      "provenance": {
+        "file_id": "file-bd7a72bf",
+        "original_filename": "acme_1099_contractor.txt",
+        "snippet": "4. Federal income tax withheld:      $0.00",
+        "location": "Box 4",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T22:32:16.460Z"
+      },
+      "_source_clusters": [
+        "SIG-09609881-74b"
+      ]
+    }
+  ],
+  "relationships": [],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [],
+  "provenance_chain": {
+    "created_at": "2026-02-24T21:44:51.462Z",
+    "created_by": "demo",
+    "source_documents": [
+      {
+        "source": "demo_ingest:acme_1099_contractor.txt",
+        "ingested_at": "2026-02-24T21:44:51.462Z"
+      },
+      {
+        "source": "Demo: acme_1099_contractor.txt",
+        "url": "",
+        "ingested_at": "2026-02-24T22:32:16.476Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-24T22:32:16.476Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_1099_contractor.txt",
+        "incoming_hash": "unknown",
+        "changes": [
+          {
+            "type": "attribute_replaced",
+            "attribute_id": "ATTR-002",
+            "key": "street_address",
+            "old_value": "4521 Roswell Road, Apt 8B",
+            "old_confidence": 0.75,
+            "new_value": "4521 Roswell Road, Apt 8B",
+            "new_confidence": 0.8,
+            "timestamp": "2026-02-24T22:32:16.477Z"
+          },
+          {
+            "type": "attribute_replaced",
+            "attribute_id": "ATTR-003",
+            "key": "city",
+            "old_value": "Sandy Springs",
+            "old_confidence": 0.75,
+            "new_value": "Sandy Springs",
+            "new_confidence": 0.8,
+            "timestamp": "2026-02-24T22:32:16.477Z"
+          },
+          {
+            "type": "attribute_replaced",
+            "attribute_id": "ATTR-004",
+            "key": "state",
+            "old_value": "GA",
+            "old_confidence": 0.75,
+            "new_value": "GA",
+            "new_confidence": 0.8,
+            "timestamp": "2026-02-24T22:32:16.477Z"
+          },
+          {
+            "type": "attribute_replaced",
+            "attribute_id": "ATTR-005",
+            "key": "zip_code",
+            "old_value": "30342",
+            "old_confidence": 0.75,
+            "new_value": "30342",
+            "new_confidence": 0.8,
+            "timestamp": "2026-02-24T22:32:16.477Z"
+          },
+          {
+            "type": "attribute_replaced",
+            "attribute_id": "ATTR-006",
+            "key": "nonemployee_compensation",
+            "old_value": "$87,400.00",
+            "old_confidence": 0.75,
+            "new_value": "$87,400.00",
+            "new_confidence": 0.8,
+            "timestamp": "2026-02-24T22:32:16.477Z"
+          },
+          {
+            "type": "attribute_replaced",
+            "attribute_id": "ATTR-008",
+            "key": "state_tax_withheld",
+            "old_value": "$0.00",
+            "old_confidence": 0.75,
+            "new_value": "$0.00",
+            "new_confidence": 0.8,
+            "timestamp": "2026-02-24T22:32:16.477Z"
+          },
+          {
+            "type": "attribute_replaced",
+            "attribute_id": "ATTR-009",
+            "key": "state_income",
+            "old_value": "$87,400.00",
+            "old_confidence": 0.75,
+            "new_value": "$87,400.00",
+            "new_confidence": 0.8,
+            "timestamp": "2026-02-24T22:32:16.477Z"
+          },
+          {
+            "type": "attribute_replaced",
+            "attribute_id": "ATTR-010",
+            "key": "account_number",
+            "old_value": "CONTRACTOR-2025-003",
+            "old_confidence": 0.75,
+            "new_value": "CONTRACTOR-2025-003",
+            "new_confidence": 0.8,
+            "timestamp": "2026-02-24T22:32:16.477Z"
+          },
+          {
+            "type": "attribute_replaced",
+            "attribute_id": "ATTR-011",
+            "key": "services_performed",
+            "old_value": "Technology consulting and software development services",
+            "old_confidence": 0.75,
+            "new_value": "Technology consulting and software development services",
+            "new_confidence": 0.8,
+            "timestamp": "2026-02-24T22:32:16.477Z"
+          },
+          {
+            "type": "attribute_replaced",
+            "attribute_id": "ATTR-012",
+            "key": "contract_period",
+            "old_value": "March 2025 through December 2025",
+            "old_confidence": 0.75,
+            "new_value": "March 2025 through December 2025",
+            "new_confidence": 0.8,
+            "timestamp": "2026-02-24T22:32:16.477Z"
+          },
+          {
+            "type": "attribute_replaced",
+            "attribute_id": "ATTR-013",
+            "key": "role",
+            "old_value": "contractor",
+            "old_confidence": 0.75,
+            "new_value": "Recipient/Contractor",
+            "new_confidence": 0.8,
+            "timestamp": "2026-02-24T22:32:16.477Z"
+          }
+        ]
+      },
+      {
+        "merged_at": "2026-02-24T22:32:16.476Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-09609881-74b: merged data and 0 observations"
+        ]
+      }
+    ]
+  },
+  "spoke_id": "spoke-98fabb9440739657",
+  "source": "manual",
+  "source_ref": "acme_1099_contractor.txt",
+  "ownership": "referenced",
+  "access_rules": {
+    "visibility": "private",
+    "shared_with": []
+  },
+  "projection_config": {
+    "lenses": [
+      "default"
+    ]
+  },
+  "perspectives": [],
+  "active_projects": [],
+  "translations": []
+}

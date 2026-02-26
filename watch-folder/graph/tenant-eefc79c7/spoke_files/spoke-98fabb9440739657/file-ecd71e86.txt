@@ -1,0 +1,45 @@
+                                                    OMB No. 1545-0116
+Form 1099-NEC                                       2025
+Nonemployee Compensation
+Copy B — For Recipient
+
+PAYER'S name, street address, city, state, and ZIP code:
+  Acme Consulting LLC
+  1847 Peachtree Road NE, Suite 310
+  Atlanta, GA 30309
+  EIN: 88-4923156
+  Phone: (404) 555-0100
+
+PAYER'S TIN: 88-4923156
+
+RECIPIENT'S TIN: XXX-XX-6543
+
+RECIPIENT'S name:
+  David Park
+
+Street address (including apt. no.):
+  4521 Roswell Road, Apt 8B
+
+City or town, state or province, country, and ZIP:
+  Sandy Springs, GA 30342
+
+1. Nonemployee compensation:        $87,400.00
+
+2. Payer made direct sales totaling
+   $5,000 or more of consumer
+   products to recipient for resale:  [ ]
+
+4. Federal income tax withheld:      $0.00
+
+5. State tax withheld:               $0.00
+   State/Payer's state no.:          GA / 088-492-315
+   State income:                     $87,400.00
+
+Account number: CONTRACTOR-2025-003
+
+This is important tax information and is being furnished to the IRS. If you are
+required to file a return, a negligence penalty or other sanction may be imposed
+on you if this income is taxable and the IRS determines that it has not been reported.
+
+Services performed: Technology consulting and software development services
+Contract period: March 2025 through December 2025

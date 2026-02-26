@@ -1,0 +1,165 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-24T19:17:40.806Z",
+    "updated_at": "2026-02-24T19:17:40.806Z",
+    "source_description": "demo_ingest:acme_ein_letter.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.7,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "JOHN R SMITH",
+      "confidence": 0.7,
+      "facts_layer": 2,
+      "aliases": []
+    },
+    "summary": {
+      "value": "JOHN R SMITH",
+      "confidence": 0.7,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-JRS-012"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "representative of ACME CONSULTING LLC",
+      "confidence": 1,
+      "confidence_label": "MODERATE",
+      "provenance": {
+        "file_id": "file-4bb955e0",
+        "original_filename": "acme_ein_letter.txt",
+        "snippet": "ACME CONSULTING LLC\nJOHN R SMITH\n1847 PEACHTREE ROAD NE STE 310\nATLANTA GA 30309",
+        "location": "recipient information section",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "inferred",
+        "extracted_at": "2026-02-24T19:17:40.806Z"
+      },
+      "_base_confidence": 0.7,
+      "_source_clusters": [
+        "SIG-24af3544-514",
+        "SIG-c0158a45-90b",
+        "SIG-2866a8fb-c27",
+        "SIG-80d87104-b62"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "address",
+      "value": "1847 PEACHTREE ROAD NE STE 310, ATLANTA GA 30309",
+      "confidence": 1,
+      "confidence_label": "MODERATE",
+      "provenance": {
+        "file_id": "file-4bb955e0",
+        "original_filename": "acme_ein_letter.txt",
+        "snippet": "JOHN R SMITH\n1847 PEACHTREE ROAD NE STE 310\nATLANTA GA 30309",
+        "location": "recipient information section",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T19:17:40.806Z"
+      },
+      "_base_confidence": 0.7,
+      "_source_clusters": [
+        "SIG-24af3544-514",
+        "SIG-c0158a45-90b",
+        "SIG-2866a8fb-c27",
+        "SIG-80d87104-b62"
+      ]
+    }
+  ],
+  "relationships": [],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [],
+  "provenance_chain": {
+    "created_at": "2026-02-24T19:17:40.806Z",
+    "created_by": "demo",
+    "source_documents": [
+      {
+        "source": "demo_ingest:acme_ein_letter.txt",
+        "ingested_at": "2026-02-24T19:17:40.806Z"
+      },
+      {
+        "source": "Demo: acme_ein_letter.txt",
+        "url": "",
+        "ingested_at": "2026-02-24T21:20:25.531Z"
+      },
+      {
+        "source": "Demo: acme_ein_letter.txt",
+        "url": "",
+        "ingested_at": "2026-02-25T00:08:27.084Z"
+      },
+      {
+        "source": "Demo: acme_ein_letter.txt",
+        "url": "",
+        "ingested_at": "2026-02-25T00:14:42.931Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-24T21:20:25.531Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_ein_letter.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-24T21:20:25.531Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-c0158a45-90b: merged data and 0 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-25T00:08:27.084Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_ein_letter.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-25T00:08:27.084Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-2866a8fb-c27: merged data and 0 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-25T00:14:42.931Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_ein_letter.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-25T00:14:42.931Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-80d87104-b62: merged data and 0 observations"
+        ]
+      }
+    ]
+  },
+  "spoke_id": "spoke-41825c0315b96cda",
+  "source": "manual",
+  "source_ref": "acme_ein_letter.txt",
+  "ownership": "referenced",
+  "access_rules": {
+    "visibility": "private",
+    "shared_with": []
+  },
+  "projection_config": {
+    "lenses": [
+      "default"
+    ]
+  },
+  "perspectives": [],
+  "active_projects": [],
+  "translations": []
+}

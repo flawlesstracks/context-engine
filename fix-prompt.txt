@@ -1,0 +1,18 @@
+cat << 'PROMPT' > /tmp/fix-prompt.txt
+Read CLAUDE.md first. RESTART THE SERVER FIRST - kill the process on port 3000, then start node web-demo.js and wait for it to be ready.
+
+Then fix three issues with the right pipeline panel.
+
+FIX 1 SEPARATE CARDS
+The three pipeline sections Collect, Review, Confirm currently render as one continuous block. They need to be THREE SEPARATE CARDS matching the middle content card style. Each section wrapped in its own card with background white, border-radius 8px, border 1px solid #e0e0e0, padding 16px. 8px margin-bottom between each card. Each card has its own colored accent as a 3px top border - purple for Collect, amber for Review, green for Confirm. The right panel background should be #f4f2ee warm gray matching the page background so the white cards stand out against it.
+
+FIX 2 VERTICAL ALIGNMENT
+The top of the first right panel card Collect must align horizontally with the top of the tab bar in the middle content. Both panels should start at the same Y position. Use the same top offset for both.
+
+FIX 3 RIGHT PANEL SCROLLING
+The right panel should scroll independently from the middle content. Set the right panel to position sticky, top same offset as tab bar, height calc 100vh minus top offset, overflow-y auto.
+
+Commit with message fix right panel separate cards vertical alignment independent scroll and push.
+
+COMMITTED
+PROMPT

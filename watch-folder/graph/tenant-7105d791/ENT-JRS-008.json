@@ -1,0 +1,206 @@
+{
+  "schema_version": "2.0",
+  "schema_type": "context_architecture_entity",
+  "extraction_metadata": {
+    "extracted_at": "2026-02-24T19:15:43.718Z",
+    "updated_at": "2026-02-24T19:15:43.718Z",
+    "source_description": "demo_ingest:acme_articles_of_incorporation.txt",
+    "extraction_model": "claude-sonnet-4-5-20250929",
+    "extraction_confidence": 0.75,
+    "schema_version": "2.0"
+  },
+  "entity": {
+    "entity_type": "person",
+    "name": {
+      "full": "John R. Smith",
+      "confidence": 0.75,
+      "facts_layer": 2,
+      "aliases": []
+    },
+    "summary": {
+      "value": "John R. Smith",
+      "confidence": 0.75,
+      "facts_layer": 2
+    },
+    "entity_id": "ENT-JRS-008"
+  },
+  "attributes": [
+    {
+      "attribute_id": "ATTR-001",
+      "key": "role",
+      "value": "Organizer",
+      "confidence": 1,
+      "confidence_label": "MODERATE",
+      "provenance": {
+        "file_id": "file-25de8461",
+        "original_filename": "acme_articles_of_incorporation.txt",
+        "snippet": "ORGANIZER(S): John R. Smith",
+        "location": "section 4",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T19:15:43.718Z"
+      },
+      "_base_confidence": 0.75,
+      "_source_clusters": [
+        "SIG-6538b9c8-3b0",
+        "SIG-233d3ece-a88",
+        "SIG-945644a4-b60",
+        "SIG-b98f10be-307"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-002",
+      "key": "address",
+      "value": "245 Magnolia Lane, Decatur, Georgia 30030",
+      "confidence": 1,
+      "confidence_label": "MODERATE",
+      "provenance": {
+        "file_id": "file-25de8461",
+        "original_filename": "acme_articles_of_incorporation.txt",
+        "snippet": "John R. Smith 245 Magnolia Lane Decatur, Georgia 30030",
+        "location": "section 4",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T19:15:43.718Z"
+      },
+      "_base_confidence": 0.75,
+      "_source_clusters": [
+        "SIG-6538b9c8-3b0",
+        "SIG-233d3ece-a88",
+        "SIG-945644a4-b60",
+        "SIG-b98f10be-307"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-003",
+      "key": "signature_date",
+      "value": "March 15, 2022",
+      "confidence": 1,
+      "confidence_label": "MODERATE",
+      "provenance": {
+        "file_id": "file-25de8461",
+        "original_filename": "acme_articles_of_incorporation.txt",
+        "snippet": "_____________________________ John R. Smith, Organizer",
+        "location": "signature section",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "inferred",
+        "extracted_at": "2026-02-24T19:15:43.718Z"
+      },
+      "_base_confidence": 0.75,
+      "_source_clusters": [
+        "SIG-6538b9c8-3b0",
+        "SIG-b98f10be-307"
+      ]
+    },
+    {
+      "attribute_id": "ATTR-004",
+      "key": "signature_role",
+      "value": "Organizer",
+      "confidence": 1,
+      "confidence_label": "MODERATE",
+      "provenance": {
+        "file_id": "file-3026f605",
+        "original_filename": "acme_articles_of_incorporation.txt",
+        "snippet": "_____________________________ John R. Smith, Organizer",
+        "location": "signature block",
+        "extraction_model": "claude-sonnet-4-5-20250929",
+        "extraction_type": "direct",
+        "extracted_at": "2026-02-24T21:18:30.663Z"
+      },
+      "_source_clusters": [
+        "SIG-233d3ece-a88",
+        "SIG-945644a4-b60"
+      ]
+    }
+  ],
+  "relationships": [],
+  "values": [],
+  "key_facts": [],
+  "constraints": [],
+  "observations": [],
+  "provenance_chain": {
+    "created_at": "2026-02-24T19:15:43.718Z",
+    "created_by": "demo",
+    "source_documents": [
+      {
+        "source": "demo_ingest:acme_articles_of_incorporation.txt",
+        "ingested_at": "2026-02-24T19:15:43.718Z"
+      },
+      {
+        "source": "Demo: acme_articles_of_incorporation.txt",
+        "url": "",
+        "ingested_at": "2026-02-24T21:18:30.690Z"
+      },
+      {
+        "source": "Demo: acme_articles_of_incorporation.txt",
+        "url": "",
+        "ingested_at": "2026-02-25T00:07:12.463Z"
+      },
+      {
+        "source": "Demo: acme_articles_of_incorporation.txt",
+        "url": "",
+        "ingested_at": "2026-02-25T00:12:47.689Z"
+      }
+    ],
+    "merge_history": [
+      {
+        "merged_at": "2026-02-24T21:18:30.690Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_articles_of_incorporation.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-24T21:18:30.690Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-233d3ece-a88: merged data and 0 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-25T00:07:12.464Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_articles_of_incorporation.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-25T00:07:12.463Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-945644a4-b60: merged data and 0 observations"
+        ]
+      },
+      {
+        "merged_at": "2026-02-25T00:12:47.689Z",
+        "merged_by": "merge-engine-v1",
+        "incoming_source": "Demo: acme_articles_of_incorporation.txt",
+        "incoming_hash": "unknown",
+        "changes": []
+      },
+      {
+        "merged_at": "2026-02-25T00:12:47.689Z",
+        "merged_by": "demo",
+        "changes": [
+          "Signal cluster SIG-b98f10be-307: merged data and 0 observations"
+        ]
+      }
+    ]
+  },
+  "spoke_id": "spoke-41825c0315b96cda",
+  "source": "manual",
+  "source_ref": "acme_articles_of_incorporation.txt",
+  "ownership": "referenced",
+  "access_rules": {
+    "visibility": "private",
+    "shared_with": []
+  },
+  "projection_config": {
+    "lenses": [
+      "default"
+    ]
+  },
+  "perspectives": [],
+  "active_projects": [],
+  "translations": []
+}
