@@ -12981,6 +12981,32 @@ var _activeClientTab = 'completeness'; // Current tab when viewing a client work
 
 function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
+// Global delegated click handler for sidebar nav items
+// Uses document-level capture to guarantee it fires regardless of DOM structure
+document.addEventListener('click', function(e) {
+  var target = e.target;
+  // Walk up to find nearest element with data-nav attribute
+  for (var i = 0; i < 10 && target && target !== document; i++) {
+    var nav = target.getAttribute ? target.getAttribute('data-nav') : null;
+    if (nav) {
+      console.log('[sidebar nav] clicked:', nav);
+      e.preventDefault();
+      e.stopPropagation();
+      if (nav === 'overview' || nav === 'career') {
+        selectView(nav);
+      } else if (nav === 'family' || nav === 'friends') {
+        selectPersonalGraph();
+        showPeopleHub(nav);
+      } else if (nav === 'affiliations') {
+        selectPersonalGraph();
+        showAffiliationsHub();
+      }
+      return;
+    }
+    target = target.parentNode;
+  }
+}, true); // capture phase — fires before any other handlers
+
 function toggleSidebarSearch() {
   var panel = document.getElementById('sidebarSearchPanel');
   if (!panel) return;
@@ -15951,32 +15977,7 @@ function renderSidebar() {
     }
   }
 
-  var elList = document.getElementById('entityList');
-  elList.innerHTML = html || '<div style="padding:16px;color:#3a3a4a;font-size:0.82rem;">No entities found</div>';
-
-  // Delegated click handler for sidebar nav items (data-nav attribute)
-  // This replaces inline onclick handlers which can break due to HTML escaping issues
-  elList.onclick = function(e) {
-    var target = e.target;
-    // Walk up to find the element with data-nav
-    while (target && target !== elList) {
-      var nav = target.getAttribute && target.getAttribute('data-nav');
-      if (nav) {
-        console.log('[sidebar click] data-nav:', nav);
-        if (nav === 'overview' || nav === 'career') {
-          selectView(nav);
-        } else if (nav === 'family' || nav === 'friends') {
-          selectPersonalGraph();
-          showPeopleHub(nav);
-        } else if (nav === 'affiliations') {
-          selectPersonalGraph();
-          showAffiliationsHub();
-        }
-        return;
-      }
-      target = target.parentNode;
-    }
-  };
+  document.getElementById('entityList').innerHTML = html || '<div style="padding:16px;color:#3a3a4a;font-size:0.82rem;">No entities found</div>';
 }
 
 // Backward-compat alias
