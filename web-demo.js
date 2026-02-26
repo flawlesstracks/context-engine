@@ -13483,7 +13483,11 @@ function buildSidebarData() {
 }
 
 function selectView(viewId) {
-  if (!primaryEntityId) return;
+  console.log('[selectView] ENTER — viewId:', viewId, 'primaryEntityId:', primaryEntityId, 'primaryEntityData:', !!primaryEntityData);
+  if (!primaryEntityId) {
+    console.warn('[selectView] ABORT — no primaryEntityId');
+    return;
+  }
   // Fully reset navigation state to personal graph
   selectedId = primaryEntityId;
   selectedView = null;
@@ -13500,16 +13504,27 @@ function selectView(viewId) {
   if (empty) empty.style.display = 'none';
 
   var renderWithData = function(data) {
-    selectedData = data;
-    renderDetail(data);
+    console.log('[selectView] renderWithData called — entity_type:', (data.entity || {}).entity_type, 'obs:', (data.observations || []).length);
+    try {
+      selectedData = data;
+      renderDetail(data);
+      console.log('[selectView] renderDetail completed OK — main innerHTML length:', (document.getElementById('main') || {}).innerHTML ? document.getElementById('main').innerHTML.length : 0);
+    } catch (err) {
+      console.error('[selectView] renderDetail THREW:', err);
+      var m = document.getElementById('main');
+      if (m) m.innerHTML = '<div style="padding:40px;color:#c0392b;">renderDetail error: ' + (err.message || err) + '</div>';
+    }
   };
 
   if (primaryEntityData) {
     renderWithData(primaryEntityData);
   } else {
+    console.log('[selectView] Fetching entity data for:', primaryEntityId);
     api('GET', '/api/entity/' + primaryEntityId).then(function(data) {
       primaryEntityData = data;
       renderWithData(data);
+    }).catch(function(err) {
+      console.error('[selectView] API fetch failed:', err);
     });
   }
   renderSidebar();
@@ -15954,12 +15969,16 @@ function selectClient(spokeId) {
 }
 
 function selectPersonalGraph() {
-  if (!_selectedSpoke && !selectedView) return; // Already on personal graph with no active view
+  console.log('[selectPersonalGraph] ENTER — _selectedSpoke:', _selectedSpoke, 'selectedView:', selectedView, 'primaryEntityId:', primaryEntityId);
+  if (!_selectedSpoke && !selectedView) {
+    console.log('[selectPersonalGraph] Early return — already on personal graph');
+    return;
+  }
   _selectedSpoke = null;
   selectedView = null;
   selectedCategory = null;
   selectedId = primaryEntityId;
-  // Don't re-render sidebar here — let the nav item onclick handler do that
+  console.log('[selectPersonalGraph] State reset complete — selectedId:', selectedId);
 }
 
 // --- HTML builders for tab content (return string, don't write to DOM) ---
