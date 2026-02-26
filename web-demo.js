@@ -5011,7 +5011,7 @@ app.post('/api/templates/generate', apiAuth, templateGenUpload.single('file'), a
           const mediaType = file.mimetype || 'image/jpeg';
           const message = await client.messages.create({
             model: 'claude-sonnet-4-5-20250929',
-            max_tokens: 8192,
+            max_tokens: 16384,
             messages: [{
               role: 'user',
               content: [
@@ -5046,7 +5046,7 @@ app.post('/api/templates/generate', apiAuth, templateGenUpload.single('file'), a
     const client = new Anthropic();
     const message = await client.messages.create({
       model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 8192,
+      max_tokens: 16384,
       messages: [{
         role: 'user',
         content: TEMPLATE_GEN_PROMPT
@@ -5066,23 +5066,30 @@ app.post('/api/templates/generate', apiAuth, templateGenUpload.single('file'), a
 });
 
 function parseAITemplateResponse(rawResponse, nameOverride, descOverride, sourceFilename) {
-  // Strip markdown fences if present
+  // Clean Claude's response before parsing
   let cleaned = rawResponse.trim();
-  if (cleaned.startsWith('```')) {
-    cleaned = cleaned.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```\s*$/, '');
+
+  // Strip markdown code fences (```json ... ``` or ``` ... ```)
+  cleaned = cleaned.replace(/```json\s*/gi, '');
+  cleaned = cleaned.replace(/```\s*/gi, '');
+
+  // Strip any text/commentary before the first {
+  const firstBrace = cleaned.indexOf('{');
+  if (firstBrace > 0) {
+    cleaned = cleaned.substring(firstBrace);
+  }
+
+  // Strip any text/commentary after the last }
+  const lastBrace = cleaned.lastIndexOf('}');
+  if (lastBrace > -1) {
+    cleaned = cleaned.substring(0, lastBrace + 1);
   }
 
   let parsed;
   try {
     parsed = JSON.parse(cleaned);
   } catch (err) {
-    // Try to extract JSON from the response
-    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      parsed = JSON.parse(jsonMatch[0]);
-    } else {
-      throw new Error('AI did not return valid JSON. Raw response: ' + cleaned.substring(0, 200));
-    }
+    throw new Error('AI did not return valid JSON. Parse error: ' + err.message + '. Raw start: ' + rawResponse.substring(0, 300));
   }
 
   // Apply overrides
