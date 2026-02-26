@@ -257,19 +257,28 @@ if (IS_PRODUCTION) {
         }
       }
 
-      // Sync tenant directories from repo if missing on persistent disk
+      // Sync tenant directories from repo — create missing dirs AND backfill missing files
       const localEntries = fs.readdirSync(LOCAL_GRAPH_DIR, { withFileTypes: true });
       for (const entry of localEntries) {
         if (entry.isDirectory() && entry.name.startsWith('tenant-')) {
           const destDir = path.join(candidate, entry.name);
+          const srcDir = path.join(LOCAL_GRAPH_DIR, entry.name);
           if (!fs.existsSync(destDir)) {
             fs.mkdirSync(destDir, { recursive: true });
-            const srcDir = path.join(LOCAL_GRAPH_DIR, entry.name);
-            const entityFiles = fs.readdirSync(srcDir);
-            for (const ef of entityFiles) {
-              fs.copyFileSync(path.join(srcDir, ef), path.join(destDir, ef));
+          }
+          // Backfill: copy entity files from repo that are missing on persistent disk
+          // (e.g., restored entities, new fixtures). Never overwrite existing files.
+          const repoFiles = fs.readdirSync(srcDir);
+          let backfilled = 0;
+          for (const ef of repoFiles) {
+            const destFile = path.join(destDir, ef);
+            if (!fs.existsSync(destFile)) {
+              fs.copyFileSync(path.join(srcDir, ef), destFile);
+              backfilled++;
             }
-            console.log(`  Synced tenant dir ${entry.name} (${entityFiles.length} files) to persistent disk`);
+          }
+          if (backfilled > 0) {
+            console.log(`  Backfilled ${backfilled} file(s) into ${entry.name} from repo`);
           }
         }
       }
@@ -12981,17 +12990,12 @@ var _activeClientTab = 'completeness'; // Current tab when viewing a client work
 
 function esc(s) { var d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
-// Global delegated click handler for sidebar nav items
-// Uses document-level capture to guarantee it fires regardless of DOM structure
+// Delegated click handler for sidebar nav items (data-nav attributes)
 document.addEventListener('click', function(e) {
   var target = e.target;
-  // Walk up to find nearest element with data-nav attribute
   for (var i = 0; i < 10 && target && target !== document; i++) {
     var nav = target.getAttribute ? target.getAttribute('data-nav') : null;
     if (nav) {
-      console.log('[sidebar nav] clicked:', nav);
-      e.preventDefault();
-      e.stopPropagation();
       if (nav === 'overview' || nav === 'career') {
         selectView(nav);
       } else if (nav === 'family' || nav === 'friends') {
@@ -13005,7 +13009,7 @@ document.addEventListener('click', function(e) {
     }
     target = target.parentNode;
   }
-}, true); // capture phase — fires before any other handlers
+}, true);
 
 function toggleSidebarSearch() {
   var panel = document.getElementById('sidebarSearchPanel');
@@ -13509,11 +13513,7 @@ function buildSidebarData() {
 }
 
 function selectView(viewId) {
-  console.log('[selectView] ENTER — viewId:', viewId, 'primaryEntityId:', primaryEntityId, 'primaryEntityData:', !!primaryEntityData);
-  if (!primaryEntityId) {
-    console.warn('[selectView] ABORT — no primaryEntityId');
-    return;
-  }
+  if (!primaryEntityId) return;
   // Fully reset navigation state to personal graph
   selectedId = primaryEntityId;
   selectedView = null;
@@ -13523,10 +13523,7 @@ function selectView(viewId) {
   var tabMap = { 'overview': 'overview', 'career': 'career', 'network-map': 'network', 'intelligence-brief': 'intel-brief', 'org-brief': 'org-brief', 'source-provenance': 'sources' };
   window._liActiveTab = tabMap[viewId] || 'overview';
   var mainEl = document.getElementById('main');
-  if (mainEl) {
-    mainEl.className = '';
-    mainEl.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Loading ' + (viewId === 'career' ? 'Career' : 'About') + '...</div>';
-  }
+  if (mainEl) mainEl.className = '';
   breadcrumbs = [{ label: 'My Profile' }];
   renderBreadcrumbs();
   var empty = document.getElementById('emptyState');
@@ -13534,26 +13531,16 @@ function selectView(viewId) {
 
   var renderWithData = function(data) {
     console.log('[selectView] renderWithData called — entity_type:', (data.entity || {}).entity_type, 'obs:', (data.observations || []).length);
-    try {
-      selectedData = data;
-      renderDetail(data);
-      console.log('[selectView] renderDetail completed OK — main innerHTML length:', (document.getElementById('main') || {}).innerHTML ? document.getElementById('main').innerHTML.length : 0);
-    } catch (err) {
-      console.error('[selectView] renderDetail THREW:', err);
-      var m = document.getElementById('main');
-      if (m) m.innerHTML = '<div style="padding:40px;color:#c0392b;">renderDetail error: ' + (err.message || err) + '</div>';
-    }
+    selectedData = data;
+    renderDetail(data);
   };
 
   if (primaryEntityData) {
     renderWithData(primaryEntityData);
   } else {
-    console.log('[selectView] Fetching entity data for:', primaryEntityId);
     api('GET', '/api/entity/' + primaryEntityId).then(function(data) {
       primaryEntityData = data;
       renderWithData(data);
-    }).catch(function(err) {
-      console.error('[selectView] API fetch failed:', err);
     });
   }
   renderSidebar();
@@ -15998,16 +15985,11 @@ function selectClient(spokeId) {
 }
 
 function selectPersonalGraph() {
-  console.log('[selectPersonalGraph] ENTER — _selectedSpoke:', _selectedSpoke, 'selectedView:', selectedView, 'primaryEntityId:', primaryEntityId);
-  if (!_selectedSpoke && !selectedView) {
-    console.log('[selectPersonalGraph] Early return — already on personal graph');
-    return;
-  }
+  if (!_selectedSpoke && !selectedView) return;
   _selectedSpoke = null;
   selectedView = null;
   selectedCategory = null;
   selectedId = primaryEntityId;
-  console.log('[selectPersonalGraph] State reset complete — selectedId:', selectedId);
 }
 
 // --- HTML builders for tab content (return string, don't write to DOM) ---
