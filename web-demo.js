@@ -13497,7 +13497,10 @@ function selectView(viewId) {
   var tabMap = { 'overview': 'overview', 'career': 'career', 'network-map': 'network', 'intelligence-brief': 'intel-brief', 'org-brief': 'org-brief', 'source-provenance': 'sources' };
   window._liActiveTab = tabMap[viewId] || 'overview';
   var mainEl = document.getElementById('main');
-  if (mainEl) mainEl.className = '';
+  if (mainEl) {
+    mainEl.className = '';
+    mainEl.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Loading ' + (viewId === 'career' ? 'Career' : 'About') + '...</div>';
+  }
   breadcrumbs = [{ label: 'My Profile' }];
   renderBreadcrumbs();
   var empty = document.getElementById('emptyState');
@@ -15843,13 +15846,13 @@ function renderSidebar() {
 
   // About
   var aboutActive = (!_selectedSpoke || _selectedSpoke === 'default') && (selectedId === primaryEntityId && window._liActiveTab === 'overview');
-  html += '<div class="sb-nav-item' + (aboutActive ? ' active' : '') + '" onclick="selectPersonalGraph();selectView(\\'overview\\')">';
+  html += '<div class="sb-nav-item' + (aboutActive ? ' active' : '') + '" onclick="selectView(\\'overview\\')">';
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg>';
   html += 'About</div>';
 
   // Career
   var careerActive = (!_selectedSpoke || _selectedSpoke === 'default') && (selectedId === primaryEntityId && window._liActiveTab === 'career');
-  html += '<div class="sb-nav-item' + (careerActive ? ' active' : '') + '" onclick="selectPersonalGraph();selectView(\\'career\\')">';
+  html += '<div class="sb-nav-item' + (careerActive ? ' active' : '') + '" onclick="selectView(\\'career\\')">';
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/></svg>';
   html += 'Career</div>';
 
