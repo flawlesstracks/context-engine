@@ -4969,9 +4969,10 @@ app.post('/api/templates/generate', apiAuth, templateGenUpload.single('file'), a
       // Multi-format parsing
       if (ext === '.pdf') {
         try {
-          const pdfParse = require('pdf-parse');
-          const pdfData = await pdfParse(file.buffer);
-          fileContent = pdfData.text;
+          const { PDFParse } = require('pdf-parse');
+          const parser = new PDFParse({ data: new Uint8Array(file.buffer), verbosity: 0 });
+          const result = await parser.getText();
+          fileContent = result.text || '';
         } catch (err) {
           return res.status(400).json({ error: 'Failed to parse PDF: ' + err.message });
         }
@@ -10601,12 +10602,13 @@ app.post('/api/spoke/:id/events', apiAuth, express.json(), (req, res) => {
 
   const events = spoke.events || [];
   events.push(event);
-  updateSpoke(req.graphDir, req.params.id, { events });
 
   // Activity log
   const activity = spoke.recent_activity || [];
   activity.unshift({ type: 'event_created', description: `Event created: ${event.title} (${event.type})`, timestamp: new Date().toISOString() });
-  updateSpoke(req.graphDir, req.params.id, { recent_activity: activity.slice(0, 50) });
+
+  // Single updateSpoke call to avoid second call overwriting the first
+  updateSpoke(req.graphDir, req.params.id, { events, recent_activity: activity.slice(0, 50) });
 
   res.json({ status: 'created', event });
 });
