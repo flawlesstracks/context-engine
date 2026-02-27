@@ -26186,6 +26186,1013 @@ app.post('/api/formfill/generate-provenance', express.json({ limit: '10mb' }), (
   }
 });
 
+// ─── Build 22: Template Variable Detection Engine (DocGenerate Mode 2) ───
+
+/**
+ * POST /api/formfill/analyze-template
+ * Upload a narrative document template (demand letter, contract, etc.)
+ * Two-pass analysis: pattern detection + AI variable identification
+ * Returns: { template_name, mode: "generate", total_variables, categories, variables, document_text }
+ */
+app.post('/api/formfill/analyze-template', formfillUpload.single('form'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: 'Upload a template document' });
+
+    const ext = path.extname(file.originalname).toLowerCase();
+    let fileContent = '';
+
+    // Extract text from uploaded file
+    if (ext === '.pdf') {
+      try {
+        const { PDFParse } = require('pdf-parse');
+        const parser = new PDFParse({ data: new Uint8Array(file.buffer), verbosity: 0 });
+        const result = await parser.getText();
+        fileContent = result.text || '';
+      } catch (e) {
+        return res.status(400).json({ error: 'Failed to parse PDF: ' + e.message });
+      }
+    } else if (ext === '.docx' || ext === '.doc') {
+      const mammoth = require('mammoth');
+      const result = await mammoth.extractRawText({ buffer: file.buffer });
+      fileContent = result.value;
+    } else if (['.txt', '.md', '.csv'].includes(ext)) {
+      fileContent = file.buffer.toString('utf-8');
+    } else {
+      fileContent = file.buffer.toString('utf-8');
+    }
+
+    if (!fileContent || fileContent.trim().length < 20) {
+      return res.status(400).json({ error: 'Could not extract enough content from template. Try a different format.' });
+    }
+
+    if (fileContent.length > 120000) fileContent = fileContent.substring(0, 120000) + '\n[...truncated]';
+
+    // ── Pass 1: Pattern Detection (no AI) ──
+    const patternVariables = [];
+    const lines = fileContent.split('\n');
+
+    // Explicit placeholders: [CLIENT NAME], {{client_name}}, {INSERT}, _________
+    const placeholderRe = /\[([A-Z][A-Z\s_\/\-]{2,40})\]|\{\{(\w+)\}\}|\{([A-Z][A-Z\s_]{2,30})\}|(_{5,})/g;
+    let match;
+    while ((match = placeholderRe.exec(fileContent)) !== null) {
+      const val = match[1] || match[2] || match[3] || '[blank line]';
+      patternVariables.push({ type: 'placeholder', value: val, position: match.index });
+    }
+
+    // Blank fields: lines ending with ":" followed by whitespace or nothing
+    for (const line of lines) {
+      const blankMatch = line.match(/^(.{3,60}):\s*$/);
+      if (blankMatch) {
+        patternVariables.push({ type: 'blank_field', value: blankMatch[1].trim(), position: fileContent.indexOf(line) });
+      }
+    }
+
+    // Dollar amounts
+    const dollarRe = /\$[\d,]+\.?\d{0,2}/g;
+    while ((match = dollarRe.exec(fileContent)) !== null) {
+      patternVariables.push({ type: 'currency', value: match[0], position: match.index });
+    }
+
+    // Dates (various formats)
+    const dateRe = /\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},?\s+\d{4}\b|\b\d{1,2}\/\d{1,2}\/\d{2,4}\b/gi;
+    while ((match = dateRe.exec(fileContent)) !== null) {
+      patternVariables.push({ type: 'date', value: match[0], position: match.index });
+    }
+
+    // ICD-10 codes
+    const icdRe = /\b[A-Z]\d{2}\.\d{1,3}\b/g;
+    while ((match = icdRe.exec(fileContent)) !== null) {
+      patternVariables.push({ type: 'icd10', value: match[0], position: match.index });
+    }
+
+    // Repeated proper nouns (names appearing 3+ times — likely variables)
+    const nameRe = /\b[A-Z][a-z]+(?:\s+[A-Z]\.?)?\s+[A-Z][a-z]+\b/g;
+    const nameCounts = {};
+    while ((match = nameRe.exec(fileContent)) !== null) {
+      const n = match[0];
+      nameCounts[n] = (nameCounts[n] || 0) + 1;
+    }
+    const repeatedNames = Object.entries(nameCounts).filter(([, c]) => c >= 3).map(([n, c]) => ({ type: 'repeated_name', value: n, occurrences: c }));
+
+    // ── Pass 2: AI-Powered Variable Identification ──
+    const TEMPLATE_VAR_PROMPT = `You are analyzing a legal document template. Your job is to identify every piece of CASE-SPECIFIC data that would change from client to client. The boilerplate legal language stays the same; the variables change.
+
+Document text:
+${fileContent}
+
+For each variable you find, return JSON:
+{
+  "template_name": "Short descriptive name for this template",
+  "variables": [
+    {
+      "variable_id": "snake_case_id",
+      "display_name": "Human Readable Name",
+      "current_value": "the actual value currently in the document (or empty string if blank)",
+      "variable_type": "text|currency|date|number|address|diagnosis_list|provider_list|calculated",
+      "category": "client|defendant|insurance|medical|financial|legal|firm",
+      "occurrences": 1,
+      "context": "Brief description of what this variable represents",
+      "required": true,
+      "source_hint": "Where this data typically comes from"
+    }
+  ]
+}
+
+Categories:
+- client: Info about the plaintiff/client (name, address, DOB)
+- defendant: Info about the at-fault party (name, vehicle, citation)
+- insurance: Info about the insurance company (company name, adjuster, policy limits, claim number)
+- medical: Diagnoses, providers, treatment dates, billing amounts
+- financial: Dollar amounts, calculations, totals
+- legal: Case law citations, statutes, jurisdiction
+- firm: Law firm name, address, TIN, attorney name
+
+Variable types:
+- text: Simple text replacement
+- currency: Dollar amount (format with $ and commas)
+- date: Date value (various formats)
+- number: Numeric value
+- address: Full address (street, city, state, ZIP)
+- diagnosis_list: List of medical diagnoses (potentially with ICD-10 codes)
+- provider_list: List of medical providers with associated billing
+- calculated: Value that requires computation from other variables
+
+For calculated fields, also include:
+  "formula": "Description of how this value is computed from other variables"
+  "depends_on": ["variable_id_1", "variable_id_2"]
+
+For list-type fields (diagnosis_list, provider_list), include:
+  "list_items": [array of the individual items currently in the document]
+
+Return ONLY the JSON. Be thorough — every piece of data that changes per case must be captured. Deduplicate: if a name appears 15 times, that is ONE variable with occurrences: 15.`;
+
+    const client = new Anthropic();
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 16384,
+      messages: [{ role: 'user', content: TEMPLATE_VAR_PROMPT }]
+    });
+
+    // Parse AI response
+    let aiResult;
+    try {
+      let raw = message.content[0].text;
+      // Strip markdown fences
+      raw = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+      const jsonStart = raw.indexOf('{');
+      const jsonEnd = raw.lastIndexOf('}');
+      if (jsonStart >= 0 && jsonEnd > jsonStart) {
+        raw = raw.substring(jsonStart, jsonEnd + 1);
+      }
+      aiResult = JSON.parse(raw);
+    } catch (parseErr) {
+      console.error('Template analysis JSON parse error:', parseErr.message);
+      return res.status(500).json({ error: 'AI analysis returned invalid JSON. Please try again.' });
+    }
+
+    const variables = aiResult.variables || [];
+
+    // ── Variable Map Cleanup ──
+
+    // Deduplicate by variable_id
+    const varMap = new Map();
+    for (const v of variables) {
+      const key = v.variable_id || v.display_name?.toLowerCase().replace(/\s+/g, '_');
+      if (!varMap.has(key)) {
+        varMap.set(key, v);
+      }
+    }
+    const dedupedVars = Array.from(varMap.values());
+
+    // Flag blank-in-template fields
+    for (const v of dedupedVars) {
+      if (!v.current_value || v.current_value.trim() === '') {
+        v.status = 'blank_in_template';
+      }
+    }
+
+    // Add pattern-detected info to AI results
+    for (const pv of repeatedNames) {
+      const existing = dedupedVars.find(v => v.current_value === pv.value);
+      if (existing && !existing.occurrences) {
+        existing.occurrences = pv.occurrences;
+      }
+    }
+
+    // Group by category
+    const categories = {};
+    for (const v of dedupedVars) {
+      const cat = v.category || 'other';
+      if (!categories[cat]) categories[cat] = [];
+      categories[cat].push(v);
+    }
+
+    // Build form_fields compatible format for the matching engine
+    const formFields = dedupedVars.map(v => ({
+      field_id: v.variable_id,
+      display_name: v.display_name,
+      field_type: v.variable_type === 'currency' ? 'currency' :
+                  v.variable_type === 'date' ? 'date' :
+                  v.variable_type === 'number' ? 'number' :
+                  v.variable_type === 'address' ? 'address' : 'text',
+      entity_type: v.category === 'client' ? 'person' :
+                   v.category === 'defendant' ? 'person' :
+                   v.category === 'insurance' ? 'business' :
+                   v.category === 'medical' ? 'observation' :
+                   v.category === 'financial' ? 'financial' :
+                   v.category === 'firm' ? 'business' : 'unknown',
+      source_hint: v.source_hint || '',
+      document_type: 'template_variable',
+      // Mode 2 extra fields
+      current_value: v.current_value || '',
+      variable_type: v.variable_type,
+      category: v.category,
+      occurrences: v.occurrences || 1,
+      context: v.context || '',
+      required: v.required !== false,
+      formula: v.formula || null,
+      depends_on: v.depends_on || null,
+      list_items: v.list_items || null,
+      status: v.status || 'has_value',
+    }));
+
+    const templateName = aiResult.template_name || file.originalname;
+
+    // Return full response
+    res.json({
+      mode: 'generate',
+      template_name: templateName,
+      form_name: templateName,
+      total_variables: dedupedVars.length,
+      categories,
+      variables: dedupedVars,
+      fields: formFields,
+      pattern_hints: {
+        placeholders: patternVariables.filter(p => p.type === 'placeholder').length,
+        blank_fields: patternVariables.filter(p => p.type === 'blank_field').length,
+        currencies: patternVariables.filter(p => p.type === 'currency').length,
+        dates: patternVariables.filter(p => p.type === 'date').length,
+        icd10_codes: patternVariables.filter(p => p.type === 'icd10').length,
+        repeated_names: repeatedNames.length,
+      },
+      document_text: fileContent,
+    });
+  } catch (err) {
+    console.error('FormFill analyze-template error:', err);
+    res.status(500).json({ error: 'Template analysis failed: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/formfill/detect-mode
+ * Quick heuristic: is this a structured form (Mode 1) or narrative template (Mode 2)?
+ * Returns: { mode: "fill" | "generate", confidence, signals }
+ */
+app.post('/api/formfill/detect-mode', formfillUpload.single('form'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: 'Upload a file' });
+
+    const ext = path.extname(file.originalname).toLowerCase();
+    let fileContent = '';
+    let hasFillableFields = false;
+
+    if (ext === '.pdf') {
+      try {
+        // Check for fillable PDF fields
+        const { PDFDocument } = require('pdf-lib');
+        const pdfDoc = await PDFDocument.load(file.buffer);
+        const form = pdfDoc.getForm();
+        const fields = form.getFields();
+        hasFillableFields = fields.length > 3;
+      } catch (e) { /* not a fillable PDF */ }
+      try {
+        const { PDFParse } = require('pdf-parse');
+        const parser = new PDFParse({ data: new Uint8Array(file.buffer), verbosity: 0 });
+        const result = await parser.getText();
+        fileContent = result.text || '';
+      } catch (e) { /* ignore */ }
+    } else if (ext === '.docx' || ext === '.doc') {
+      const mammoth = require('mammoth');
+      const result = await mammoth.extractRawText({ buffer: file.buffer });
+      fileContent = result.value;
+    } else {
+      fileContent = file.buffer.toString('utf-8');
+    }
+
+    const signals = { form: 0, generate: 0 };
+    const reasons = [];
+
+    // Fillable PDF fields = strong form signal
+    if (hasFillableFields) {
+      signals.form += 3;
+      reasons.push('PDF has fillable fields');
+    }
+
+    // Checkboxes / form markers
+    const checkboxCount = (fileContent.match(/\[\s*\]|\[x\]|☐|☑|□|■/gi) || []).length;
+    if (checkboxCount > 3) {
+      signals.form += 2;
+      reasons.push(`${checkboxCount} checkboxes detected`);
+    }
+
+    // Labeled fields (Name: _____, SSN: )
+    const labeledFields = (fileContent.match(/^[A-Z][^:]{2,30}:\s*(?:_{2,}|\s*)$/gm) || []).length;
+    if (labeledFields > 5) {
+      signals.form += 2;
+      reasons.push(`${labeledFields} labeled form fields`);
+    }
+
+    // Table grids (||, tab-separated columns)
+    const tableRows = (fileContent.match(/\|.*\|.*\|/g) || []).length;
+    if (tableRows > 5) {
+      signals.form += 1;
+      reasons.push(`${tableRows} table rows`);
+    }
+
+    // Paragraph narrative text = generate signal
+    const paragraphs = fileContent.split(/\n\s*\n/).filter(p => p.trim().length > 100);
+    if (paragraphs.length > 3) {
+      signals.generate += 2;
+      reasons.push(`${paragraphs.length} narrative paragraphs`);
+    }
+
+    // Dollar amounts in running text
+    const dollarMatches = (fileContent.match(/\$[\d,]+\.\d{2}/g) || []).length;
+    if (dollarMatches > 3) {
+      signals.generate += 1;
+      reasons.push(`${dollarMatches} dollar amounts`);
+    }
+
+    // Repeated proper nouns (names)
+    const nameRe2 = /\b[A-Z][a-z]+\s+[A-Z][a-z]+\b/g;
+    const names2 = {};
+    let nm;
+    while ((nm = nameRe2.exec(fileContent)) !== null) names2[nm[0]] = (names2[nm[0]] || 0) + 1;
+    const highRepeatNames = Object.values(names2).filter(c => c >= 5).length;
+    if (highRepeatNames > 0) {
+      signals.generate += 2;
+      reasons.push(`${highRepeatNames} names repeated 5+ times`);
+    }
+
+    // Legal language markers
+    const legalMarkers = (fileContent.match(/O\.C\.G\.A\.|§|herein|pursuant|plaintiff|defendant|claimant|insured/gi) || []).length;
+    if (legalMarkers > 3) {
+      signals.generate += 1;
+      reasons.push(`${legalMarkers} legal language markers`);
+    }
+
+    // Document length — longer docs tend to be narrative templates
+    if (fileContent.length > 5000) {
+      signals.generate += 1;
+      reasons.push('Document over 5000 chars');
+    }
+
+    const mode = signals.form > signals.generate ? 'fill' : 'generate';
+    const total = signals.form + signals.generate;
+    const confidence = total > 0 ? Math.max(signals.form, signals.generate) / total : 0.5;
+
+    res.json({ mode, confidence: Math.round(confidence * 100) / 100, signals, reasons });
+  } catch (err) {
+    res.status(500).json({ error: 'Mode detection failed: ' + err.message });
+  }
+});
+
+// ─── Build 23: Document Generation Engine ───
+
+/**
+ * POST /api/formfill/generate-docx
+ * Smart find-and-replace on narrative documents with:
+ * - Text variable replacement (all occurrences + derived forms like Mr./Ms.)
+ * - Calculated field computation
+ * - List/table section rebuild via AI
+ * - Formatting preservation via raw XML manipulation
+ * Returns: DOCX file buffer
+ */
+app.post('/api/formfill/generate-docx', formfillUpload.single('template'), express.json({ limit: '10mb' }), async (req, res) => {
+  try {
+    const PizZip = require('pizzip');
+
+    let templateBuffer, matches, variables, documentText;
+
+    // Accept either multipart (with template file) or JSON-only (with stored template)
+    if (req.file) {
+      templateBuffer = req.file.buffer;
+      // Parse JSON fields from multipart
+      matches = JSON.parse(req.body.matches || '[]');
+      variables = JSON.parse(req.body.variables || '[]');
+      documentText = req.body.document_text || '';
+    } else if (req.body && req.body.matches) {
+      matches = req.body.matches || [];
+      variables = req.body.variables || [];
+      documentText = req.body.document_text || '';
+      if (req.body.template_base64) {
+        templateBuffer = Buffer.from(req.body.template_base64, 'base64');
+      } else {
+        return res.status(400).json({ error: 'Template file or template_base64 required' });
+      }
+    } else {
+      return res.status(400).json({ error: 'Upload a template file with matches data' });
+    }
+
+    // Load DOCX as ZIP, manipulate raw XML
+    let zip;
+    try {
+      zip = new PizZip(templateBuffer);
+    } catch (e) {
+      return res.status(400).json({ error: 'Invalid DOCX file: ' + e.message });
+    }
+
+    let docXml = zip.file('word/document.xml')?.asText();
+    if (!docXml) {
+      return res.status(400).json({ error: 'Could not read document.xml from DOCX' });
+    }
+
+    // Track all replacements for provenance
+    const replacements = [];
+
+    // ── Helper: Gender detection from first name ──
+    function detectGender(firstName) {
+      const femaleNames = new Set(['maria','mary','jennifer','linda','patricia','elizabeth','barbara','susan','jessica','sarah','karen','nancy','lisa','betty','margaret','sandra','ashley','dorothy','kimberly','emily','donna','michelle','carol','amanda','melissa','deborah','stephanie','rebecca','sharon','laura','cynthia','kathleen','amy','angela','shirley','anna','brenda','pamela','emma','nicole','helen','samantha','katherine','christine','debra','rachel','carolyn','janet','catherine','maria','heather','diane','ruth','julie','olivia','joyce','virginia','victoria','kelly','lauren','christina','joan','jada','evelyn','judith','megan','andrea','cheryl','hannah','jacqueline','martha','gloria','teresa','ann','sara','madison','frances','kathryn','janice','jean','abigail','alice','judy','sophia','grace','denise','amber','doris','marilyn','danielle','beverly','isabella','theresa','diana','natalie','brittany','charlotte','marie','kayla','alexis','lori']);
+      return femaleNames.has((firstName || '').toLowerCase()) ? 'female' : 'male';
+    }
+
+    // ── Helper: Escape XML special chars ──
+    function escXml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // ── Step 1: Simple text variable replacements ──
+    for (const m of matches) {
+      if (m.status !== 'matched' || !m.matched_value) continue;
+
+      // Find corresponding variable definition
+      const varDef = variables.find(v => v.variable_id === m.field_id) || {};
+      const oldVal = varDef.current_value || m.old_value || '';
+      const newVal = m.matched_value;
+
+      if (!oldVal || oldVal === newVal) continue;
+
+      // Skip list types — handled separately
+      if (varDef.variable_type === 'diagnosis_list' || varDef.variable_type === 'provider_list') continue;
+
+      // Replace in XML (escape both for XML context)
+      const oldEsc = escXml(oldVal);
+      const newEsc = escXml(newVal);
+
+      // Direct value replacement — handle XML run splits
+      // DOCX XML can split text across multiple <w:t> elements,
+      // so we work on the concatenated text within each paragraph
+      const beforeLen = docXml.length;
+      docXml = docXml.split(oldEsc).join(newEsc);
+      const afterLen = docXml.length;
+      const occurrences = oldVal ? Math.round(Math.abs(afterLen - beforeLen) / Math.max(1, Math.abs(newEsc.length - oldEsc.length))) || (beforeLen !== afterLen ? 1 : 0) : 0;
+
+      if (occurrences > 0 || beforeLen !== afterLen) {
+        replacements.push({
+          variable_id: m.field_id,
+          display_name: m.display_name || m.field_id,
+          old_value: oldVal,
+          new_value: newVal,
+          occurrences: occurrences || 1,
+          source_file: m.source_file,
+          source_text: m.source_text,
+          confidence: m.confidence,
+          match_method: m.match_method,
+        });
+      }
+
+      // ── Derived form replacements (honorifics, possessives) ──
+      const nameParts = oldVal.split(/\s+/);
+      const newNameParts = newVal.split(/\s+/);
+      if (nameParts.length >= 2 && newNameParts.length >= 2) {
+        const oldLast = nameParts[nameParts.length - 1];
+        const newLast = newNameParts[newNameParts.length - 1];
+        const newFirst = newNameParts[0];
+        const oldGender = detectGender(nameParts[0]);
+        const newGender = detectGender(newFirst);
+        const oldHonorific = oldGender === 'female' ? 'Ms.' : 'Mr.';
+        const newHonorific = newGender === 'female' ? 'Ms.' : 'Mr.';
+
+        // Mr. LastName → Ms. NewLastName (or vice versa)
+        const derivedForms = [
+          [`Mr. ${oldLast}`, `${newHonorific} ${newLast}`],
+          [`Ms. ${oldLast}`, `${newHonorific} ${newLast}`],
+          [`Mrs. ${oldLast}`, `${newHonorific} ${newLast}`],
+          // Possessives
+          [`Mr. ${oldLast}'s`, `${newHonorific} ${newLast}'s`],
+          [`Ms. ${oldLast}'s`, `${newHonorific} ${newLast}'s`],
+          [`Mrs. ${oldLast}'s`, `${newHonorific} ${newLast}'s`],
+          [`Mr. ${oldLast}&apos;s`, `${newHonorific} ${newLast}&apos;s`],
+          [`Ms. ${oldLast}&apos;s`, `${newHonorific} ${newLast}&apos;s`],
+          // XML entity possessives
+          [`Mr. ${oldLast}&#8217;s`, `${newHonorific} ${newLast}&#8217;s`],
+          [`Ms. ${oldLast}&#8217;s`, `${newHonorific} ${newLast}&#8217;s`],
+        ];
+
+        for (const [oldD, newD] of derivedForms) {
+          const oldDE = escXml(oldD);
+          const newDE = escXml(newD);
+          if (docXml.includes(oldDE)) {
+            docXml = docXml.split(oldDE).join(newDE);
+            replacements.push({
+              variable_id: m.field_id + '_derived',
+              display_name: `${m.display_name || m.field_id} (derived: ${oldD})`,
+              old_value: oldD,
+              new_value: newD,
+              occurrences: 1,
+              source_file: m.source_file,
+              confidence: m.confidence,
+              match_method: 'derived',
+            });
+          }
+        }
+      }
+    }
+
+    // ── Step 2: Calculated field computation ──
+    for (const m of matches) {
+      if (m.status !== 'matched') continue;
+      const varDef = variables.find(v => v.variable_id === m.field_id);
+      if (!varDef || varDef.variable_type !== 'calculated') continue;
+
+      const oldVal = varDef.current_value || '';
+      const newVal = m.matched_value;
+      if (!oldVal || oldVal === newVal) continue;
+
+      const oldEsc = escXml(oldVal);
+      const newEsc = escXml(newVal);
+      docXml = docXml.split(oldEsc).join(newEsc);
+
+      replacements.push({
+        variable_id: m.field_id,
+        display_name: m.display_name || m.field_id,
+        old_value: oldVal,
+        new_value: newVal,
+        type: 'calculated',
+        formula: varDef.formula || '',
+        computation: m.computation || '',
+        source_file: m.source_file || '[computed]',
+        confidence: m.confidence,
+        match_method: 'calculated',
+      });
+    }
+
+    // ── Step 3: List section rebuilds (diagnosis_list, provider_list) ──
+    for (const m of matches) {
+      if (m.status !== 'matched') continue;
+      const varDef = variables.find(v => v.variable_id === m.field_id);
+      if (!varDef) continue;
+      if (varDef.variable_type !== 'diagnosis_list' && varDef.variable_type !== 'provider_list') continue;
+
+      // For list types, matched_value should be the new list content as formatted text
+      // We ask AI to generate replacement sections
+      if (m.matched_value && varDef.current_value) {
+        const oldEsc = escXml(typeof varDef.current_value === 'string' ? varDef.current_value : JSON.stringify(varDef.current_value));
+        const newEsc = escXml(typeof m.matched_value === 'string' ? m.matched_value : JSON.stringify(m.matched_value));
+        // Best-effort replacement — complex lists may need manual review
+        if (docXml.includes(oldEsc)) {
+          docXml = docXml.split(oldEsc).join(newEsc);
+        }
+        replacements.push({
+          variable_id: m.field_id,
+          display_name: m.display_name || m.field_id,
+          old_value: varDef.current_value,
+          new_value: m.matched_value,
+          type: 'list_rebuild',
+          source_file: m.source_file,
+          confidence: m.confidence,
+          match_method: 'list_rebuild',
+        });
+      }
+    }
+
+    // Save modified XML back into ZIP
+    zip.file('word/document.xml', docXml);
+
+    // Generate output buffer
+    const outputBuffer = zip.generate({
+      type: 'nodebuffer',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 6 },
+    });
+
+    const filename = 'generated-' + (req.body.template_name || 'document').replace(/[^a-zA-Z0-9_-]/g, '_') + '.docx';
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('X-Replacements-Count', replacements.length);
+    res.send(outputBuffer);
+  } catch (err) {
+    console.error('FormFill generate-docx error:', err);
+    res.status(500).json({ error: 'DOCX generation failed: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/formfill/generate-redline
+ * Same as generate-docx but highlights all replacements with red background
+ * Uses Word XML revision marks / highlight
+ */
+app.post('/api/formfill/generate-redline', formfillUpload.single('template'), express.json({ limit: '10mb' }), async (req, res) => {
+  try {
+    const PizZip = require('pizzip');
+
+    let templateBuffer, matches, variables;
+
+    if (req.file) {
+      templateBuffer = req.file.buffer;
+      matches = JSON.parse(req.body.matches || '[]');
+      variables = JSON.parse(req.body.variables || '[]');
+    } else if (req.body && req.body.template_base64) {
+      templateBuffer = Buffer.from(req.body.template_base64, 'base64');
+      matches = req.body.matches || [];
+      variables = req.body.variables || [];
+    } else {
+      return res.status(400).json({ error: 'Template file or template_base64 required' });
+    }
+
+    let zip;
+    try {
+      zip = new PizZip(templateBuffer);
+    } catch (e) {
+      return res.status(400).json({ error: 'Invalid DOCX file: ' + e.message });
+    }
+
+    let docXml = zip.file('word/document.xml')?.asText();
+    if (!docXml) return res.status(400).json({ error: 'Could not read document.xml' });
+
+    function escXml(str) {
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // For redline: wrap replaced text in yellow highlight run properties
+    const highlightRpr = '<w:rPr><w:highlight w:val="yellow"/><w:color w:val="FF0000"/></w:rPr>';
+
+    for (const m of matches) {
+      if (m.status !== 'matched' || !m.matched_value) continue;
+      const varDef = variables.find(v => v.variable_id === m.field_id) || {};
+      const oldVal = varDef.current_value || m.old_value || '';
+      const newVal = m.matched_value;
+      if (!oldVal || oldVal === newVal) continue;
+      if (varDef.variable_type === 'diagnosis_list' || varDef.variable_type === 'provider_list') continue;
+
+      const oldEsc = escXml(oldVal);
+      const newEsc = escXml(newVal);
+
+      // Find <w:t> elements containing old text and add highlight
+      // Strategy: replace old text with new text wrapped in a highlighted run
+      // Since we're in raw XML, we create an inline highlight by adding highlight markup
+      // within the existing run's <w:rPr>
+
+      // Simpler approach: just replace the text and we'll add a highlight via find-replace
+      // on the result — wrap newVal in a small XML snippet that adds highlighting
+      // But that would break mid-run splits. So we do the simple text replacement
+      // and then do a second pass to find & highlight all instances of newVal.
+
+      docXml = docXml.split(oldEsc).join(newEsc);
+    }
+
+    // Second pass: for each replaced value, find it in <w:t> elements and inject highlight
+    // This is approximate — we look for <w:t>...newVal...</w:t> and add highlight rPr
+    for (const m of matches) {
+      if (m.status !== 'matched' || !m.matched_value) continue;
+      const varDef = variables.find(v => v.variable_id === m.field_id) || {};
+      const oldVal = varDef.current_value || '';
+      if (!oldVal || oldVal === m.matched_value) continue;
+      if (varDef.variable_type === 'diagnosis_list' || varDef.variable_type === 'provider_list') continue;
+
+      const newEsc = escXml(m.matched_value);
+      // Find <w:r> elements containing this text and inject highlight into their <w:rPr>
+      // Pattern: <w:r><w:rPr>...</w:rPr><w:t...>TEXT</w:t></w:r>
+      // Or: <w:r><w:t...>TEXT</w:t></w:r> (no rPr)
+
+      // Add highlight to runs containing replaced text
+      const textPattern = new RegExp(
+        '(<w:r>)(\\s*<w:t[^>]*>[^<]*' + newEsc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[^<]*</w:t>)',
+        'g'
+      );
+      docXml = docXml.replace(textPattern, '$1' + highlightRpr + '$2');
+
+      // Also handle runs that already have rPr
+      const rprPattern = new RegExp(
+        '(<w:r>\\s*<w:rPr>)([^]*?)(</w:rPr>\\s*<w:t[^>]*>[^<]*' + newEsc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')',
+        'g'
+      );
+      docXml = docXml.replace(rprPattern, '$1<w:highlight w:val="yellow"/><w:color w:val="FF0000"/>$2$3');
+    }
+
+    zip.file('word/document.xml', docXml);
+
+    const outputBuffer = zip.generate({
+      type: 'nodebuffer',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 6 },
+    });
+
+    const filename = 'redline-' + (req.body?.template_name || 'document').replace(/[^a-zA-Z0-9_-]/g, '_') + '.docx';
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(outputBuffer);
+  } catch (err) {
+    console.error('FormFill generate-redline error:', err);
+    res.status(500).json({ error: 'Redline generation failed: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/formfill/compute-fields
+ * Compute calculated fields from matched variable data
+ * Used by the frontend to preview calculations before generating
+ * Accepts: { variables, matches }
+ * Returns: { computed: [...] } with calculated values and breakdowns
+ */
+app.post('/api/formfill/compute-fields', express.json({ limit: '5mb' }), async (req, res) => {
+  try {
+    const { variables, matches } = req.body;
+    if (!variables || !matches) return res.status(400).json({ error: 'variables and matches required' });
+
+    const computed = [];
+
+    // Build lookup of all matched values
+    const valueMap = {};
+    for (const m of matches) {
+      if (m.status === 'matched' && m.matched_value) {
+        valueMap[m.field_id] = m.matched_value;
+      }
+    }
+
+    // Find calculated fields
+    const calcVars = variables.filter(v => v.variable_type === 'calculated' || v.formula);
+
+    for (const cv of calcVars) {
+      const deps = cv.depends_on || [];
+      const missingDeps = deps.filter(d => !valueMap[d]);
+
+      if (missingDeps.length > 0) {
+        computed.push({
+          variable_id: cv.variable_id,
+          display_name: cv.display_name,
+          status: 'missing_deps',
+          missing: missingDeps,
+          formula: cv.formula,
+        });
+        continue;
+      }
+
+      // Try to compute based on formula description
+      // For common patterns: sum, multiplication
+      let result = null;
+      let breakdown = '';
+
+      const formulaLower = (cv.formula || '').toLowerCase();
+
+      // Sum of provider amounts
+      if (formulaLower.includes('sum') && (formulaLower.includes('provider') || formulaLower.includes('medical') || formulaLower.includes('amount'))) {
+        // Look for provider_list variable or individual provider amounts
+        const providerMatch = matches.find(m => m.field_id === 'providers' || m.field_id === 'provider_list');
+        if (providerMatch && Array.isArray(providerMatch.matched_value)) {
+          const amounts = providerMatch.matched_value.map(p => parseFloat(String(p.amount || 0).replace(/[$,]/g, '')) || 0);
+          result = amounts.reduce((s, a) => s + a, 0);
+          breakdown = providerMatch.matched_value.map(p => `${p.name}: $${(parseFloat(String(p.amount || 0).replace(/[$,]/g, '')) || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`).join(' + ');
+        } else {
+          // Sum all currency-type matched values that look like medical amounts
+          const medicalMatches = matches.filter(m => m.status === 'matched' && m.field_id?.includes('amount'));
+          if (medicalMatches.length > 0) {
+            const amounts = medicalMatches.map(m => parseFloat(String(m.matched_value).replace(/[$,]/g, '')) || 0);
+            result = amounts.reduce((s, a) => s + a, 0);
+            breakdown = medicalMatches.map(m => `${m.display_name}: ${m.matched_value}`).join(' + ');
+          }
+        }
+      }
+
+      // total_medical + total_travel pattern
+      if (formulaLower.includes('+') || formulaLower.includes('total')) {
+        if (deps.length >= 2 && !result) {
+          const depVals = deps.map(d => parseFloat(String(valueMap[d] || '0').replace(/[$,]/g, '')) || 0);
+          result = depVals.reduce((s, v) => s + v, 0);
+          breakdown = deps.map((d, i) => `${d}: $${depVals[i].toLocaleString('en-US', { minimumFractionDigits: 2 })}`).join(' + ');
+        }
+      }
+
+      // Travel computation: distance × visits × rate
+      if (formulaLower.includes('travel') || formulaLower.includes('mileage') || formulaLower.includes('distance')) {
+        // Look for provider visit data
+        const providerMatch = matches.find(m => m.field_id === 'providers' || m.field_id === 'provider_list');
+        if (providerMatch && Array.isArray(providerMatch.matched_value)) {
+          const rate = 0.40; // Georgia reimbursement rate
+          let totalTravel = 0;
+          const travelBreakdown = [];
+          for (const p of providerMatch.matched_value) {
+            const miles = parseFloat(p.round_trip_miles || p.distance || 0);
+            const visits = parseInt(p.visits || p.visit_count || 1);
+            const provTravel = miles * visits * rate;
+            totalTravel += provTravel;
+            if (miles > 0) {
+              travelBreakdown.push(`${p.name}: ${miles}mi x ${visits} visits x $${rate} = $${provTravel.toFixed(2)}`);
+            }
+          }
+          if (totalTravel > 0) {
+            result = totalTravel;
+            breakdown = travelBreakdown.join('\n');
+          }
+        }
+      }
+
+      computed.push({
+        variable_id: cv.variable_id,
+        display_name: cv.display_name,
+        status: result !== null ? 'computed' : 'needs_manual',
+        value: result !== null ? '$' + result.toLocaleString('en-US', { minimumFractionDigits: 2 }) : null,
+        raw_value: result,
+        formula: cv.formula,
+        breakdown,
+        depends_on: deps,
+      });
+    }
+
+    res.json({ computed });
+  } catch (err) {
+    console.error('FormFill compute-fields error:', err);
+    res.status(500).json({ error: 'Computation failed: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/formfill/generate-provenance-v2
+ * Provenance report adapted for Mode 2 (document generation)
+ * Shows old value → new value with source for each variable
+ */
+app.post('/api/formfill/generate-provenance-v2', express.json({ limit: '5mb' }), async (req, res) => {
+  try {
+    const { matches, variables, template_name, computed } = req.body;
+    if (!matches) return res.status(400).json({ error: 'matches array required' });
+
+    const matched = matches.filter(m => m.status === 'matched');
+    const missing = matches.filter(m => m.status === 'missing');
+    const avgConf = matched.length > 0 ? matched.reduce((s, m) => s + (m.confidence || 0), 0) / matched.length : 0;
+
+    const computedMap = {};
+    if (computed) {
+      for (const c of computed) computedMap[c.variable_id] = c;
+    }
+
+    function escHtml(s) {
+      return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DocGenerate Provenance Report — ${template_name || 'Document'}</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'DM Sans', sans-serif; background: #FAFAF9; color: #1A1A1A; margin: 0; padding: 40px; }
+  .container { max-width: 960px; margin: 0 auto; }
+  h1 { font-family: 'Instrument Serif', serif; font-size: 32px; font-weight: 400; margin-bottom: 8px; }
+  .subtitle { color: #71717A; font-size: 14px; margin-bottom: 32px; }
+  .summary { display: flex; gap: 16px; margin-bottom: 32px; flex-wrap: wrap; }
+  .stat { background: white; border: 1px solid #E5E5E3; border-radius: 12px; padding: 16px 20px; flex: 1; min-width: 140px; }
+  .stat .val { font-size: 24px; font-weight: 700; }
+  .stat .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #71717A; margin-top: 2px; }
+  table { width: 100%; border-collapse: collapse; background: white; border: 1px solid #E5E5E3; border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+  thead th { text-align: left; padding: 12px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #71717A; border-bottom: 2px solid #E5E5E3; background: #fafaf9; font-weight: 600; }
+  tbody td { padding: 10px 16px; border-bottom: 1px solid #f0f0ef; font-size: 13px; vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  .old-val { color: #991b1b; text-decoration: line-through; font-size: 12px; }
+  .new-val { color: #166534; font-weight: 600; }
+  .conf { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 11px; font-weight: 700; color: white; }
+  .conf-high { background: #16a34a; }
+  .conf-med { background: #d97706; }
+  .conf-low { background: #dc2626; }
+  .calc-badge { display: inline-block; padding: 1px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; background: #dbeafe; color: #1e40af; margin-left: 4px; }
+  .missing-row { background: #fefce8; }
+  .missing-row td { color: #92400e; }
+  .section-title { padding: 10px 16px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #E5E5E3; }
+  .section-matched { background: #f0fdf4; color: #166534; }
+  .section-missing { background: #fefce8; color: #92400e; }
+  .section-calc { background: #eff6ff; color: #1e40af; }
+  .snippet { font-size: 11px; font-style: italic; color: #71717A; margin-top: 4px; max-width: 250px; }
+  .calc-detail { font-size: 11px; color: #1e40af; margin-top: 4px; white-space: pre-line; }
+  .footer { text-align: center; padding: 24px; font-size: 11px; color: #71717A; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1>Provenance Report</h1>
+  <p class="subtitle">${template_name || 'Document'} &mdash; Generated ${new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+
+  <div class="summary">
+    <div class="stat"><div class="val">${matched.length} / ${matches.length}</div><div class="lbl">Variables Filled</div></div>
+    <div class="stat"><div class="val" style="color:${avgConf >= 0.85 ? '#16a34a' : avgConf >= 0.6 ? '#d97706' : '#dc2626'}">${Math.round(avgConf * 100)}%</div><div class="lbl">Avg Confidence</div></div>
+    <div class="stat"><div class="val">${missing.length}</div><div class="lbl">Not Matched</div></div>
+    <div class="stat"><div class="val">${computed ? computed.filter(c => c.status === 'computed').length : 0}</div><div class="lbl">Computed Fields</div></div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Variable</th>
+        <th>Old Value</th>
+        <th>New Value</th>
+        <th>Confidence</th>
+        <th>Source</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${matched.length > 0 ? '<tr><td colspan="5" class="section-title section-matched">Matched (' + matched.length + ')</td></tr>' : ''}
+      ${matched.map(m => {
+        const varDef = (variables || []).find(v => v.variable_id === m.field_id) || {};
+        const comp = computedMap[m.field_id];
+        const confClass = m.confidence >= 0.85 ? 'conf-high' : m.confidence >= 0.6 ? 'conf-med' : 'conf-low';
+        return `<tr>
+          <td><strong>${m.display_name || m.field_id}</strong>${comp ? '<span class="calc-badge">CALC</span>' : ''}</td>
+          <td><span class="old-val">${escHtml(String(varDef.current_value || m.old_value || '—'))}</span></td>
+          <td><span class="new-val">${escHtml(String(m.matched_value || ''))}</span>${comp && comp.breakdown ? '<div class="calc-detail">' + escHtml(comp.breakdown) + '</div>' : ''}</td>
+          <td><span class="conf ${confClass}">${Math.round((m.confidence || 0) * 100)}%</span></td>
+          <td>${m.source_file || '—'}${m.source_text ? '<div class="snippet">&ldquo;' + escHtml(String(m.source_text).substring(0, 200)) + '&rdquo;</div>' : ''}</td>
+        </tr>`;
+      }).join('')}
+      ${missing.length > 0 ? '<tr><td colspan="5" class="section-title section-missing">Not Matched (' + missing.length + ')</td></tr>' : ''}
+      ${missing.map(m => {
+        const varDef = (variables || []).find(v => v.variable_id === m.field_id) || {};
+        return `<tr class="missing-row">
+          <td><strong>${m.display_name || m.field_id}</strong></td>
+          <td>${escHtml(String(varDef.current_value || '—'))}</td>
+          <td><em>Not found in source documents</em></td>
+          <td>—</td>
+          <td>${varDef.source_hint || '—'}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>
+
+  <div class="footer">
+    Generated by Context Architecture &bull; FormFill DocGenerate
+  </div>
+</div>
+</body>
+</html>`;
+
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Disposition', 'attachment; filename="docgenerate-provenance.html"');
+    res.send(html);
+  } catch (err) {
+    console.error('FormFill provenance-v2 error:', err);
+    res.status(500).json({ error: 'Provenance report failed: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/formfill/rebuild-list
+ * AI-powered list section rebuild for diagnoses/providers
+ * Takes the original template section format + new data → generates formatted replacement
+ */
+app.post('/api/formfill/rebuild-list', express.json({ limit: '5mb' }), async (req, res) => {
+  try {
+    const { list_type, template_section, new_items } = req.body;
+    if (!list_type || !new_items) return res.status(400).json({ error: 'list_type and new_items required' });
+
+    const client = new Anthropic();
+    const prompt = list_type === 'diagnosis_list'
+      ? `Given this template format for a numbered medical diagnosis list in a legal demand letter:
+
+${template_section || 'A numbered list of diagnoses with ICD-10 codes in parentheses, one per line.'}
+
+Generate the same formatted section for these diagnoses extracted from source documents:
+${JSON.stringify(new_items, null, 2)}
+
+Match the exact formatting, numbering, and layout. Include ICD-10 codes in parentheses when available.
+Return ONLY the formatted text — no explanation.`
+      : `Given this template format for a medical provider billing section in a legal demand letter:
+
+${template_section || 'Provider name, service type, billing amount, with separator lines between providers.'}
+
+Generate the same formatted section for these providers extracted from source documents:
+${JSON.stringify(new_items, null, 2)}
+
+Match the exact formatting, layout, and structure. Include provider name, service description, visit counts/dates, and billing amounts.
+Return ONLY the formatted text — no explanation.`;
+
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 4096,
+      messages: [{ role: 'user', content: prompt }]
+    });
+
+    res.json({
+      formatted_text: message.content[0].text,
+      item_count: new_items.length,
+    });
+  } catch (err) {
+    console.error('FormFill rebuild-list error:', err);
+    res.status(500).json({ error: 'List rebuild failed: ' + err.message });
+  }
+});
+
 /**
  * POST /api/formfill/analyze-form
  * Upload a blank form → parse + generate field map via template generator
@@ -26451,7 +27458,7 @@ const FORMFILL_HTML = `<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>FormFill — Upload. Match. Fill.</title>
+<title>FormFill — Upload. Match. Fill. Generate.</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
 <style>
@@ -26973,6 +27980,212 @@ const FORMFILL_HTML = `<!DOCTYPE html>
   }
   .animate-row { animation: fadeInUp 0.3s ease forwards; opacity: 0; }
 
+  /* ── Mode 2: DocGenerate Additions ── */
+
+  /* Mode toggle */
+  .mode-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 24px;
+  }
+  .mode-toggle label {
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+  .mode-toggle label.active { color: var(--text); font-weight: 700; }
+  .mode-switch {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .mode-switch.on { background: var(--accent); }
+  .mode-switch::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    transition: transform 0.2s;
+  }
+  .mode-switch.on::after { transform: translateX(20px); }
+  .mode-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 99px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 8px;
+  }
+  .mode-badge.fill { background: #dbeafe; color: #1e40af; }
+  .mode-badge.generate { background: #d1fae5; color: #065f46; }
+
+  /* Category preview (Mode 2) */
+  .category-preview {
+    margin-top: 16px;
+    padding: 16px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  .category-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 13px;
+  }
+  .category-label {
+    font-weight: 700;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--accent);
+    min-width: 90px;
+    flex-shrink: 0;
+  }
+  .category-values {
+    color: var(--muted);
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .category-count {
+    font-weight: 600;
+    color: var(--text);
+    font-size: 12px;
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  /* Expandable card (lists, calculations) */
+  .expand-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin: 8px 0;
+    overflow: hidden;
+  }
+  .expand-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    transition: background 0.15s;
+  }
+  .expand-header:hover { background: #fafaf9; }
+  .expand-arrow {
+    font-size: 12px;
+    transition: transform 0.2s;
+    color: var(--muted);
+  }
+  .expand-card.open .expand-arrow { transform: rotate(90deg); }
+  .expand-body {
+    display: none;
+    padding: 0 16px 16px;
+    font-size: 13px;
+  }
+  .expand-card.open .expand-body { display: block; }
+  .list-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 6px 0;
+    border-bottom: 1px solid #f0f0ef;
+  }
+  .list-item:last-child { border-bottom: none; }
+  .list-item .item-num {
+    font-weight: 700;
+    color: var(--muted);
+    min-width: 20px;
+    font-size: 12px;
+  }
+  .list-item .item-value { flex: 1; }
+  .list-item .item-source {
+    font-size: 11px;
+    color: var(--muted);
+    font-style: italic;
+  }
+  .add-item-btn {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--accent);
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 4px 0;
+  }
+  .add-item-btn:hover { text-decoration: underline; }
+
+  /* Calculation preview */
+  .calc-card {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 8px 0;
+    font-size: 13px;
+  }
+  .calc-total {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1e40af;
+    margin-bottom: 8px;
+  }
+  .calc-line {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    color: #374151;
+  }
+  .calc-line.total-line {
+    border-top: 1px solid #93c5fd;
+    margin-top: 4px;
+    padding-top: 6px;
+    font-weight: 700;
+  }
+  .calc-badge-sm {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 600;
+    background: #dbeafe;
+    color: #1e40af;
+    margin-left: 4px;
+  }
+
+  /* Mode 2 results: old → new columns */
+  .results-table .old-value {
+    color: #991b1b;
+    text-decoration: line-through;
+    font-size: 13px;
+  }
+  .results-table .new-value {
+    color: #166534;
+    font-weight: 600;
+  }
+
   /* Mobile */
   @media (max-width: 640px) {
     .container { padding: 0 16px; }
@@ -26984,6 +28197,7 @@ const FORMFILL_HTML = `<!DOCTYPE html>
     .results-table td { padding: 10px; }
     .download-bar-inner { flex-direction: column; gap: 8px; }
     .dl-btn { width: 100%; text-align: center; }
+    .category-row { flex-wrap: wrap; }
   }
 </style>
 </head>
@@ -26991,24 +28205,30 @@ const FORMFILL_HTML = `<!DOCTYPE html>
 <div class="container">
   <header>
     <div class="logo">Context Architecture &bull; <span>FormFill</span></div>
-    <h1>Upload a form. Get it filled.</h1>
-    <p class="tagline">Drop your blank form and source documents. Every value filled. Every source cited.</p>
+    <h1 id="main-heading">Upload a form. Get it filled.</h1>
+    <p class="tagline" id="main-tagline">Drop your blank form and source documents. Every value filled. Every source cited.</p>
+    <div class="mode-toggle" id="mode-toggle">
+      <label id="mode-label-fill" class="active" onclick="setMode('fill')">Fill a Form</label>
+      <div class="mode-switch" id="mode-switch" onclick="toggleMode()"></div>
+      <label id="mode-label-gen" onclick="setMode('generate')">Generate a Document</label>
+    </div>
     <a href="#how" class="how-link">How it works &darr;</a>
   </header>
 
-  <!-- Step 1: Your Form -->
+  <!-- Step 1: Your Form / Template -->
   <div class="step" id="step1">
     <div class="step-header">
       <div class="step-num" id="step1-num">1</div>
-      <div class="step-title">Your Form</div>
+      <div class="step-title" id="step1-title">Your Form</div>
     </div>
     <div class="dropzone" id="form-dropzone">
       <div class="dropzone-icon">&#128196;</div>
-      <p class="dropzone-text">Drop your <strong>blank form</strong> here &mdash; PDF, DOCX, image, or text</p>
+      <p class="dropzone-text" id="dropzone1-text">Drop your <strong>blank form</strong> here &mdash; PDF, DOCX, image, or text</p>
       <input type="file" id="form-input" accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.jpg,.jpeg,.png,.gif,.webp">
     </div>
     <div id="form-status" style="display:none;"></div>
     <div id="form-fields" class="field-chips"></div>
+    <div id="category-preview" class="category-preview" style="display:none;"></div>
     <div id="form-error" class="error-msg"></div>
   </div>
 
@@ -27041,10 +28261,12 @@ const FORMFILL_HTML = `<!DOCTYPE html>
   <!-- Results -->
   <div class="results-section" id="results-section">
     <div class="summary-bar" id="summary-bar"></div>
+    <!-- Mode 2: Expandable list/calc cards -->
+    <div id="expand-cards" style="display:none;"></div>
     <div class="results-table-wrapper">
       <div class="section-label" id="matched-label"></div>
-      <table class="results-table">
-        <thead>
+      <table class="results-table" id="results-table">
+        <thead id="results-thead">
           <tr>
             <th>Field</th>
             <th>Value</th>
@@ -27087,16 +28309,22 @@ const FORMFILL_HTML = `<!DOCTYPE html>
 
 <!-- Download bar (sticky) -->
 <div class="download-bar" id="download-bar">
-  <div class="download-bar-inner">
-    <button class="dl-btn primary" id="dl-pdf" onclick="downloadPDF()">Download Filled PDF</button>
-    <button class="dl-btn secondary" id="dl-csv" onclick="downloadCSV()">Download CSV</button>
-    <button class="dl-btn tertiary" id="dl-prov" onclick="downloadProvenance()">Download Provenance Report</button>
+  <div class="download-bar-inner" id="download-bar-inner">
+    <!-- Mode 1 downloads -->
+    <button class="dl-btn primary mode1-dl" id="dl-pdf" onclick="downloadPDF()">Download Filled PDF</button>
+    <button class="dl-btn secondary mode1-dl" id="dl-csv" onclick="downloadCSV()">Download CSV</button>
+    <button class="dl-btn tertiary mode1-dl" id="dl-prov" onclick="downloadProvenance()">Download Provenance Report</button>
+    <!-- Mode 2 downloads (hidden by default) -->
+    <button class="dl-btn primary mode2-dl" id="dl-docx" onclick="downloadDOCX()" style="display:none;">Download DOCX</button>
+    <button class="dl-btn secondary mode2-dl" id="dl-redline" onclick="downloadRedline()" style="display:none;">Download Redline</button>
+    <button class="dl-btn secondary mode2-dl" id="dl-prov2" onclick="downloadProvenanceV2()" style="display:none;">Download Provenance Report</button>
   </div>
 </div>
 
 <script>
 (function() {
   // State
+  let currentMode = 'fill'; // 'fill' or 'generate'
   let formFields = [];
   let formName = '';
   let formTemplate = null;
@@ -27106,6 +28334,11 @@ const FORMFILL_HTML = `<!DOCTYPE html>
   let matchResults = null;
   let matchConflicts = [];
   let matchSummary = null;
+  // Mode 2 extras
+  let templateVariables = [];
+  let templateCategories = {};
+  let documentText = '';
+  let computedFields = [];
 
   // DOM
   const formDropzone = document.getElementById('form-dropzone');
@@ -27114,6 +28347,7 @@ const FORMFILL_HTML = `<!DOCTYPE html>
   const formFieldsEl = document.getElementById('form-fields');
   const formError = document.getElementById('form-error');
   const step1Num = document.getElementById('step1-num');
+  const categoryPreview = document.getElementById('category-preview');
 
   const docsDropzone = document.getElementById('docs-dropzone');
   const docsInput = document.getElementById('docs-input');
@@ -27133,8 +28367,11 @@ const FORMFILL_HTML = `<!DOCTYPE html>
   const matchedLabel = document.getElementById('matched-label');
   const resultsBody = document.getElementById('results-body');
   const downloadBar = document.getElementById('download-bar');
+  const expandCards = document.getElementById('expand-cards');
 
   // Utility
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
   function showError(el, msg, suggestion) {
     el.innerHTML = msg + (suggestion ? '<div class="suggestion">' + suggestion + '</div>' : '');
     el.classList.add('visible');
@@ -27142,14 +28379,48 @@ const FORMFILL_HTML = `<!DOCTYPE html>
   }
 
   function checkReady() {
-    if (formFields.length > 0 && entities.length > 0) {
-      fillBtn.disabled = false;
-      fillBtn.classList.add('ready');
-    } else {
-      fillBtn.disabled = true;
-      fillBtn.classList.remove('ready');
-    }
+    const ready = formFields.length > 0 && entities.length > 0;
+    fillBtn.disabled = !ready;
+    fillBtn.classList.toggle('ready', ready);
   }
+
+  // ── Mode switching ──
+  window.setMode = function(mode) {
+    currentMode = mode;
+    const sw = document.getElementById('mode-switch');
+    const lFill = document.getElementById('mode-label-fill');
+    const lGen = document.getElementById('mode-label-gen');
+    const heading = document.getElementById('main-heading');
+    const tagline = document.getElementById('main-tagline');
+    const step1Title = document.getElementById('step1-title');
+
+    if (mode === 'generate') {
+      sw.classList.add('on');
+      lFill.classList.remove('active');
+      lGen.classList.add('active');
+      heading.textContent = 'Upload a template. Generate a document.';
+      tagline.textContent = 'Drop your document template and source documents. Every variable filled. Every source cited.';
+      step1Title.innerHTML = 'Your Template <span class="mode-badge generate">GENERATE</span>';
+      fillBtn.textContent = 'Generate Document';
+      // Update dropzone text if not already uploaded
+      const dzt = document.getElementById('dropzone1-text');
+      if (dzt) dzt.innerHTML = 'Drop your <strong>document template</strong> here &mdash; demand letters, contracts, reports';
+    } else {
+      sw.classList.remove('on');
+      lFill.classList.add('active');
+      lGen.classList.remove('active');
+      heading.textContent = 'Upload a form. Get it filled.';
+      tagline.textContent = 'Drop your blank form and source documents. Every value filled. Every source cited.';
+      step1Title.innerHTML = 'Your Form <span class="mode-badge fill">FILL</span>';
+      fillBtn.textContent = 'Fill My Form';
+      const dzt = document.getElementById('dropzone1-text');
+      if (dzt) dzt.innerHTML = 'Drop your <strong>blank form</strong> here &mdash; PDF, DOCX, image, or text';
+    }
+  };
+
+  window.toggleMode = function() {
+    setMode(currentMode === 'fill' ? 'generate' : 'fill');
+  };
 
   // Drag & drop handlers
   function setupDropzone(zone, input) {
@@ -27167,66 +28438,125 @@ const FORMFILL_HTML = `<!DOCTYPE html>
   setupDropzone(formDropzone, formInput);
   setupDropzone(docsDropzone, docsInput);
 
-  // Step 1: Form upload
+  // Step 1: Form/Template upload
   formInput.addEventListener('change', async () => {
     const file = formInput.files[0];
     if (!file) return;
     formFile = file;
     formError.classList.remove('visible');
+    categoryPreview.style.display = 'none';
 
-    // Show analyzing state
     formDropzone.classList.add('uploaded');
-    formDropzone.innerHTML = '<div class="upload-status"><span class="check">&#8987;</span> Analyzing <strong>' + file.name + '</strong>...</div>';
+    formDropzone.innerHTML = '<div class="upload-status"><span class="check">&#8987;</span> Analyzing <strong>' + esc(file.name) + '</strong>...</div>';
 
     try {
+      // Auto-detect mode first
+      const detectFd = new FormData();
+      detectFd.append('form', file);
+      let detectedMode = currentMode;
+      try {
+        const detectResp = await fetch('/api/formfill/detect-mode', { method: 'POST', body: detectFd });
+        if (detectResp.ok) {
+          const detectData = await detectResp.json();
+          if (detectData.confidence >= 0.55) {
+            detectedMode = detectData.mode;
+            setMode(detectedMode);
+          }
+        }
+      } catch(e) { /* use manual mode selection */ }
+
       const fd = new FormData();
       fd.append('form', file);
-      const resp = await fetch('/api/formfill/analyze-form', { method: 'POST', body: fd });
-      if (!resp.ok) {
-        const err = await resp.json();
-        throw new Error(err.error || 'Analysis failed');
+
+      if (detectedMode === 'generate') {
+        // Mode 2: Template analysis
+        const resp = await fetch('/api/formfill/analyze-template', { method: 'POST', body: fd });
+        if (!resp.ok) {
+          const err = await resp.json();
+          throw new Error(err.error || 'Analysis failed');
+        }
+        const data = await resp.json();
+        formFields = data.fields || [];
+        formName = data.form_name || data.template_name || file.name;
+        templateVariables = data.variables || [];
+        templateCategories = data.categories || {};
+        documentText = data.document_text || '';
+
+        formDropzone.innerHTML = '<div class="upload-status"><span class="check">&#10003;</span> Found <strong>' + data.total_variables + ' variables</strong> across ' + Object.keys(templateCategories).length + ' categories in ' + esc(file.name) + '</div>' +
+          '<button class="change-link" onclick="document.getElementById(\\'form-input\\').value=\\'\\';document.getElementById(\\'form-input\\').click();">Change template</button>';
+
+        // Show category preview
+        let catHtml = '';
+        const catOrder = ['client','defendant','insurance','medical','financial','legal','firm'];
+        const displayedCats = catOrder.filter(c => templateCategories[c]);
+        // Add any categories not in the predefined order
+        for (const c of Object.keys(templateCategories)) {
+          if (!displayedCats.includes(c)) displayedCats.push(c);
+        }
+        for (const cat of displayedCats) {
+          const vars = templateCategories[cat] || [];
+          const preview = vars.slice(0, 3).map(v => v.current_value || v.display_name || v.variable_id).join(', ');
+          const remaining = vars.length > 3 ? ' +' + (vars.length - 3) + ' more' : '';
+          catHtml += '<div class="category-row">' +
+            '<span class="category-label">' + cat.toUpperCase() + '</span>' +
+            '<span class="category-values">' + esc(preview) + remaining + '</span>' +
+            '<span class="category-count">' + vars.length + '</span>' +
+            '</div>';
+        }
+        categoryPreview.innerHTML = catHtml;
+        categoryPreview.style.display = 'block';
+        formFieldsEl.innerHTML = '';
+
+      } else {
+        // Mode 1: Form analysis (original behavior)
+        const resp = await fetch('/api/formfill/analyze-form', { method: 'POST', body: fd });
+        if (!resp.ok) {
+          const err = await resp.json();
+          throw new Error(err.error || 'Analysis failed');
+        }
+        const data = await resp.json();
+        formFields = data.fields || [];
+        formName = data.form_name || file.name;
+        formTemplate = data.template;
+        templateVariables = [];
+        templateCategories = {};
+        documentText = '';
+
+        formDropzone.innerHTML = '<div class="upload-status"><span class="check">&#10003;</span> Found <strong>' + formFields.length + ' fields</strong> in ' + esc(file.name) + '</div>' +
+          '<button class="change-link" onclick="document.getElementById(\\'form-input\\').value=\\'\\';document.getElementById(\\'form-input\\').click();">Change form</button>';
+
+        formFieldsEl.innerHTML = formFields.slice(0, 20).map(f =>
+          '<span class="chip">' + esc(f.display_name || f.field_id) + '</span>'
+        ).join('') + (formFields.length > 20 ? '<span class="chip">+' + (formFields.length - 20) + ' more</span>' : '');
+        categoryPreview.style.display = 'none';
       }
-      const data = await resp.json();
-      formFields = data.fields || [];
-      formName = data.form_name || file.name;
-      formTemplate = data.template;
-
-      formDropzone.innerHTML = '<div class="upload-status"><span class="check">&#10003;</span> Found <strong>' + formFields.length + ' fields</strong> in ' + file.name + '</div>' +
-        '<button class="change-link" onclick="document.getElementById(\\'form-input\\').value=\\'\\';document.getElementById(\\'form-input\\').click();">Change form</button>';
-
-      // Show field chips
-      formFieldsEl.innerHTML = formFields.slice(0, 20).map(f =>
-        '<span class="chip">' + (f.display_name || f.field_id) + '</span>'
-      ).join('') + (formFields.length > 20 ? '<span class="chip">+' + (formFields.length - 20) + ' more</span>' : '');
 
       step1Num.textContent = '\\u2713';
       step1Num.classList.add('done');
       checkReady();
     } catch (err) {
       formDropzone.classList.remove('uploaded');
-      formDropzone.innerHTML = '<div class="dropzone-icon">&#128196;</div><p class="dropzone-text">Drop your <strong>blank form</strong> here</p><input type="file" id="form-input" accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.jpg,.jpeg,.png,.gif,.webp">';
+      formDropzone.innerHTML = '<div class="dropzone-icon">&#128196;</div><p class="dropzone-text" id="dropzone1-text">Drop your <strong>' + (currentMode === 'generate' ? 'document template' : 'blank form') + '</strong> here</p><input type="file" id="form-input" accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.jpg,.jpeg,.png,.gif,.webp">';
       document.getElementById('form-input').addEventListener('change', arguments.callee);
-      showError(formError, "We couldn't read this form.", "Try uploading a clearer PDF or a text version of the fields you need filled.");
+      showError(formError, "We couldn't read this file.", "Try uploading a clearer PDF, DOCX, or text version.");
     }
   });
 
-  // Step 2: Source documents upload
+  // Step 2: Source documents upload (same for both modes)
   docsInput.addEventListener('change', async () => {
     const files = docsInput.files;
     if (!files || files.length === 0) return;
     docsError.classList.remove('visible');
 
-    // Accumulate files
     for (const f of files) {
       if (!sourceFiles.find(sf => sf.name === f.name && sf.size === f.size)) {
         sourceFiles.push(f);
       }
     }
 
-    // Show uploading state
     docsDropzone.classList.add('uploaded');
     docsDropzone.innerHTML = '<div class="upload-status"><span class="check">&#8987;</span> Extracting data from <strong>' + sourceFiles.length + ' document' + (sourceFiles.length > 1 ? 's' : '') + '</strong>...</div>';
-    docsFileList.innerHTML = sourceFiles.map(f => '<div class="file-item"><span class="status-icon">&#8987;</span><span class="filename">' + f.name + '</span></div>').join('');
+    docsFileList.innerHTML = sourceFiles.map(f => '<div class="file-item"><span class="status-icon">&#8987;</span><span class="filename">' + esc(f.name) + '</span></div>').join('');
 
     try {
       const fd = new FormData();
@@ -27240,12 +28570,11 @@ const FORMFILL_HTML = `<!DOCTYPE html>
       entities = data.entities || [];
       const totalDP = data.summary?.total_data_points || 0;
 
-      // Update UI
       docsDropzone.innerHTML = '<div class="upload-status"><span class="check">&#10003;</span> <strong>' + totalDP + ' data points</strong> extracted from ' + sourceFiles.length + ' document' + (sourceFiles.length > 1 ? 's' : '') + '</div>' +
         '<button class="add-more-btn" onclick="document.getElementById(\\'docs-input\\').click();">+ Add more documents</button>';
 
       docsFileList.innerHTML = (data.files || []).map(f =>
-        '<div class="file-item"><span class="status-icon">' + (f.status === 'success' ? '&#10003;' : '&#10007;') + '</span><span class="filename">' + f.filename + '</span><span class="details"> &mdash; ' + (f.data_points || 0) + ' data points</span></div>'
+        '<div class="file-item"><span class="status-icon">' + (f.status === 'success' ? '&#10003;' : '&#10007;') + '</span><span class="filename">' + esc(f.filename) + '</span><span class="details"> &mdash; ' + (f.data_points || 0) + ' data points</span></div>'
       ).join('');
 
       docsCount.textContent = totalDP + ' data points from ' + sourceFiles.length + ' documents';
@@ -27256,11 +28585,11 @@ const FORMFILL_HTML = `<!DOCTYPE html>
     } catch (err) {
       docsDropzone.classList.remove('uploaded');
       docsDropzone.innerHTML = '<div class="dropzone-icon">&#128450;</div><p class="dropzone-text">Drop your <strong>source documents</strong></p><input type="file" id="docs-input" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.json">';
-      showError(docsError, "We couldn't find usable data in these documents.", "Make sure they contain the information needed for your form.");
+      showError(docsError, "We couldn't find usable data in these documents.", "Make sure they contain the information needed.");
     }
   });
 
-  // Step 3: Fill
+  // Step 3: Fill / Generate
   fillBtn.addEventListener('click', async () => {
     if (formFields.length === 0 || entities.length === 0) return;
 
@@ -27269,7 +28598,8 @@ const FORMFILL_HTML = `<!DOCTYPE html>
     fillBtn.classList.add('processing');
     fillBtn.textContent = 'Matching...';
     progressText.style.display = 'block';
-    progressText.textContent = 'Matching ' + formFields.length + ' fields against ' + entities.reduce((s, e) => s + (e.attributes?.length || 0), 0) + ' data points...';
+    const dpCount = entities.reduce((s, e) => s + (e.attributes?.length || 0), 0);
+    progressText.textContent = 'Matching ' + formFields.length + (currentMode === 'generate' ? ' variables' : ' fields') + ' against ' + dpCount + ' data points...';
     progressBarContainer.classList.add('active');
     progressBar.style.width = '30%';
     matchError.classList.remove('visible');
@@ -27281,7 +28611,7 @@ const FORMFILL_HTML = `<!DOCTYPE html>
         body: JSON.stringify({ form_fields: formFields, entities }),
       });
 
-      progressBar.style.width = '80%';
+      progressBar.style.width = '60%';
 
       if (!resp.ok) {
         const err = await resp.json();
@@ -27293,17 +28623,61 @@ const FORMFILL_HTML = `<!DOCTYPE html>
       matchConflicts = data.conflicts || [];
       matchSummary = data.summary || {};
 
+      // For Mode 2: attach old values from template variables
+      if (currentMode === 'generate') {
+        for (const m of matchResults) {
+          const varDef = templateVariables.find(v => v.variable_id === m.field_id);
+          if (varDef) {
+            m.old_value = varDef.current_value || '';
+            m.variable_type = varDef.variable_type;
+            m.category = varDef.category;
+            m.formula = varDef.formula;
+            m.depends_on = varDef.depends_on;
+          }
+        }
+
+        // Compute calculated fields
+        progressBar.style.width = '80%';
+        progressText.textContent = 'Computing calculated fields...';
+        try {
+          const compResp = await fetch('/api/formfill/compute-fields', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ variables: templateVariables, matches: matchResults }),
+          });
+          if (compResp.ok) {
+            const compData = await compResp.json();
+            computedFields = compData.computed || [];
+            // Merge computed values into match results
+            for (const cf of computedFields) {
+              if (cf.status === 'computed' && cf.value) {
+                const m = matchResults.find(r => r.field_id === cf.variable_id);
+                if (m) {
+                  m.matched_value = cf.value;
+                  m.status = 'matched';
+                  m.match_method = 'calculated';
+                  m.source_file = '[computed]';
+                  m.source_text = cf.breakdown || cf.formula;
+                  m.confidence = 0.95;
+                  m.computation = cf.breakdown;
+                }
+              }
+            }
+          }
+        } catch(e) { /* computed fields are optional */ }
+      }
+
       progressBar.style.width = '100%';
       setTimeout(() => {
         progressText.style.display = 'none';
         progressBarContainer.classList.remove('active');
-        fillBtn.textContent = 'Matched!';
+        fillBtn.textContent = currentMode === 'generate' ? 'Generated!' : 'Matched!';
         renderResults();
       }, 400);
     } catch (err) {
       progressText.style.display = 'none';
       progressBarContainer.classList.remove('active');
-      fillBtn.textContent = 'Fill My Form';
+      fillBtn.textContent = currentMode === 'generate' ? 'Generate Document' : 'Fill My Form';
       fillBtn.disabled = false;
       fillBtn.classList.remove('processing');
       showError(matchError, "Matching failed.", err.message || "Please try again.");
@@ -27313,17 +28687,39 @@ const FORMFILL_HTML = `<!DOCTYPE html>
   function renderResults() {
     if (!matchResults) return;
 
-    // Summary
     const matched = matchResults.filter(m => m.status === 'matched');
     const missing = matchResults.filter(m => m.status === 'missing');
     const avgConf = matched.length > 0 ? (matched.reduce((s, m) => s + m.confidence, 0) / matched.length) : 0;
 
+    // Summary bar
     summaryBar.innerHTML =
-      '<div class="summary-stat"><div class="value">' + matched.length + ' / ' + matchResults.length + '</div><div class="label">Fields Filled</div></div>' +
+      '<div class="summary-stat"><div class="value">' + matched.length + ' / ' + matchResults.length + '</div><div class="label">' + (currentMode === 'generate' ? 'Variables Filled' : 'Fields Filled') + '</div></div>' +
       '<div class="summary-stat"><div class="value" style="color:' + (avgConf >= 0.85 ? 'var(--green)' : avgConf >= 0.6 ? 'var(--amber)' : 'var(--red)') + '">' + Math.round(avgConf * 100) + '%</div><div class="label">Avg Confidence</div></div>' +
       '<div class="summary-stat"><div class="value">' + missing.length + '</div><div class="label">Need Your Input</div></div>';
 
-    // Table
+    if (currentMode === 'generate') {
+      renderMode2Results(matched, missing);
+    } else {
+      renderMode1Results(matched, missing);
+    }
+
+    resultsSection.classList.add('visible');
+    downloadBar.classList.add('visible');
+
+    // Toggle download buttons
+    document.querySelectorAll('.mode1-dl').forEach(el => el.style.display = currentMode === 'fill' ? '' : 'none');
+    document.querySelectorAll('.mode2-dl').forEach(el => el.style.display = currentMode === 'generate' ? '' : 'none');
+
+    setTimeout(() => {
+      resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
+  }
+
+  // ── Mode 1 results (original) ──
+  function renderMode1Results(matched, missing) {
+    expandCards.style.display = 'none';
+    document.getElementById('results-thead').innerHTML = '<tr><th>Field</th><th>Value</th><th>Confidence</th><th>Source</th><th style="width:80px;">Actions</th></tr>';
+
     let html = '';
     if (matched.length > 0) {
       html += '<tr><td colspan="5" class="section-label" style="padding:8px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);background:#f0fdf4;border-bottom:1px solid var(--border);">Matched (' + matched.length + ')</td></tr>';
@@ -27332,38 +28728,111 @@ const FORMFILL_HTML = `<!DOCTYPE html>
         const confText = m.confidence >= 0.85 ? 'High' : m.confidence >= 0.6 ? 'Medium' : 'Low';
         const snippetId = 'snippet-' + i;
         html += '<tr class="animate-row" style="animation-delay:' + (i * 50) + 'ms;">' +
-          '<td class="field-name">' + (m.display_name || m.field_id) + '</td>' +
-          '<td class="field-value">' + (m.matched_value || '') + '</td>' +
+          '<td class="field-name">' + esc(m.display_name || m.field_id) + '</td>' +
+          '<td class="field-value">' + esc(m.matched_value || '') + '</td>' +
           '<td><span class="conf-badge ' + confClass + '">' + Math.round(m.confidence * 100) + '% ' + confText + '</span></td>' +
           '<td>' + (m.source_file && m.source_file !== 'NOT FOUND' ?
-            '<button class="source-link" onclick="document.getElementById(\\'' + snippetId + '\\').classList.toggle(\\'open\\')">' + m.source_file + '</button>' +
-            '<div class="source-snippet" id="' + snippetId + '">&ldquo;' + (m.source_text || '').substring(0, 200).replace(/</g, '&lt;') + '&rdquo;</div>' : '&mdash;') +
+            '<button class="source-link" onclick="document.getElementById(\\'' + snippetId + '\\').classList.toggle(\\'open\\')">' + esc(m.source_file) + '</button>' +
+            '<div class="source-snippet" id="' + snippetId + '">&ldquo;' + esc((m.source_text || '').substring(0, 200)) + '&rdquo;</div>' : '&mdash;') +
           '</td>' +
           '<td><button class="edit-btn" onclick="this.closest(\\'tr\\').querySelector(\\'.field-value\\').contentEditable=true;this.closest(\\'tr\\').querySelector(\\'.field-value\\').focus();">Edit</button></td>' +
           '</tr>';
       });
     }
-
     if (missing.length > 0) {
       html += '<tr><td colspan="5" class="section-label" style="padding:8px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#92400e;background:#fefce8;border-bottom:1px solid var(--border);">Needs Input (' + missing.length + ')</td></tr>';
       missing.forEach((m, i) => {
         html += '<tr class="missing-row animate-row" style="animation-delay:' + ((matched.length + i) * 50) + 'ms;">' +
-          '<td class="field-name">' + (m.display_name || m.field_id) + '</td>' +
+          '<td class="field-name">' + esc(m.display_name || m.field_id) + '</td>' +
           '<td><input class="manual-input" placeholder="Enter value..." data-field-id="' + m.field_id + '"></td>' +
           '<td>&mdash;</td><td>&mdash;</td>' +
           '<td><button class="confirm-btn" onclick="manualFill(this)">Save</button></td>' +
           '</tr>';
       });
     }
+    resultsBody.innerHTML = html;
+  }
+
+  // ── Mode 2 results (old → new with categories) ──
+  function renderMode2Results(matched, missing) {
+    // Update table headers for Mode 2
+    document.getElementById('results-thead').innerHTML = '<tr><th>Variable</th><th>Template Value</th><th>New Value</th><th>Confidence</th><th>Source</th></tr>';
+
+    // Build expandable cards for list/calc types
+    let cardsHtml = '';
+
+    // Calculation cards
+    const calcMatches = matched.filter(m => m.match_method === 'calculated' || m.variable_type === 'calculated');
+    if (calcMatches.length > 0) {
+      for (const cm of calcMatches) {
+        cardsHtml += '<div class="calc-card">' +
+          '<div style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.3px;color:#1e40af;margin-bottom:4px;">' + esc(cm.display_name || cm.field_id) + ' <span class="calc-badge-sm">CALC</span></div>' +
+          '<div class="calc-total">' + esc(cm.matched_value || '') + '</div>' +
+          (cm.computation ? '<div style="font-size:12px;color:#374151;white-space:pre-line;">' + esc(cm.computation) + '</div>' : '') +
+          (cm.formula ? '<div style="font-size:11px;color:#6b7280;margin-top:4px;font-style:italic;">Formula: ' + esc(cm.formula) + '</div>' : '') +
+          '</div>';
+      }
+    }
+
+    // List variable cards
+    const listMatches = matched.filter(m => m.variable_type === 'diagnosis_list' || m.variable_type === 'provider_list');
+    for (const lm of listMatches) {
+      const items = Array.isArray(lm.matched_value) ? lm.matched_value : [];
+      const itemCount = items.length || '?';
+      cardsHtml += '<div class="expand-card" onclick="this.classList.toggle(\\'open\\')">' +
+        '<div class="expand-header"><span class="expand-arrow">&#9654;</span> ' + esc(lm.display_name || lm.field_id) + ' (' + itemCount + ' items)' +
+        ' <span class="conf-badge ' + (lm.confidence >= 0.85 ? 'conf-high' : 'conf-med') + '" style="margin-left:auto;font-size:10px;">' + Math.round(lm.confidence * 100) + '%</span></div>' +
+        '<div class="expand-body">' +
+        items.map((item, idx) => {
+          const val = typeof item === 'string' ? item : (item.name || item.diagnosis || JSON.stringify(item));
+          const src = item.source_file || lm.source_file || '';
+          const amt = item.amount ? ' — $' + parseFloat(item.amount).toLocaleString('en-US', {minimumFractionDigits:2}) : '';
+          return '<div class="list-item"><span class="item-num">' + (idx+1) + '.</span><span class="item-value">' + esc(val) + amt + '</span>' +
+            (src ? '<span class="item-source">' + esc(src) + '</span>' : '') + '</div>';
+        }).join('') +
+        '</div></div>';
+    }
+
+    expandCards.innerHTML = cardsHtml;
+    expandCards.style.display = cardsHtml ? 'block' : 'none';
+
+    // Table rows — non-list, non-calc matched variables
+    const tableMatched = matched.filter(m => m.match_method !== 'calculated' && m.variable_type !== 'calculated' && m.variable_type !== 'diagnosis_list' && m.variable_type !== 'provider_list');
+
+    let html = '';
+    if (tableMatched.length > 0) {
+      html += '<tr><td colspan="5" class="section-label" style="padding:8px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);background:#f0fdf4;border-bottom:1px solid var(--border);">Matched (' + tableMatched.length + ')</td></tr>';
+      tableMatched.forEach((m, i) => {
+        const confClass = m.confidence >= 0.85 ? 'conf-high' : m.confidence >= 0.6 ? 'conf-med' : 'conf-low';
+        const snippetId = 'snippet2-' + i;
+        const catBadge = m.category ? '<span style="font-size:10px;color:var(--accent);font-weight:600;text-transform:uppercase;display:block;">' + m.category + '</span>' : '';
+        html += '<tr class="animate-row" style="animation-delay:' + (i * 40) + 'ms;">' +
+          '<td class="field-name">' + catBadge + esc(m.display_name || m.field_id) + '</td>' +
+          '<td class="old-value">' + esc(m.old_value || '—') + '</td>' +
+          '<td class="new-value field-value" contenteditable="false">' + esc(m.matched_value || '') + '</td>' +
+          '<td><span class="conf-badge ' + confClass + '">' + Math.round(m.confidence * 100) + '%</span></td>' +
+          '<td>' + (m.source_file && m.source_file !== 'NOT FOUND' ?
+            '<button class="source-link" onclick="event.stopPropagation();document.getElementById(\\'' + snippetId + '\\').classList.toggle(\\'open\\')">' + esc(m.source_file) + '</button>' +
+            '<div class="source-snippet" id="' + snippetId + '">&ldquo;' + esc((m.source_text || '').substring(0, 200)) + '&rdquo;</div>' : '&mdash;') +
+          '</td></tr>';
+      });
+    }
+
+    if (missing.length > 0) {
+      html += '<tr><td colspan="5" class="section-label" style="padding:8px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#92400e;background:#fefce8;border-bottom:1px solid var(--border);">Needs Input (' + missing.length + ')</td></tr>';
+      missing.forEach((m, i) => {
+        const oldVal = m.old_value || '';
+        html += '<tr class="missing-row animate-row" style="animation-delay:' + ((tableMatched.length + i) * 40) + 'ms;">' +
+          '<td class="field-name">' + esc(m.display_name || m.field_id) + '</td>' +
+          '<td class="old-value">' + esc(oldVal || '—') + '</td>' +
+          '<td><input class="manual-input" placeholder="Enter value..." data-field-id="' + m.field_id + '" value=""></td>' +
+          '<td>&mdash;</td>' +
+          '<td><button class="confirm-btn" onclick="manualFill(this)">Save</button></td>' +
+          '</tr>';
+      });
+    }
 
     resultsBody.innerHTML = html;
-    resultsSection.classList.add('visible');
-    downloadBar.classList.add('visible');
-
-    // Scroll to results
-    setTimeout(() => {
-      resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 200);
   }
 
   window.manualFill = function(btn) {
@@ -27373,7 +28842,6 @@ const FORMFILL_HTML = `<!DOCTYPE html>
     const value = input.value.trim();
     if (!value) return;
 
-    // Update match results
     const match = matchResults.find(m => m.field_id === fieldId);
     if (match) {
       match.matched_value = value;
@@ -27384,15 +28852,24 @@ const FORMFILL_HTML = `<!DOCTYPE html>
     }
 
     row.classList.remove('missing-row');
-    row.innerHTML =
-      '<td class="field-name">' + (match?.display_name || fieldId) + '</td>' +
-      '<td class="field-value">' + value + '</td>' +
-      '<td><span class="conf-badge conf-high">Manual</span></td>' +
-      '<td>Manual Entry</td>' +
-      '<td><button class="edit-btn" onclick="this.closest(\\'tr\\').querySelector(\\'.field-value\\').contentEditable=true;this.closest(\\'tr\\').querySelector(\\'.field-value\\').focus();">Edit</button></td>';
+    if (currentMode === 'generate') {
+      row.innerHTML =
+        '<td class="field-name">' + esc(match?.display_name || fieldId) + '</td>' +
+        '<td class="old-value">' + esc(match?.old_value || '—') + '</td>' +
+        '<td class="new-value">' + esc(value) + '</td>' +
+        '<td><span class="conf-badge conf-high">Manual</span></td>' +
+        '<td>Manual Entry</td>';
+    } else {
+      row.innerHTML =
+        '<td class="field-name">' + esc(match?.display_name || fieldId) + '</td>' +
+        '<td class="field-value">' + esc(value) + '</td>' +
+        '<td><span class="conf-badge conf-high">Manual</span></td>' +
+        '<td>Manual Entry</td>' +
+        '<td><button class="edit-btn" onclick="this.closest(\\'tr\\').querySelector(\\'.field-value\\').contentEditable=true;this.closest(\\'tr\\').querySelector(\\'.field-value\\').focus();">Edit</button></td>';
+    }
   };
 
-  // Downloads
+  // ── Downloads: Mode 1 ──
   window.downloadPDF = async function() {
     if (!matchResults || !formFile) return;
     const fd = new FormData();
@@ -27439,6 +28916,66 @@ const FORMFILL_HTML = `<!DOCTYPE html>
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url; a.download = 'formfill-provenance-' + (formName || 'report') + '.html';
+      a.click(); URL.revokeObjectURL(url);
+    } catch (e) { alert('Provenance report failed: ' + e.message); }
+  };
+
+  // ── Downloads: Mode 2 ──
+  window.downloadDOCX = async function() {
+    if (!matchResults || !formFile) return;
+    const fd = new FormData();
+    fd.append('template', formFile);
+    fd.append('matches', JSON.stringify(matchResults));
+    fd.append('variables', JSON.stringify(templateVariables));
+    fd.append('document_text', documentText);
+    fd.append('template_name', formName);
+    try {
+      const resp = await fetch('/api/formfill/generate-docx', { method: 'POST', body: fd });
+      if (!resp.ok) throw new Error('DOCX generation failed');
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'generated-' + (formName || 'document').replace(/[^a-zA-Z0-9_\\-]/g, '_') + '.docx';
+      a.click(); URL.revokeObjectURL(url);
+    } catch (e) { alert('DOCX download failed: ' + e.message); }
+  };
+
+  window.downloadRedline = async function() {
+    if (!matchResults || !formFile) return;
+    const fd = new FormData();
+    fd.append('template', formFile);
+    fd.append('matches', JSON.stringify(matchResults));
+    fd.append('variables', JSON.stringify(templateVariables));
+    fd.append('template_name', formName);
+    try {
+      const resp = await fetch('/api/formfill/generate-redline', { method: 'POST', body: fd });
+      if (!resp.ok) throw new Error('Redline generation failed');
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'redline-' + (formName || 'document').replace(/[^a-zA-Z0-9_\\-]/g, '_') + '.docx';
+      a.click(); URL.revokeObjectURL(url);
+    } catch (e) { alert('Redline download failed: ' + e.message); }
+  };
+
+  window.downloadProvenanceV2 = async function() {
+    if (!matchResults) return;
+    try {
+      const resp = await fetch('/api/formfill/generate-provenance-v2', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          matches: matchResults,
+          variables: templateVariables,
+          template_name: formName,
+          computed: computedFields,
+        }),
+      });
+      if (!resp.ok) throw new Error('Report generation failed');
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'docgenerate-provenance-' + (formName || 'report') + '.html';
       a.click(); URL.revokeObjectURL(url);
     } catch (e) { alert('Provenance report failed: ' + e.message); }
   };
