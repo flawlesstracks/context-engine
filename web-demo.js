@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const path = require('path');
 const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk').default;
-const { merge, normalizeRelationshipType } = require('./merge-engine');
+const { merge, normalizeRelationshipType, similarity: diceSimilarity } = require('./merge-engine');
 const multer = require('multer');
 const cookieParser = require('cookie-parser');
 const { readEntity, writeEntity, listEntities, listEntitiesByType, getNextCounter, loadConnectedObjects, deleteEntity, getSelfEntityId, isSelfEntity } = require('./src/graph-ops');
@@ -25577,6 +25577,1882 @@ async function handleMcpRequest(req, res) {
   }
 }
 
+// ╔══════════════════════════════════════════════════════════════════════════════╗
+// ║  FORMFILL — Builds 19-21                                                   ║
+// ║  Upload a blank form. Upload source docs. Get it filled — with receipts.   ║
+// ╚══════════════════════════════════════════════════════════════════════════════╝
+
+// --- Build 19: Form Field Matching Engine ---
+
+const formfillUpload = multer({ storage: multer.memoryStorage(), limits: { files: 20, fileSize: 50 * 1024 * 1024 } });
+
+/**
+ * Three-tier matching: Direct field mapping → Entity-type inference → AI-assisted
+ * POST /api/formfill/match
+ * Body: { form_fields: [...], entities: [...] }
+ * Returns: { matches: [...], summary: {...} }
+ */
+app.post('/api/formfill/match', express.json({ limit: '10mb' }), async (req, res) => {
+  try {
+    const { form_fields, entities } = req.body;
+    if (!form_fields || !Array.isArray(form_fields) || form_fields.length === 0) {
+      return res.status(400).json({ error: 'form_fields array is required' });
+    }
+    if (!entities || !Array.isArray(entities) || entities.length === 0) {
+      return res.status(400).json({ error: 'entities array is required' });
+    }
+
+    // Flatten all observations/attributes from all entities into a flat pool
+    const dataPool = [];
+    for (const entity of entities) {
+      const eName = entity.entity?.name?.full || entity.entity?.name?.preferred || entity.name || 'Unknown';
+      const eType = entity.entity?.entity_type || entity.entity_type || 'unknown';
+      const sourceFile = entity.extraction_metadata?.source_description
+        || entity.provenance_chain?.source_documents?.[0]?.source || 'unknown';
+
+      // Attributes
+      for (const attr of (entity.attributes || [])) {
+        dataPool.push({
+          id: attr.attribute_id || `attr-${dataPool.length}`,
+          key: attr.key || '',
+          value: attr.value || '',
+          confidence: attr.confidence || 0.6,
+          entity_name: eName,
+          entity_type: eType,
+          source_file: sourceFile,
+          source_text: attr.provenance?.snippet || '',
+          type: 'attribute',
+        });
+      }
+
+      // Observations
+      for (const obs of (entity.observations || [])) {
+        dataPool.push({
+          id: `obs-${dataPool.length}`,
+          key: obs.observation?.substring(0, 50) || '',
+          value: obs.observation || '',
+          confidence: obs.confidence || 0.6,
+          entity_name: eName,
+          entity_type: eType,
+          source_file: obs.source || sourceFile,
+          source_text: obs.observation || '',
+          type: 'observation',
+        });
+      }
+
+      // Also add entity-level fields (name, summary)
+      if (entity.entity?.name?.full) {
+        dataPool.push({
+          id: `name-${dataPool.length}`,
+          key: 'name',
+          value: entity.entity.name.full,
+          confidence: entity.entity.name.confidence || 0.9,
+          entity_name: eName,
+          entity_type: eType,
+          source_file: sourceFile,
+          source_text: `Entity name: ${entity.entity.name.full}`,
+          type: 'entity_field',
+        });
+      }
+    }
+
+    const matches = [];
+    const usedDataIds = new Set();
+    const unmatchedFields = [];
+
+    // --- TIER 1: Direct field mapping (exact + fuzzy on field_id/display_name vs attribute key) ---
+    for (const field of form_fields) {
+      const fieldId = (field.field_id || '').toLowerCase().replace(/[^a-z0-9]/g, '_');
+      const displayName = (field.display_name || '').toLowerCase();
+      // Also strip prefixes like "form_8594." from field_id for matching
+      const shortFieldId = fieldId.includes('.') ? fieldId.split('.').pop() : fieldId;
+
+      let bestMatch = null;
+      let bestScore = 0;
+
+      for (const dp of dataPool) {
+        if (usedDataIds.has(dp.id)) continue;
+        const dpKey = (dp.key || '').toLowerCase().replace(/[^a-z0-9]/g, '_');
+
+        // Exact match on key
+        if (dpKey === shortFieldId || dpKey === fieldId) {
+          const score = dp.confidence;
+          if (score > bestScore) { bestScore = score; bestMatch = { ...dp, match_method: 'direct_exact' }; }
+        }
+
+        // Fuzzy match (Dice coefficient) on key vs field_id and display_name
+        const sim1 = diceSimilarity(dpKey, shortFieldId);
+        const sim2 = diceSimilarity(dpKey, displayName);
+        const sim3 = diceSimilarity(dp.key || '', field.display_name || '');
+        const bestSim = Math.max(sim1, sim2, sim3);
+
+        if (bestSim >= 0.7 && dp.confidence * bestSim > bestScore) {
+          bestScore = dp.confidence * bestSim;
+          bestMatch = { ...dp, match_method: 'direct_fuzzy', fuzzy_score: bestSim };
+        }
+      }
+
+      if (bestMatch && bestScore >= 0.4) {
+        usedDataIds.add(bestMatch.id);
+        matches.push({
+          field_id: field.field_id,
+          display_name: field.display_name,
+          matched_value: bestMatch.value,
+          confidence: Math.round(bestScore * 100) / 100,
+          source_file: bestMatch.source_file,
+          source_text: bestMatch.source_text,
+          match_method: bestMatch.match_method,
+          entity_name: bestMatch.entity_name,
+          status: 'matched',
+        });
+      } else {
+        unmatchedFields.push(field);
+      }
+    }
+
+    // --- TIER 2: Entity-type + field-type inference ---
+    const stillUnmatched = [];
+    for (const field of unmatchedFields) {
+      const fEntityType = (field.entity_type || '').toLowerCase();
+      const fFieldType = (field.field_type || '').toLowerCase();
+
+      let bestMatch = null;
+      let bestScore = 0;
+
+      for (const dp of dataPool) {
+        if (usedDataIds.has(dp.id)) continue;
+
+        // Entity type match
+        const typeMatch = fEntityType && dp.entity_type.toLowerCase().includes(fEntityType);
+        if (!typeMatch && fEntityType) continue;
+
+        // Field-type pattern matching
+        let patternScore = 0;
+        const val = dp.value || '';
+
+        if (fFieldType === 'ein' && /^\d{2}-?\d{7}$/.test(val.replace(/\s/g, ''))) {
+          patternScore = 0.9;
+        } else if (fFieldType === 'ssn' && /^\d{3}-?\d{2}-?\d{4}$/.test(val.replace(/\s/g, ''))) {
+          patternScore = 0.9;
+        } else if (fFieldType === 'date' && /\d{1,4}[\/-]\d{1,2}[\/-]\d{1,4}/.test(val)) {
+          patternScore = 0.8;
+        } else if (fFieldType === 'currency' && /^\$?[\d,.]+$/.test(val.replace(/\s/g, ''))) {
+          patternScore = 0.8;
+        } else if (fFieldType === 'phone' && /[\d\(\)\-\+\s]{7,}/.test(val)) {
+          patternScore = 0.7;
+        } else if (fFieldType === 'email' && /\S+@\S+\.\S+/.test(val)) {
+          patternScore = 0.9;
+        } else if (fFieldType === 'address' && val.length > 10 && /\d/.test(val) && /[a-zA-Z]/.test(val)) {
+          patternScore = 0.6;
+        } else if (typeMatch) {
+          // If entity type matches but no field-type pattern, use weaker fuzzy on display_name vs key
+          const sim = diceSimilarity(field.display_name || '', dp.key || '');
+          if (sim >= 0.4) patternScore = sim * 0.6;
+        }
+
+        if (patternScore > 0) {
+          const score = dp.confidence * 0.85 * patternScore; // Tier 2 penalty
+          if (score > bestScore) {
+            bestScore = score;
+            bestMatch = { ...dp, match_method: 'inferred', pattern_score: patternScore };
+          }
+        }
+      }
+
+      if (bestMatch && bestScore >= 0.3) {
+        usedDataIds.add(bestMatch.id);
+        matches.push({
+          field_id: field.field_id,
+          display_name: field.display_name,
+          matched_value: bestMatch.value,
+          confidence: Math.round(bestScore * 100) / 100,
+          source_file: bestMatch.source_file,
+          source_text: bestMatch.source_text,
+          match_method: 'inferred',
+          entity_name: bestMatch.entity_name,
+          status: 'matched',
+        });
+      } else {
+        stillUnmatched.push(field);
+      }
+    }
+
+    // --- TIER 3: AI-assisted matching ---
+    if (stillUnmatched.length > 0) {
+      const unusedData = dataPool.filter(dp => !usedDataIds.has(dp.id));
+
+      if (unusedData.length > 0) {
+        try {
+          const client = new Anthropic();
+          const aiPrompt = `Given these unmatched form fields:
+${stillUnmatched.map(f => `- ${f.field_id}: "${f.display_name}" (type: ${f.field_type || 'text'}, entity_type: ${f.entity_type || 'any'}, hint: ${f.source_hint || 'none'})`).join('\n')}
+
+And these available extracted data points:
+${unusedData.slice(0, 50).map(d => `- [${d.id}] ${d.key}: "${String(d.value).substring(0, 200)}" (from ${d.entity_name}, confidence: ${d.confidence}, source: ${d.source_file})`).join('\n')}
+
+Match each form field to the most appropriate data point.
+For each match, explain your reasoning in one sentence.
+Return ONLY valid JSON array: [{ "field_id": "...", "matched_data_id": "...", "confidence": 0.0-1.0, "reasoning": "..." }]
+Only return matches you are confident about. Leave unmatched fields out.
+No commentary, no markdown fences. ONLY valid JSON array.`;
+
+          const message = await client.messages.create({
+            model: 'claude-sonnet-4-5-20250929',
+            max_tokens: 4096,
+            messages: [{ role: 'user', content: aiPrompt }],
+          });
+
+          let aiRaw = message.content[0].text.trim();
+          aiRaw = aiRaw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+          const firstBracket = aiRaw.indexOf('[');
+          const lastBracket = aiRaw.lastIndexOf(']');
+          if (firstBracket >= 0 && lastBracket > firstBracket) {
+            aiRaw = aiRaw.substring(firstBracket, lastBracket + 1);
+          }
+
+          const aiMatches = JSON.parse(aiRaw);
+          const aiMatchedFieldIds = new Set();
+
+          for (const am of aiMatches) {
+            const dp = unusedData.find(d => d.id === am.matched_data_id);
+            if (!dp || usedDataIds.has(dp.id)) continue;
+
+            const conf = Math.round((am.confidence || 0.5) * 0.8 * 100) / 100; // AI penalty
+            usedDataIds.add(dp.id);
+            aiMatchedFieldIds.add(am.field_id);
+
+            matches.push({
+              field_id: am.field_id,
+              display_name: stillUnmatched.find(f => f.field_id === am.field_id)?.display_name || am.field_id,
+              matched_value: dp.value,
+              confidence: conf,
+              source_file: dp.source_file,
+              source_text: dp.source_text,
+              match_method: 'ai_assisted',
+              ai_reasoning: am.reasoning || '',
+              entity_name: dp.entity_name,
+              status: 'matched',
+            });
+          }
+
+          // Fields that AI couldn't match either
+          for (const f of stillUnmatched) {
+            if (!aiMatchedFieldIds.has(f.field_id)) {
+              matches.push({
+                field_id: f.field_id,
+                display_name: f.display_name,
+                matched_value: null,
+                confidence: 0,
+                source_file: 'NOT FOUND',
+                source_text: '',
+                match_method: 'none',
+                status: 'missing',
+              });
+            }
+          }
+        } catch (aiErr) {
+          console.error('FormFill AI matching error:', aiErr.message);
+          // Fall through — mark all remaining as missing
+          for (const f of stillUnmatched) {
+            matches.push({
+              field_id: f.field_id,
+              display_name: f.display_name,
+              matched_value: null,
+              confidence: 0,
+              source_file: 'NOT FOUND',
+              source_text: '',
+              match_method: 'none',
+              status: 'missing',
+            });
+          }
+        }
+      } else {
+        // No unused data left
+        for (const f of stillUnmatched) {
+          matches.push({
+            field_id: f.field_id,
+            display_name: f.display_name,
+            matched_value: null,
+            confidence: 0,
+            source_file: 'NOT FOUND',
+            source_text: '',
+            match_method: 'none',
+            status: 'missing',
+          });
+        }
+      }
+    }
+
+    // --- Conflict detection ---
+    // Check if multiple data points could match the same field
+    const conflicts = [];
+    for (const match of matches) {
+      if (match.status === 'missing') continue;
+      const alternates = dataPool.filter(dp =>
+        !usedDataIds.has(dp.id) &&
+        dp.value !== match.matched_value &&
+        diceSimilarity(dp.key || '', (match.field_id || '').split('.').pop() || '') >= 0.6
+      );
+      if (alternates.length > 0) {
+        conflicts.push({
+          field_id: match.field_id,
+          display_name: match.display_name,
+          current: { value: match.matched_value, confidence: match.confidence, source_file: match.source_file },
+          alternatives: alternates.slice(0, 3).map(a => ({
+            value: a.value,
+            confidence: a.confidence,
+            source_file: a.source_file,
+            source_text: a.source_text,
+          })),
+        });
+      }
+    }
+
+    // Sort: matched first (by confidence desc), then missing
+    matches.sort((a, b) => {
+      if (a.status === 'matched' && b.status !== 'matched') return -1;
+      if (a.status !== 'matched' && b.status === 'matched') return 1;
+      return (b.confidence || 0) - (a.confidence || 0);
+    });
+
+    const matchedCount = matches.filter(m => m.status === 'matched').length;
+    const totalConfidence = matches.filter(m => m.status === 'matched').reduce((sum, m) => sum + m.confidence, 0);
+    const avgConfidence = matchedCount > 0 ? Math.round((totalConfidence / matchedCount) * 100) / 100 : 0;
+
+    res.json({
+      matches,
+      conflicts,
+      summary: {
+        total_fields: form_fields.length,
+        matched: matchedCount,
+        missing: form_fields.length - matchedCount,
+        avg_confidence: avgConfidence,
+        data_points_available: dataPool.length,
+      },
+    });
+  } catch (err) {
+    console.error('FormFill match error:', err);
+    res.status(500).json({ error: 'Matching failed: ' + err.message });
+  }
+});
+
+// --- Build 20: Output Generation ---
+
+/**
+ * POST /api/formfill/generate-pdf
+ * Accepts: multipart with 'form' (original blank PDF) + JSON 'matches' field
+ * Returns: filled PDF buffer
+ */
+app.post('/api/formfill/generate-pdf', formfillUpload.single('form'), async (req, res) => {
+  try {
+    const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
+    const file = req.file;
+    let matchesData;
+    try { matchesData = JSON.parse(req.body.matches || '[]'); } catch { matchesData = []; }
+
+    if (!file) return res.status(400).json({ error: 'Upload original form PDF as "form" field' });
+    if (matchesData.length === 0) return res.status(400).json({ error: 'matches JSON array is required' });
+
+    const pdfDoc = await PDFDocument.load(file.buffer);
+    let filledFields = 0;
+
+    // Approach A: Try fillable PDF fields
+    try {
+      const form = pdfDoc.getForm();
+      const pdfFields = form.getFields();
+
+      if (pdfFields.length > 0) {
+        for (const match of matchesData) {
+          if (!match.matched_value || match.status === 'missing') continue;
+          const fieldId = (match.field_id || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+          const displayName = (match.display_name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+          // Find best matching PDF field
+          let bestPdfField = null;
+          let bestSim = 0;
+          for (const pf of pdfFields) {
+            const pfName = (pf.getName() || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            const s1 = diceSimilarity(pfName, fieldId);
+            const s2 = diceSimilarity(pfName, displayName);
+            const s = Math.max(s1, s2);
+            if (s > bestSim) { bestSim = s; bestPdfField = pf; }
+          }
+
+          if (bestPdfField && bestSim >= 0.5) {
+            try {
+              const pdfFieldType = bestPdfField.constructor.name;
+              if (pdfFieldType === 'PDFTextField' || bestPdfField.setText) {
+                bestPdfField.setText(String(match.matched_value));
+                filledFields++;
+              } else if (pdfFieldType === 'PDFCheckBox' || bestPdfField.check) {
+                if (match.matched_value && match.matched_value !== 'false' && match.matched_value !== '0') {
+                  bestPdfField.check();
+                }
+                filledFields++;
+              }
+            } catch (fieldErr) {
+              // Skip fields that can't be set
+            }
+          }
+        }
+      }
+    } catch (formErr) {
+      // No fillable fields — fall through to Approach B
+    }
+
+    // Approach B: Text overlay (if no fillable fields found or few were filled)
+    if (filledFields < matchesData.filter(m => m.status === 'matched').length / 2) {
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      const pages = pdfDoc.getPages();
+      const matchedValues = matchesData.filter(m => m.matched_value && m.status !== 'missing');
+
+      if (pages.length > 0 && matchedValues.length > 0) {
+        // Add an overlay page with all filled values
+        const overlayPage = pdfDoc.addPage();
+        const { width, height } = overlayPage.getSize();
+        let yPos = height - 50;
+
+        overlayPage.drawText('FormFill — Extracted Values', {
+          x: 50, y: yPos, size: 16, font, color: rgb(0.15, 0.39, 0.92),
+        });
+        yPos -= 10;
+        overlayPage.drawText('(Approximate placement — please verify positions)', {
+          x: 50, y: yPos, size: 8, font, color: rgb(0.5, 0.5, 0.5),
+        });
+        yPos -= 25;
+
+        for (const match of matchedValues) {
+          if (yPos < 60) {
+            // New overlay page
+            const newPage = pdfDoc.addPage();
+            yPos = newPage.getSize().height - 50;
+          }
+          const label = match.display_name || match.field_id || '';
+          const value = String(match.matched_value).substring(0, 80);
+          const conf = match.confidence ? ` (${Math.round(match.confidence * 100)}%)` : '';
+
+          overlayPage.drawText(`${label}: ${value}${conf}`, {
+            x: 50, y: yPos, size: 10, font, color: rgb(0.1, 0.1, 0.1),
+          });
+          yPos -= 18;
+        }
+      }
+    }
+
+    const filledPdfBytes = await pdfDoc.save();
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="formfill-result.pdf"');
+    res.send(Buffer.from(filledPdfBytes));
+  } catch (err) {
+    console.error('FormFill PDF error:', err);
+    res.status(500).json({ error: 'PDF generation failed: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/formfill/generate-csv
+ * Body: { matches: [...] }
+ * Returns: CSV with provenance columns
+ */
+app.post('/api/formfill/generate-csv', express.json({ limit: '10mb' }), (req, res) => {
+  try {
+    const { matches } = req.body;
+    if (!matches || !Array.isArray(matches)) return res.status(400).json({ error: 'matches array required' });
+
+    const escCsv = (val) => {
+      const s = String(val || '').replace(/"/g, '""');
+      return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s}"` : s;
+    };
+
+    const headers = ['Field', 'Value', 'Confidence', 'Status', 'Match Method', 'Source File', 'Source Text', 'Entity'];
+    const rows = [headers.join(',')];
+
+    for (const m of matches) {
+      rows.push([
+        escCsv(m.display_name || m.field_id),
+        escCsv(m.matched_value || ''),
+        m.confidence || 0,
+        escCsv(m.status || 'unknown'),
+        escCsv(m.match_method || ''),
+        escCsv(m.source_file || ''),
+        escCsv((m.source_text || '').substring(0, 200)),
+        escCsv(m.entity_name || ''),
+      ].join(','));
+    }
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="formfill-results.csv"');
+    res.send(rows.join('\n'));
+  } catch (err) {
+    res.status(500).json({ error: 'CSV generation failed: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/formfill/generate-json
+ * Body: { matches: [...], summary: {...} }
+ * Returns: structured JSON export
+ */
+app.post('/api/formfill/generate-json', express.json({ limit: '10mb' }), (req, res) => {
+  try {
+    const { matches, summary, conflicts } = req.body;
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename="formfill-results.json"');
+    res.json({
+      export_type: 'formfill_results',
+      exported_at: new Date().toISOString(),
+      summary: summary || {},
+      matches: matches || [],
+      conflicts: conflicts || [],
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'JSON export failed: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/formfill/generate-provenance
+ * Body: { matches: [...], form_name: "..." }
+ * Returns: HTML provenance report
+ */
+app.post('/api/formfill/generate-provenance', express.json({ limit: '10mb' }), (req, res) => {
+  try {
+    const { matches, form_name } = req.body;
+    if (!matches || !Array.isArray(matches)) return res.status(400).json({ error: 'matches array required' });
+
+    const matchedCount = matches.filter(m => m.status === 'matched').length;
+    const totalConf = matches.filter(m => m.status === 'matched').reduce((s, m) => s + (m.confidence || 0), 0);
+    const avgConf = matchedCount > 0 ? (totalConf / matchedCount) : 0;
+
+    const confColor = (c) => c >= 0.85 ? '#16a34a' : c >= 0.6 ? '#d97706' : '#dc2626';
+    const confLabel = (c) => c >= 0.85 ? 'High' : c >= 0.6 ? 'Medium' : 'Low';
+    const methodLabel = (m) => {
+      if (m === 'direct_exact' || m === 'direct_fuzzy') return 'Direct Match';
+      if (m === 'inferred') return 'Inferred';
+      if (m === 'ai_assisted') return 'AI-Assisted';
+      return 'Manual';
+    };
+
+    const rows = matches.map(m => `
+      <tr style="border-bottom:1px solid #e5e5e3;">
+        <td style="padding:12px 16px;font-weight:500;">${m.display_name || m.field_id}</td>
+        <td style="padding:12px 16px;">${m.matched_value || '<span style="color:#999;font-style:italic;">Not found</span>'}</td>
+        <td style="padding:12px 16px;text-align:center;">
+          ${m.status === 'matched' ? `<span style="display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:600;color:white;background:${confColor(m.confidence)}">${Math.round(m.confidence * 100)}% ${confLabel(m.confidence)}</span>` : '<span style="color:#999;">—</span>'}
+        </td>
+        <td style="padding:12px 16px;font-size:13px;color:#666;">${m.source_file && m.source_file !== 'NOT FOUND' ? m.source_file : '—'}</td>
+        <td style="padding:12px 16px;font-size:12px;">
+          ${m.source_text ? `<blockquote style="margin:0;padding:6px 10px;border-left:3px solid #2563EB;background:#f8f8f7;border-radius:4px;font-style:italic;color:#555;">"${String(m.source_text).substring(0, 150)}${m.source_text.length > 150 ? '...' : ''}"</blockquote>` : '—'}
+        </td>
+        <td style="padding:12px 16px;font-size:12px;color:#888;">${methodLabel(m.match_method)}</td>
+      </tr>
+    `).join('');
+
+    const html = `<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Provenance Report</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'DM Sans',sans-serif; background:#FAFAF9; color:#1A1A1A; padding:40px; }
+  h1 { font-family:'Instrument Serif',serif; font-size:32px; margin-bottom:4px; }
+  .subtitle { color:#666; font-size:14px; margin-bottom:32px; }
+  .summary { display:flex; gap:24px; margin-bottom:32px; }
+  .stat { background:white; border:1px solid #e5e5e3; border-radius:12px; padding:20px 24px; flex:1; }
+  .stat-value { font-size:28px; font-weight:700; }
+  .stat-label { font-size:12px; color:#888; margin-top:4px; text-transform:uppercase; letter-spacing:0.5px; }
+  table { width:100%; border-collapse:collapse; background:white; border:1px solid #e5e5e3; border-radius:12px; overflow:hidden; }
+  thead th { text-align:left; padding:12px 16px; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; color:#888; border-bottom:2px solid #e5e5e3; background:#fafaf9; }
+  .footer { text-align:center; margin-top:40px; font-size:12px; color:#aaa; }
+</style></head><body>
+<h1>Provenance Report</h1>
+<p class="subtitle">Form: ${form_name || 'Unknown'} &mdash; Generated ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+<div class="summary">
+  <div class="stat"><div class="stat-value">${matchedCount}/${matches.length}</div><div class="stat-label">Fields Filled</div></div>
+  <div class="stat"><div class="stat-value">${Math.round(avgConf * 100)}%</div><div class="stat-label">Avg Confidence</div></div>
+  <div class="stat"><div class="stat-value">${matches.length - matchedCount}</div><div class="stat-label">Fields Missing</div></div>
+</div>
+<table>
+<thead><tr><th>Field</th><th>Value</th><th>Confidence</th><th>Source File</th><th>Source Text</th><th>Method</th></tr></thead>
+<tbody>${rows}</tbody>
+</table>
+<p class="footer">Powered by Context Architecture &bull; FormFill Provenance Report</p>
+</body></html>`;
+
+    res.setHeader('Content-Type', 'text/html');
+    res.setHeader('Content-Disposition', 'attachment; filename="formfill-provenance.html"');
+    res.send(html);
+  } catch (err) {
+    res.status(500).json({ error: 'Provenance report failed: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/formfill/analyze-form
+ * Upload a blank form → parse + generate field map via template generator
+ * Returns: { fields: [...], form_name: "..." }
+ */
+app.post('/api/formfill/analyze-form', formfillUpload.single('form'), async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file) return res.status(400).json({ error: 'Upload a form file' });
+
+    const ext = path.extname(file.originalname).toLowerCase();
+    let fileContent = '';
+
+    if (ext === '.pdf') {
+      try {
+        const { PDFParse } = require('pdf-parse');
+        const parser = new PDFParse({ data: new Uint8Array(file.buffer), verbosity: 0 });
+        const result = await parser.getText();
+        fileContent = result.text || '';
+      } catch (e) {
+        return res.status(400).json({ error: 'Failed to parse PDF: ' + e.message });
+      }
+    } else if (ext === '.docx' || ext === '.doc') {
+      const mammoth = require('mammoth');
+      const result = await mammoth.extractRawText({ buffer: file.buffer });
+      fileContent = result.value;
+    } else if (['.txt', '.md', '.csv'].includes(ext)) {
+      fileContent = file.buffer.toString('utf-8');
+    } else if (['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(ext)) {
+      // Image — use Claude vision
+      const client = new Anthropic();
+      const base64 = file.buffer.toString('base64');
+      const mediaType = file.mimetype || 'image/jpeg';
+      const message = await client.messages.create({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 16384,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+            { type: 'text', text: TEMPLATE_GEN_PROMPT }
+          ]
+        }]
+      });
+      const generated = parseAITemplateResponse(message.content[0].text, null, null, file.originalname);
+      const fields = [];
+      for (const dt of (generated.document_types || [])) {
+        for (const spec of (dt.extraction_spec || [])) {
+          fields.push({ ...spec, document_type: dt.type_id });
+        }
+      }
+      return res.json({ fields, form_name: generated.display_name || file.originalname, template: generated });
+    } else {
+      fileContent = file.buffer.toString('utf-8');
+    }
+
+    if (!fileContent || fileContent.trim().length < 10) {
+      return res.status(400).json({ error: 'Could not extract content from form. Try a different format.' });
+    }
+
+    if (fileContent.length > 100000) fileContent = fileContent.substring(0, 100000) + '\n[...truncated]';
+
+    const client = new Anthropic();
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 16384,
+      messages: [{ role: 'user', content: TEMPLATE_GEN_PROMPT + '\n\n--- UPLOADED FORM ---\n\n' + fileContent }]
+    });
+
+    const generated = parseAITemplateResponse(message.content[0].text, null, null, file.originalname);
+    const fields = [];
+    for (const dt of (generated.document_types || [])) {
+      for (const spec of (dt.extraction_spec || [])) {
+        fields.push({ ...spec, document_type: dt.type_id });
+      }
+    }
+
+    res.json({ fields, form_name: generated.display_name || file.originalname, template: generated });
+  } catch (err) {
+    console.error('FormFill analyze-form error:', err);
+    res.status(500).json({ error: 'Form analysis failed: ' + err.message });
+  }
+});
+
+/**
+ * POST /api/formfill/extract-sources
+ * Upload source documents → extract entities
+ * Returns: { entities: [...], summary: {...} }
+ */
+app.post('/api/formfill/extract-sources', formfillUpload.array('files', 20), async (req, res) => {
+  try {
+    const files = req.files;
+    if (!files || files.length === 0) return res.status(400).json({ error: 'Upload at least one source document' });
+
+    const client = new Anthropic();
+    const allEntities = [];
+    const fileResults = [];
+
+    for (const file of files) {
+      const ext = path.extname(file.originalname).toLowerCase();
+      let content = '';
+
+      if (ext === '.pdf') {
+        try {
+          const { PDFParse } = require('pdf-parse');
+          const parser = new PDFParse({ data: new Uint8Array(file.buffer), verbosity: 0 });
+          const result = await parser.getText();
+          content = result.text || '';
+        } catch (e) {
+          fileResults.push({ filename: file.originalname, status: 'error', error: e.message, data_points: 0 });
+          continue;
+        }
+      } else if (ext === '.docx' || ext === '.doc') {
+        try {
+          const mammoth = require('mammoth');
+          const result = await mammoth.extractRawText({ buffer: file.buffer });
+          content = result.value;
+        } catch (e) {
+          fileResults.push({ filename: file.originalname, status: 'error', error: e.message, data_points: 0 });
+          continue;
+        }
+      } else if (['.xlsx', '.xls'].includes(ext)) {
+        try {
+          const XLSX = require('xlsx');
+          const wb = XLSX.read(file.buffer, { type: 'buffer' });
+          const lines = [];
+          for (const sn of wb.SheetNames) { lines.push('=== Sheet: ' + sn + ' ===\n' + XLSX.utils.sheet_to_csv(wb.Sheets[sn])); }
+          content = lines.join('\n');
+        } catch (e) {
+          fileResults.push({ filename: file.originalname, status: 'error', error: e.message, data_points: 0 });
+          continue;
+        }
+      } else {
+        content = file.buffer.toString('utf-8');
+      }
+
+      if (!content || content.trim().length < 5) {
+        fileResults.push({ filename: file.originalname, status: 'empty', data_points: 0 });
+        continue;
+      }
+
+      if (content.length > 100000) content = content.substring(0, 100000) + '\n[...truncated]';
+
+      // Extract entities with provenance
+      const extractPrompt = `Extract ALL structured information from this document. Return a JSON array of entities.
+
+For each entity found (person, business, institution, or data record), extract:
+- entity_type: "person" | "business" | "institution"
+- name: { full: "...", preferred: "..." }
+- attributes: [{ key: "field_name", value: "extracted_value", evidence: { snippet: "exact quote from document", type: "direct" } }]
+- observations: [{ text: "notable fact", source: "${file.originalname}" }]
+
+IMPORTANT: Extract EVERY data point you can find — names, addresses, dates, amounts, IDs (EIN, SSN, account numbers), phone numbers, emails, roles, titles, etc. Each attribute must include the exact text snippet from the source as evidence.
+
+Respond ONLY with valid JSON: { "entities": [...] }
+No commentary, no markdown fences.
+
+--- DOCUMENT: ${file.originalname} ---
+
+${content}`;
+
+      try {
+        const message = await client.messages.create({
+          model: 'claude-sonnet-4-5-20250929',
+          max_tokens: 16384,
+          messages: [{ role: 'user', content: extractPrompt }],
+        });
+
+        let raw = message.content[0].text.trim();
+        raw = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+        const fb = raw.indexOf('{');
+        const lb = raw.lastIndexOf('}');
+        if (fb >= 0 && lb > fb) raw = raw.substring(fb, lb + 1);
+
+        const parsed = JSON.parse(raw);
+        const extracted = parsed.entities || [];
+
+        // Convert to v2 format with provenance
+        const now = new Date().toISOString();
+        for (const ext of extracted) {
+          const eType = (ext.entity_type === 'organization') ? 'business' : (ext.entity_type || 'unknown');
+          const v2 = {
+            schema_version: '2.0',
+            schema_type: 'context_architecture_entity',
+            extraction_metadata: {
+              extracted_at: now, updated_at: now,
+              source_description: file.originalname,
+              extraction_model: 'claude-sonnet-4-5-20250929',
+              extraction_confidence: 0.75,
+            },
+            entity: {
+              entity_type: eType,
+              name: { full: ext.name?.full || ext.name || '', preferred: ext.name?.preferred || '', confidence: 0.85, facts_layer: 2 },
+              summary: ext.summary ? { value: ext.summary, confidence: 0.7, facts_layer: 2 } : undefined,
+            },
+            attributes: (ext.attributes || []).map((a, i) => ({
+              attribute_id: `ATTR-${String(i + 1).padStart(3, '0')}`,
+              key: a.key || '',
+              value: String(a.value || ''),
+              confidence: a.evidence?.type === 'direct' ? 0.9 : 0.7,
+              confidence_label: a.evidence?.type === 'direct' ? 'HIGH' : 'MODERATE',
+              time_decay: { stability: 'stable', captured_date: now.slice(0, 10) },
+              source_attribution: { facts_layer: 2, layer_label: 'group' },
+              provenance: {
+                file_id: null,
+                original_filename: file.originalname,
+                snippet: a.evidence?.snippet || '',
+                extraction_model: 'claude-sonnet-4-5-20250929',
+                extraction_type: a.evidence?.type || 'inferred',
+                extracted_at: now,
+              },
+            })),
+            observations: (ext.observations || []).map(o => ({
+              observation: o.text || o.observation || '',
+              observed_at: now,
+              source: file.originalname,
+              confidence: 0.7,
+              confidence_label: 'MODERATE',
+              facts_layer: 'L2_GROUP',
+              layer_number: 2,
+            })),
+            relationships: ext.relationships || [],
+            provenance_chain: {
+              created_at: now,
+              created_by: 'formfill',
+              source_documents: [{ source: file.originalname, ingested_at: now }],
+              merge_history: [],
+            },
+          };
+          allEntities.push(v2);
+        }
+
+        const dpCount = extracted.reduce((sum, e) => sum + (e.attributes?.length || 0) + (e.observations?.length || 0), 0);
+        fileResults.push({ filename: file.originalname, status: 'success', entities: extracted.length, data_points: dpCount });
+      } catch (parseErr) {
+        console.error('FormFill extraction error for', file.originalname, ':', parseErr.message);
+        fileResults.push({ filename: file.originalname, status: 'error', error: parseErr.message, data_points: 0 });
+      }
+    }
+
+    const totalDataPoints = allEntities.reduce((sum, e) => sum + (e.attributes?.length || 0) + (e.observations?.length || 0), 0);
+
+    res.json({
+      entities: allEntities,
+      files: fileResults,
+      summary: {
+        total_files: files.length,
+        successful: fileResults.filter(f => f.status === 'success').length,
+        total_entities: allEntities.length,
+        total_data_points: totalDataPoints,
+      },
+    });
+  } catch (err) {
+    console.error('FormFill extract-sources error:', err);
+    res.status(500).json({ error: 'Extraction failed: ' + err.message });
+  }
+});
+
+// --- Build 21: FormFill Single-Page UI ---
+
+const FORMFILL_HTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FormFill — Upload. Match. Fill.</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+  :root {
+    --bg: #FAFAF9;
+    --text: #1A1A1A;
+    --muted: #71717A;
+    --border: #E5E5E3;
+    --card: #FFFFFF;
+    --accent: #2563EB;
+    --accent-hover: #1d4ed8;
+    --green: #16a34a;
+    --amber: #d97706;
+    --red: #dc2626;
+    --radius: 12px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-lg: 0 4px 12px rgba(0,0,0,0.06), 0 2px 4px rgba(0,0,0,0.04);
+  }
+
+  body {
+    font-family: 'DM Sans', -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container { max-width: 880px; margin: 0 auto; padding: 0 24px; }
+
+  /* Header */
+  header {
+    padding: 32px 0 48px;
+    text-align: center;
+  }
+  .logo {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 24px;
+  }
+  .logo span { color: var(--accent); }
+  h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: clamp(36px, 5vw, 52px);
+    font-weight: 400;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin-bottom: 12px;
+  }
+  .tagline {
+    font-size: 17px;
+    color: var(--muted);
+    max-width: 520px;
+    margin: 0 auto 8px;
+  }
+  .how-link {
+    font-size: 13px;
+    color: var(--accent);
+    text-decoration: none;
+    font-weight: 500;
+  }
+  .how-link:hover { text-decoration: underline; }
+
+  /* Steps */
+  .step {
+    margin-bottom: 32px;
+  }
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .step-num {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--text);
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-num.done { background: var(--green); }
+  .step-title {
+    font-size: 15px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  /* Drop zone */
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 48px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--card);
+    position: relative;
+  }
+  .dropzone:hover, .dropzone.dragover {
+    border-color: var(--accent);
+    background: #f0f4ff;
+    transform: scale(1.005);
+  }
+  .dropzone.uploaded {
+    border-style: solid;
+    border-color: var(--green);
+    background: #f0fdf4;
+    padding: 24px 32px;
+  }
+  .dropzone-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+    opacity: 0.4;
+  }
+  .dropzone-text {
+    font-size: 15px;
+    color: var(--muted);
+  }
+  .dropzone-text strong { color: var(--text); font-weight: 600; }
+  .dropzone input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .upload-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--green);
+  }
+  .upload-status .check { font-size: 18px; }
+
+  /* Field chips */
+  .field-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .chip {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 500;
+    background: #e8edf5;
+    color: #3b5998;
+    border: 1px solid #d0d9eb;
+  }
+
+  /* File list */
+  .file-list {
+    margin-top: 12px;
+  }
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 0;
+    font-size: 14px;
+  }
+  .file-item .status-icon { color: var(--green); font-weight: 700; }
+  .file-item .filename { color: var(--text); font-weight: 500; }
+  .file-item .details { color: var(--muted); font-size: 13px; }
+  .file-count {
+    margin-top: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .add-more-btn {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 0;
+  }
+  .add-more-btn:hover { text-decoration: underline; }
+  .change-link {
+    display: inline-block;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+    cursor: pointer;
+    border: none;
+    background: none;
+  }
+  .change-link:hover { color: var(--accent); }
+
+  /* Action button */
+  .action-section { text-align: center; margin: 16px 0 40px; }
+  .fill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 400px;
+    justify-content: center;
+    padding: 16px 32px;
+    border: none;
+    border-radius: var(--radius);
+    background: var(--accent);
+    color: white;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: var(--shadow-lg);
+  }
+  .fill-btn:hover:not(:disabled) { background: var(--accent-hover); transform: translateY(-1px); }
+  .fill-btn:disabled {
+    background: #d4d4d8;
+    cursor: not-allowed;
+    box-shadow: none;
+    transform: none;
+  }
+  .fill-btn.processing {
+    background: var(--accent);
+    pointer-events: none;
+  }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.7; } }
+  .fill-btn.ready {
+    animation: pulse 2s ease-in-out infinite;
+  }
+  .progress-text {
+    margin-top: 12px;
+    font-size: 14px;
+    color: var(--muted);
+  }
+  .progress-bar-container {
+    width: 100%;
+    max-width: 400px;
+    margin: 12px auto 0;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    display: none;
+  }
+  .progress-bar-container.active { display: block; }
+  .progress-bar {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.5s ease;
+    width: 0%;
+  }
+
+  /* Results */
+  .results-section {
+    display: none;
+    margin-bottom: 80px;
+  }
+  .results-section.visible { display: block; }
+  .summary-bar {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .summary-stat {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    flex: 1;
+    min-width: 150px;
+    box-shadow: var(--shadow);
+  }
+  .summary-stat .value {
+    font-size: 24px;
+    font-weight: 700;
+  }
+  .summary-stat .label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* Results table */
+  .results-table-wrapper {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    margin-bottom: 24px;
+  }
+  .results-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+  .results-table thead th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+    border-bottom: 2px solid var(--border);
+    background: #fafaf9;
+    font-weight: 600;
+  }
+  .results-table tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+  }
+  .results-table tbody tr:hover { background: #fafaf9; }
+  .results-table tbody tr:last-child { border-bottom: none; }
+  .results-table td { padding: 12px 16px; vertical-align: top; }
+  .results-table .field-name { font-weight: 600; font-size: 14px; }
+  .results-table .field-value { font-size: 14px; }
+  .results-table tr.missing-row {
+    background: #fefce8;
+    border-left: 3px solid var(--amber);
+  }
+  .results-table tr.missing-row td { color: #92400e; }
+
+  .conf-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 700;
+    color: white;
+    white-space: nowrap;
+  }
+  .conf-high { background: var(--green); }
+  .conf-med { background: var(--amber); }
+  .conf-low { background: var(--red); }
+
+  .source-link {
+    font-size: 12px;
+    color: var(--accent);
+    cursor: pointer;
+    border: none;
+    background: none;
+    padding: 0;
+    text-align: left;
+    font-family: inherit;
+  }
+  .source-link:hover { text-decoration: underline; }
+  .source-snippet {
+    display: none;
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-left: 3px solid var(--accent);
+    background: #f8f8f7;
+    border-radius: 4px;
+    font-size: 12px;
+    font-style: italic;
+    color: #555;
+    max-width: 300px;
+  }
+  .source-snippet.open { display: block; }
+
+  .manual-input {
+    width: 100%;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: 13px;
+  }
+  .manual-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
+
+  .edit-btn, .confirm-btn {
+    padding: 4px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: inherit;
+    cursor: pointer;
+    background: var(--card);
+    color: var(--text);
+    transition: all 0.15s;
+  }
+  .edit-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .confirm-btn { background: var(--green); color: white; border-color: var(--green); }
+  .confirm-btn:hover { background: #15803d; }
+
+  /* Section labels */
+  .section-label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 8px 16px;
+    background: #f4f4f5;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Sticky action bar */
+  .download-bar {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    padding: 14px 24px;
+    z-index: 100;
+    box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+  }
+  .download-bar.visible { display: block; }
+  .download-bar-inner {
+    max-width: 880px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .dl-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    border: none;
+  }
+  .dl-btn.primary { background: var(--accent); color: white; }
+  .dl-btn.primary:hover { background: var(--accent-hover); }
+  .dl-btn.secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+  .dl-btn.secondary:hover { border-color: var(--accent); color: var(--accent); }
+  .dl-btn.tertiary { background: none; color: var(--muted); font-weight: 500; font-size: 13px; }
+  .dl-btn.tertiary:hover { color: var(--accent); }
+  .dl-note { font-size: 11px; color: var(--muted); }
+
+  /* How it works */
+  .how-section {
+    margin: 0 0 64px;
+    padding: 48px 0;
+    border-top: 1px solid var(--border);
+  }
+  .how-section h2 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 28px;
+    font-weight: 400;
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .how-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 24px;
+  }
+  .how-step {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    text-align: center;
+    box-shadow: var(--shadow);
+  }
+  .how-step .icon { font-size: 28px; margin-bottom: 12px; }
+  .how-step h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .how-step p { font-size: 13px; color: var(--muted); line-height: 1.5; }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 24px 0 40px;
+    font-size: 12px;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  /* Error messages */
+  .error-msg {
+    padding: 14px 18px;
+    border-radius: 8px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    font-size: 14px;
+    margin: 12px 0;
+    display: none;
+  }
+  .error-msg.visible { display: block; }
+  .error-msg .suggestion { font-size: 13px; color: #b91c1c; margin-top: 4px; }
+
+  /* Animations */
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-row { animation: fadeInUp 0.3s ease forwards; opacity: 0; }
+
+  /* Mobile */
+  @media (max-width: 640px) {
+    .container { padding: 0 16px; }
+    header { padding: 24px 0 32px; }
+    .dropzone { padding: 32px 16px; }
+    .summary-bar { flex-direction: column; }
+    .results-table { font-size: 13px; }
+    .results-table thead th { padding: 10px 10px; font-size: 10px; }
+    .results-table td { padding: 10px; }
+    .download-bar-inner { flex-direction: column; gap: 8px; }
+    .dl-btn { width: 100%; text-align: center; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <div class="logo">Context Architecture &bull; <span>FormFill</span></div>
+    <h1>Upload a form. Get it filled.</h1>
+    <p class="tagline">Drop your blank form and source documents. Every value filled. Every source cited.</p>
+    <a href="#how" class="how-link">How it works &darr;</a>
+  </header>
+
+  <!-- Step 1: Your Form -->
+  <div class="step" id="step1">
+    <div class="step-header">
+      <div class="step-num" id="step1-num">1</div>
+      <div class="step-title">Your Form</div>
+    </div>
+    <div class="dropzone" id="form-dropzone">
+      <div class="dropzone-icon">&#128196;</div>
+      <p class="dropzone-text">Drop your <strong>blank form</strong> here &mdash; PDF, DOCX, image, or text</p>
+      <input type="file" id="form-input" accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.jpg,.jpeg,.png,.gif,.webp">
+    </div>
+    <div id="form-status" style="display:none;"></div>
+    <div id="form-fields" class="field-chips"></div>
+    <div id="form-error" class="error-msg"></div>
+  </div>
+
+  <!-- Step 2: Your Documents -->
+  <div class="step" id="step2">
+    <div class="step-header">
+      <div class="step-num" id="step2-num">2</div>
+      <div class="step-title">Your Documents</div>
+    </div>
+    <div class="dropzone" id="docs-dropzone">
+      <div class="dropzone-icon">&#128450;</div>
+      <p class="dropzone-text">Drop your <strong>source documents</strong> &mdash; contracts, letters, statements, anything</p>
+      <input type="file" id="docs-input" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.json">
+    </div>
+    <div id="docs-file-list" class="file-list"></div>
+    <div id="docs-count" class="file-count" style="display:none;"></div>
+    <div id="docs-error" class="error-msg"></div>
+  </div>
+
+  <!-- Step 3: The Button -->
+  <div class="action-section" id="step3">
+    <button class="fill-btn" id="fill-btn" disabled>Fill My Form</button>
+    <div class="progress-text" id="progress-text" style="display:none;"></div>
+    <div class="progress-bar-container" id="progress-bar-container">
+      <div class="progress-bar" id="progress-bar"></div>
+    </div>
+    <div id="match-error" class="error-msg"></div>
+  </div>
+
+  <!-- Results -->
+  <div class="results-section" id="results-section">
+    <div class="summary-bar" id="summary-bar"></div>
+    <div class="results-table-wrapper">
+      <div class="section-label" id="matched-label"></div>
+      <table class="results-table">
+        <thead>
+          <tr>
+            <th>Field</th>
+            <th>Value</th>
+            <th>Confidence</th>
+            <th>Source</th>
+            <th style="width:80px;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="results-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- How it works -->
+  <div class="how-section" id="how">
+    <h2>How It Works</h2>
+    <div class="how-steps">
+      <div class="how-step">
+        <div class="icon">&#128196;</div>
+        <h3>1. Upload Your Form</h3>
+        <p>Any blank form &mdash; IRS, legal, intake. We use AI to detect every field that needs filling.</p>
+      </div>
+      <div class="how-step">
+        <div class="icon">&#128450;</div>
+        <h3>2. Add Source Docs</h3>
+        <p>Contracts, letters, statements. We extract every data point with exact source citations.</p>
+      </div>
+      <div class="how-step">
+        <div class="icon">&#9889;</div>
+        <h3>3. Get It Filled</h3>
+        <p>Three-tier AI matching fills your form. Every value comes with a receipt &mdash; the exact text it came from.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    Powered by <a href="/">Context Architecture</a>
+  </footer>
+</div>
+
+<!-- Download bar (sticky) -->
+<div class="download-bar" id="download-bar">
+  <div class="download-bar-inner">
+    <button class="dl-btn primary" id="dl-pdf" onclick="downloadPDF()">Download Filled PDF</button>
+    <button class="dl-btn secondary" id="dl-csv" onclick="downloadCSV()">Download CSV</button>
+    <button class="dl-btn tertiary" id="dl-prov" onclick="downloadProvenance()">Download Provenance Report</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  // State
+  let formFields = [];
+  let formName = '';
+  let formTemplate = null;
+  let formFile = null;
+  let entities = [];
+  let sourceFiles = [];
+  let matchResults = null;
+  let matchConflicts = [];
+  let matchSummary = null;
+
+  // DOM
+  const formDropzone = document.getElementById('form-dropzone');
+  const formInput = document.getElementById('form-input');
+  const formStatus = document.getElementById('form-status');
+  const formFieldsEl = document.getElementById('form-fields');
+  const formError = document.getElementById('form-error');
+  const step1Num = document.getElementById('step1-num');
+
+  const docsDropzone = document.getElementById('docs-dropzone');
+  const docsInput = document.getElementById('docs-input');
+  const docsFileList = document.getElementById('docs-file-list');
+  const docsCount = document.getElementById('docs-count');
+  const docsError = document.getElementById('docs-error');
+  const step2Num = document.getElementById('step2-num');
+
+  const fillBtn = document.getElementById('fill-btn');
+  const progressText = document.getElementById('progress-text');
+  const progressBarContainer = document.getElementById('progress-bar-container');
+  const progressBar = document.getElementById('progress-bar');
+  const matchError = document.getElementById('match-error');
+
+  const resultsSection = document.getElementById('results-section');
+  const summaryBar = document.getElementById('summary-bar');
+  const matchedLabel = document.getElementById('matched-label');
+  const resultsBody = document.getElementById('results-body');
+  const downloadBar = document.getElementById('download-bar');
+
+  // Utility
+  function showError(el, msg, suggestion) {
+    el.innerHTML = msg + (suggestion ? '<div class="suggestion">' + suggestion + '</div>' : '');
+    el.classList.add('visible');
+    setTimeout(() => el.classList.remove('visible'), 8000);
+  }
+
+  function checkReady() {
+    if (formFields.length > 0 && entities.length > 0) {
+      fillBtn.disabled = false;
+      fillBtn.classList.add('ready');
+    } else {
+      fillBtn.disabled = true;
+      fillBtn.classList.remove('ready');
+    }
+  }
+
+  // Drag & drop handlers
+  function setupDropzone(zone, input) {
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('dragover');
+      const dt = new DataTransfer();
+      for (const f of e.dataTransfer.files) dt.items.add(f);
+      input.files = dt.files;
+      input.dispatchEvent(new Event('change'));
+    });
+  }
+  setupDropzone(formDropzone, formInput);
+  setupDropzone(docsDropzone, docsInput);
+
+  // Step 1: Form upload
+  formInput.addEventListener('change', async () => {
+    const file = formInput.files[0];
+    if (!file) return;
+    formFile = file;
+    formError.classList.remove('visible');
+
+    // Show analyzing state
+    formDropzone.classList.add('uploaded');
+    formDropzone.innerHTML = '<div class="upload-status"><span class="check">&#8987;</span> Analyzing <strong>' + file.name + '</strong>...</div>';
+
+    try {
+      const fd = new FormData();
+      fd.append('form', file);
+      const resp = await fetch('/api/formfill/analyze-form', { method: 'POST', body: fd });
+      if (!resp.ok) {
+        const err = await resp.json();
+        throw new Error(err.error || 'Analysis failed');
+      }
+      const data = await resp.json();
+      formFields = data.fields || [];
+      formName = data.form_name || file.name;
+      formTemplate = data.template;
+
+      formDropzone.innerHTML = '<div class="upload-status"><span class="check">&#10003;</span> Found <strong>' + formFields.length + ' fields</strong> in ' + file.name + '</div>' +
+        '<button class="change-link" onclick="document.getElementById(\\'form-input\\').value=\\'\\';document.getElementById(\\'form-input\\').click();">Change form</button>';
+
+      // Show field chips
+      formFieldsEl.innerHTML = formFields.slice(0, 20).map(f =>
+        '<span class="chip">' + (f.display_name || f.field_id) + '</span>'
+      ).join('') + (formFields.length > 20 ? '<span class="chip">+' + (formFields.length - 20) + ' more</span>' : '');
+
+      step1Num.textContent = '\\u2713';
+      step1Num.classList.add('done');
+      checkReady();
+    } catch (err) {
+      formDropzone.classList.remove('uploaded');
+      formDropzone.innerHTML = '<div class="dropzone-icon">&#128196;</div><p class="dropzone-text">Drop your <strong>blank form</strong> here</p><input type="file" id="form-input" accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.jpg,.jpeg,.png,.gif,.webp">';
+      document.getElementById('form-input').addEventListener('change', arguments.callee);
+      showError(formError, "We couldn't read this form.", "Try uploading a clearer PDF or a text version of the fields you need filled.");
+    }
+  });
+
+  // Step 2: Source documents upload
+  docsInput.addEventListener('change', async () => {
+    const files = docsInput.files;
+    if (!files || files.length === 0) return;
+    docsError.classList.remove('visible');
+
+    // Accumulate files
+    for (const f of files) {
+      if (!sourceFiles.find(sf => sf.name === f.name && sf.size === f.size)) {
+        sourceFiles.push(f);
+      }
+    }
+
+    // Show uploading state
+    docsDropzone.classList.add('uploaded');
+    docsDropzone.innerHTML = '<div class="upload-status"><span class="check">&#8987;</span> Extracting data from <strong>' + sourceFiles.length + ' document' + (sourceFiles.length > 1 ? 's' : '') + '</strong>...</div>';
+    docsFileList.innerHTML = sourceFiles.map(f => '<div class="file-item"><span class="status-icon">&#8987;</span><span class="filename">' + f.name + '</span></div>').join('');
+
+    try {
+      const fd = new FormData();
+      for (const f of sourceFiles) fd.append('files', f);
+      const resp = await fetch('/api/formfill/extract-sources', { method: 'POST', body: fd });
+      if (!resp.ok) {
+        const err = await resp.json();
+        throw new Error(err.error || 'Extraction failed');
+      }
+      const data = await resp.json();
+      entities = data.entities || [];
+      const totalDP = data.summary?.total_data_points || 0;
+
+      // Update UI
+      docsDropzone.innerHTML = '<div class="upload-status"><span class="check">&#10003;</span> <strong>' + totalDP + ' data points</strong> extracted from ' + sourceFiles.length + ' document' + (sourceFiles.length > 1 ? 's' : '') + '</div>' +
+        '<button class="add-more-btn" onclick="document.getElementById(\\'docs-input\\').click();">+ Add more documents</button>';
+
+      docsFileList.innerHTML = (data.files || []).map(f =>
+        '<div class="file-item"><span class="status-icon">' + (f.status === 'success' ? '&#10003;' : '&#10007;') + '</span><span class="filename">' + f.filename + '</span><span class="details"> &mdash; ' + (f.data_points || 0) + ' data points</span></div>'
+      ).join('');
+
+      docsCount.textContent = totalDP + ' data points from ' + sourceFiles.length + ' documents';
+      docsCount.style.display = 'block';
+      step2Num.textContent = '\\u2713';
+      step2Num.classList.add('done');
+      checkReady();
+    } catch (err) {
+      docsDropzone.classList.remove('uploaded');
+      docsDropzone.innerHTML = '<div class="dropzone-icon">&#128450;</div><p class="dropzone-text">Drop your <strong>source documents</strong></p><input type="file" id="docs-input" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.json">';
+      showError(docsError, "We couldn't find usable data in these documents.", "Make sure they contain the information needed for your form.");
+    }
+  });
+
+  // Step 3: Fill
+  fillBtn.addEventListener('click', async () => {
+    if (formFields.length === 0 || entities.length === 0) return;
+
+    fillBtn.disabled = true;
+    fillBtn.classList.remove('ready');
+    fillBtn.classList.add('processing');
+    fillBtn.textContent = 'Matching...';
+    progressText.style.display = 'block';
+    progressText.textContent = 'Matching ' + formFields.length + ' fields against ' + entities.reduce((s, e) => s + (e.attributes?.length || 0), 0) + ' data points...';
+    progressBarContainer.classList.add('active');
+    progressBar.style.width = '30%';
+    matchError.classList.remove('visible');
+
+    try {
+      const resp = await fetch('/api/formfill/match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ form_fields: formFields, entities }),
+      });
+
+      progressBar.style.width = '80%';
+
+      if (!resp.ok) {
+        const err = await resp.json();
+        throw new Error(err.error || 'Matching failed');
+      }
+
+      const data = await resp.json();
+      matchResults = data.matches || [];
+      matchConflicts = data.conflicts || [];
+      matchSummary = data.summary || {};
+
+      progressBar.style.width = '100%';
+      setTimeout(() => {
+        progressText.style.display = 'none';
+        progressBarContainer.classList.remove('active');
+        fillBtn.textContent = 'Matched!';
+        renderResults();
+      }, 400);
+    } catch (err) {
+      progressText.style.display = 'none';
+      progressBarContainer.classList.remove('active');
+      fillBtn.textContent = 'Fill My Form';
+      fillBtn.disabled = false;
+      fillBtn.classList.remove('processing');
+      showError(matchError, "Matching failed.", err.message || "Please try again.");
+    }
+  });
+
+  function renderResults() {
+    if (!matchResults) return;
+
+    // Summary
+    const matched = matchResults.filter(m => m.status === 'matched');
+    const missing = matchResults.filter(m => m.status === 'missing');
+    const avgConf = matched.length > 0 ? (matched.reduce((s, m) => s + m.confidence, 0) / matched.length) : 0;
+
+    summaryBar.innerHTML =
+      '<div class="summary-stat"><div class="value">' + matched.length + ' / ' + matchResults.length + '</div><div class="label">Fields Filled</div></div>' +
+      '<div class="summary-stat"><div class="value" style="color:' + (avgConf >= 0.85 ? 'var(--green)' : avgConf >= 0.6 ? 'var(--amber)' : 'var(--red)') + '">' + Math.round(avgConf * 100) + '%</div><div class="label">Avg Confidence</div></div>' +
+      '<div class="summary-stat"><div class="value">' + missing.length + '</div><div class="label">Need Your Input</div></div>';
+
+    // Table
+    let html = '';
+    if (matched.length > 0) {
+      html += '<tr><td colspan="5" class="section-label" style="padding:8px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);background:#f0fdf4;border-bottom:1px solid var(--border);">Matched (' + matched.length + ')</td></tr>';
+      matched.forEach((m, i) => {
+        const confClass = m.confidence >= 0.85 ? 'conf-high' : m.confidence >= 0.6 ? 'conf-med' : 'conf-low';
+        const confText = m.confidence >= 0.85 ? 'High' : m.confidence >= 0.6 ? 'Medium' : 'Low';
+        const snippetId = 'snippet-' + i;
+        html += '<tr class="animate-row" style="animation-delay:' + (i * 50) + 'ms;">' +
+          '<td class="field-name">' + (m.display_name || m.field_id) + '</td>' +
+          '<td class="field-value">' + (m.matched_value || '') + '</td>' +
+          '<td><span class="conf-badge ' + confClass + '">' + Math.round(m.confidence * 100) + '% ' + confText + '</span></td>' +
+          '<td>' + (m.source_file && m.source_file !== 'NOT FOUND' ?
+            '<button class="source-link" onclick="document.getElementById(\\'' + snippetId + '\\').classList.toggle(\\'open\\')">' + m.source_file + '</button>' +
+            '<div class="source-snippet" id="' + snippetId + '">&ldquo;' + (m.source_text || '').substring(0, 200).replace(/</g, '&lt;') + '&rdquo;</div>' : '&mdash;') +
+          '</td>' +
+          '<td><button class="edit-btn" onclick="this.closest(\\'tr\\').querySelector(\\'.field-value\\').contentEditable=true;this.closest(\\'tr\\').querySelector(\\'.field-value\\').focus();">Edit</button></td>' +
+          '</tr>';
+      });
+    }
+
+    if (missing.length > 0) {
+      html += '<tr><td colspan="5" class="section-label" style="padding:8px 16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#92400e;background:#fefce8;border-bottom:1px solid var(--border);">Needs Input (' + missing.length + ')</td></tr>';
+      missing.forEach((m, i) => {
+        html += '<tr class="missing-row animate-row" style="animation-delay:' + ((matched.length + i) * 50) + 'ms;">' +
+          '<td class="field-name">' + (m.display_name || m.field_id) + '</td>' +
+          '<td><input class="manual-input" placeholder="Enter value..." data-field-id="' + m.field_id + '"></td>' +
+          '<td>&mdash;</td><td>&mdash;</td>' +
+          '<td><button class="confirm-btn" onclick="manualFill(this)">Save</button></td>' +
+          '</tr>';
+      });
+    }
+
+    resultsBody.innerHTML = html;
+    resultsSection.classList.add('visible');
+    downloadBar.classList.add('visible');
+
+    // Scroll to results
+    setTimeout(() => {
+      resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 200);
+  }
+
+  window.manualFill = function(btn) {
+    const row = btn.closest('tr');
+    const input = row.querySelector('.manual-input');
+    const fieldId = input.dataset.fieldId;
+    const value = input.value.trim();
+    if (!value) return;
+
+    // Update match results
+    const match = matchResults.find(m => m.field_id === fieldId);
+    if (match) {
+      match.matched_value = value;
+      match.confidence = 1.0;
+      match.match_method = 'manual';
+      match.source_file = 'Manual Entry';
+      match.status = 'matched';
+    }
+
+    row.classList.remove('missing-row');
+    row.innerHTML =
+      '<td class="field-name">' + (match?.display_name || fieldId) + '</td>' +
+      '<td class="field-value">' + value + '</td>' +
+      '<td><span class="conf-badge conf-high">Manual</span></td>' +
+      '<td>Manual Entry</td>' +
+      '<td><button class="edit-btn" onclick="this.closest(\\'tr\\').querySelector(\\'.field-value\\').contentEditable=true;this.closest(\\'tr\\').querySelector(\\'.field-value\\').focus();">Edit</button></td>';
+  };
+
+  // Downloads
+  window.downloadPDF = async function() {
+    if (!matchResults || !formFile) return;
+    const fd = new FormData();
+    fd.append('form', formFile);
+    fd.append('matches', JSON.stringify(matchResults));
+    try {
+      const resp = await fetch('/api/formfill/generate-pdf', { method: 'POST', body: fd });
+      if (!resp.ok) throw new Error('PDF generation failed');
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'formfill-' + (formName || 'result') + '.pdf';
+      a.click(); URL.revokeObjectURL(url);
+    } catch (e) { alert('PDF download failed: ' + e.message); }
+  };
+
+  window.downloadCSV = async function() {
+    if (!matchResults) return;
+    try {
+      const resp = await fetch('/api/formfill/generate-csv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matches: matchResults }),
+      });
+      if (!resp.ok) throw new Error('CSV generation failed');
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'formfill-' + (formName || 'results') + '.csv';
+      a.click(); URL.revokeObjectURL(url);
+    } catch (e) { alert('CSV download failed: ' + e.message); }
+  };
+
+  window.downloadProvenance = async function() {
+    if (!matchResults) return;
+    try {
+      const resp = await fetch('/api/formfill/generate-provenance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matches: matchResults, form_name: formName }),
+      });
+      if (!resp.ok) throw new Error('Report generation failed');
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = 'formfill-provenance-' + (formName || 'report') + '.html';
+      a.click(); URL.revokeObjectURL(url);
+    } catch (e) { alert('Provenance report failed: ' + e.message); }
+  };
+})();
+</script>
+</body>
+</html>`;
+
+app.get('/formfill', (req, res) => {
+  res.send(FORMFILL_HTML);
+});
+
+// --- End FormFill ---
+
 // --- Start server ---
 
 const PORT = process.env.PORT || 3000;
@@ -25606,6 +27482,7 @@ app.listen(PORT, () => {
   console.log('  Wiki:   http://localhost:' + PORT + '/wiki');
   console.log('  Import: http://localhost:' + PORT + '/ingest');
   console.log('  API:    http://localhost:' + PORT + '/api/graph/stats');
+  console.log('  Fill:   http://localhost:' + PORT + '/formfill');
   console.log('  Share:  http://localhost:' + PORT + '/shared/:shareId');
   console.log('  Auth:   http://localhost:' + PORT + '/auth/google' + (process.env.GOOGLE_CLIENT_ID ? '' : ' (not configured)'));
   console.log('  Graph:  ' + GRAPH_DIR + (GRAPH_IS_PERSISTENT ? ' (persistent disk)' : ' (local)'));
