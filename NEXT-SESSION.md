@@ -1,12 +1,44 @@
 # Context Architecture — Session Handoff Document
 
-> Last updated: 2026-02-26 (end of Day 9 — Builds 15 + 16 + 17 + 18)
+> Last updated: 2026-02-26 (end of Day 9 — Builds 15-21)
 > Server: running on port 3000
 > Branch: main, pushed to origin
 
 ---
 
 ## 0. Builds Shipped Today (Day 9)
+
+### Build 19 — Form Field Matching Engine
+- **POST /api/formfill/match**: Three-tier matching engine for form fields against extracted entities.
+  - **Tier 1 — Direct mapping**: Dice coefficient bigram matching on field_id/display_name vs attribute keys. Exact and fuzzy (>=0.7 threshold). Uses original extraction confidence.
+  - **Tier 2 — Entity-type inference**: Matches by entity_type + field_type patterns (EIN: XX-XXXXXXX, SSN: XXX-XX-XXXX, dates, currency, email, phone, address). Confidence penalized ×0.85.
+  - **Tier 3 — AI-assisted**: Sends unmatched fields + unused data points to Claude for reasoning-based matching. Confidence penalized ×0.8, flagged as "AI-inferred".
+- **Conflict detection**: When multiple observations match the same field, returns alternatives array with all options.
+- **Unmatched fields**: Returned with `status: "missing"` and `confidence: 0` for manual entry in UI.
+
+### Build 20 — Output Generation
+- **POST /api/formfill/generate-pdf**: Dual-approach PDF filling via pdf-lib.
+  - Approach A: Fillable field detection + name matching + value injection (for IRS/government forms).
+  - Approach B: Text overlay page with all extracted values (for non-fillable forms).
+- **POST /api/formfill/generate-csv**: CSV export with provenance columns (Field, Value, Confidence, Status, Match Method, Source File, Source Text, Entity).
+- **POST /api/formfill/generate-json**: Machine-readable JSON export with full match data.
+- **POST /api/formfill/generate-provenance**: Styled HTML provenance report — confidence badges, source snippets, match method for every field. Instrument Serif + DM Sans typography.
+- **POST /api/formfill/analyze-form**: Upload blank form → AI extracts field map (reuses template generator pipeline).
+- **POST /api/formfill/extract-sources**: Upload source docs → extract entities with provenance (multi-file, PDF/DOCX/XLSX/text).
+
+### Build 21 — FormFill Single-Page UI
+- **GET /formfill**: Standalone single-page product at `/formfill`.
+- **Design**: Linear meets Notion — Instrument Serif headlines + DM Sans body. Warm white (#FAFAF9), deep blue accent (#2563EB), semantic confidence colors.
+- **Three-step flow**:
+  1. Drop zone for blank form → AI analyzes → shows field count + chip preview
+  2. Drop zone for source docs (multi-file) → AI extracts → shows data point count per file
+  3. "Fill My Form" button → progress animation → results table
+- **Results table**: Matched fields (confidence badges, expandable source snippets, edit buttons) + Unmatched fields (manual input). Section grouping with staggered row animations.
+- **Sticky download bar**: Filled PDF (primary), CSV (secondary), Provenance Report (tertiary).
+- **Mobile-responsive**: Stacked layout, responsive typography.
+- **No auth required** for the base flow.
+
+
 
 ### Build 15 — AI Template Generation from Uploaded Forms
 - **POST /api/templates/generate**: Accepts file upload (PDF, DOCX, XLSX, CSV, TXT, images) or `text_input` with plain text requirements. Optional `name`, `description`, `practice_area` metadata.
@@ -74,12 +106,11 @@ All three share the same spoke share token. Captured data flows to the same spok
 ## What's Next
 
 ### Priorities for Next Session
+- Full UX/UI overhaul of the main Context Architecture platform (5-screen redesign)
+- FormFill enhancements: Integration connectors (pull source docs from Drive/ShareFile), form template library (pre-loaded IRS forms), batch mode (fill 20 forms at once), history/saved sessions
 - Clio/ShareFile connector activation (sync client data from practice management)
 - OCR for scanned PDFs (pdf-parse only extracts text layers; scanned images need OCR)
-- Sesame/CSM voice model integration (AI voice responses in conversational intake)
 - Multi-user auth/RBAC (firm admin, attorney, paralegal, client roles)
-- AI auto-promotion rules (automatic tier adjustments based on matter stage)
-- PDF report export (generate downloadable gap analysis / matter summary reports)
 - Event extraction from documents (medical records → medical_visit events, bills → payment events)
 
 ---
@@ -89,7 +120,7 @@ All three share the same spoke share token. Captured data flows to the same spok
 ### Key Files
 | File | Purpose | Lines |
 |------|---------|-------|
-| `web-demo.js` | ALL routes + HTML templates | ~25K |
+| `web-demo.js` | ALL routes + HTML templates | ~27K |
 | `src/gap-analysis.js` | Template system, gap scoring | ~400 |
 | `src/spoke-ops.js` | Hub-spoke management | ~200 |
 | `src/signalStaging.js` | Confidence scoring, review queue | ~800 |
@@ -115,3 +146,11 @@ All three share the same spoke share token. Captured data flows to the same spok
 | GET /chat/:shareToken | Conversational intake chat |
 | POST /chat/:shareToken/message | Chat message endpoint |
 | POST /chat/:shareToken/upload | Chat file upload |
+| GET /formfill | FormFill single-page product |
+| POST /api/formfill/analyze-form | Upload blank form → field map |
+| POST /api/formfill/extract-sources | Upload source docs → entities |
+| POST /api/formfill/match | Three-tier field matching |
+| POST /api/formfill/generate-pdf | Download filled PDF |
+| POST /api/formfill/generate-csv | Download CSV with provenance |
+| POST /api/formfill/generate-json | Download JSON export |
+| POST /api/formfill/generate-provenance | Download HTML provenance report |
