@@ -13494,6 +13494,95 @@ const WIKI_HTML = `<!DOCTYPE html>
   .co-modal-btn.create { background: #2563EB; border: 1px solid #2563EB; color: #fff; }
   .co-modal-btn.create:hover { background: #1D4ED8; }
 
+  /* --- Build 34: Project Detail Field Actions & Three-Tier --- */
+  .b34-field-row { display: grid; grid-template-columns: 180px 1fr 80px 160px 110px; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid #F3F4F6; transition: background 0.15s, border-left 0.15s; border-left: 3px solid transparent; }
+  .b34-field-row:hover { background: #FAFAF9; }
+  .b34-field-row:hover .b34-actions button { opacity: 1; }
+  .b34-field-row.verified { border-left-color: #059669; background: #fff; }
+  .b34-field-row.unreviewed { border-left-color: transparent; }
+  .b34-field-row.missing-row { border-left-color: transparent; background: #FEF2F2; }
+  .b34-field-row.editing { border-left-color: #2563EB; background: #EFF6FF; }
+  .b34-field-row.low-conf { border-left-color: #D97706; background: #FFFBEB; }
+  .b34-field-name { font-size: 13px; font-weight: 500; color: #6B7280; }
+  .b34-field-value { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 13px; color: #1A1A1A; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .b34-field-value.empty { color: #DC2626; font-style: italic; }
+  .b34-conf { display: inline-flex; align-items: center; gap: 4px; }
+  .b34-conf-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .b34-conf-score { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 12px; }
+  .b34-source-link { font-size: 12px; color: #2563EB; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .b34-source-link:hover { text-decoration: underline; }
+  .b34-source-none { font-size: 12px; color: #9CA3AF; font-style: italic; }
+  .b34-actions { display: flex; gap: 4px; }
+  .b34-actions button { width: 28px; height: 28px; border-radius: 6px; border: 1px solid #E5E7EB; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; opacity: 0.4; transition: all 0.15s; padding: 0; }
+  .b34-actions button:hover { opacity: 1 !important; }
+  .b34-actions .b34-verify:hover { border-color: #059669; background: #F0FDF4; color: #059669; }
+  .b34-actions .b34-verify.active { background: #059669; color: #fff; border-color: #059669; opacity: 1; }
+  .b34-actions .b34-edit:hover { border-color: #D97706; background: #FFFBEB; color: #D97706; }
+  .b34-actions .b34-delete:hover { border-color: #DC2626; background: #FEF2F2; color: #DC2626; }
+  .b34-status-pill { padding: 2px 8px; border-radius: 9999px; font-size: 10px; font-weight: 600; display: inline-flex; align-items: center; gap: 3px; }
+  .b34-status-pill.verified { background: #059669; color: #fff; }
+  .b34-status-pill.needs-review { background: #FFFBEB; color: #D97706; border: 1px solid #FDE68A; }
+  .b34-status-pill.missing-pill { background: #DC2626; color: #fff; }
+  .b34-entity-section { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
+  .b34-entity-header { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #F9FAFB; border-bottom: 1px solid #E5E7EB; cursor: pointer; }
+  .b34-entity-header:hover { background: #F3F4F6; }
+  .b34-entity-icon { font-size: 18px; }
+  .b34-entity-name { font-size: 14px; font-weight: 600; color: #1A1A1A; }
+  .b34-entity-type { font-size: 11px; color: #9CA3AF; }
+  .b34-entity-count { margin-left: auto; font-size: 11px; color: #6B7280; }
+  .b34-inline-edit { display: flex; gap: 6px; align-items: center; }
+  .b34-inline-edit input { flex: 1; padding: 6px 10px; border: 1px solid #E5E7EB; border-radius: 6px; font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 13px; }
+  .b34-inline-edit input:focus { outline: none; border-color: #2563EB; box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
+  .b34-inline-edit .save-btn { width: 24px; height: 24px; border-radius: 4px; border: none; background: #059669; color: #fff; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+  .b34-inline-edit .cancel-btn { width: 24px; height: 24px; border-radius: 4px; border: 1px solid #E5E7EB; background: #fff; color: #6B7280; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
+  .b34-bulk-bar { background: #fff; border: 1px solid #BFDBFE; border-radius: 10px; padding: 10px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+  .b34-bulk-bar span { font-size: 12px; color: #1D4ED8; font-weight: 500; }
+  .b34-bulk-bar button { padding: 5px 14px; border: none; border-radius: 6px; background: #2563EB; color: #fff; font-size: 11px; font-weight: 600; cursor: pointer; }
+  .b34-bulk-bar button:hover { background: #1D4ED8; }
+  .b34-banner { border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  .b34-banner.info { background: #EFF6FF; border: 1px solid #BFDBFE; }
+  .b34-banner-text { font-size: 14px; font-weight: 500; color: #1A1A1A; }
+
+  /* Three-tier missing */
+  .b34-tier-section { border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .b34-tier-section.required { background: #FEF2F2; border: 1px solid #FCA5A5; }
+  .b34-tier-section.recommended { background: #FFFBEB; border: 1px solid #FDE68A; }
+  .b34-tier-section.optional { background: #F9FAFB; border: 1px solid #E5E7EB; }
+  .b34-tier-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+  .b34-tier-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .b34-tier-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+  .b34-tier-count { font-size: 12px; font-weight: 700; }
+  .b34-tier-sub { font-size: 12px; font-style: italic; margin-bottom: 12px; }
+  .b34-need-item { background: #fff; border: 1px solid #E5E7EB; border-radius: 8px; padding: 14px 16px; margin-bottom: 8px; }
+  .b34-need-item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
+  .b34-need-item-name { font-size: 14px; font-weight: 600; color: #1A1A1A; }
+  .b34-need-item-cat { font-size: 11px; color: #6B7280; padding: 2px 8px; border: 1px solid #E5E7EB; border-radius: 9999px; background: #F9FAFB; }
+  .b34-need-item-reason { font-size: 13px; color: #6B7280; font-style: italic; margin-bottom: 10px; }
+  .b34-need-item-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .b34-need-btn { padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; transition: all 0.15s; }
+  .b34-need-btn.upload { background: #fff; border: 1px solid #2563EB; color: #2563EB; }
+  .b34-need-btn.upload:hover { background: #EFF6FF; }
+  .b34-need-btn.request { background: #fff; border: 1px solid #2563EB; color: #2563EB; }
+  .b34-need-btn.request:hover { background: #EFF6FF; }
+  .b34-need-btn.manual { background: #fff; border: 1px solid #D97706; color: #D97706; }
+  .b34-need-btn.manual:hover { background: #FFFBEB; }
+  .b34-need-btn.requested { background: #FFFBEB; border: 1px solid #FDE68A; color: #D97706; cursor: default; opacity: 0.8; }
+  .b34-need-dismiss { font-size: 11px; color: #9CA3AF; cursor: pointer; margin-left: 8px; }
+  .b34-need-dismiss:hover { color: #DC2626; }
+  .b34-not-needed-section { margin-top: 16px; padding-top: 12px; border-top: 1px dashed #E5E7EB; }
+  .b34-not-needed-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; color: #9CA3AF; font-size: 12px; }
+  .b34-restore-link { font-size: 11px; color: #2563EB; cursor: pointer; }
+  .b34-restore-link:hover { text-decoration: underline; }
+  .b34-expand-link { font-size: 12px; font-weight: 500; cursor: pointer; padding: 8px 0; }
+  .b34-request-all-wrap { position: relative; display: inline-block; }
+  .b34-request-all-dd { position: absolute; top: 100%; right: 0; background: #fff; border: 1px solid #E5E7EB; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); min-width: 220px; z-index: 20; display: none; }
+  .b34-request-all-dd.open { display: block; }
+  .b34-request-all-dd div { padding: 10px 14px; font-size: 13px; cursor: pointer; color: #1A1A1A; }
+  .b34-request-all-dd div:hover { background: #EFF6FF; color: #2563EB; }
+
+  /* Doc viewer highlight */
+  .mv-doc-line.highlighted { background: #FEF3C7; border-left: 3px solid #D97706; padding-left: 5px; }
+
   /* --- Build 32: Matter View Redesign --- */
   .matter-header { padding: 20px 32px 0; background: #fff; border-bottom: 1px solid #E5E7EB; }
   .matter-header-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
@@ -19206,6 +19295,121 @@ document.addEventListener('click', function(e) {
   }
 });
 
+// ===== Build 34: Demo Data =====
+
+var _demoData = {
+  entities: [
+    {
+      id: 'ent-001', name: 'John R. Smith', type: 'Primary Client', icon: '\ud83d\udc64',
+      fields: [
+        { name: 'Full Name', value: 'John R. Smith', confidence: 0.97, status: 'verified', source: { file: 'acme_w9_john_smith.txt', line: 3, snippet: 'Name: John R. Smith' } },
+        { name: 'SSN', value: '***-**-4589', confidence: 0.94, status: 'verified', source: { file: 'acme_w9_john_smith.txt', line: 7, snippet: 'SSN: XXX-XX-4589' } },
+        { name: 'Address', value: '1247 Peachtree St NE, Atlanta, GA 30309', confidence: 0.91, status: 'unreviewed', source: { file: 'acme_w9_john_smith.txt', line: 5, snippet: 'Address: 1247 Peachtree St NE' } },
+        { name: 'Date of Birth', value: null, confidence: null, status: 'missing', source: null },
+        { name: 'Phone', value: '(404) 555-0147', confidence: 0.72, status: 'unreviewed', source: { file: 'acme_operating_agreement.txt', line: 42, snippet: 'Contact: (404) 555-0147' } },
+        { name: 'Email', value: 'john.smith@acmeconsulting.com', confidence: 0.85, status: 'unreviewed', source: { file: 'acme_operating_agreement.txt', line: 43, snippet: 'Email: john.smith@acmeconsulting.com' } }
+      ]
+    },
+    {
+      id: 'ent-002', name: 'Acme Consulting LLC', type: 'Business Entity', icon: '\ud83c\udfe2',
+      fields: [
+        { name: 'Legal Name', value: 'Acme Consulting LLC', confidence: 0.99, status: 'verified', source: { file: 'acme_articles_of_incorporation.txt', line: 1, snippet: 'Articles of Organization for Acme Consulting LLC' } },
+        { name: 'EIN', value: '47-1234567', confidence: 0.96, status: 'verified', source: { file: 'acme_ein_letter.txt', line: 4, snippet: 'EIN: 47-1234567' } },
+        { name: 'State of Formation', value: 'Georgia', confidence: 0.98, status: 'verified', source: { file: 'acme_articles_of_incorporation.txt', line: 3, snippet: 'State of Georgia, Secretary of State' } },
+        { name: 'Date of Formation', value: '2019-03-15', confidence: 0.93, status: 'unreviewed', source: { file: 'acme_articles_of_incorporation.txt', line: 8, snippet: 'Filed: March 15, 2019' } },
+        { name: 'Entity Type', value: 'Limited Liability Company', confidence: 0.99, status: 'verified', source: { file: 'acme_articles_of_incorporation.txt', line: 2, snippet: 'Type: Limited Liability Company' } },
+        { name: 'Tax Classification', value: 'S-Corporation', confidence: 0.88, status: 'unreviewed', source: { file: 'acme_w9_john_smith.txt', line: 12, snippet: 'Federal tax classification: S-Corp' } },
+        { name: 'Principal Address', value: '1247 Peachtree St NE, Suite 400, Atlanta, GA 30309', confidence: 0.90, status: 'unreviewed', source: { file: 'acme_articles_of_incorporation.txt', line: 10, snippet: 'Principal Office: 1247 Peachtree St NE, Ste 400' } },
+        { name: 'Registered Agent', value: 'John R. Smith', confidence: 0.87, status: 'unreviewed', source: { file: 'acme_articles_of_incorporation.txt', line: 15, snippet: 'Registered Agent: John R. Smith' } },
+        { name: 'Annual Revenue', value: '$847,000', confidence: 0.82, status: 'unreviewed', source: { file: 'acme_profit_and_loss.txt', line: 1, snippet: 'Total Revenue: $847,000' } },
+        { name: 'Fiscal Year End', value: 'December 31', confidence: 0.75, status: 'unreviewed', source: { file: 'acme_prior_year_return.txt', line: 6, snippet: 'Tax Year: Jan 1 - Dec 31' } },
+        { name: 'NAICS Code', value: null, confidence: null, status: 'missing', source: null }
+      ]
+    },
+    {
+      id: 'ent-003', name: 'Sarah Chen', type: 'Officer', icon: '\ud83d\udc64',
+      fields: [
+        { name: 'Full Name', value: 'Sarah Chen', confidence: 0.91, status: 'unreviewed', source: { file: 'acme_operating_agreement.txt', line: 28, snippet: 'Member: Sarah Chen' } },
+        { name: 'Title/Role', value: 'Managing Member', confidence: 0.88, status: 'unreviewed', source: { file: 'acme_operating_agreement.txt', line: 29, snippet: 'Role: Managing Member' } },
+        { name: 'Ownership %', value: '40%', confidence: 0.85, status: 'unreviewed', source: { file: 'acme_operating_agreement.txt', line: 31, snippet: 'Membership Interest: 40%' } },
+        { name: 'Contact Info', value: null, confidence: null, status: 'missing', source: null }
+      ]
+    },
+    {
+      id: 'ent-004', name: 'John R. Smith', type: 'Shareholder', icon: '\ud83d\udc64',
+      fields: [
+        { name: 'Full Name', value: 'John R. Smith', confidence: 0.97, status: 'verified', source: { file: 'acme_operating_agreement.txt', line: 25, snippet: 'Member: John R. Smith' } },
+        { name: 'Ownership %', value: '60%', confidence: 0.92, status: 'unreviewed', source: { file: 'acme_operating_agreement.txt', line: 27, snippet: 'Membership Interest: 60%' } }
+      ]
+    }
+  ],
+  documents: [
+    { id: 'doc-001', filename: 'acme_w9_john_smith.txt', classification: 'W-9 Form', uploaded: 'Feb 24', status: 'processed', extractedCount: 6, content: 'Form W-9: Request for Taxpayer Identification Number\\n\\nName (as shown on your income tax return):\\nJohn R. Smith\\n\\nAddress:\\n1247 Peachtree St NE, Atlanta, GA 30309\\n\\nTaxpayer Identification Number:\\nSSN: XXX-XX-4589\\n\\nBusiness name (if different):\\nAcme Consulting LLC\\n\\nFederal tax classification:\\nS-Corp (Form 1120-S)\\n\\nSignature: John R. Smith\\nDate: February 24, 2024' },
+    { id: 'doc-002', filename: 'acme_articles_of_incorporation.txt', classification: 'Formation Document', uploaded: 'Feb 24', status: 'processed', extractedCount: 8, content: 'Articles of Organization for Acme Consulting LLC\\nType: Limited Liability Company\\nState of Georgia, Secretary of State\\n\\nARTICLE I - NAME\\nThe name of the limited liability company is Acme Consulting LLC.\\n\\nARTICLE II - FORMATION\\nFiled: March 15, 2019\\n\\nARTICLE III - OFFICE\\nPrincipal Office: 1247 Peachtree St NE, Ste 400, Atlanta, GA 30309\\n\\nARTICLE IV - REGISTERED AGENT\\nRegistered Agent: John R. Smith\\n1247 Peachtree St NE, Atlanta, GA 30309\\n\\nARTICLE V - PURPOSE\\nTo engage in management consulting and advisory services.' },
+    { id: 'doc-003', filename: 'acme_ein_letter.txt', classification: 'EIN Confirmation', uploaded: 'Feb 24', status: 'processed', extractedCount: 3, content: 'Department of the Treasury\\nInternal Revenue Service\\n\\nEmployer Identification Number: 47-1234567\\nForm: SS-4\\nDate: March 22, 2019\\n\\nDear Applicant:\\nWe assigned you the above employer identification number.\\nLegal Name: Acme Consulting LLC\\nAddress: 1247 Peachtree St NE, Ste 400\\n         Atlanta, GA 30309' },
+    { id: 'doc-004', filename: 'acme_operating_agreement.txt', classification: 'Operating Agreement', uploaded: 'Feb 24', status: 'processed', extractedCount: 7, content: 'OPERATING AGREEMENT OF ACME CONSULTING LLC\\n\\nEffective Date: March 15, 2019\\nState: Georgia\\n\\nARTICLE I - FORMATION\\nThe Members hereby form a limited liability company.\\n\\nARTICLE II - MEMBERS AND INTERESTS\\n\\nSection 2.1 - Members:\\n\\nMember: John R. Smith\\nRole: Founding Member & Manager\\nMembership Interest: 60%\\n\\nMember: Sarah Chen\\nRole: Managing Member\\nCapital Contribution: $40,000\\nMembership Interest: 40%\\n\\nARTICLE III - MANAGEMENT\\nThe company shall be member-managed.\\n\\nARTICLE IV - DISTRIBUTIONS\\nProfits shall be distributed pro rata.\\n\\nContact Information:\\nContact: (404) 555-0147\\nEmail: john.smith@acmeconsulting.com' },
+    { id: 'doc-005', filename: 'acme_profit_and_loss.txt', classification: 'P&L Statement', uploaded: 'Feb 24', status: 'processed', extractedCount: 4, content: 'Total Revenue: $847,000\\nCost of Goods Sold: $312,000\\nGross Profit: $535,000\\n\\nOperating Expenses:\\n  Payroll: $185,000\\n  Rent: $42,000\\n  Insurance: $12,000\\n  Marketing: $28,000\\n  Professional Services: $15,000\\n  Technology: $8,500\\n  Travel: $22,000\\n  Depreciation: $4,500\\nTotal Operating Expenses: $317,000\\n\\nNet Operating Income: $218,000\\n\\nOther Income: $3,200\\nOther Expenses: $1,800\\n\\nNet Income: $219,400' },
+    { id: 'doc-006', filename: 'acme_balance_sheet.txt', classification: 'Balance Sheet', uploaded: 'Feb 24', status: 'processed', extractedCount: 3, content: 'BALANCE SHEET - Acme Consulting LLC\\nAs of December 31, 2025\\n\\nASSETS\\nCash and Equivalents: $124,500\\nAccounts Receivable: $67,200\\nPrepaid Expenses: $8,400\\nFixed Assets (net): $32,100\\nTotal Assets: $232,200\\n\\nLIABILITIES\\nAccounts Payable: $18,700\\nAccrued Expenses: $12,400\\nLine of Credit: $25,000\\nTotal Liabilities: $56,100\\n\\nEQUITY\\nMember Capital: $176,100\\nTotal Equity: $176,100\\n\\nTotal Liabilities & Equity: $232,200' },
+    { id: 'doc-007', filename: 'acme_prior_year_return.txt', classification: 'Tax Return', uploaded: 'Feb 24', status: 'processed', extractedCount: 5, content: 'Form 1120-S: U.S. Income Tax Return\\nTax Year: Jan 1 - Dec 31, 2024\\n\\nAcme Consulting LLC\\nEIN: 47-1234567\\n\\nGross Receipts: $793,000\\nTotal Deductions: $584,000\\nOrdinary Business Income: $209,000\\n\\nSchedule K-1 issued to:\\n  John R. Smith - 60% ($125,400)\\n  Sarah Chen - 40% ($83,600)' },
+    { id: 'doc-008', filename: 'acme_1099_contractor.txt', classification: '1099-NEC', uploaded: 'Feb 24', status: 'processed', extractedCount: 3, content: 'Form 1099-NEC: Nonemployee Compensation\\nTax Year: 2025\\n\\nPayer: Acme Consulting LLC\\nEIN: 47-1234567\\n\\nRecipient: Marcus Williams\\nSSN: XXX-XX-7823\\nAddress: 892 Piedmont Ave, Atlanta, GA 30308\\n\\nNonemployee Compensation: $45,000' }
+  ]
+};
+
+var _demoMissing = {
+  required: [
+    { id: 'miss-001', name: 'Government Issued ID', category: 'Identification', reason: 'Required for BOI filing and identity verification', canManualEntry: false },
+    { id: 'miss-002', name: 'SSN Card or ITIN Letter', category: 'Identification', reason: 'IRS requires for individual tax ID verification', canManualEntry: false },
+    { id: 'miss-003', name: 'Signed Engagement Letter', category: 'Legal', reason: 'Firm policy \u2014 cannot proceed without signed engagement', canManualEntry: false }
+  ],
+  recommended: [
+    { id: 'miss-004', name: 'Certificate of Good Standing', category: 'Formation', reason: 'Confirms active status with GA Secretary of State', canManualEntry: false },
+    { id: 'miss-005', name: 'Business License', category: 'Regulatory', reason: 'City/county operating license for Atlanta', canManualEntry: false },
+    { id: 'miss-006', name: 'Bank Statements (Q4 2025)', category: 'Financial', reason: 'Needed for cash flow verification', canManualEntry: false },
+    { id: 'miss-007', name: 'Contractor Agreements', category: 'Employment', reason: '1099 issued to Marcus Williams \u2014 need the agreement', canManualEntry: false },
+    { id: 'miss-008', name: 'Workers Comp Certificate', category: 'Insurance', reason: 'Required for payroll verification', canManualEntry: false },
+    { id: 'miss-009', name: 'Depreciation Schedule', category: 'Financial', reason: '$4,500 depreciation on P&L needs supporting schedule', canManualEntry: true },
+    { id: 'miss-010', name: "Sarah Chen's SSN/ITIN", category: 'Identification', reason: 'Required for K-1 issuance to 40% member', canManualEntry: true },
+    { id: 'miss-011', name: 'Initial Capital Contributions', category: 'Financial', reason: 'Operating agreement references $40K \u2014 need documentation', canManualEntry: true }
+  ],
+  optional: [
+    { id: 'miss-012', name: 'NAICS Code Documentation', category: 'Business Info', reason: 'Improves accuracy of return classification', canManualEntry: true },
+    { id: 'miss-013', name: 'Meeting Minutes (Annual)', category: 'Governance', reason: 'Supports S-Corp status maintenance', canManualEntry: false },
+    { id: 'miss-014', name: 'Insurance Declarations Page', category: 'Insurance', reason: 'Enables full insurance deduction optimization', canManualEntry: false },
+    { id: 'miss-015', name: 'Vehicle Mileage Log', category: 'Deductions', reason: 'John may have deductible business miles', canManualEntry: true }
+  ]
+};
+
+var _demoFieldState = {}; // tracks field edits/verifications/deletions: { 'ent-001_0': { status, value, ... } }
+var _demoDismissed = []; // IDs of dismissed missing items
+var _demoRequested = {}; // IDs -> date string of requested items
+var _demoManualEntries = {}; // IDs -> { value } of manually entered items
+var _mvHighlightLine = null; // { file, line } for document viewer highlighting
+var _mvHighlightFile = null; // file ID to open with highlighting
+
+// Compute demo stats
+function _demoStats() {
+  var total = 0, verified = 0, unreviewed = 0, missing = 0;
+  for (var ei = 0; ei < _demoData.entities.length; ei++) {
+    var fields = _demoData.entities[ei].fields;
+    for (var fi = 0; fi < fields.length; fi++) {
+      var key = _demoData.entities[ei].id + '_' + fi;
+      var st = _demoFieldState[key];
+      var status = st ? st.status : fields[fi].status;
+      if (status === 'deleted') continue;
+      total++;
+      if (status === 'verified') verified++;
+      else if (status === 'missing') missing++;
+      else unreviewed++;
+    }
+  }
+  var needTotal = 0;
+  var allMissing = (_demoMissing.required || []).concat(_demoMissing.recommended || []).concat(_demoMissing.optional || []);
+  for (var i = 0; i < allMissing.length; i++) {
+    if (_demoDismissed.indexOf(allMissing[i].id) === -1 && !_demoManualEntries[allMissing[i].id]) needTotal++;
+  }
+  return { total: total, verified: verified, unreviewed: unreviewed, missing: missing, needTotal: needTotal };
+}
+
 // ===== Build 32: Project Detail Data Loading =====
 
 function loadMatterViewData() {
@@ -19239,27 +19443,28 @@ function loadMatterViewData() {
       badge.onclick = function() { loadClientTabContent_legacy('completeness'); };
     }
 
-    // Build metrics (Build 32: now in header)
+    // Build 34: Build metrics from demo stats
     var metricsEl = document.getElementById('matterMetrics');
-    if (metricsEl) metricsEl.innerHTML = _buildMatterMetrics(gapData, exportData);
+    if (metricsEl) metricsEl.innerHTML = _buildMatterMetrics34();
 
-    // Build doc panel (Build 32: mvDocPanel)
+    // Build 34: Doc panel from demo data
     var docEl = document.getElementById('mvDocPanel');
     if (docEl) {
-      docEl.innerHTML = _buildDocPanel(filesData ? filesData.files || [] : []);
+      docEl.innerHTML = _buildDocPanel34();
       _setupDocPanelDragDrop();
     }
 
-    // Build tab bar (Build 32)
+    // Build 34: Tab bar with demo counts
     var tabBarEl = document.getElementById('mvTabBar');
-    if (tabBarEl) tabBarEl.innerHTML = _buildTabBar(exportData, gapData);
+    if (tabBarEl) tabBarEl.innerHTML = _buildTabBar34();
 
-    // Build center panel tabs (Build 32)
+    // Build 34: Data panel from demo entities
     var knowEl = document.getElementById('mvTabKnow');
-    if (knowEl) knowEl.innerHTML = _buildDataPanel(exportData, gapData);
+    if (knowEl) knowEl.innerHTML = _buildDataPanel34();
 
+    // Build 34: Missing panel from demo tiers
     var needEl = document.getElementById('mvTabNeed');
-    if (needEl) needEl.innerHTML = _buildMissingPanel(gapData);
+    if (needEl) needEl.innerHTML = _buildMissingPanel34();
 
     // Restore active tab state
     if (_mvActiveTab === 'need') {
@@ -19602,7 +19807,734 @@ function mvCloseDocViewer() {
   }
 }
 
-// ===== CENTER PANEL: EXTRACTED DATA =====
+// ===== Build 34: METRICS BAR =====
+function _buildMatterMetrics34() {
+  var s = _demoStats();
+  var totalFields = s.total + s.missing;
+  var completePct = totalFields > 0 ? Math.round(((s.verified + s.unreviewed) / totalFields) * 100) : 0;
+  var verifiedPct = totalFields > 0 ? Math.round((s.verified / totalFields) * 100) : 0;
+  var readyPct = s.needTotal === 0 && s.missing === 0 ? 100 : Math.max(0, Math.round(((totalFields - s.missing - s.needTotal) / Math.max(1, totalFields + s.needTotal)) * 100));
+
+  var h = '';
+  h += '<div class="metric"><div class="metric-label">Completeness</div>';
+  h += '<div class="metric-value">' + completePct + '%</div>';
+  h += '<div class="metric-bar"><div class="metric-bar-fill" style="width:' + completePct + '%;background:#2563EB;"></div></div></div>';
+  h += '<div class="metric"><div class="metric-label">Verified</div>';
+  h += '<div class="metric-value">' + verifiedPct + '%</div>';
+  h += '<div class="metric-bar"><div class="metric-bar-fill" style="width:' + verifiedPct + '%;background:#059669;"></div></div></div>';
+  h += '<div class="metric"><div class="metric-label">Filing Readiness</div>';
+  h += '<div class="metric-value">' + readyPct + '%</div>';
+  h += '<div class="metric-bar"><div class="metric-bar-fill" style="width:' + readyPct + '%;background:' + (readyPct >= 80 ? '#059669' : readyPct >= 50 ? '#D97706' : '#DC2626') + ';"></div></div></div>';
+  return h;
+}
+
+// ===== Build 34: TAB BAR =====
+function _buildTabBar34() {
+  var s = _demoStats();
+  var h = '';
+  h += '<div class="mv-tab' + (_mvActiveTab === 'know' ? ' active' : '') + '" onclick="mvSwitchTab(\'know\')">';
+  h += 'What We Know <span class="mv-tab-badge" style="background:#2563EB;color:#fff;">' + (s.total - s.missing) + '</span></div>';
+  h += '<div class="mv-tab' + (_mvActiveTab === 'need' ? ' active' : '') + '" onclick="mvSwitchTab(\'need\')">';
+  h += 'What We Still Need <span class="mv-tab-badge" style="background:' + (s.needTotal > 0 ? '#DC2626' : '#059669') + ';color:#fff;">' + s.needTotal + '</span></div>';
+  return h;
+}
+
+// ===== Build 34: DOC PANEL =====
+function _buildDocPanel34() {
+  var docs = _demoData.documents;
+  var h = '';
+  h += '<div class="mv-doc-panel-header">';
+  h += '<span style="font-size:12px;font-weight:600;color:#1A1A1A;text-transform:uppercase;letter-spacing:0.05em;">Documents (' + docs.length + ')</span>';
+  h += '<span style="font-size:11px;color:#2563EB;cursor:pointer;font-weight:500;" onclick="document.getElementById(\'matterFileInput\').click()">+ Upload</span>';
+  h += '</div>';
+  h += '<div class="mv-doc-list" style="flex:1;overflow-y:auto;padding:8px;">';
+
+  for (var i = 0; i < docs.length; i++) {
+    var doc = docs[i];
+    var isSelected = _mvSelectedDoc === doc.id;
+    var icon = doc.classification === 'W-9 Form' ? '\ud83d\udcdd' : doc.classification === 'Formation Document' ? '\ud83c\udfe2' : doc.classification === 'Operating Agreement' ? '\ud83d\udcc4' : doc.classification === 'EIN Confirmation' ? '\ud83c\udfe6' : doc.classification === 'Tax Return' ? '\ud83d\udcca' : doc.classification === '1099-NEC' ? '\ud83d\udccb' : '\ud83d\udcc4';
+    var statusIcon = doc.status === 'processed' ? '<span style="color:#059669;">\u2713</span>' : '<span style="color:#D97706;">\u25cf</span>';
+
+    h += '<div class="mv-doc-card' + (isSelected ? ' selected' : '') + '" data-fileid="' + doc.id + '" onclick="mvSelectDoc34(\'' + doc.id + '\')">';
+    h += '<div style="display:flex;align-items:center;gap:8px;">';
+    h += '<span style="font-size:16px;">' + icon + '</span>';
+    h += '<div style="flex:1;min-width:0;">';
+    h += '<div style="font-size:13px;font-weight:500;color:#1A1A1A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(doc.filename) + '</div>';
+    h += '<div style="font-size:11px;color:#9CA3AF;">' + esc(doc.uploaded) + ' \u00b7 ' + doc.extractedCount + ' values</div>';
+    h += '</div>';
+    h += statusIcon;
+    h += '</div>';
+    h += '</div>';
+  }
+
+  h += '</div>';
+  h += '<div style="padding:8px;border-top:1px solid #E5E7EB;">';
+  h += '<button onclick="document.getElementById(\'matterFileInput\').click()" style="width:100%;padding:8px;border:1px dashed #D1D5DB;border-radius:8px;background:none;color:#6B7280;font-size:12px;cursor:pointer;">+ Upload Documents</button>';
+  h += '</div>';
+  return h;
+}
+
+// ===== Build 34: DATA PANEL (What We Know) =====
+function _buildDataPanel34() {
+  var h = '';
+  var s = _demoStats();
+  var totalFields = s.total;
+  var bulkEligible = 0;
+
+  // Count bulk-eligible (unreviewed with confidence >= 0.85)
+  for (var ei = 0; ei < _demoData.entities.length; ei++) {
+    var fields = _demoData.entities[ei].fields;
+    for (var fi = 0; fi < fields.length; fi++) {
+      var key = _demoData.entities[ei].id + '_' + fi;
+      var st = _demoFieldState[key];
+      var status = st ? st.status : fields[fi].status;
+      var conf = st && st.confidence !== undefined ? st.confidence : fields[fi].confidence;
+      if (status === 'unreviewed' && conf && conf >= 0.85) bulkEligible++;
+    }
+  }
+
+  // State banner
+  h += '<div class="b34-banner info">';
+  h += '<span class="b34-banner-text"><strong>' + (s.total - s.missing) + ' fields</strong> extracted. ';
+  h += '<span style="color:#059669;">' + s.verified + ' verified</span>, ';
+  h += '<span style="color:#D97706;">' + s.unreviewed + ' need review</span>, ';
+  h += '<span style="color:#DC2626;">' + s.missing + ' missing</span>.</span>';
+  h += '</div>';
+
+  // Bulk verify bar
+  if (bulkEligible > 0) {
+    h += '<div class="b34-bulk-bar">';
+    h += '<span>\u2713 Bulk Verify: ' + bulkEligible + ' fields have high confidence (\u226585%)</span>';
+    h += '<div style="display:flex;gap:8px;">';
+    h += '<button onclick="b34BulkPreview()" style="background:#fff;color:#2563EB;border:1px solid #BFDBFE;">Preview</button>';
+    h += '<button onclick="b34BulkVerify()">Verify All ' + bulkEligible + '</button>';
+    h += '</div></div>';
+  }
+
+  // Heading
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+  h += '<span style="font-size:13px;font-weight:600;color:#1A1A1A;text-transform:uppercase;letter-spacing:0.05em;">Extracted Data</span>';
+  h += '<span style="font-size:12px;color:#9CA3AF;">' + (s.total - s.missing) + ' of ' + totalFields + ' fields</span>';
+  h += '</div>';
+
+  // Entity sections
+  for (var ei = 0; ei < _demoData.entities.length; ei++) {
+    var entity = _demoData.entities[ei];
+    var entFields = entity.fields;
+    var entVerified = 0, entTotal = 0;
+    for (var fi = 0; fi < entFields.length; fi++) {
+      var fKey = entity.id + '_' + fi;
+      var fSt = _demoFieldState[fKey];
+      var fStatus = fSt ? fSt.status : entFields[fi].status;
+      if (fStatus === 'deleted') continue;
+      entTotal++;
+      if (fStatus === 'verified') entVerified++;
+    }
+
+    h += '<div class="b34-entity-section">';
+    h += '<div class="b34-entity-header">';
+    h += '<span class="b34-entity-icon">' + entity.icon + '</span>';
+    h += '<span class="b34-entity-name">' + esc(entity.name) + '</span>';
+    h += '<span class="b34-entity-type">' + esc(entity.type) + '</span>';
+    h += '<span class="b34-entity-count">' + entVerified + '/' + entTotal + ' verified</span>';
+    h += '</div>';
+
+    // Field rows
+    for (var fi = 0; fi < entFields.length; fi++) {
+      var field = entFields[fi];
+      var fieldKey = entity.id + '_' + fi;
+      var fieldState = _demoFieldState[fieldKey];
+      var fVal = fieldState && fieldState.value !== undefined ? fieldState.value : field.value;
+      var fStatus = fieldState ? fieldState.status : field.status;
+      var fConf = fieldState && fieldState.confidence !== undefined ? fieldState.confidence : field.confidence;
+      var fSource = field.source;
+
+      if (fStatus === 'deleted') continue;
+
+      var rowClass = 'b34-field-row';
+      if (fStatus === 'verified') rowClass += ' verified';
+      else if (fStatus === 'missing') rowClass += ' missing-row';
+      else if (fConf && fConf < 0.60) rowClass += ' low-conf';
+      else rowClass += ' unreviewed';
+
+      var confColor = !fConf ? '#9CA3AF' : (fConf >= 0.85 ? '#059669' : (fConf >= 0.60 ? '#D97706' : '#DC2626'));
+
+      h += '<div class="' + rowClass + '" id="b34row_' + fieldKey + '">';
+
+      // Field name
+      h += '<div class="b34-field-name">' + esc(field.name) + '</div>';
+
+      // Value
+      h += '<div id="b34val_' + fieldKey + '">';
+      if (fStatus === 'missing' || fVal === null) {
+        h += '<span class="b34-field-value empty">\u2014</span>';
+      } else {
+        h += '<span class="b34-field-value">' + esc(String(fVal)) + '</span>';
+      }
+      h += '</div>';
+
+      // Confidence
+      h += '<div class="b34-conf">';
+      if (fStatus === 'verified') {
+        h += '<span class="b34-status-pill verified">\u2713 Verified</span>';
+      } else if (fStatus === 'missing') {
+        h += '<span class="b34-status-pill missing-pill">Missing</span>';
+      } else {
+        h += '<span class="b34-conf-dot" style="background:' + confColor + ';"></span>';
+        h += '<span class="b34-conf-score" style="color:' + confColor + ';">' + (fConf != null ? fConf.toFixed(2) : '\u2014') + '</span>';
+      }
+      h += '</div>';
+
+      // Source link
+      h += '<div>';
+      if (fSource && fSource.file) {
+        var shortFile = fSource.file.length > 18 ? fSource.file.substring(0, 15) + '...' : fSource.file;
+        h += '<span class="b34-source-link" onclick="event.stopPropagation();b34OpenSource(\'' + esc(fSource.file) + '\',' + (fSource.line || 0) + ')">' + esc(shortFile) + ':' + (fSource.line || '') + '</span>';
+      } else if (fStatus !== 'missing') {
+        h += '<span class="b34-source-none">No source</span>';
+      }
+      h += '</div>';
+
+      // Actions
+      h += '<div class="b34-actions">';
+      if (fStatus === 'verified') {
+        h += '<button class="b34-verify active" onclick="b34ToggleVerify(\'' + fieldKey + '\')" title="Un-verify">\u2713</button>';
+        h += '<button class="b34-edit" onclick="b34StartEdit(\'' + fieldKey + '\')" title="Edit">\u270e</button>';
+        h += '<button class="b34-delete" onclick="b34DeleteField(\'' + fieldKey + '\')" title="Delete">\ud83d\uddd1</button>';
+      } else if (fStatus === 'missing') {
+        h += '<button class="b34-edit" onclick="b34StartEdit(\'' + fieldKey + '\')" title="Enter value">\u270e</button>';
+      } else {
+        h += '<button class="b34-verify" onclick="b34ToggleVerify(\'' + fieldKey + '\')" title="Verify">\u2713</button>';
+        h += '<button class="b34-edit" onclick="b34StartEdit(\'' + fieldKey + '\')" title="Edit">\u270e</button>';
+        h += '<button class="b34-delete" onclick="b34DeleteField(\'' + fieldKey + '\')" title="Delete">\ud83d\uddd1</button>';
+      }
+      h += '</div>';
+
+      h += '</div>'; // end field row
+    }
+
+    h += '</div>'; // end entity section
+  }
+
+  return h;
+}
+
+// ===== Build 34: MISSING PANEL (What We Still Need) =====
+function _buildMissingPanel34() {
+  var h = '';
+  var s = _demoStats();
+
+  // Header with Request All dropdown
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">';
+  h += '<span style="font-size:15px;font-weight:600;color:#1A1A1A;">What We Still Need</span>';
+  h += '<div class="b34-request-all-wrap">';
+  h += '<button onclick="b34ToggleRequestAll()" class="b34-need-btn request" style="font-size:12px;">Request All Missing \u25be</button>';
+  h += '<div id="b34RequestAllDD" class="b34-request-all-dd">';
+  var rCount = 0, recCount = 0;
+  for (var i = 0; i < _demoMissing.required.length; i++) { if (_demoDismissed.indexOf(_demoMissing.required[i].id) === -1 && !_demoRequested[_demoMissing.required[i].id] && !_demoManualEntries[_demoMissing.required[i].id]) rCount++; }
+  for (var i = 0; i < _demoMissing.recommended.length; i++) { if (_demoDismissed.indexOf(_demoMissing.recommended[i].id) === -1 && !_demoRequested[_demoMissing.recommended[i].id] && !_demoManualEntries[_demoMissing.recommended[i].id]) recCount++; }
+  h += '<div onclick="b34RequestAllTier(\'required\')">Request All Required (' + rCount + ')</div>';
+  h += '<div onclick="b34RequestAllTier(\'recommended\')">Request All Recommended (' + recCount + ')</div>';
+  h += '<div onclick="b34RequestAllTier(\'all\')">Request All (' + (rCount + recCount) + ')</div>';
+  h += '</div></div></div>';
+
+  if (s.needTotal === 0) {
+    h += '<div style="text-align:center;padding:32px;background:#F0FDF4;border-radius:12px;border:1px solid #BBF7D0;">';
+    h += '<div style="font-size:16px;margin-bottom:8px;">\u2705</div>';
+    h += '<div style="font-size:14px;font-weight:600;color:#065F46;">All required items resolved. This matter is ready to file.</div>';
+    h += '</div>';
+    return h;
+  }
+
+  // Render tiers
+  h += _buildTierSection('required', _demoMissing.required, 'REQUIRED', '#DC2626', 'Cannot proceed without these', false);
+  h += _buildTierSection('recommended', _demoMissing.recommended, 'RECOMMENDED', '#D97706', 'Recommended for a complete, quality filing', false);
+  h += _buildTierSection('optional', _demoMissing.optional, 'OPTIONAL', '#6B7280', 'Nice-to-have \u2014 improves quality and reduces risk', true);
+
+  // Not Needed section (dismissed items)
+  if (_demoDismissed.length > 0) {
+    h += '<div class="b34-not-needed-section">';
+    h += '<div style="font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.03em;margin-bottom:8px;">Not Needed</div>';
+    var allItems = _demoMissing.required.concat(_demoMissing.recommended).concat(_demoMissing.optional);
+    for (var i = 0; i < _demoDismissed.length; i++) {
+      var item = null;
+      for (var j = 0; j < allItems.length; j++) { if (allItems[j].id === _demoDismissed[i]) { item = allItems[j]; break; } }
+      if (!item) continue;
+      h += '<div class="b34-not-needed-item">';
+      h += '<span>\ud83d\udccb ' + esc(item.name) + '</span>';
+      h += '<span class="b34-restore-link" onclick="b34RestoreItem(\'' + item.id + '\')">Restore</span>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  return h;
+}
+
+function _buildTierSection(tier, items, label, color, subtext, collapsedDefault) {
+  // Filter out dismissed and manually-entered items
+  var activeItems = [];
+  for (var i = 0; i < items.length; i++) {
+    if (_demoDismissed.indexOf(items[i].id) === -1 && !_demoManualEntries[items[i].id]) activeItems.push(items[i]);
+  }
+  if (activeItems.length === 0) return '';
+
+  var cssClass = tier === 'required' ? 'required' : tier === 'recommended' ? 'recommended' : 'optional';
+  var h = '<div class="b34-tier-section ' + cssClass + '">';
+
+  // Header
+  h += '<div class="b34-tier-header">';
+  h += '<span class="b34-tier-dot" style="background:' + color + ';"></span>';
+  h += '<span class="b34-tier-label" style="color:' + color + ';">' + label + '</span>';
+  h += '<span class="b34-tier-count" style="color:' + color + ';">(' + activeItems.length + ')</span>';
+  h += '</div>';
+  h += '<div class="b34-tier-sub" style="color:' + color + ';">' + subtext + '</div>';
+
+  // Items
+  var showLimit = collapsedDefault ? 0 : (tier === 'recommended' ? 5 : activeItems.length);
+  var tierId = 'b34tier_' + tier;
+
+  h += '<div id="' + tierId + '">';
+  for (var i = 0; i < activeItems.length; i++) {
+    var item = activeItems[i];
+    var isHidden = i >= showLimit;
+    var isRequested = _demoRequested[item.id];
+
+    h += '<div class="b34-need-item" id="b34item_' + item.id + '" style="' + (isHidden ? 'display:none;' : '') + '">';
+    h += '<div class="b34-need-item-header">';
+    h += '<span class="b34-need-item-name">\ud83d\udccb ' + esc(item.name) + '</span>';
+    h += '<span class="b34-need-item-cat">' + esc(item.category) + '</span>';
+    h += '</div>';
+    h += '<div class="b34-need-item-reason">' + esc(item.reason) + '</div>';
+    h += '<div class="b34-need-item-actions">';
+
+    // Upload button
+    h += '<button class="b34-need-btn upload" onclick="b34UploadFor(\'' + item.id + '\')">\u2191 Upload Document</button>';
+
+    // Request button (or Requested state)
+    if (isRequested) {
+      h += '<button class="b34-need-btn requested">\ud83d\udce4 Requested ' + isRequested + '</button>';
+    } else {
+      h += '<button class="b34-need-btn request" onclick="b34RequestItem(\'' + item.id + '\')">\ud83d\udce4 Request from Client</button>';
+    }
+
+    // Manual entry (if allowed)
+    if (item.canManualEntry) {
+      h += '<button class="b34-need-btn manual" onclick="b34ManualEntry(\'' + item.id + '\')">\u270e Enter Manually</button>';
+    }
+
+    // Not Needed dismiss
+    h += '<span class="b34-need-dismiss" onclick="b34DismissItem(\'' + item.id + '\',\'' + tier + '\')" title="Remove from requirements">\u2715 Not Needed</span>';
+
+    h += '</div>'; // end actions
+    h += '</div>'; // end item
+  }
+  h += '</div>'; // end tier items container
+
+  // Show more link for recommended
+  if (tier === 'recommended' && activeItems.length > 5) {
+    h += '<div class="b34-expand-link" style="color:' + color + ';" id="b34expand_' + tier + '" onclick="b34ExpandTier(\'' + tier + '\')">+' + (activeItems.length - 5) + ' more</div>';
+  }
+  // Show/hide toggle for optional (collapsed by default)
+  if (collapsedDefault && activeItems.length > 0) {
+    h += '<div class="b34-expand-link" style="color:' + color + ';" id="b34expand_' + tier + '" onclick="b34ExpandTier(\'' + tier + '\')">Show ' + activeItems.length + ' optional items \u25be</div>';
+  }
+
+  h += '</div>'; // end tier section
+  return h;
+}
+
+// ===== Build 34: DOCUMENT VIEWER (Enhanced) =====
+function _buildDocViewer34(docId, highlightLine) {
+  var doc = null;
+  for (var i = 0; i < _demoData.documents.length; i++) {
+    if (_demoData.documents[i].id === docId) { doc = _demoData.documents[i]; break; }
+  }
+  if (!doc) return '<div style="padding:40px;text-align:center;color:#9CA3AF;font-size:13px;">File not found.</div>';
+
+  // Find all fields extracted from this document
+  var extractedFields = [];
+  for (var ei = 0; ei < _demoData.entities.length; ei++) {
+    var ent = _demoData.entities[ei];
+    for (var fi = 0; fi < ent.fields.length; fi++) {
+      var f = ent.fields[fi];
+      if (f.source && f.source.file === doc.filename) {
+        var fKey = ent.id + '_' + fi;
+        var fSt = _demoFieldState[fKey];
+        extractedFields.push({
+          field: f.name,
+          value: fSt && fSt.value !== undefined ? fSt.value : (f.value || '\u2014'),
+          status: fSt ? fSt.status : f.status,
+          line: f.source.line,
+          entityName: ent.name
+        });
+      }
+    }
+  }
+
+  var h = '';
+  // Header
+  h += '<div class="mv-doc-viewer-header">';
+  h += '<div>';
+  h += '<div class="mv-doc-viewer-title">' + esc(doc.filename) + '</div>';
+  h += '<div class="mv-doc-viewer-meta">' + esc(doc.classification) + ' \u00b7 Uploaded ' + esc(doc.uploaded) + '</div>';
+  h += '<div class="mv-doc-viewer-status">';
+  h += '<span style="color:#059669;">\u2713</span> ';
+  h += '<span style="color:#6B7280;">Processed \u00b7 ' + doc.extractedCount + ' values extracted</span>';
+  h += '</div>';
+  h += '</div>';
+  h += '<button class="mv-doc-viewer-close" onclick="mvCloseDocViewer()">\u2715</button>';
+  h += '</div>';
+
+  // Content: document text with line numbers and highlighting
+  h += '<div class="mv-doc-viewer-content">';
+  var textContent = doc.content || '';
+  if (textContent) {
+    h += '<div class="mv-doc-text">';
+    var lines = textContent.split('\\n');
+    for (var li = 0; li < lines.length; li++) {
+      var lineNum = li + 1;
+      var isHighlighted = highlightLine && lineNum === highlightLine;
+      h += '<span class="mv-doc-line' + (isHighlighted ? ' highlighted' : '') + '" id="b34line_' + lineNum + '" style="display:block;' + (isHighlighted ? 'background:#FEF3C7;border-left:3px solid #D97706;padding-left:5px;' : '') + '">';
+      h += '<span class="mv-doc-line-num">' + lineNum + '</span>' + esc(lines[li]);
+      h += '</span>';
+    }
+    h += '</div>';
+  } else {
+    h += '<div style="padding:40px 20px;text-align:center;color:#9CA3AF;font-size:13px;">Document text preview not available</div>';
+  }
+  h += '</div>';
+
+  // Values extracted from this document
+  if (extractedFields.length > 0) {
+    h += '<div class="mv-doc-viewer-values">';
+    h += '<div class="mv-doc-values-title">VALUES EXTRACTED FROM THIS DOCUMENT (' + extractedFields.length + ')</div>';
+    for (var vi = 0; vi < extractedFields.length; vi++) {
+      var ef = extractedFields[vi];
+      h += '<div class="mv-doc-value-row" style="cursor:pointer;" onclick="b34ScrollToLine(' + ef.line + ')">';
+      h += '<span class="mv-doc-value-field">' + esc(ef.field) + '</span>';
+      h += '<span class="mv-doc-value-val">' + esc(String(ef.value)) + '</span>';
+      if (ef.status === 'verified') {
+        h += '<span class="mv-doc-value-status verified">\u2713 Verified</span>';
+      } else if (ef.status === 'missing') {
+        h += '<span class="mv-doc-value-status" style="color:#DC2626;">Missing</span>';
+      } else {
+        h += '<span class="mv-doc-value-status unreviewed">\u25cf Unreviewed</span>';
+      }
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  return h;
+}
+
+// ===== Build 34: INTERACTION HANDLERS =====
+
+function mvSelectDoc34(docId) {
+  if (_mvSelectedDoc === docId && !_mvHighlightLine) {
+    mvCloseDocViewer();
+    return;
+  }
+  _mvSelectedDoc = docId;
+
+  // Update card selection
+  var cards = document.querySelectorAll('.mv-doc-card');
+  for (var i = 0; i < cards.length; i++) {
+    cards[i].classList.toggle('selected', cards[i].getAttribute('data-fileid') === docId);
+  }
+
+  // Render doc viewer
+  var viewer = document.getElementById('mvDocViewer');
+  if (viewer) {
+    viewer.innerHTML = _buildDocViewer34(docId, _mvHighlightLine);
+    viewer.classList.remove('hidden');
+    // Scroll to highlighted line
+    if (_mvHighlightLine) {
+      setTimeout(function() {
+        var lineEl = document.getElementById('b34line_' + _mvHighlightLine);
+        if (lineEl) lineEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        _mvHighlightLine = null;
+      }, 100);
+    }
+  }
+}
+
+function b34OpenSource(filename, line) {
+  // Find document by filename
+  var docId = null;
+  for (var i = 0; i < _demoData.documents.length; i++) {
+    if (_demoData.documents[i].filename === filename) { docId = _demoData.documents[i].id; break; }
+  }
+  if (!docId) return;
+  _mvHighlightLine = line || null;
+  mvSelectDoc34(docId);
+}
+
+function b34ScrollToLine(line) {
+  // Clear existing highlights
+  var allLines = document.querySelectorAll('.mv-doc-line.highlighted');
+  for (var i = 0; i < allLines.length; i++) {
+    allLines[i].classList.remove('highlighted');
+    allLines[i].style.background = '';
+    allLines[i].style.borderLeft = '';
+    allLines[i].style.paddingLeft = '';
+  }
+  // Highlight the target line
+  var lineEl = document.getElementById('b34line_' + line);
+  if (lineEl) {
+    lineEl.classList.add('highlighted');
+    lineEl.style.background = '#FEF3C7';
+    lineEl.style.borderLeft = '3px solid #D97706';
+    lineEl.style.paddingLeft = '5px';
+    lineEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+function b34ToggleVerify(fieldKey) {
+  var parts = fieldKey.split('_');
+  var entId = parts[0] + '-' + parts[1];
+  var fi = parseInt(parts[2] || parts[1]);
+  // Find entity and field
+  for (var ei = 0; ei < _demoData.entities.length; ei++) {
+    var ent = _demoData.entities[ei];
+    for (var f = 0; f < ent.fields.length; f++) {
+      if (ent.id + '_' + f === fieldKey) {
+        var current = _demoFieldState[fieldKey];
+        var curStatus = current ? current.status : ent.fields[f].status;
+        if (curStatus === 'verified') {
+          _demoFieldState[fieldKey] = { status: 'unreviewed', value: current ? current.value : ent.fields[f].value, confidence: current ? current.confidence : ent.fields[f].confidence };
+        } else {
+          _demoFieldState[fieldKey] = { status: 'verified', value: current ? current.value : ent.fields[f].value, confidence: current ? current.confidence : ent.fields[f].confidence };
+        }
+        _b34RefreshDataPanel();
+        return;
+      }
+    }
+  }
+}
+
+function b34StartEdit(fieldKey) {
+  // Find field
+  for (var ei = 0; ei < _demoData.entities.length; ei++) {
+    var ent = _demoData.entities[ei];
+    for (var f = 0; f < ent.fields.length; f++) {
+      if (ent.id + '_' + f === fieldKey) {
+        var field = ent.fields[f];
+        var current = _demoFieldState[fieldKey];
+        var curVal = current && current.value !== undefined ? current.value : (field.value || '');
+
+        var row = document.getElementById('b34row_' + fieldKey);
+        var valCell = document.getElementById('b34val_' + fieldKey);
+        if (!valCell || !row) return;
+
+        row.className = 'b34-field-row editing';
+        valCell.innerHTML = '<div class="b34-inline-edit">' +
+          '<input type="text" id="b34input_' + fieldKey + '" value="' + esc(String(curVal)) + '" />' +
+          '<button class="save-btn" onclick="b34SaveEdit(\'' + fieldKey + '\')">\u2713</button>' +
+          '<button class="cancel-btn" onclick="_b34RefreshDataPanel()">\u2715</button>' +
+          '</div>';
+        var inp = document.getElementById('b34input_' + fieldKey);
+        if (inp) { inp.focus(); inp.select(); }
+        return;
+      }
+    }
+  }
+}
+
+function b34SaveEdit(fieldKey) {
+  var inp = document.getElementById('b34input_' + fieldKey);
+  if (!inp) return;
+  var newVal = inp.value.trim();
+  _demoFieldState[fieldKey] = { status: 'verified', value: newVal || null, confidence: 1.00 };
+  if (!newVal) _demoFieldState[fieldKey].status = 'missing';
+  _b34RefreshDataPanel();
+  toast('Field updated and verified');
+}
+
+function b34DeleteField(fieldKey) {
+  var row = document.getElementById('b34row_' + fieldKey);
+  if (!row) return;
+  // Inline confirmation
+  var valCell = document.getElementById('b34val_' + fieldKey);
+  if (!valCell) return;
+  row.style.background = '#FEF2F2';
+  valCell.innerHTML = '<span style="font-size:13px;color:#DC2626;">Delete this value?</span> ' +
+    '<button onclick="b34ConfirmDelete(\'' + fieldKey + '\')" style="padding:3px 10px;border:none;border-radius:4px;background:#DC2626;color:#fff;font-size:11px;font-weight:600;cursor:pointer;margin-left:8px;">Yes</button> ' +
+    '<button onclick="_b34RefreshDataPanel()" style="padding:3px 10px;border:1px solid #E5E7EB;border-radius:4px;background:#fff;color:#6B7280;font-size:11px;cursor:pointer;">No</button>';
+}
+
+function b34ConfirmDelete(fieldKey) {
+  _demoFieldState[fieldKey] = { status: 'deleted' };
+  _b34RefreshDataPanel();
+  toast('Field value deleted');
+}
+
+function b34BulkPreview() {
+  // Show inline list of bulk-eligible fields
+  var bar = document.querySelector('.b34-bulk-bar');
+  if (!bar) return;
+  var preview = document.getElementById('b34bulkPreview');
+  if (preview) { preview.remove(); return; }
+
+  var h = '<div id="b34bulkPreview" style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:12px;margin-top:8px;">';
+  h += '<div style="font-size:11px;font-weight:600;color:#1D4ED8;margin-bottom:8px;">Fields eligible for bulk verify:</div>';
+  for (var ei = 0; ei < _demoData.entities.length; ei++) {
+    var fields = _demoData.entities[ei].fields;
+    for (var fi = 0; fi < fields.length; fi++) {
+      var key = _demoData.entities[ei].id + '_' + fi;
+      var st = _demoFieldState[key];
+      var status = st ? st.status : fields[fi].status;
+      var conf = st && st.confidence !== undefined ? st.confidence : fields[fi].confidence;
+      if (status === 'unreviewed' && conf && conf >= 0.85) {
+        var val = st && st.value !== undefined ? st.value : fields[fi].value;
+        h += '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid #E5E7EB;">';
+        h += '<span style="color:#1A1A1A;">' + esc(fields[fi].name) + '</span>';
+        h += '<span style="font-family:var(--font-mono);color:#6B7280;">' + esc(String(val)) + ' (' + conf.toFixed(2) + ')</span>';
+        h += '</div>';
+      }
+    }
+  }
+  h += '</div>';
+  bar.insertAdjacentHTML('afterend', h);
+}
+
+function b34BulkVerify() {
+  var count = 0;
+  for (var ei = 0; ei < _demoData.entities.length; ei++) {
+    var fields = _demoData.entities[ei].fields;
+    for (var fi = 0; fi < fields.length; fi++) {
+      var key = _demoData.entities[ei].id + '_' + fi;
+      var st = _demoFieldState[key];
+      var status = st ? st.status : fields[fi].status;
+      var conf = st && st.confidence !== undefined ? st.confidence : fields[fi].confidence;
+      if (status === 'unreviewed' && conf && conf >= 0.85) {
+        _demoFieldState[key] = { status: 'verified', value: st ? st.value : fields[fi].value, confidence: conf };
+        count++;
+      }
+    }
+  }
+  _b34RefreshDataPanel();
+  toast(count + ' fields verified. Undo available for 10s.');
+}
+
+function b34DismissItem(itemId, tier) {
+  if (tier === 'required') {
+    // Confirmation for required items
+    var item = null;
+    for (var i = 0; i < _demoMissing.required.length; i++) { if (_demoMissing.required[i].id === itemId) { item = _demoMissing.required[i]; break; } }
+    var el = document.getElementById('b34item_' + itemId);
+    if (el && item) {
+      el.innerHTML = '<div style="padding:8px;text-align:center;">' +
+        '<div style="font-size:13px;color:#DC2626;margin-bottom:8px;">This is marked as REQUIRED. Removing it means the matter may be filed incomplete. Are you sure?</div>' +
+        '<button onclick="_demoDismissed.push(\'' + itemId + '\');_b34RefreshAll();" style="padding:6px 14px;border:none;border-radius:6px;background:#DC2626;color:#fff;font-size:12px;font-weight:600;cursor:pointer;margin-right:8px;">Yes, Remove</button>' +
+        '<button onclick="_b34RefreshAll();" style="padding:6px 14px;border:1px solid #E5E7EB;border-radius:6px;background:#fff;color:#1A1A1A;font-size:12px;cursor:pointer;">Keep It</button>' +
+        '</div>';
+      return;
+    }
+  }
+  _demoDismissed.push(itemId);
+  _b34RefreshAll();
+}
+
+function b34RestoreItem(itemId) {
+  var idx = _demoDismissed.indexOf(itemId);
+  if (idx !== -1) _demoDismissed.splice(idx, 1);
+  _b34RefreshAll();
+}
+
+function b34RequestItem(itemId) {
+  _demoRequested[itemId] = 'Mar 1';
+  toast('Request sent to client');
+  _b34RefreshAll();
+}
+
+function b34RequestAllTier(tier) {
+  var items = tier === 'required' ? _demoMissing.required : tier === 'recommended' ? _demoMissing.recommended : _demoMissing.required.concat(_demoMissing.recommended);
+  var count = 0;
+  for (var i = 0; i < items.length; i++) {
+    if (_demoDismissed.indexOf(items[i].id) === -1 && !_demoRequested[items[i].id] && !_demoManualEntries[items[i].id]) {
+      _demoRequested[items[i].id] = 'Mar 1';
+      count++;
+    }
+  }
+  document.getElementById('b34RequestAllDD').classList.remove('open');
+  toast(count + ' requests sent to client');
+  _b34RefreshAll();
+}
+
+function b34ToggleRequestAll() {
+  var dd = document.getElementById('b34RequestAllDD');
+  if (dd) dd.classList.toggle('open');
+}
+
+function b34UploadFor(itemId) {
+  toast('Upload dialog would open for: ' + itemId);
+  // In real app, would trigger file upload then remove from missing
+}
+
+function b34ManualEntry(itemId) {
+  var el = document.getElementById('b34item_' + itemId);
+  if (!el) return;
+  // Find item name
+  var item = null;
+  var allItems = _demoMissing.required.concat(_demoMissing.recommended).concat(_demoMissing.optional);
+  for (var i = 0; i < allItems.length; i++) { if (allItems[i].id === itemId) { item = allItems[i]; break; } }
+  if (!item) return;
+
+  el.innerHTML = '<div style="padding:8px;">' +
+    '<div style="font-size:13px;font-weight:600;margin-bottom:8px;">' + esc(item.name) + '</div>' +
+    '<div class="b34-inline-edit">' +
+    '<input type="text" id="b34manual_' + itemId + '" placeholder="Enter value..." style="flex:1;" />' +
+    '<button class="save-btn" onclick="b34SaveManualEntry(\'' + itemId + '\')">\u2713</button>' +
+    '<button class="cancel-btn" onclick="_b34RefreshAll()">\u2715</button>' +
+    '</div></div>';
+  var inp = document.getElementById('b34manual_' + itemId);
+  if (inp) inp.focus();
+}
+
+function b34SaveManualEntry(itemId) {
+  var inp = document.getElementById('b34manual_' + itemId);
+  if (!inp || !inp.value.trim()) return;
+  _demoManualEntries[itemId] = { value: inp.value.trim() };
+  toast('Value saved manually');
+  _b34RefreshAll();
+}
+
+function b34ExpandTier(tier) {
+  var container = document.getElementById('b34tier_' + tier);
+  if (!container) return;
+  var items = container.querySelectorAll('.b34-need-item');
+  for (var i = 0; i < items.length; i++) items[i].style.display = '';
+  var link = document.getElementById('b34expand_' + tier);
+  if (link) link.style.display = 'none';
+}
+
+// Refresh helpers
+function _b34RefreshDataPanel() {
+  var knowEl = document.getElementById('mvTabKnow');
+  if (knowEl) knowEl.innerHTML = _buildDataPanel34();
+  var tabBarEl = document.getElementById('mvTabBar');
+  if (tabBarEl) tabBarEl.innerHTML = _buildTabBar34();
+  var metricsEl = document.getElementById('matterMetrics');
+  if (metricsEl) metricsEl.innerHTML = _buildMatterMetrics34();
+}
+
+function _b34RefreshAll() {
+  _b34RefreshDataPanel();
+  var needEl = document.getElementById('mvTabNeed');
+  if (needEl) needEl.innerHTML = _buildMissingPanel34();
+}
+
+// Close request all dropdown on outside click
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.b34-request-all-wrap')) {
+    var dd = document.getElementById('b34RequestAllDD');
+    if (dd) dd.classList.remove('open');
+  }
+});
+
+// ===== CENTER PANEL: EXTRACTED DATA (Legacy) =====
 function _buildDataPanel(exportData, gapData) {
   var h = '';
 
