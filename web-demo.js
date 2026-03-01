@@ -13100,6 +13100,282 @@ const WIKI_HTML = `<!DOCTYPE html>
   .cat-sub-divider:first-child { margin-top: 0; border-top: none; padding-top: 0; }
   /* (old sidebar-footer-user CSS removed — replaced by .sidebar-bottom styles) */
 
+
+  /* ══════════════════════════════════════════════════════════ */
+  /* Build 31: FormFill Wiki Integration                       */
+  /* ══════════════════════════════════════════════════════════ */
+
+  /* Reusable collapsible panel */
+  .collapsible-panel {
+    transition: width 300ms ease-in-out, min-width 300ms ease-in-out, opacity 200ms ease;
+  }
+  .collapsible-panel.collapsed {
+    width: 0 !important; min-width: 0 !important;
+    opacity: 0; overflow: hidden;
+    padding: 0 !important; border: none !important;
+  }
+
+  /* FormFill Upload State */
+  .ff-upload-wrap {
+    max-width: 760px; margin: 0 auto; padding: 60px 24px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .ff-header { text-align: center; margin-bottom: 40px; max-width: 600px; }
+  .ff-headline {
+    font-family: var(--font-display); font-size: 36px;
+    color: #1A1A1A; margin-bottom: 12px; line-height: 1.2;
+  }
+  .ff-subhead { font-size: 16px; color: #6B7280; line-height: 1.5; margin-bottom: 24px; }
+  .ff-mode-row {
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+  }
+  .ff-mode-label { font-size: 14px; color: #6B7280; cursor: pointer; transition: color 150ms; }
+  .ff-mode-label.active { color: #1A1A1A; font-weight: 500; }
+  .ff-toggle {
+    width: 44px; height: 24px; border-radius: 12px;
+    background: #6B7280; cursor: pointer; position: relative;
+    transition: background 200ms;
+  }
+  .ff-toggle.on { background: #2563EB; }
+  .ff-toggle-thumb {
+    width: 20px; height: 20px; border-radius: 50%;
+    background: #fff; position: absolute; top: 2px; left: 2px;
+    transition: transform 200ms; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  }
+  .ff-toggle.on .ff-toggle-thumb { transform: translateX(20px); }
+
+  /* Upload Zones */
+  .ff-zones { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; width: 100%; margin-bottom: 32px; }
+  .ff-zone {
+    background: #FFFFFF; border: 2px dashed #E5E7EB; border-radius: 16px;
+    padding: 40px 24px; text-align: center; cursor: pointer;
+    transition: border-color 200ms, background 200ms; position: relative;
+  }
+  .ff-zone:hover, .ff-zone.dragover { border-color: #2563EB; background: #EFF6FF; }
+  .ff-zone.done { border: 2px solid #059669; }
+  .ff-zone-step {
+    position: absolute; top: -8px; left: -8px; width: 28px; height: 28px;
+    border-radius: 50%; background: #2563EB; color: #fff; font-size: 13px;
+    font-weight: 700; display: flex; align-items: center; justify-content: center;
+  }
+  .ff-zone-step.done { background: #059669; }
+  .ff-zone-icon { font-size: 32px; opacity: 0.6; margin-bottom: 12px; }
+  .ff-zone-title { font-size: 15px; font-weight: 600; color: #1A1A1A; margin-bottom: 6px; }
+  .ff-zone-desc { font-size: 13px; color: #6B7280; line-height: 1.4; }
+  .ff-zone-done-icon { font-size: 28px; color: #059669; margin-bottom: 8px; }
+  .ff-zone-badge {
+    display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 10px;
+    border-radius: 20px; margin-top: 8px;
+  }
+  .ff-zone-badge.generate { background: #DCFCE7; color: #166534; }
+  .ff-zone-badge.fill { background: #DBEAFE; color: #1E40AF; }
+  .ff-zone-badge.source { background: #F3F4F6; color: #374151; }
+  @media (max-width: 600px) { .ff-zones { grid-template-columns: 1fr; } }
+
+  /* Action Button */
+  .ff-action-btn {
+    background: #2563EB; color: #fff; border: none; border-radius: 12px;
+    padding: 14px 48px; font-size: 16px; font-weight: 600; cursor: pointer;
+    opacity: 0.4; pointer-events: none; transition: all 200ms;
+  }
+  .ff-action-btn.ready {
+    opacity: 1; pointer-events: auto;
+    animation: ff-pulse-glow 2s ease-in-out infinite;
+  }
+  .ff-action-btn.ready:hover { background: #1D4ED8; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
+  .ff-action-btn:disabled { opacity: 0.4; pointer-events: none; animation: none; }
+  @keyframes ff-pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0); }
+    50% { box-shadow: 0 0 0 8px rgba(37,99,235,0.12); }
+  }
+
+  /* Processing State */
+  .ff-processing-text { font-size: 14px; color: #6B7280; margin-bottom: 12px; }
+  .ff-progress-track { height: 4px; background: #E5E7EB; border-radius: 2px; overflow: hidden; max-width: 400px; margin: 0 auto; }
+  .ff-progress-fill { height: 100%; background: #2563EB; border-radius: 2px; transition: width 600ms ease; width: 0; }
+
+  /* Results Layout */
+  .ff-results-wrap { display: flex; height: calc(100vh - 56px); position: relative; }
+
+  /* Context Panel (left) */
+  .ff-ctx-panel {
+    width: 340px; min-width: 340px;
+    background: #FFFFFF; border-right: 1px solid #E5E7EB;
+    overflow-y: auto; position: relative;
+  }
+  .ff-ctx-toggle {
+    position: absolute; top: 16px; right: 12px; z-index: 10;
+    width: 28px; height: 28px; border: 1px solid #E5E7EB; background: #FFFFFF;
+    border-radius: 6px; cursor: pointer; font-size: 16px; color: #666;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 150ms;
+  }
+  .ff-ctx-toggle:hover { background: #F3F4F6; }
+  .ff-ctx-expand {
+    position: absolute; left: 12px; top: 16px; z-index: 10;
+    width: 28px; height: 28px; border: 1px solid #E5E7EB; background: #FFFFFF;
+    border-radius: 6px; cursor: pointer; font-size: 16px; color: #666;
+    display: none; align-items: center; justify-content: center;
+    transition: background 150ms;
+  }
+  .ff-ctx-expand:hover { background: #F3F4F6; }
+  .ff-ctx-content { padding: 24px 20px; }
+  .ff-ctx-header { border-bottom: 1px solid #E5E7EB; padding-bottom: 16px; margin-bottom: 16px; }
+  .ff-ctx-label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #6B7280; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .ff-ctx-name { font-size: 15px; font-weight: 600; color: #1A1A1A; margin-bottom: 4px; }
+  .ff-ctx-meta { font-size: 12px; color: #6B7280; }
+  .ff-ctx-group { margin-bottom: 20px; }
+  .ff-ctx-group-label {
+    font-size: 12px; font-weight: 600; text-transform: uppercase; color: #6B7280;
+    margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
+  }
+  .ff-ctx-count {
+    font-size: 11px; background: #F3F4F6; color: #6B7280;
+    padding: 1px 6px; border-radius: 10px;
+  }
+  .ff-ctx-field {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 4px 0; font-size: 13px;
+  }
+  .ff-ctx-field-name { color: #1A1A1A; }
+  .ff-ctx-field-type {
+    font-family: var(--font-mono); font-size: 11px;
+    background: #F3F4F6; padding: 1px 6px; border-radius: 4px; color: #6B7280;
+  }
+
+  /* Working Area (right) */
+  .ff-work-area { flex: 1; overflow-y: auto; padding: 24px 32px; }
+
+  /* Summary Bar */
+  .ff-summary-bar {
+    display: flex; align-items: center; background: #FFFFFF;
+    border: 1px solid #E5E7EB; border-radius: 12px;
+    padding: 20px 24px; margin-bottom: 24px; gap: 0;
+  }
+  .ff-stat { flex: 1; text-align: center; }
+  .ff-stat.right { text-align: right; }
+  .ff-stat-num {
+    font-family: var(--font-mono); font-size: 24px; font-weight: 600; color: #1A1A1A;
+  }
+  .ff-stat-num.green { color: #059669; }
+  .ff-stat-num.amber { color: #D97706; }
+  .ff-stat-num.red { color: #DC2626; }
+  .ff-stat-label { font-size: 12px; color: #6B7280; margin-top: 2px; }
+  .ff-stat-time { font-family: var(--font-display); font-size: 28px; color: #059669; }
+  .ff-stat-divider { width: 1px; height: 40px; background: #E5E7EB; margin: 0 16px; flex-shrink: 0; }
+
+  /* Section Heads */
+  .ff-section-head {
+    font-size: 15px; font-weight: 600; color: #1A1A1A;
+    margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .ff-badge {
+    font-size: 12px; font-weight: 600; padding: 2px 8px;
+    border-radius: 10px; color: #fff;
+  }
+  .ff-badge.green { background: #059669; }
+  .ff-badge.red { background: #DC2626; }
+
+  /* Results Table */
+  .ff-table {
+    background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 12px;
+    overflow: hidden;
+  }
+  .ff-table-header {
+    display: flex; align-items: center; padding: 10px 16px;
+    background: #FAFAF9; font-size: 12px; font-weight: 600;
+    text-transform: uppercase; color: #6B7280; border-bottom: 1px solid #E5E7EB;
+  }
+  .ff-table-row {
+    display: flex; align-items: center; padding: 12px 16px;
+    border-bottom: 1px solid #F3F4F6; font-size: 14px;
+    transition: background 150ms;
+  }
+  .ff-table-row:last-child { border-bottom: none; }
+  .ff-table-row:hover { background: #F3F4F6; }
+  .ff-table-row.missing { background: #FFFBEB; }
+  .ff-field-name { font-weight: 500; color: #1A1A1A; }
+  .ff-field-val { font-family: var(--font-mono); font-size: 13px; color: #374151; }
+  .ff-field-val.editing { outline: 2px solid #2563EB; border-radius: 4px; padding: 2px 4px; background: #EFF6FF; }
+  .ff-conf-dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 4px; vertical-align: middle;
+  }
+  .ff-conf-dot.green { background: #059669; }
+  .ff-conf-dot.amber { background: #D97706; }
+  .ff-conf-dot.red { background: #DC2626; }
+  .ff-conf-score { font-family: var(--font-mono); font-size: 12px; color: #6B7280; }
+  .ff-source-link { font-size: 12px; color: #2563EB; cursor: pointer; }
+  .ff-source-link:hover { text-decoration: underline; }
+  .ff-source-row { padding: 8px 16px 12px; background: #F9FAFB; border-bottom: 1px solid #F3F4F6; }
+  .ff-source-snippet { font-size: 12px; color: #6B7280; font-style: italic; line-height: 1.5; white-space: pre-wrap; }
+  .ff-row-btn {
+    width: 28px; height: 28px; border: 1px solid #E5E7EB; background: #fff;
+    border-radius: 6px; cursor: pointer; font-size: 14px; color: #6B7280;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-right: 4px; transition: all 150ms;
+  }
+  .ff-row-btn.approve:hover { border-color: #059669; background: #DCFCE7; color: #059669; }
+  .ff-row-btn.approve.approved { background: #059669; color: #fff; border-color: #059669; }
+  .ff-row-btn.edit:hover { border-color: #D97706; background: #FEF3C7; color: #D97706; }
+  .ff-row-btn.save {
+    width: auto; padding: 4px 12px; font-size: 12px; font-weight: 600;
+    background: #2563EB; color: #fff; border: none;
+  }
+  .ff-row-btn.save:hover { background: #1D4ED8; }
+  .ff-manual-input {
+    width: 100%; border: 1px solid #E5E7EB; border-radius: 6px;
+    padding: 6px 10px; font-size: 13px; font-family: var(--font-mono);
+    transition: border-color 150ms;
+  }
+  .ff-manual-input:focus { outline: none; border-color: #2563EB; }
+
+  /* Download Bar */
+  .ff-download-bar {
+    display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px;
+    background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 12px;
+    padding: 16px;
+  }
+  .ff-dl-btn {
+    padding: 8px 16px; border: 1px solid #E5E7EB; border-radius: 8px;
+    background: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
+    color: #374151; transition: all 150ms;
+  }
+  .ff-dl-btn:hover { border-color: #2563EB; color: #2563EB; }
+  .ff-dl-btn.primary { background: #2563EB; color: #fff; border-color: #2563EB; }
+  .ff-dl-btn.primary:hover { background: #1D4ED8; }
+
+  /* Conversion Card */
+  .ff-conversion-card {
+    background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 12px;
+    padding: 24px; margin-top: 24px;
+  }
+  .ff-conversion-headline { font-family: var(--font-display); font-size: 20px; color: #1A1A1A; margin-bottom: 8px; }
+  .ff-conversion-body { font-size: 14px; color: #6B7280; line-height: 1.5; margin-bottom: 16px; }
+  .ff-conversion-btn {
+    background: #2563EB; color: #fff; border: none; border-radius: 8px;
+    padding: 10px 24px; font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: background 150ms;
+  }
+  .ff-conversion-btn:hover { background: #1D4ED8; }
+
+  /* Template Upsell */
+  .ff-template-upsell {
+    background: #FFFFFF; border: 1px solid #E5E7EB; border-radius: 12px;
+    padding: 20px; margin-top: 16px;
+  }
+  .ff-upsell-btn {
+    margin-top: 8px; padding: 8px 16px; border: 1px solid #E5E7EB;
+    border-radius: 8px; background: #fff; font-size: 13px; font-weight: 600;
+    cursor: pointer; color: #374151; transition: all 150ms;
+  }
+  .ff-upsell-btn:hover { border-color: #2563EB; color: #2563EB; }
+
+  /* Sidebar FormFill active state */
+  .sb-nav-item[data-nav="formfill"].active {
+    background: rgba(37,99,235,0.08); color: #2563EB; font-weight: 600;
+    border-left-color: #2563EB;
+  }
+
   /* --- Review Queue Badge --- */
   .review-queue-badge {
     display: inline-block; background: #ef4444; color: #fff; font-size: 10px; font-weight: 700;
@@ -14777,7 +15053,9 @@ document.addEventListener('click', function(e) {
   for (var i = 0; i < 10 && target && target !== document; i++) {
     var nav = target.getAttribute ? target.getAttribute('data-nav') : null;
     if (nav) {
-      if (nav === 'overview' || nav === 'career') {
+      if (nav === 'formfill') {
+        showFormFill();
+      } else if (nav === 'overview' || nav === 'career') {
         selectView(nav);
       } else if (nav === 'family' || nav === 'friends') {
         selectPersonalGraph();
@@ -17723,6 +18001,13 @@ function renderSidebar() {
   html += '<div class="sb-nav-item' + (affilActive ? ' active' : '') + '" data-nav="affiliations">';
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>';
   html += 'Affiliations</div>';
+
+  // ── TOOLS section (Build 31) ──
+  html += '<div class="sb-section-label">Tools</div>';
+  var ffActive = (selectedView === 'formfill');
+  html += '<div class="sb-nav-item' + (ffActive ? ' active' : '') + '" data-nav="formfill">';
+  html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
+  html += 'FormFill</div>';
 
   // ── CLIENTS section ──
   var clientSpokes = _spokesList.filter(function(s) { return s.id !== 'default'; });
@@ -22489,6 +22774,576 @@ function rpDiscover(entityId) {
     renderRightPanel(selectedData);
   }).catch(function(err) { toast('Discovery failed: ' + err.message); });
 }
+
+// ══════════════════════════════════════════════════════════
+// Build 31: FormFill Wiki Integration
+// ══════════════════════════════════════════════════════════
+
+// ── FormFill State ──
+var _ffMode = 'fill';
+var _ffFormFields = [];
+var _ffFormName = '';
+var _ffFormFile = null;
+var _ffEntities = [];
+var _ffSourceFiles = [];
+var _ffMatchResults = null;
+var _ffMatchSummary = null;
+var _ffTemplateVariables = [];
+var _ffTemplateCategories = {};
+var _ffDocumentText = '';
+var _ffComputedFields = [];
+var _ffStep1Done = false;
+var _ffStep2Done = false;
+var _ffProcessing = false;
+
+// ── Reusable Collapsible Panel (Build 31 Part 4) ──
+function initCollapsiblePanel(panelId, toggleBtnId, expandBtnId, storageKey) {
+  var panel = document.getElementById(panelId);
+  var toggleBtn = document.getElementById(toggleBtnId);
+  var expandBtn = document.getElementById(expandBtnId);
+  if (!panel) return;
+  var collapsed = false;
+  try { collapsed = localStorage.getItem(storageKey) === 'true'; } catch(e) {}
+  if (collapsed) panel.classList.add('collapsed');
+  function toggle() {
+    panel.classList.toggle('collapsed');
+    try { localStorage.setItem(storageKey, panel.classList.contains('collapsed') ? 'true' : 'false'); } catch(e) {}
+    // Toggle expand button visibility
+    if (expandBtn) expandBtn.style.display = panel.classList.contains('collapsed') ? 'flex' : 'none';
+  }
+  if (toggleBtn) toggleBtn.onclick = toggle;
+  if (expandBtn) {
+    expandBtn.onclick = toggle;
+    expandBtn.style.display = collapsed ? 'flex' : 'none';
+  }
+}
+
+// ── Show FormFill View ──
+function showFormFill() {
+  selectedView = 'formfill';
+  selectedData = null;
+  selectedId = null;
+  _ffFormFields = [];
+  _ffFormName = '';
+  _ffFormFile = null;
+  _ffEntities = [];
+  _ffSourceFiles = [];
+  _ffMatchResults = null;
+  _ffMatchSummary = null;
+  _ffTemplateVariables = [];
+  _ffTemplateCategories = {};
+  _ffDocumentText = '';
+  _ffComputedFields = [];
+  _ffStep1Done = false;
+  _ffStep2Done = false;
+  _ffProcessing = false;
+  _ffMode = 'fill';
+  var empty = document.getElementById('emptyState');
+  if (empty) empty.style.display = 'none';
+  breadcrumbs = [{ label: 'FormFill' }];
+  renderBreadcrumbs();
+  renderSidebar();
+  renderRightPanel(null);
+  ffRenderUpload();
+}
+
+// ── Upload State Rendering ──
+function ffRenderUpload() {
+  var h = '<div class="ff-upload-wrap">';
+  // Header
+  h += '<div class="ff-header">';
+  h += '<div class="ff-headline">Fill any form. From any documents.</div>';
+  h += '<div class="ff-subhead">Upload a blank form and your source documents. AI matches every field with a source citation.</div>';
+  // Mode toggle
+  h += '<div class="ff-mode-row">';
+  h += '<span class="ff-mode-label' + (_ffMode === 'fill' ? ' active' : '') + '" onclick="ffSetMode(\\'fill\\')">Fill a Form</span>';
+  h += '<div class="ff-toggle' + (_ffMode === 'generate' ? ' on' : '') + '" onclick="ffToggleMode()">';
+  h += '<div class="ff-toggle-thumb"></div>';
+  h += '</div>';
+  h += '<span class="ff-mode-label' + (_ffMode === 'generate' ? ' active' : '') + '" onclick="ffSetMode(\\'generate\\')">Generate a Document</span>';
+  h += '</div>';
+  h += '</div>';
+  // Upload zones
+  h += '<div class="ff-zones">';
+  // Zone 1: Template
+  h += '<div class="ff-zone' + (_ffStep1Done ? ' done' : '') + '" id="ffZone1" onclick="document.getElementById(\\'ffFormInput\\').click()">';
+  h += '<div class="ff-zone-step' + (_ffStep1Done ? ' done' : '') + '">1</div>';
+  if (_ffStep1Done) {
+    h += '<div class="ff-zone-done-icon">&#10003;</div>';
+    h += '<div class="ff-zone-title">' + esc(_ffFormName) + '</div>';
+    if (_ffMode === 'generate' && _ffTemplateVariables.length > 0) {
+      h += '<div class="ff-zone-badge generate">GENERATE &middot; ' + _ffTemplateVariables.length + ' variables found</div>';
+    } else if (_ffFormFields.length > 0) {
+      h += '<div class="ff-zone-badge fill">FILL &middot; ' + _ffFormFields.length + ' fields found</div>';
+    }
+  } else {
+    h += '<div class="ff-zone-icon">&#128196;</div>';
+    h += '<div class="ff-zone-title">' + (_ffMode === 'generate' ? 'Your Template' : 'Your Form') + '</div>';
+    h += '<div class="ff-zone-desc">' + (_ffMode === 'generate' ? 'Drop your document template here — demand letters, contracts, reports' : 'Drop your blank form here — tax forms, applications, intake sheets') + '</div>';
+  }
+  h += '</div>';
+  // Zone 2: Sources
+  h += '<div class="ff-zone' + (_ffStep2Done ? ' done' : '') + '" id="ffZone2" onclick="document.getElementById(\\'ffDocsInput\\').click()">';
+  h += '<div class="ff-zone-step' + (_ffStep2Done ? ' done' : '') + '">2</div>';
+  if (_ffStep2Done) {
+    h += '<div class="ff-zone-done-icon">&#10003;</div>';
+    h += '<div class="ff-zone-title">' + _ffSourceFiles.length + ' source document' + (_ffSourceFiles.length !== 1 ? 's' : '') + '</div>';
+    var dp = 0; for (var i = 0; i < _ffEntities.length; i++) { dp += (_ffEntities[i].attributes || []).length; }
+    h += '<div class="ff-zone-badge source">' + dp + ' data points extracted</div>';
+  } else {
+    h += '<div class="ff-zone-icon">&#128203;</div>';
+    h += '<div class="ff-zone-title">Your Documents</div>';
+    h += '<div class="ff-zone-desc">Drop source documents — contracts, letters, statements, anything</div>';
+  }
+  h += '</div>';
+  h += '</div>';
+  // Hidden file inputs
+  h += '<input type="file" id="ffFormInput" accept=".pdf,.docx,.doc,.txt,.md,.csv,.jpg,.jpeg,.png,.gif,.webp" style="display:none" />';
+  h += '<input type="file" id="ffDocsInput" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.txt,.md,.csv" style="display:none" />';
+  // Action button
+  var ready = _ffStep1Done && _ffStep2Done && !_ffProcessing;
+  h += '<button class="ff-action-btn' + (ready ? ' ready' : '') + '" id="ffActionBtn" ' + (ready ? '' : 'disabled') + ' onclick="ffProcess()">';
+  h += (_ffMode === 'generate' ? 'Generate Document' : 'Fill My Form');
+  h += '</button>';
+  // Processing state
+  h += '<div id="ffProcessingState" style="display:none;text-align:center;margin-top:16px;">';
+  h += '<div id="ffProcessingText" class="ff-processing-text"></div>';
+  h += '<div class="ff-progress-track"><div class="ff-progress-fill" id="ffProgressFill"></div></div>';
+  h += '</div>';
+  h += '</div>';
+  document.getElementById('main').innerHTML = h;
+  // Wire dropzones
+  setTimeout(function() { ffSetupDropzones(); }, 50);
+}
+
+// ── Dropzone Setup ──
+function ffSetupDropzones() {
+  var zone1 = document.getElementById('ffZone1');
+  var zone2 = document.getElementById('ffZone2');
+  var formInput = document.getElementById('ffFormInput');
+  var docsInput = document.getElementById('ffDocsInput');
+  if (!zone1 || !formInput) return;
+  function preventDef(e) { e.preventDefault(); e.stopPropagation(); }
+  function addDragClass(z) { return function(e) { preventDef(e); z.classList.add('dragover'); }; }
+  function removeDragClass(z) { return function(e) { preventDef(e); z.classList.remove('dragover'); }; }
+  zone1.addEventListener('dragover', addDragClass(zone1));
+  zone1.addEventListener('dragleave', removeDragClass(zone1));
+  zone1.addEventListener('drop', function(e) { preventDef(e); zone1.classList.remove('dragover'); if (e.dataTransfer.files.length) { formInput.files = e.dataTransfer.files; ffHandleFormUpload(e.dataTransfer.files[0]); } });
+  if (zone2) {
+    zone2.addEventListener('dragover', addDragClass(zone2));
+    zone2.addEventListener('dragleave', removeDragClass(zone2));
+    zone2.addEventListener('drop', function(e) { preventDef(e); zone2.classList.remove('dragover'); if (e.dataTransfer.files.length) ffHandleDocsUpload(e.dataTransfer.files); });
+  }
+  formInput.addEventListener('change', function() { if (formInput.files.length) ffHandleFormUpload(formInput.files[0]); });
+  if (docsInput) docsInput.addEventListener('change', function() { if (docsInput.files.length) ffHandleDocsUpload(docsInput.files); });
+}
+
+// ── Mode Toggle ──
+function ffSetMode(mode) {
+  _ffMode = mode;
+  ffRenderUpload();
+}
+function ffToggleMode() {
+  _ffMode = _ffMode === 'fill' ? 'generate' : 'fill';
+  ffRenderUpload();
+}
+
+// ── Template/Form Upload Handler ──
+function ffHandleFormUpload(file) {
+  _ffFormFile = file;
+  _ffFormName = file.name;
+  var fd = new FormData();
+  fd.append('form', file);
+  // Step 1: detect mode
+  toast('Analyzing ' + file.name + '...');
+  fetch('/api/formfill/detect-mode', { method: 'POST', body: fd }).then(function(r) { return r.json(); }).then(function(det) {
+    if (det.mode && det.confidence >= 0.55) {
+      _ffMode = det.mode;
+    }
+    // Step 2: analyze
+    var fd2 = new FormData();
+    fd2.append('form', file);
+    var endpoint = _ffMode === 'generate' ? '/api/formfill/analyze-template' : '/api/formfill/analyze-form';
+    return fetch(endpoint, { method: 'POST', body: fd2 }).then(function(r) { return r.json(); });
+  }).then(function(data) {
+    if (_ffMode === 'generate') {
+      _ffTemplateVariables = data.variables || [];
+      _ffTemplateCategories = data.categories || {};
+      _ffDocumentText = data.document_text || '';
+      _ffFormFields = data.fields || [];
+      _ffFormName = data.template_name || data.form_name || file.name;
+    } else {
+      _ffFormFields = data.fields || [];
+      _ffFormName = data.form_name || file.name;
+    }
+    _ffStep1Done = true;
+    ffRenderUpload();
+    toast('Template analyzed: ' + _ffFormFields.length + ' fields detected');
+  }).catch(function(err) {
+    toast('Analysis failed: ' + err.message);
+  });
+}
+
+// ── Source Docs Upload Handler ──
+function ffHandleDocsUpload(files) {
+  var fd = new FormData();
+  var fileArr = [];
+  for (var i = 0; i < Math.min(files.length, 20); i++) {
+    fd.append('files', files[i]);
+    fileArr.push(files[i]);
+  }
+  _ffSourceFiles = fileArr;
+  toast('Extracting from ' + fileArr.length + ' document' + (fileArr.length !== 1 ? 's' : '') + '...');
+  fetch('/api/formfill/extract-sources', { method: 'POST', body: fd }).then(function(r) { return r.json(); }).then(function(data) {
+    _ffEntities = data.entities || [];
+    _ffStep2Done = true;
+    ffRenderUpload();
+    var dp = data.summary ? data.summary.total_data_points : 0;
+    toast('Extraction complete: ' + dp + ' data points from ' + fileArr.length + ' files');
+  }).catch(function(err) {
+    toast('Extraction failed: ' + err.message);
+  });
+}
+
+// ── Process (Match) ──
+function ffProcess() {
+  if (!_ffStep1Done || !_ffStep2Done || _ffProcessing) return;
+  _ffProcessing = true;
+  var btn = document.getElementById('ffActionBtn');
+  if (btn) { btn.disabled = true; btn.classList.remove('ready'); }
+  var procState = document.getElementById('ffProcessingState');
+  var procText = document.getElementById('ffProcessingText');
+  var procFill = document.getElementById('ffProgressFill');
+  if (procState) procState.style.display = 'block';
+  if (procText) procText.textContent = 'Matching ' + _ffFormFields.length + ' fields against extracted data points...';
+  if (procFill) procFill.style.width = '30%';
+  fetch('/api/formfill/match', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ form_fields: _ffFormFields, entities: _ffEntities })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    _ffMatchResults = data.matches || [];
+    _ffMatchSummary = data.summary || {};
+    if (procFill) procFill.style.width = '70%';
+    // Mode 2: attach old values + compute
+    if (_ffMode === 'generate') {
+      for (var i = 0; i < _ffMatchResults.length; i++) {
+        var m = _ffMatchResults[i];
+        for (var j = 0; j < _ffTemplateVariables.length; j++) {
+          if (_ffTemplateVariables[j].variable_id === m.field_id) {
+            m.old_value = _ffTemplateVariables[j].current_value || '';
+            m.variable_type = _ffTemplateVariables[j].variable_type;
+            m.category = _ffTemplateVariables[j].category;
+            m.formula = _ffTemplateVariables[j].formula;
+            break;
+          }
+        }
+      }
+      if (procText) procText.textContent = 'Computing calculated fields...';
+      return fetch('/api/formfill/compute-fields', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variables: _ffTemplateVariables, matches: _ffMatchResults })
+      }).then(function(r2) { return r2.json(); }).then(function(comp) {
+        _ffComputedFields = comp.computed || [];
+        for (var ci = 0; ci < _ffComputedFields.length; ci++) {
+          var cf = _ffComputedFields[ci];
+          if (cf.status === 'computed') {
+            for (var mi = 0; mi < _ffMatchResults.length; mi++) {
+              if (_ffMatchResults[mi].field_id === cf.variable_id) {
+                _ffMatchResults[mi].matched_value = cf.value;
+                _ffMatchResults[mi].confidence = 0.95;
+                _ffMatchResults[mi].match_method = 'calculated';
+                _ffMatchResults[mi].source_file = 'Calculated';
+                _ffMatchResults[mi].source_text = cf.formula + ': ' + cf.breakdown;
+                _ffMatchResults[mi].status = 'matched';
+                break;
+              }
+            }
+          }
+        }
+      });
+    }
+  }).then(function() {
+    if (procFill) procFill.style.width = '100%';
+    _ffProcessing = false;
+    setTimeout(function() { ffRenderResults(); }, 400);
+  }).catch(function(err) {
+    _ffProcessing = false;
+    toast('Matching failed: ' + err.message);
+    if (procText) procText.textContent = 'Error: ' + err.message;
+  });
+}
+
+// ── Results State Rendering ──
+function ffRenderResults() {
+  var matched = []; var missing = [];
+  for (var i = 0; i < (_ffMatchResults || []).length; i++) {
+    if (_ffMatchResults[i].status === 'matched') matched.push(_ffMatchResults[i]);
+    else missing.push(_ffMatchResults[i]);
+  }
+  var avgConf = 0;
+  if (matched.length) {
+    var sum = 0; for (var c = 0; c < matched.length; c++) sum += (matched[c].confidence || 0);
+    avgConf = sum / matched.length;
+  }
+  // Time saved calculation
+  var timeSaved;
+  if (_ffMode === 'generate') {
+    timeSaved = matched.length * 6 + missing.length * 10;
+  } else {
+    timeSaved = matched.length * 3 + missing.length * 8;
+  }
+  timeSaved = Math.round(timeSaved / 5) * 5;
+  if (timeSaved < 5) timeSaved = 5;
+
+  var h = '<div class="ff-results-wrap">';
+  // Expand button (shown when context panel collapsed)
+  h += '<button class="ff-ctx-expand" id="ffCtxExpand" title="Show template">&#x203A;</button>';
+  // Context panel (left)
+  h += '<div class="ff-ctx-panel collapsible-panel" id="ffCtxPanel">';
+  h += '<button class="ff-ctx-toggle" id="ffCtxToggle" title="Collapse">&#x2039;</button>';
+  h += ffBuildContextPanel();
+  h += '</div>';
+  // Working area (right)
+  h += '<div class="ff-work-area">';
+  // Summary bar
+  var confClass = avgConf >= 0.85 ? 'green' : (avgConf >= 0.60 ? 'amber' : 'red');
+  h += '<div class="ff-summary-bar">';
+  h += '<div class="ff-stat"><div class="ff-stat-num">' + matched.length + '/' + (matched.length + missing.length) + '</div><div class="ff-stat-label">fields matched</div></div>';
+  h += '<div class="ff-stat-divider"></div>';
+  h += '<div class="ff-stat"><div class="ff-stat-num ' + confClass + '">' + avgConf.toFixed(2) + '</div><div class="ff-stat-label">avg confidence</div></div>';
+  h += '<div class="ff-stat-divider"></div>';
+  h += '<div class="ff-stat"><div class="ff-stat-num red">' + missing.length + '</div><div class="ff-stat-label">need input</div></div>';
+  h += '<div class="ff-stat-divider"></div>';
+  h += '<div class="ff-stat right"><div class="ff-stat-time">~' + timeSaved + ' min</div><div class="ff-stat-label">estimated time saved</div></div>';
+  h += '</div>';
+  // Matched fields section
+  if (matched.length > 0) {
+    h += '<div class="ff-section-head">Matched Fields <span class="ff-badge green">' + matched.length + '</span></div>';
+    h += '<div class="ff-table">';
+    h += '<div class="ff-table-header"><span style="width:180px">Field</span><span style="flex:1">Value</span><span style="width:80px">Conf.</span><span style="width:140px">Source</span><span style="width:100px">Actions</span></div>';
+    for (var mi = 0; mi < matched.length; mi++) {
+      var m = matched[mi];
+      var cc = (m.confidence || 0) >= 0.85 ? 'green' : ((m.confidence || 0) >= 0.60 ? 'amber' : 'red');
+      h += '<div class="ff-table-row" data-idx="' + mi + '">';
+      h += '<span class="ff-field-name" style="width:180px">' + esc(m.display_name || m.field_id) + '</span>';
+      h += '<span class="ff-field-val" style="flex:1" id="ffVal_' + mi + '">' + esc(m.matched_value || '') + '</span>';
+      h += '<span style="width:80px"><span class="ff-conf-dot ' + cc + '"></span><span class="ff-conf-score">' + ((m.confidence || 0) * 100).toFixed(0) + '%</span></span>';
+      h += '<span style="width:140px"><span class="ff-source-link" onclick="ffToggleSource(' + mi + ')">' + esc(m.source_file || '—') + '</span></span>';
+      h += '<span style="width:100px">';
+      h += '<button class="ff-row-btn approve" onclick="ffApproveField(' + mi + ',this)" title="Approve">&#10003;</button>';
+      h += '<button class="ff-row-btn edit" onclick="ffEditField(' + mi + ')" title="Edit">&#9998;</button>';
+      h += '</span>';
+      h += '</div>';
+      h += '<div class="ff-source-row" id="ffSrc_' + mi + '" style="display:none"><div class="ff-source-snippet">' + esc(m.source_text || 'No source text available') + '</div></div>';
+    }
+    h += '</div>';
+  }
+  // Needs input section
+  if (missing.length > 0) {
+    h += '<div class="ff-section-head" style="margin-top:24px">Needs Input <span class="ff-badge red">' + missing.length + '</span></div>';
+    h += '<div class="ff-table">';
+    h += '<div class="ff-table-header"><span style="width:180px">Field</span><span style="flex:1">Value</span><span style="width:80px">Conf.</span><span style="width:140px">Source</span><span style="width:100px">Actions</span></div>';
+    for (var ni = 0; ni < missing.length; ni++) {
+      var n = missing[ni];
+      var inputType = 'text';
+      if (n.field_type === 'date' || (n.variable_type === 'date')) inputType = 'date';
+      h += '<div class="ff-table-row missing">';
+      h += '<span class="ff-field-name" style="width:180px">' + esc(n.display_name || n.field_id) + '</span>';
+      h += '<span style="flex:1"><input type="' + inputType + '" class="ff-manual-input" id="ffManual_' + n.field_id + '" placeholder="Enter value..." /></span>';
+      h += '<span style="width:80px"><span class="ff-conf-dot red"></span><span class="ff-conf-score">&mdash;</span></span>';
+      h += '<span style="width:140px;font-style:italic;color:#DC2626;font-size:12px;">Not found in docs</span>';
+      h += '<span style="width:100px"><button class="ff-row-btn save" onclick="ffManualSave(\\'' + esc(n.field_id) + '\\',this)">Save</button></span>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+  // Download bar
+  h += '<div class="ff-download-bar">';
+  if (_ffMode === 'generate') {
+    h += '<button class="ff-dl-btn primary" onclick="ffDownload(\\'docx\\')">&#128196; Download DOCX</button>';
+    h += '<button class="ff-dl-btn" onclick="ffDownload(\\'redline\\')">&#128213; Redline Version</button>';
+    h += '<button class="ff-dl-btn" onclick="ffDownload(\\'csv\\')">&#128202; CSV Export</button>';
+    h += '<button class="ff-dl-btn" onclick="ffDownload(\\'provenance-v2\\')">&#128203; Provenance Report</button>';
+  } else {
+    h += '<button class="ff-dl-btn primary" onclick="ffDownload(\\'pdf\\')">&#128196; Download PDF</button>';
+    h += '<button class="ff-dl-btn" onclick="ffDownload(\\'csv\\')">&#128202; CSV Export</button>';
+    h += '<button class="ff-dl-btn" onclick="ffDownload(\\'provenance\\')">&#128203; Provenance Report</button>';
+  }
+  h += '</div>';
+  // Conversion card
+  h += '<div class="ff-conversion-card">';
+  h += '<div class="ff-conversion-headline">Do this for every client.</div>';
+  h += '<div class="ff-conversion-body">Save this to your firm dashboard. Manage all your clients, templates, and verifications in one place.</div>';
+  h += '<button class="ff-conversion-btn" onclick="ffSaveToFirm()">Save to My Firm &rarr;</button>';
+  h += '</div>';
+  // Mode 2 template upsell
+  if (_ffMode === 'generate') {
+    h += '<div class="ff-template-upsell">';
+    h += '<div style="font-weight:600;margin-bottom:4px;">&#128260; Save as Template</div>';
+    h += '<div style="font-size:13px;color:#6B7280;">We mapped ' + _ffTemplateVariables.length + ' fields from your document. Turn this into a permanent template for your team.</div>';
+    h += '<button class="ff-upsell-btn" onclick="ffSaveAsTemplate()">Save as Template</button>';
+    h += '</div>';
+  }
+  h += '</div>'; // end ff-work-area
+  h += '</div>'; // end ff-results-wrap
+
+  document.getElementById('main').innerHTML = h;
+  // Init collapsible panel
+  setTimeout(function() {
+    initCollapsiblePanel('ffCtxPanel', 'ffCtxToggle', 'ffCtxExpand', 'ffContextPanelCollapsed');
+  }, 50);
+}
+
+// ── Build Context Panel Content ──
+function ffBuildContextPanel() {
+  var h = '<div class="ff-ctx-content">';
+  h += '<div class="ff-ctx-header">';
+  h += '<div class="ff-ctx-label">ORIGINAL ' + (_ffMode === 'generate' ? 'TEMPLATE' : 'FORM') + '</div>';
+  h += '<div class="ff-ctx-name">' + esc(_ffFormName) + '</div>';
+  if (_ffMode === 'generate' && _ffTemplateVariables.length > 0) {
+    var catCount = 0; for (var k in _ffTemplateCategories) { if (_ffTemplateCategories[k] && _ffTemplateCategories[k].length) catCount++; }
+    h += '<div class="ff-ctx-meta">' + _ffTemplateVariables.length + ' variables detected across ' + catCount + ' categories</div>';
+  } else {
+    h += '<div class="ff-ctx-meta">' + _ffFormFields.length + ' fields detected</div>';
+  }
+  h += '</div>';
+  // Field list grouped by category
+  if (_ffMode === 'generate' && Object.keys(_ffTemplateCategories).length > 0) {
+    var catOrder = ['client', 'defendant', 'insurance', 'medical', 'financial', 'legal', 'firm'];
+    for (var ci = 0; ci < catOrder.length; ci++) {
+      var cat = catOrder[ci];
+      var vars = _ffTemplateCategories[cat];
+      if (!vars || !vars.length) continue;
+      h += '<div class="ff-ctx-group">';
+      h += '<div class="ff-ctx-group-label">' + cat.toUpperCase() + ' <span class="ff-ctx-count">' + vars.length + '</span></div>';
+      for (var vi = 0; vi < vars.length; vi++) {
+        h += '<div class="ff-ctx-field">';
+        h += '<span class="ff-ctx-field-name">[' + esc(vars[vi].variable_id || vars[vi].display_name) + ']</span>';
+        h += '<span class="ff-ctx-field-type">' + esc(vars[vi].variable_type || 'text') + '</span>';
+        h += '</div>';
+      }
+      h += '</div>';
+    }
+  } else {
+    // Mode 1: flat field list
+    h += '<div class="ff-ctx-group">';
+    h += '<div class="ff-ctx-group-label">FIELDS <span class="ff-ctx-count">' + _ffFormFields.length + '</span></div>';
+    for (var fi = 0; fi < _ffFormFields.length; fi++) {
+      h += '<div class="ff-ctx-field">';
+      h += '<span class="ff-ctx-field-name">' + esc(_ffFormFields[fi].display_name || _ffFormFields[fi].field_id) + '</span>';
+      h += '<span class="ff-ctx-field-type">' + esc(_ffFormFields[fi].field_type || 'text') + '</span>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+  h += '</div>';
+  return h;
+}
+
+// ── Result Row Actions ──
+function ffToggleSource(idx) {
+  var row = document.getElementById('ffSrc_' + idx);
+  if (row) row.style.display = row.style.display === 'none' ? 'block' : 'none';
+}
+
+function ffApproveField(idx, btn) {
+  btn.classList.add('approved');
+  btn.innerHTML = '&#10003;';
+}
+
+function ffEditField(idx) {
+  var el = document.getElementById('ffVal_' + idx);
+  if (!el) return;
+  el.contentEditable = 'true';
+  el.classList.add('editing');
+  el.focus();
+  el.onblur = function() {
+    el.contentEditable = 'false';
+    el.classList.remove('editing');
+    // Update match results
+    var matched = [];
+    for (var i = 0; i < (_ffMatchResults || []).length; i++) {
+      if (_ffMatchResults[i].status === 'matched') matched.push(_ffMatchResults[i]);
+    }
+    if (matched[idx]) {
+      matched[idx].matched_value = el.textContent;
+      matched[idx].match_method = 'manual';
+      matched[idx].confidence = 1.0;
+    }
+  };
+}
+
+function ffManualSave(fieldId, btn) {
+  var input = document.getElementById('ffManual_' + fieldId);
+  if (!input || !input.value.trim()) return;
+  for (var i = 0; i < (_ffMatchResults || []).length; i++) {
+    if (_ffMatchResults[i].field_id === fieldId) {
+      _ffMatchResults[i].matched_value = input.value.trim();
+      _ffMatchResults[i].confidence = 1.0;
+      _ffMatchResults[i].match_method = 'manual';
+      _ffMatchResults[i].source_file = 'Manual Entry';
+      _ffMatchResults[i].status = 'matched';
+      break;
+    }
+  }
+  ffRenderResults();
+  toast('Field saved');
+}
+
+// ── Download Handlers ──
+function ffDownload(type) {
+  if (type === 'pdf') {
+    var fd = new FormData();
+    fd.append('form', _ffFormFile);
+    fd.append('matches', JSON.stringify(_ffMatchResults));
+    fetch('/api/formfill/generate-pdf', { method: 'POST', body: fd }).then(function(r) { return r.blob(); }).then(function(blob) {
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'formfill-' + _ffFormName + '.pdf'; a.click();
+    }).catch(function(e) { toast('Download failed: ' + e.message); });
+  } else if (type === 'csv') {
+    fetch('/api/formfill/generate-csv', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ matches: _ffMatchResults }) }).then(function(r) { return r.blob(); }).then(function(blob) {
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'formfill-' + _ffFormName + '.csv'; a.click();
+    }).catch(function(e) { toast('Download failed: ' + e.message); });
+  } else if (type === 'provenance') {
+    fetch('/api/formfill/generate-provenance', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ matches: _ffMatchResults, form_name: _ffFormName }) }).then(function(r) { return r.blob(); }).then(function(blob) {
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'formfill-provenance-' + _ffFormName + '.html'; a.click();
+    }).catch(function(e) { toast('Download failed: ' + e.message); });
+  } else if (type === 'docx') {
+    var fd = new FormData();
+    fd.append('template', _ffFormFile);
+    fd.append('matches', JSON.stringify(_ffMatchResults));
+    fd.append('variables', JSON.stringify(_ffTemplateVariables));
+    fd.append('document_text', _ffDocumentText);
+    fd.append('template_name', _ffFormName);
+    fetch('/api/formfill/generate-docx', { method: 'POST', body: fd }).then(function(r) { return r.blob(); }).then(function(blob) {
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'generated-' + _ffFormName + '.docx'; a.click();
+    }).catch(function(e) { toast('Download failed: ' + e.message); });
+  } else if (type === 'redline') {
+    var fd = new FormData();
+    fd.append('template', _ffFormFile);
+    fd.append('matches', JSON.stringify(_ffMatchResults));
+    fd.append('variables', JSON.stringify(_ffTemplateVariables));
+    fetch('/api/formfill/generate-redline', { method: 'POST', body: fd }).then(function(r) { return r.blob(); }).then(function(blob) {
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'redline-' + _ffFormName + '.docx'; a.click();
+    }).catch(function(e) { toast('Download failed: ' + e.message); });
+  } else if (type === 'provenance-v2') {
+    fetch('/api/formfill/generate-provenance-v2', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ matches: _ffMatchResults, variables: _ffTemplateVariables, template_name: _ffFormName, computed: _ffComputedFields }) }).then(function(r) { return r.blob(); }).then(function(blob) {
+      var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'docgenerate-provenance-' + _ffFormName + '.html'; a.click();
+    }).catch(function(e) { toast('Download failed: ' + e.message); });
+  }
+}
+
+// ── Conversion Actions ──
+function ffSaveToFirm() {
+  console.log('// TODO: ghost account creation');
+  selectView('overview');
+}
+function ffSaveAsTemplate() {
+  console.log('// TODO: pre-populate template editor with ' + _ffTemplateVariables.length + ' fields');
+  showNewTemplateModal();
+}
+
 
 /* --- File Upload --- */
 var uploadFiles = [];
