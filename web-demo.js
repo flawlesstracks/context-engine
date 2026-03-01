@@ -29149,6 +29149,12 @@ const FORMFILL_HTML = `<!DOCTYPE html>
     padding: 32px 0 48px;
     text-align: center;
   }
+  .logo-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
   .logo {
     font-family: 'DM Sans', sans-serif;
     font-size: 13px;
@@ -29156,9 +29162,19 @@ const FORMFILL_HTML = `<!DOCTYPE html>
     letter-spacing: 0.5px;
     text-transform: uppercase;
     color: var(--muted);
-    margin-bottom: 24px;
   }
   .logo span { color: var(--accent); }
+  .back-link {
+    font-size: 13px;
+    color: var(--muted);
+    text-decoration: none;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: color 0.2s;
+  }
+  .back-link:hover { color: var(--accent); }
   h1 {
     font-family: 'Instrument Serif', serif;
     font-size: clamp(36px, 5vw, 52px);
@@ -29840,6 +29856,132 @@ const FORMFILL_HTML = `<!DOCTYPE html>
     font-weight: 600;
   }
 
+  /* ── Build 29: Time-Saved + Conversion Zone ── */
+  .time-saved {
+    text-align: center;
+    padding: 20px 0 24px;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .time-saved-value {
+    font-family: 'Instrument Serif', serif;
+    font-size: 28px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .time-saved-label {
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .download-row {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 0 0 24px;
+  }
+  .download-row .dl-btn-inline {
+    padding: 10px 18px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+  }
+  .download-row .dl-btn-inline:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: #FAFBFF;
+  }
+  .conversion-divider {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0 0 24px;
+  }
+  .conversion-zone {
+    padding: 28px;
+    background: #EFF6FF;
+    border-radius: 16px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .conversion-zone h3 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 22px;
+    font-weight: 400;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .conversion-zone p {
+    font-size: 14px;
+    color: #6B7280;
+    margin-bottom: 20px;
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .conversion-btn {
+    padding: 12px 28px;
+    border: none;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: background 0.2s;
+  }
+  .conversion-btn:hover { background: var(--accent-hover); }
+  .template-upsell {
+    padding: 20px 24px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    text-align: left;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--card);
+  }
+  .template-upsell:hover {
+    border-color: var(--accent);
+    background: #FAFBFF;
+  }
+  .template-upsell-icon {
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+  .template-upsell h4 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .template-upsell p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+  .footer-credit {
+    text-align: center;
+    padding: 32px 0;
+    font-size: 12px;
+    color: var(--muted);
+    border-top: 1px solid var(--border);
+    margin-top: 32px;
+  }
+  .footer-credit a { color: var(--accent); text-decoration: none; }
+  .footer-credit a:hover { text-decoration: underline; }
+
   /* Mobile */
   @media (max-width: 640px) {
     .container { padding: 0 16px; }
@@ -29852,15 +29994,21 @@ const FORMFILL_HTML = `<!DOCTYPE html>
     .download-bar-inner { flex-direction: column; gap: 8px; }
     .dl-btn { width: 100%; text-align: center; }
     .category-row { flex-wrap: wrap; }
+    .download-row { flex-direction: column; align-items: stretch; }
+    .download-row .dl-btn-inline { justify-content: center; }
+    .conversion-zone { padding: 24px 20px; }
   }
 </style>
 </head>
 <body>
 <div class="container">
   <header>
-    <div class="logo">Context Architecture &bull; <span>FormFill</span></div>
-    <h1 id="main-heading">Upload a form. Get it filled.</h1>
-    <p class="tagline" id="main-tagline">Drop your blank form and source documents. Every value filled. Every source cited.</p>
+    <div class="logo-bar">
+      <div class="logo">Context Architecture &bull; <span>FormFill</span></div>
+      <a href="/wiki" class="back-link">&larr; Back to App</a>
+    </div>
+    <h1 id="main-heading">Fill any form. From any documents.<br>In under 90 seconds.</h1>
+    <p class="tagline" id="main-tagline">Upload a blank form and your source documents. AI matches every field with a source citation.</p>
     <div class="mode-toggle" id="mode-toggle">
       <label id="mode-label-fill" class="active" onclick="setMode('fill')">Fill a Form</label>
       <div class="mode-switch" id="mode-switch" onclick="toggleMode()"></div>
@@ -29934,31 +30082,50 @@ const FORMFILL_HTML = `<!DOCTYPE html>
     </div>
   </div>
 
+  <!-- Build 29: Conversion Zone (hidden until results) -->
+  <div id="conversion-zone" style="display:none;">
+    <div class="time-saved" id="time-saved"></div>
+    <div class="download-row" id="download-row-inline"></div>
+    <hr class="conversion-divider">
+    <div class="conversion-zone">
+      <h3>Do this for every client.</h3>
+      <p>Save this to your firm dashboard. Manage all your clients, templates, and verifications in one place.</p>
+      <button class="conversion-btn" onclick="saveToFirm()">Save to My Firm &rarr;</button>
+    </div>
+    <div id="template-upsell" style="display:none;" class="template-upsell" onclick="saveAsTemplate()">
+      <div class="template-upsell-icon">&#128260;</div>
+      <div>
+        <h4>Save as Template</h4>
+        <p id="template-upsell-text">Turn this into a permanent template for your team.</p>
+      </div>
+    </div>
+  </div>
+
   <!-- How it works -->
   <div class="how-section" id="how">
     <h2>How It Works</h2>
     <div class="how-steps">
       <div class="how-step">
-        <div class="icon">&#128196;</div>
-        <h3>1. Upload Your Form</h3>
-        <p>Any blank form &mdash; IRS, legal, intake. We use AI to detect every field that needs filling.</p>
+        <div class="icon">1</div>
+        <h3>Upload Your Form</h3>
+        <p>Any blank form &mdash; IRS, legal, intake. AI detects every field that needs filling.</p>
       </div>
       <div class="how-step">
-        <div class="icon">&#128450;</div>
-        <h3>2. Add Source Docs</h3>
-        <p>Contracts, letters, statements. We extract every data point with exact source citations.</p>
+        <div class="icon">2</div>
+        <h3>Add Source Docs</h3>
+        <p>Contracts, letters, statements. Every data point extracted with exact source citations.</p>
       </div>
       <div class="how-step">
-        <div class="icon">&#9889;</div>
-        <h3>3. Get It Filled</h3>
-        <p>Three-tier AI matching fills your form. Every value comes with a receipt &mdash; the exact text it came from.</p>
+        <div class="icon">3</div>
+        <h3>Done</h3>
+        <p>Download your filled form, CSV export, or provenance report.</p>
       </div>
     </div>
   </div>
 
-  <footer>
-    Powered by <a href="/">Context Architecture</a>
-  </footer>
+  <div class="footer-credit">
+    Built by CJ Mitchell &bull; <a href="/">Context Architecture</a> &bull; <a href="https://github.com/flawlesstracks/context-engine" target="_blank">GitHub</a>
+  </div>
 </div>
 
 <!-- Download bar (sticky) -->
@@ -30364,6 +30531,9 @@ const FORMFILL_HTML = `<!DOCTYPE html>
     document.querySelectorAll('.mode1-dl').forEach(el => el.style.display = currentMode === 'fill' ? '' : 'none');
     document.querySelectorAll('.mode2-dl').forEach(el => el.style.display = currentMode === 'generate' ? '' : 'none');
 
+    // Build 29: Show conversion zone with time-saved + inline downloads + CTA
+    showConversionZone(matched, missing);
+
     setTimeout(() => {
       resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 200);
@@ -30632,6 +30802,62 @@ const FORMFILL_HTML = `<!DOCTYPE html>
       a.href = url; a.download = 'docgenerate-provenance-' + (formName || 'report') + '.html';
       a.click(); URL.revokeObjectURL(url);
     } catch (e) { alert('Provenance report failed: ' + e.message); }
+  };
+
+  // ── Build 29: Conversion Zone ──
+  function showConversionZone(matched, missing) {
+    const zone = document.getElementById('conversion-zone');
+    if (!zone) return;
+
+    // Time-saved calculation
+    let timeSaved;
+    if (currentMode === 'generate') {
+      timeSaved = matched.length * 6 + missing.length * 10;
+    } else {
+      timeSaved = matched.length * 3 + missing.length * 8;
+    }
+    timeSaved = Math.round(timeSaved / 5) * 5; // round to nearest 5
+    if (timeSaved < 5) timeSaved = 5;
+
+    const tsEl = document.getElementById('time-saved');
+    tsEl.innerHTML = '<div class="time-saved-value">You just saved approximately ' + timeSaved + ' minutes.</div>' +
+      '<div class="time-saved-label">Compared to manual data entry and cross-referencing</div>';
+
+    // Inline download buttons
+    const dlRow = document.getElementById('download-row-inline');
+    let dlHtml = '';
+    if (currentMode === 'fill') {
+      dlHtml += '<button class="dl-btn-inline" onclick="downloadPDF()">&#128196; PDF</button>';
+      dlHtml += '<button class="dl-btn-inline" onclick="downloadCSV()">&#128202; CSV</button>';
+      dlHtml += '<button class="dl-btn-inline" onclick="downloadProvenance()">&#128203; Provenance</button>';
+    } else {
+      dlHtml += '<button class="dl-btn-inline" onclick="downloadDOCX()">&#128196; DOCX</button>';
+      dlHtml += '<button class="dl-btn-inline" onclick="downloadRedline()">&#128221; Redline</button>';
+      dlHtml += '<button class="dl-btn-inline" onclick="downloadProvenanceV2()">&#128203; Provenance</button>';
+    }
+    dlRow.innerHTML = dlHtml;
+
+    // Mode 2 template upsell
+    const tplUpsell = document.getElementById('template-upsell');
+    if (currentMode === 'generate' && templateVariables && templateVariables.length > 0) {
+      tplUpsell.style.display = 'flex';
+      const tplText = document.getElementById('template-upsell-text');
+      tplText.textContent = 'We mapped ' + templateVariables.length + ' fields from your document. Turn this into a permanent template for your team.';
+    } else {
+      tplUpsell.style.display = 'none';
+    }
+
+    zone.style.display = 'block';
+  }
+
+  window.saveToFirm = function() {
+    console.log('// TODO: implement ghost account creation');
+    window.location.href = '/wiki';
+  };
+
+  window.saveAsTemplate = function() {
+    console.log('// TODO: route to template editor with pre-detected fields');
+    window.location.href = '/wiki';
   };
 })();
 </script>
