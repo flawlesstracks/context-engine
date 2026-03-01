@@ -13376,6 +13376,124 @@ const WIKI_HTML = `<!DOCTYPE html>
     border-left-color: #2563EB;
   }
 
+  /* --- Build 33: Client Overview --- */
+  .co-header { padding: 32px 48px 0; background: #fff; border-bottom: 1px solid #E5E7EB; }
+  .co-header-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+  .co-back { font-size: 13px; color: #6B7280; cursor: pointer; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+  .co-back:hover { color: #2563EB; }
+  .co-name-row { display: flex; align-items: center; gap: 14px; }
+  .co-avatar { width: 48px; height: 48px; background: #EFF6FF; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #2563EB; font-weight: 700; flex-shrink: 0; }
+  .co-name { font-family: var(--font-display, 'Instrument Serif', serif); font-size: 32px; font-weight: 400; color: #1A1A1A; }
+  .co-meta { font-size: 13px; color: #6B7280; margin-top: 2px; }
+  .co-actions { display: flex; gap: 8px; align-items: flex-start; }
+  .co-btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: var(--font-sans, 'DM Sans', sans-serif); display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
+  .co-btn.outline { background: #fff; border: 1px solid #E5E7EB; color: #1A1A1A; }
+  .co-btn.outline:hover { border-color: #2563EB; color: #2563EB; }
+  .co-btn.primary { background: #2563EB; border: 1px solid #2563EB; color: #fff; }
+  .co-btn.primary:hover { background: #1D4ED8; }
+  .co-tabs { display: flex; gap: 0; }
+  .co-tab { padding: 12px 20px; font-size: 14px; color: #6B7280; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; display: flex; align-items: center; gap: 8px; transition: color 0.15s; }
+  .co-tab:hover { color: #1A1A1A; }
+  .co-tab.active { color: #1A1A1A; font-weight: 600; border-bottom-color: #2563EB; }
+  .co-tab-badge { font-size: 11px; padding: 1px 7px; border-radius: 10px; font-weight: 600; background: #F3F4F6; color: #6B7280; }
+  .co-content { flex: 1; overflow-y: auto; padding: 24px 48px 48px; }
+  .co-content.hidden { display: none; }
+  .co-filter-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .co-search-box { flex: 1; position: relative; }
+  .co-search-box input { width: 100%; padding: 10px 14px 10px 38px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px; font-family: var(--font-sans, 'DM Sans', sans-serif); background: #fff; outline: none; transition: border-color 0.15s; }
+  .co-search-box input:focus { border-color: #2563EB; }
+  .co-search-box input::placeholder { color: #C0C4CC; }
+  .co-search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 15px; color: #6B7280; pointer-events: none; }
+  .co-filter-pills { display: flex; gap: 4px; }
+  .co-filter-pill { padding: 7px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; transition: all 0.15s; border: 1px solid transparent; font-family: var(--font-sans, 'DM Sans', sans-serif); font-weight: 500; }
+  .co-filter-pill.active { background: #1A1A1A; color: #fff; }
+  .co-filter-pill:not(.active) { background: #fff; border-color: #E5E7EB; color: #6B7280; }
+  .co-filter-pill:not(.active):hover { border-color: #1A1A1A; color: #1A1A1A; }
+  .co-sort-control { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #6B7280; white-space: nowrap; }
+  .co-sort-select { padding: 7px 28px 7px 10px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 13px; font-family: var(--font-sans, 'DM Sans', sans-serif); background: #fff; outline: none; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7280' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 10px center; }
+  .co-projects-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .co-project-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 24px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; min-height: 168px; position: relative; }
+  .co-project-card:hover { border-color: #2563EB; box-shadow: 0 2px 16px rgba(37,99,235,0.08); transform: translateY(-1px); }
+  .co-project-card.starred { border-left: 3px solid #D97706; }
+  .co-card-menu-trigger { position: absolute; top: 16px; right: 16px; width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 16px; color: #6B7280; opacity: 0; transition: all 0.15s; background: transparent; border: none; z-index: 5; }
+  .co-project-card:hover .co-card-menu-trigger { opacity: 1; }
+  .co-card-menu-trigger:hover { background: #F3F4F6; color: #1A1A1A; }
+  .co-card-menu-trigger.open { opacity: 1; background: #F3F4F6; }
+  .co-card-menu { position: absolute; top: 44px; right: 16px; background: #fff; border: 1px solid #E5E7EB; border-radius: 10px; min-width: 160px; box-shadow: 0 8px 24px rgba(0,0,0,0.1); z-index: 20; display: none; overflow: hidden; }
+  .co-card-menu.open { display: block; }
+  .co-card-menu-item { padding: 10px 14px; font-size: 13px; display: flex; align-items: center; gap: 10px; cursor: pointer; transition: background 0.1s; color: #1A1A1A; }
+  .co-card-menu-item:hover { background: #F3F4F6; }
+  .co-card-menu-item .co-menu-icon { font-size: 14px; width: 18px; text-align: center; color: #6B7280; }
+  .co-card-menu-divider { height: 1px; background: #F3F4F6; margin: 4px 0; }
+  .co-card-menu-item.danger { color: #DC2626; }
+  .co-card-menu-item.danger .co-menu-icon { color: #DC2626; }
+  .co-project-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; padding-right: 32px; }
+  .co-project-card-name { font-size: 17px; font-weight: 600; color: #1A1A1A; line-height: 1.3; }
+  .co-project-star { color: #D97706; margin-right: 4px; font-size: 13px; }
+  .co-project-card-template { font-size: 12px; color: #6B7280; margin-top: 4px; }
+  .co-status-pill { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; white-space: nowrap; flex-shrink: 0; }
+  .co-status-active { background: #EFF6FF; color: #2563EB; }
+  .co-status-review { background: #FFFBEB; color: #D97706; }
+  .co-status-complete { background: #ECFDF5; color: #059669; }
+  .co-status-blocked { background: #FEF2F2; color: #DC2626; }
+  .co-project-card-desc { font-size: 13px; color: #6B7280; line-height: 1.4; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .co-project-card-stats { display: flex; gap: 16px; margin-top: auto; padding-top: 12px; border-top: 1px solid #F3F4F6; }
+  .co-project-stat { display: flex; flex-direction: column; }
+  .co-project-stat-value { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 14px; font-weight: 600; }
+  .co-project-stat-label { font-size: 11px; color: #6B7280; }
+  .co-project-card-bar { height: 3px; background: #F3F4F6; border-radius: 2px; margin-top: 10px; overflow: hidden; }
+  .co-project-card-bar-fill { height: 100%; border-radius: 2px; }
+  .co-project-card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+  .co-project-card-updated { font-size: 11px; color: #6B7280; }
+  .co-project-card-docs { font-size: 11px; color: #6B7280; display: flex; align-items: center; gap: 3px; }
+  .co-new-project-card { background: #FAFAF9; border: 2px dashed #E5E7EB; border-radius: 12px; padding: 24px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 168px; text-align: center; }
+  .co-new-project-card:hover { border-color: #2563EB; background: #EFF6FF; }
+  .co-new-project-icon { width: 48px; height: 48px; border-radius: 50%; background: #fff; border: 1px solid #E5E7EB; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #2563EB; margin-bottom: 12px; transition: all 0.2s; }
+  .co-new-project-card:hover .co-new-project-icon { background: #2563EB; color: #fff; border-color: #2563EB; }
+  .co-new-project-label { font-size: 15px; font-weight: 600; color: #1A1A1A; margin-bottom: 4px; }
+  .co-new-project-desc { font-size: 13px; color: #6B7280; max-width: 200px; }
+  .co-docs-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+  .co-docs-title { font-family: var(--font-display, 'Instrument Serif', serif); font-size: 20px; font-weight: 400; }
+  .co-docs-subtitle { font-size: 13px; color: #6B7280; margin-top: 2px; }
+  .co-docs-table-header { display: grid; grid-template-columns: 1fr 140px 120px 100px 80px; padding: 10px 16px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #6B7280; border-bottom: 1px solid #E5E7EB; }
+  .co-doc-row { display: grid; grid-template-columns: 1fr 140px 120px 100px 80px; padding: 12px 16px; border-bottom: 1px solid #F3F4F6; align-items: center; font-size: 14px; transition: background 0.1s; }
+  .co-doc-row:hover { background: #F3F4F6; }
+  .co-doc-name-cell { display: flex; align-items: center; gap: 10px; }
+  .co-doc-icon { font-size: 16px; opacity: 0.6; }
+  .co-doc-name { font-weight: 500; font-size: 13px; }
+  .co-doc-type-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #F3F4F6; color: #6B7280; font-weight: 500; }
+  .co-doc-date { font-size: 13px; color: #6B7280; }
+  .co-doc-used { display: flex; gap: 4px; flex-wrap: wrap; }
+  .co-doc-used-pill { font-size: 10px; padding: 1px 6px; border-radius: 3px; background: #EFF6FF; color: #2563EB; font-weight: 500; }
+  .co-doc-status { font-size: 13px; }
+  .co-doc-status.processed { color: #059669; }
+  .co-doc-status.pending { color: #D97706; }
+  .co-drop-zone { border: 2px dashed #E5E7EB; border-radius: 12px; padding: 32px; text-align: center; margin-top: 16px; transition: all 0.2s; cursor: pointer; }
+  .co-drop-zone:hover { border-color: #2563EB; background: #EFF6FF; }
+  .co-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.3); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(2px); }
+  .co-modal-overlay.open { display: flex; }
+  .co-modal { background: #fff; border-radius: 16px; width: 520px; max-width: 90vw; max-height: 80vh; overflow-y: auto; box-shadow: 0 24px 48px rgba(0,0,0,0.12); }
+  .co-modal-header { padding: 24px 24px 0; display: flex; align-items: center; justify-content: space-between; }
+  .co-modal-title { font-family: var(--font-display, 'Instrument Serif', serif); font-size: 22px; }
+  .co-modal-close { width: 28px; height: 28px; border: 1px solid #E5E7EB; background: #fff; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; color: #6B7280; }
+  .co-modal-body { padding: 20px 24px; }
+  .co-form-group { margin-bottom: 16px; }
+  .co-form-label { font-size: 13px; font-weight: 600; color: #1A1A1A; margin-bottom: 6px; display: block; }
+  .co-form-input { width: 100%; padding: 10px 14px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 14px; font-family: var(--font-sans, 'DM Sans', sans-serif); outline: none; transition: border-color 0.15s; }
+  .co-form-input:focus { border-color: #2563EB; }
+  .co-template-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .co-template-opt { padding: 12px; border: 1px solid #E5E7EB; border-radius: 8px; cursor: pointer; transition: all 0.15s; text-align: center; }
+  .co-template-opt:hover { border-color: #2563EB; background: #EFF6FF; }
+  .co-template-opt.selected { border-color: #2563EB; background: #EFF6FF; box-shadow: 0 0 0 1px #2563EB; }
+  .co-template-opt-icon { font-size: 20px; margin-bottom: 4px; }
+  .co-template-opt-name { font-size: 13px; font-weight: 600; }
+  .co-template-opt-desc { font-size: 11px; color: #6B7280; margin-top: 2px; }
+  .co-modal-footer { padding: 16px 24px 24px; display: flex; gap: 8px; justify-content: flex-end; }
+  .co-modal-btn { padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; font-family: var(--font-sans, 'DM Sans', sans-serif); transition: all 0.15s; }
+  .co-modal-btn.cancel { background: #fff; border: 1px solid #E5E7EB; color: #1A1A1A; }
+  .co-modal-btn.create { background: #2563EB; border: 1px solid #2563EB; color: #fff; }
+  .co-modal-btn.create:hover { background: #1D4ED8; }
+
   /* --- Build 32: Matter View Redesign --- */
   .matter-header { padding: 20px 32px 0; background: #fff; border-bottom: 1px solid #E5E7EB; }
   .matter-header-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
@@ -16349,9 +16467,9 @@ function filterAffiliationsHub() {
 var _gapData = null;
 
 function showCompletenessDashboard() {
-  // Route through client workspace if a spoke is selected
+  // Route through project detail if a spoke is selected
   if (_selectedSpoke && _selectedSpoke !== 'default') {
-    showClientWorkspace(_selectedSpoke, 'completeness');
+    showProjectDetail(_selectedSpoke, 'completeness');
     return;
   }
   selectedView = 'completeness';
@@ -17527,9 +17645,9 @@ var _exportData = null;
 var _expandedEvidence = {};
 
 function showExportView() {
-  // Route through client workspace if a spoke is selected
+  // Route through project detail if a spoke is selected
   if (_selectedSpoke && _selectedSpoke !== 'default') {
-    showClientWorkspace(_selectedSpoke, 'export');
+    showProjectDetail(_selectedSpoke, 'export');
     return;
   }
   selectedView = 'export';
@@ -17772,9 +17890,9 @@ function downloadExportCsv() {
 var _spokeShares = [];
 
 function showSpokeShareManager() {
-  // Route through client workspace if a spoke is selected
+  // Route through project detail if a spoke is selected
   if (_selectedSpoke && _selectedSpoke !== 'default') {
-    showClientWorkspace(_selectedSpoke, 'share');
+    showProjectDetail(_selectedSpoke, 'share');
     return;
   }
   selectedView = 'share_portal';
@@ -18196,8 +18314,8 @@ function selectClient(spokeId) {
   _activeClientTab = 'completeness';
   renderSidebar();
 
-  // Load the client workspace — default to Completeness tab
-  showClientWorkspace(spokeId, 'completeness');
+  // Load the client overview — Build 33
+  showClientWorkspace(spokeId);
 }
 
 function selectPersonalGraph() {
@@ -18522,12 +18640,167 @@ function _buildShareHtml() {
 var _mvSelectedDoc = null;
 var _mvActiveTab = 'know';
 var _mvFilesCache = [];
+var _currentClientView = 'client_overview'; // 'client_overview' or 'project_detail'
+var _selectedProjectId = null;
+var _coActiveTab = 'projects'; // 'projects' or 'documents'
+var _coSpokeDataCache = {}; // cache spoke data for overview cards
+var _coOpenMenu = null; // track open three-dot menu
+var _coProjectFilter = 'all';
+var _coProjectSort = 'activity';
+var _coProjectSearch = '';
 
+// Build 33: Client Overview — shows all projects for a client
 function showClientWorkspace(spokeId, tab) {
+  if (!spokeId) return;
+  _selectedSpoke = spokeId;
+  selectedView = 'client_workspace';
+  _currentClientView = 'client_overview';
+  _selectedProjectId = null;
+  _coActiveTab = tab === 'documents' ? 'documents' : 'projects';
+
+  var spokeName = spokeId;
+  for (var i = 0; i < _spokesList.length; i++) {
+    if (_spokesList[i].id === spokeId) { spokeName = _spokesList[i].name; break; }
+  }
+
+  breadcrumbs = [
+    { label: 'Clients', action: 'showClientDashboard()' },
+    { label: spokeName }
+  ];
+  renderBreadcrumbs();
+
+  var mainEl = document.getElementById('main');
+  var initials = _coGetInitials(spokeName);
+
+  // Count spokes for this "client" — for now each spoke IS a project
+  var spokes = _spokesList || [];
+  var fileCount = 0; // will be populated async
+
+  var h = '<div id="coContainer" style="display:flex;flex-direction:column;height:calc(100vh - 50px);overflow:hidden;">';
+
+  // Header
+  h += '<div class="co-header">';
+  h += '<div class="co-header-top">';
+  h += '<div>';
+  h += '<div class="co-back" onclick="showClientDashboard()">\\u2190 All Clients</div>';
+  h += '<div class="co-name-row">';
+  h += '<div class="co-avatar">' + esc(initials) + '</div>';
+  h += '<div>';
+  h += '<div class="co-name">' + esc(spokeName) + '</div>';
+  h += '<div class="co-meta" id="coMeta">Loading...</div>';
+  h += '</div></div>';
+  h += '</div>';
+  h += '<div class="co-actions">';
+  h += '<button class="co-btn outline" onclick="showShareModal()">\\u2197 Share</button>';
+  h += '<button class="co-btn outline" onclick="downloadExportCsv()">\\u2193 Export All</button>';
+  h += '<button class="co-btn primary" onclick="coOpenNewProjectModal()">\\uFF0B New Project</button>';
+  h += '</div>';
+  h += '</div>';
+
+  // Tabs
+  h += '<div class="co-tabs">';
+  h += '<div class="co-tab' + (_coActiveTab === 'projects' ? ' active' : '') + '" id="coTabProjects" onclick="coSwitchTab(\\'projects\\')">Projects <span class="co-tab-badge" id="coProjectCount">0</span></div>';
+  h += '<div class="co-tab' + (_coActiveTab === 'documents' ? ' active' : '') + '" id="coTabDocs" onclick="coSwitchTab(\\'documents\\')">Documents <span class="co-tab-badge" id="coDocCount">0</span></div>';
+  h += '</div>';
+  h += '</div>'; // end header
+
+  // Projects content
+  h += '<div class="co-content' + (_coActiveTab !== 'projects' ? ' hidden' : '') + '" id="coContentProjects">';
+  h += '<div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading projects...</div>';
+  h += '</div>';
+
+  // Documents content
+  h += '<div class="co-content' + (_coActiveTab !== 'documents' ? ' hidden' : '') + '" id="coContentDocs">';
+  h += '<div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading documents...</div>';
+  h += '</div>';
+
+  h += '</div>'; // end container
+
+  // New Project Modal
+  h += '<div class="co-modal-overlay" id="coNewProjectModal">';
+  h += '<div class="co-modal">';
+  h += '<div class="co-modal-header">';
+  h += '<span class="co-modal-title">New Project for ' + esc(spokeName) + '</span>';
+  h += '<button class="co-modal-close" onclick="coCloseNewProjectModal()">\\u2715</button>';
+  h += '</div>';
+  h += '<div class="co-modal-body">';
+  h += '<div class="co-form-group">';
+  h += '<label class="co-form-label">Project Name</label>';
+  h += '<input class="co-form-input" id="coNewProjectName" placeholder="e.g., 2025 Business Tax Preparation">';
+  h += '</div>';
+  h += '<div class="co-form-group">';
+  h += '<label class="co-form-label">Choose a Template</label>';
+  h += '<div class="co-template-options" id="coTemplateOptions"></div>';
+  h += '</div>';
+  h += '<div class="co-form-group">';
+  h += '<label class="co-form-label">Notes <span style="font-weight:400;color:#6B7280;">(optional)</span></label>';
+  h += '<input class="co-form-input" id="coNewProjectNotes" placeholder="Any context for this project...">';
+  h += '</div>';
+  h += '</div>';
+  h += '<div class="co-modal-footer">';
+  h += '<button class="co-modal-btn cancel" onclick="coCloseNewProjectModal()">Cancel</button>';
+  h += '<button class="co-modal-btn create" onclick="coCreateProject()">Create Project</button>';
+  h += '</div>';
+  h += '</div></div>';
+
+  mainEl.innerHTML = h;
+
+  // Load data
+  _coLoadOverviewData(spokeId, spokeName);
+}
+
+function _coGetInitials(name) {
+  var parts = (name || '').split(/[\\s,]+/).filter(function(p) { return p.length > 0; });
+  if (parts.length === 0) return '?';
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length > 1 ? 1 : 0].charAt(0)).toUpperCase();
+}
+
+function _coLoadOverviewData(spokeId, spokeName) {
+  // For this build, each spoke IS a project. Fetch gap+export+files for the spoke.
+  var gapPromise = api('GET', '/api/spoke/' + encodeURIComponent(spokeId) + '/gaps').catch(function() { return null; });
+  var exportPromise = api('GET', '/api/spoke/' + encodeURIComponent(spokeId) + '/export').catch(function() { return null; });
+  var filesPromise = api('GET', '/api/spoke/' + encodeURIComponent(spokeId) + '/files').catch(function() { return { files: [] }; });
+
+  Promise.all([gapPromise, exportPromise, filesPromise]).then(function(results) {
+    if (_selectedSpoke !== spokeId || _currentClientView !== 'client_overview') return;
+
+    var gapData = results[0];
+    var exportData = results[1];
+    var filesData = results[2];
+    var files = filesData ? filesData.files || [] : [];
+
+    // Cache for card rendering
+    _coSpokeDataCache[spokeId] = { gap: gapData, export: exportData, files: files };
+
+    // Update meta
+    var metaEl = document.getElementById('coMeta');
+    if (metaEl) metaEl.textContent = '1 project \\u00B7 ' + files.length + ' documents';
+
+    // Update tab badges
+    var projCountEl = document.getElementById('coProjectCount');
+    if (projCountEl) projCountEl.textContent = '1';
+    var docCountEl = document.getElementById('coDocCount');
+    if (docCountEl) docCountEl.textContent = String(files.length);
+
+    // Render projects tab
+    var projEl = document.getElementById('coContentProjects');
+    if (projEl) projEl.innerHTML = _coRenderProjectsTab(spokeId, spokeName, gapData, exportData, files);
+
+    // Render documents tab
+    var docsEl = document.getElementById('coContentDocs');
+    if (docsEl) docsEl.innerHTML = _coRenderDocumentsTab(spokeName, files);
+  });
+}
+
+// Build 33: Project Detail (was showClientWorkspace in Build 32)
+function showProjectDetail(spokeId, tab) {
   if (!spokeId) return;
   _selectedSpoke = spokeId;
   _activeClientTab = tab || 'overview';
   selectedView = 'client_workspace';
+  _currentClientView = 'project_detail';
+  _selectedProjectId = spokeId;
   _mvSelectedDoc = null;
   _mvActiveTab = 'know';
 
@@ -18552,7 +18825,7 @@ function showClientWorkspace(spokeId, tab) {
   h += '<div class="matter-header">';
   h += '<div class="matter-header-top">';
   h += '<div>';
-  h += '<div class="matter-back" onclick="showClientDashboard()">\\u2190 Clients</div>';
+  h += '<div class="matter-back" onclick="showClientWorkspace(\\'' + esc(spokeId) + '\\')">\\u2190 ' + esc(spokeName) + '</div>';
   h += '<div class="matter-name" id="matterClientName">' + esc(spokeName) + '</div>';
   h += '<div class="matter-template" id="matterTemplateBadge"></div>';
   h += '</div>';
@@ -18599,6 +18872,341 @@ function switchClientTab(tab) {
   // Backward compatibility — just reload the workspace
   showClientWorkspace(_selectedSpoke, tab);
 }
+
+// ===== Build 33: Client Overview rendering functions =====
+
+function coSwitchTab(tab) {
+  _coActiveTab = tab;
+  var projEl = document.getElementById('coContentProjects');
+  var docsEl = document.getElementById('coContentDocs');
+  if (projEl) projEl.classList.toggle('hidden', tab !== 'projects');
+  if (docsEl) docsEl.classList.toggle('hidden', tab !== 'documents');
+  var tabProj = document.getElementById('coTabProjects');
+  var tabDocs = document.getElementById('coTabDocs');
+  if (tabProj) tabProj.classList.toggle('active', tab === 'projects');
+  if (tabDocs) tabDocs.classList.toggle('active', tab === 'documents');
+}
+
+function _coRenderProjectsTab(spokeId, spokeName, gapData, exportData, files) {
+  var h = '';
+
+  // Filter bar
+  h += '<div class="co-filter-bar">';
+  h += '<div class="co-search-box"><span class="co-search-icon">\\uD83D\\uDD0D</span><input type="text" placeholder="Search projects..." id="coSearchInput" oninput="coFilterProjects()" /></div>';
+  h += '<div class="co-filter-pills">';
+  h += '<div class="co-filter-pill active" onclick="coSetFilter(this,\\'all\\')">All</div>';
+  h += '<div class="co-filter-pill" onclick="coSetFilter(this,\\'active\\')">Active</div>';
+  h += '<div class="co-filter-pill" onclick="coSetFilter(this,\\'archived\\')">Archived</div>';
+  h += '</div>';
+  h += '<div class="co-sort-control"><span>Sort by</span>';
+  h += '<select class="co-sort-select" onchange="coSortProjects(this.value)">';
+  h += '<option value="activity">Activity</option><option value="name">Name</option>';
+  h += '<option value="readiness">Readiness</option><option value="status">Status</option>';
+  h += '<option value="created">Date Created</option>';
+  h += '</select></div>';
+  h += '</div>';
+
+  // Projects grid
+  h += '<div class="co-projects-grid" id="coProjectsGrid">';
+
+  // Build card data from spoke
+  var readinessPct = gapData ? Math.round((gapData.overall_score || 0) * 100) : 0;
+  var totalFields = 0;
+  var extractedFields = 0;
+  var blockingCount = gapData ? (gapData.missing_documents || []).filter(function(d) { return (d.priority || '').toLowerCase() === 'high' || (d.priority || '').toLowerCase() === 'blocking'; }).length : 0;
+
+  if (exportData && exportData.roles) {
+    for (var ri = 0; ri < exportData.roles.length; ri++) {
+      for (var ei = 0; ei < (exportData.roles[ri].entities || []).length; ei++) {
+        for (var fi = 0; fi < (exportData.roles[ri].entities[ei].fields || []).length; fi++) {
+          totalFields++;
+          if (exportData.roles[ri].entities[ei].fields[fi].value) extractedFields++;
+        }
+      }
+    }
+  }
+
+  var templateName = gapData && gapData.template_name ? gapData.template_name : 'General Matter';
+  var readinessColor = readinessPct >= 80 ? '#059669' : (readinessPct >= 40 ? '#D97706' : '#DC2626');
+  var barColor = readinessPct >= 80 ? 'var(--success,#059669)' : (readinessPct >= 40 ? 'var(--warning,#D97706)' : 'var(--danger,#DC2626)');
+  var statusLabel = blockingCount > 0 ? 'Blocked' : (readinessPct >= 90 ? 'Complete' : 'Active');
+  var statusClass = blockingCount > 0 ? 'co-status-blocked' : (readinessPct >= 90 ? 'co-status-complete' : 'co-status-active');
+  var updatedLabel = files.length > 0 && files[0].uploaded_at ? _coTimeAgo(files[0].uploaded_at) : 'No activity';
+  var desc = 'Client project using ' + templateName + ' template. ' + extractedFields + ' of ' + totalFields + ' fields extracted.';
+
+  h += '<div class="co-project-card" data-spokeid="' + esc(spokeId) + '" data-name="' + esc(spokeName) + '" data-status="' + (statusLabel.toLowerCase()) + '" data-readiness="' + readinessPct + '" onclick="coOpenProject(event,\\'' + esc(spokeId) + '\\')">';
+  h += '<button class="co-card-menu-trigger" onclick="coToggleMenu(event,this)">\\u22EF</button>';
+  h += '<div class="co-card-menu">';
+  h += '<div class="co-card-menu-item" onclick="coMenuAction(event,\\'favorite\\',\\'' + esc(spokeId) + '\\')"><span class="co-menu-icon">\\u2606</span> Favorite</div>';
+  h += '<div class="co-card-menu-item" onclick="coMenuAction(event,\\'edit\\',\\'' + esc(spokeId) + '\\')"><span class="co-menu-icon">\\u270E</span> Edit Details</div>';
+  h += '<div class="co-card-menu-item" onclick="coMenuAction(event,\\'duplicate\\',\\'' + esc(spokeId) + '\\')"><span class="co-menu-icon">\\u29C9</span> Duplicate</div>';
+  h += '<div class="co-card-menu-divider"></div>';
+  h += '<div class="co-card-menu-item" onclick="coMenuAction(event,\\'archive\\',\\'' + esc(spokeId) + '\\')"><span class="co-menu-icon">\\uD83D\\uDCE6</span> Archive</div>';
+  h += '<div class="co-card-menu-item danger" onclick="coMenuAction(event,\\'delete\\',\\'' + esc(spokeId) + '\\')"><span class="co-menu-icon">\\uD83D\\uDDD1</span> Delete</div>';
+  h += '</div>';
+
+  h += '<div class="co-project-card-header"><div>';
+  h += '<div class="co-project-card-name">' + esc(spokeName) + '</div>';
+  h += '<div class="co-project-card-template">Template: ' + esc(templateName) + '</div>';
+  h += '</div>';
+  h += '<span class="co-status-pill ' + statusClass + '">' + esc(statusLabel) + '</span>';
+  h += '</div>';
+
+  h += '<div class="co-project-card-desc">' + esc(desc) + '</div>';
+
+  h += '<div class="co-project-card-stats">';
+  h += '<div class="co-project-stat"><span class="co-project-stat-value" style="color:' + readinessColor + '">' + readinessPct + '%</span><span class="co-project-stat-label">Readiness</span></div>';
+  h += '<div class="co-project-stat"><span class="co-project-stat-value">' + extractedFields + '/' + totalFields + '</span><span class="co-project-stat-label">Fields</span></div>';
+  h += '<div class="co-project-stat"><span class="co-project-stat-value" style="color:' + (blockingCount > 0 ? '#DC2626' : '#059669') + '">' + blockingCount + '</span><span class="co-project-stat-label">Blocking</span></div>';
+  h += '</div>';
+
+  h += '<div class="co-project-card-bar"><div class="co-project-card-bar-fill" style="width:' + readinessPct + '%;background:' + barColor + ';"></div></div>';
+  h += '<div class="co-project-card-footer">';
+  h += '<span class="co-project-card-updated">Updated ' + esc(updatedLabel) + '</span>';
+  h += '<span class="co-project-card-docs">\\uD83D\\uDCC4 ' + files.length + ' docs</span>';
+  h += '</div>';
+  h += '</div>';
+
+  // New Project card
+  h += '<div class="co-new-project-card" onclick="coOpenNewProjectModal()">';
+  h += '<div class="co-new-project-icon">\\uFF0B</div>';
+  h += '<div class="co-new-project-label">New Project</div>';
+  h += '<div class="co-new-project-desc">Create a new project for this client</div>';
+  h += '</div>';
+
+  h += '</div>'; // end grid
+  return h;
+}
+
+function _coTimeAgo(dateStr) {
+  var diff = Date.now() - new Date(dateStr).getTime();
+  var mins = Math.floor(diff / 60000);
+  if (mins < 60) return mins + ' min ago';
+  var hours = Math.floor(mins / 60);
+  if (hours < 24) return hours + ' hour' + (hours !== 1 ? 's' : '') + ' ago';
+  var days = Math.floor(hours / 24);
+  if (days === 1) return 'yesterday';
+  if (days < 30) return days + ' days ago';
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function _coRenderDocumentsTab(spokeName, files) {
+  var h = '';
+
+  // Header
+  h += '<div class="co-docs-header">';
+  h += '<div>';
+  h += '<div class="co-docs-title">Client Document Library</div>';
+  h += '<div class="co-docs-subtitle">' + files.length + ' documents shared across all projects for ' + esc(spokeName) + '</div>';
+  h += '</div>';
+  h += '<button class="co-btn primary" onclick="document.getElementById(\\'coFileInput\\')&&document.getElementById(\\'coFileInput\\').click()">\\u2191 Upload Documents</button>';
+  h += '</div>';
+  h += '<input type="file" id="coFileInput" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.json" style="display:none" onchange="handleMatterUpload(event)" />';
+
+  // Table
+  if (files.length > 0) {
+    h += '<div class="co-docs-table-header"><span>Document</span><span>Classification</span><span>Uploaded</span><span>Used In</span><span>Status</span></div>';
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i];
+      var fName = f.original_name || f.filename || f.id;
+      var fDate = f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+      var fClass = f.classification || f.doc_type || 'Document';
+      h += '<div class="co-doc-row">';
+      h += '<div class="co-doc-name-cell"><span class="co-doc-icon">\\uD83D\\uDCC4</span><div><span class="co-doc-name">' + esc(fName) + '</span></div></div>';
+      h += '<span class="co-doc-type-badge">' + esc(fClass) + '</span>';
+      h += '<span class="co-doc-date">' + esc(fDate) + '</span>';
+      h += '<div class="co-doc-used"><span class="co-doc-used-pill">' + esc(_coSpokeNameById(_selectedSpoke)) + '</span></div>';
+      h += '<span class="co-doc-status processed">\\u2713 Processed</span>';
+      h += '</div>';
+    }
+  } else {
+    h += '<div style="text-align:center;padding:40px;color:#9CA3AF;font-size:14px;">No documents uploaded yet.</div>';
+  }
+
+  // Drop zone
+  h += '<div class="co-drop-zone" onclick="document.getElementById(\\'coFileInput\\')&&document.getElementById(\\'coFileInput\\').click()" id="coDropZone">';
+  h += '<div style="font-size:14px;color:#6B7280;">Drop files here or <strong style="color:#2563EB;">click to upload</strong></div>';
+  h += '<div style="font-size:12px;color:#6B7280;margin-top:4px;">Documents are shared across all projects for this client</div>';
+  h += '</div>';
+
+  return h;
+}
+
+function _coSpokeNameById(spokeId) {
+  for (var i = 0; i < (_spokesList || []).length; i++) {
+    if (_spokesList[i].id === spokeId) return _spokesList[i].name;
+  }
+  return spokeId;
+}
+
+function coOpenProject(e, spokeId) {
+  if (e && (e.target.closest('.co-card-menu-trigger') || e.target.closest('.co-card-menu'))) return;
+  showProjectDetail(spokeId);
+}
+
+function coToggleMenu(e, trigger) {
+  e.stopPropagation();
+  var menu = trigger.nextElementSibling;
+  if (_coOpenMenu && _coOpenMenu !== menu) {
+    _coOpenMenu.classList.remove('open');
+    _coOpenMenu.previousElementSibling.classList.remove('open');
+  }
+  var isOpen = menu.classList.contains('open');
+  menu.classList.toggle('open');
+  trigger.classList.toggle('open');
+  _coOpenMenu = isOpen ? null : menu;
+}
+
+function coMenuAction(e, action, spokeId) {
+  e.stopPropagation();
+  var card = e.target.closest('.co-project-card');
+  if (action === 'favorite' || action === 'unfavorite') {
+    if (card) card.classList.toggle('starred');
+    toast(action === 'favorite' ? 'Project favorited' : 'Favorite removed');
+  } else if (action === 'edit') {
+    toast('Edit not yet implemented');
+  } else if (action === 'duplicate') {
+    toast('Duplicate not yet implemented');
+  } else if (action === 'archive') {
+    if (card) { card.style.opacity = '0.4'; card.dataset.status = 'archived'; }
+    toast('Project archived');
+  } else if (action === 'delete') {
+    if (confirm('Delete this project? This cannot be undone.')) {
+      if (card) { card.style.transition = 'all 0.3s ease'; card.style.opacity = '0'; card.style.transform = 'scale(0.95)'; setTimeout(function() { card.remove(); }, 300); }
+    }
+  }
+  // Close menu
+  if (_coOpenMenu) {
+    _coOpenMenu.classList.remove('open');
+    _coOpenMenu.previousElementSibling.classList.remove('open');
+    _coOpenMenu = null;
+  }
+}
+
+// Close menus on outside click
+document.addEventListener('click', function() {
+  if (_coOpenMenu) {
+    _coOpenMenu.classList.remove('open');
+    _coOpenMenu.previousElementSibling.classList.remove('open');
+    _coOpenMenu = null;
+  }
+});
+
+function coFilterProjects() {
+  var query = (document.getElementById('coSearchInput') || {}).value || '';
+  query = query.toLowerCase();
+  var cards = document.querySelectorAll('.co-project-card');
+  for (var i = 0; i < cards.length; i++) {
+    var name = (cards[i].dataset.name || '').toLowerCase();
+    cards[i].style.display = name.indexOf(query) !== -1 ? '' : 'none';
+  }
+}
+
+function coSetFilter(el, filter) {
+  _coProjectFilter = filter;
+  var pills = document.querySelectorAll('.co-filter-pill');
+  for (var i = 0; i < pills.length; i++) pills[i].classList.remove('active');
+  el.classList.add('active');
+  var cards = document.querySelectorAll('.co-project-card');
+  for (var i = 0; i < cards.length; i++) {
+    if (filter === 'all') { cards[i].style.display = ''; continue; }
+    if (filter === 'archived') { cards[i].style.display = cards[i].dataset.status === 'archived' ? '' : 'none'; }
+    else { cards[i].style.display = cards[i].dataset.status !== 'archived' ? '' : 'none'; }
+  }
+}
+
+function coSortProjects(by) {
+  _coProjectSort = by;
+  var grid = document.getElementById('coProjectsGrid');
+  if (!grid) return;
+  var cards = Array.prototype.slice.call(grid.querySelectorAll('.co-project-card'));
+  var newCard = grid.querySelector('.co-new-project-card');
+  cards.sort(function(a, b) {
+    if (by === 'name') return (a.dataset.name || '').localeCompare(b.dataset.name || '');
+    if (by === 'readiness') return parseInt(b.dataset.readiness || 0) - parseInt(a.dataset.readiness || 0);
+    if (by === 'status') {
+      var order = { blocked: 0, active: 1, review: 2, complete: 3 };
+      return (order[a.dataset.status] || 9) - (order[b.dataset.status] || 9);
+    }
+    return 0;
+  });
+  for (var i = 0; i < cards.length; i++) grid.appendChild(cards[i]);
+  if (newCard) grid.appendChild(newCard);
+}
+
+function coOpenNewProjectModal() {
+  var modal = document.getElementById('coNewProjectModal');
+  if (modal) modal.classList.add('open');
+  // Load template options
+  api('GET', '/api/templates').then(function(data) {
+    var templates = data.templates || [];
+    var optEl = document.getElementById('coTemplateOptions');
+    if (!optEl) return;
+    var icons = { tax_preparation: '\\uD83D\\uDCCA', corporate_formation: '\\uD83C\\uDFE2', personal_injury: '\\u2696\\uFE0F', general: '\\uD83D\\uDCC1', estate_planning: '\\uD83C\\uDFE0', financial_review: '\\uD83D\\uDCB0' };
+    var descs = { tax_preparation: 'Income, expenses, payroll', corporate_formation: 'Entity setup, registration', personal_injury: 'Medical, liability, demand', general: 'Start blank, add as needed', estate_planning: 'Trusts, wills, powers', financial_review: 'Statements, analysis' };
+    var h = '';
+    for (var i = 0; i < Math.min(templates.length, 4); i++) {
+      var t = templates[i];
+      var tid = t.id || t.template_id || '';
+      var tname = t.label || t.name || tid;
+      var icon = icons[tid] || '\\uD83D\\uDCC1';
+      var desc = descs[tid] || t.description || '';
+      h += '<div class="co-template-opt" data-templateid="' + esc(tid) + '" onclick="coSelectTemplate(this)">';
+      h += '<div class="co-template-opt-icon">' + icon + '</div>';
+      h += '<div class="co-template-opt-name">' + esc(tname) + '</div>';
+      h += '<div class="co-template-opt-desc">' + esc(desc) + '</div>';
+      h += '</div>';
+    }
+    optEl.innerHTML = h;
+  }).catch(function() {});
+}
+
+function coCloseNewProjectModal() {
+  var modal = document.getElementById('coNewProjectModal');
+  if (modal) modal.classList.remove('open');
+}
+
+function coSelectTemplate(el) {
+  var opts = document.querySelectorAll('.co-template-opt');
+  for (var i = 0; i < opts.length; i++) opts[i].classList.remove('selected');
+  el.classList.add('selected');
+}
+
+function coCreateProject() {
+  var name = (document.getElementById('coNewProjectName') || {}).value || '';
+  if (!name.trim()) { toast('Please enter a project name'); return; }
+  var selTemp = document.querySelector('.co-template-opt.selected');
+  var templateId = selTemp ? selTemp.getAttribute('data-templateid') : 'general';
+  var notes = (document.getElementById('coNewProjectNotes') || {}).value || '';
+
+  // Create a new spoke
+  api('POST', '/api/spokes', { name: name.trim(), template_id: templateId, notes: notes }).then(function(data) {
+    toast('Project created: ' + name.trim());
+    coCloseNewProjectModal();
+    // Reload spoke list and refresh overview
+    api('GET', '/api/spokes').then(function(sData) {
+      _spokesList = sData.spokes || [];
+      renderSidebar();
+      if (data && data.spoke_id) {
+        showProjectDetail(data.spoke_id);
+      } else {
+        showClientWorkspace(_selectedSpoke);
+      }
+    });
+  }).catch(function(err) {
+    toast('Error creating project: ' + (err.message || err));
+  });
+}
+
+// Click outside modal to close
+document.addEventListener('click', function(e) {
+  var modal = document.getElementById('coNewProjectModal');
+  if (modal && modal.classList.contains('open') && e.target === modal) {
+    coCloseNewProjectModal();
+  }
+});
+
+// ===== Build 32: Project Detail Data Loading =====
 
 function loadMatterViewData() {
   if (!_selectedSpoke) return;
