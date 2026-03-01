@@ -18499,7 +18499,7 @@ function showShareModal() {
     overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
     var modal = document.createElement('div');
     modal.style.cssText = 'background:#fff;border-radius:16px;padding:0;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.15);';
-    modal.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid #E5E7EB;"><span style="font-size:16px;font-weight:600;color:#1A1A1A;">Share & Intake Links</span><button onclick="document.getElementById(\'shareModal\').remove()" style="border:none;background:none;font-size:20px;cursor:pointer;color:#6B7280;padding:4px;">&times;</button></div>' + '<div style="padding:4px;">' + _buildShareHtml() + '</div>';
+    modal.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid #E5E7EB;"><span style="font-size:16px;font-weight:600;color:#1A1A1A;">Share & Intake Links</span><button onclick="document.getElementById(\\'shareModal\\').remove()" style="border:none;background:none;font-size:20px;cursor:pointer;color:#6B7280;padding:4px;">&times;</button></div>' + '<div style="padding:4px;">' + _buildShareHtml() + '</div>';
     overlay.appendChild(modal);
     document.body.appendChild(overlay);
   });
