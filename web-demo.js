@@ -10231,196 +10231,427 @@ function renderSmartFormPage(spoke, template, sections, savedState, shareToken) 
   const savedJSON = JSON.stringify(savedState).replace(/</g, '\\u003c');
   const totalFields = sections.reduce((s, sec) => s + sec.fields.length, 0);
   const requiredFields = sections.reduce((s, sec) => s + sec.fields.filter(f => f.required).length, 0);
+  const clientName = (spoke.name || '').split(/[—–\-,]/)[0].trim();
+  const firmName = spoke.firm_name || spoke.provider_name || 'Your Provider';
+  const templateName = template.display_name || template.label || '';
+  const chatUrl = '/chat/' + shareToken;
 
   return `<!DOCTYPE html><html lang="en"><head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>${escHtml(spoke.name)} — Intake Form | Context Architecture</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%236366f1'/><text x='16' y='22' font-size='16' font-weight='bold' fill='white' text-anchor='middle' font-family='system-ui'>CA</text></svg>">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>${escHtml(clientName)} — Secure Intake</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%232563EB'/><text x='16' y='22' font-size='16' font-weight='bold' fill='white' text-anchor='middle' font-family='system-ui'>CA</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
 <style>
-* { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#f8f9fa; color:#1a1a2e; min-height:100vh; }
-.form-header { background:linear-gradient(135deg,#2563EB,#3B82F6); padding:36px 24px 28px; text-align:center; color:#fff; }
-.form-logo { width:40px; height:40px; border-radius:10px; background:rgba(255,255,255,0.2); display:inline-flex; align-items:center; justify-content:center; font-size:1rem; font-weight:800; margin-bottom:12px; border:2px solid rgba(255,255,255,0.3); }
-.form-title { font-size:1.4rem; font-weight:700; margin-bottom:6px; }
-.form-sub { font-size:0.85rem; opacity:0.85; }
-.progress-bar { width:100%; height:6px; background:rgba(255,255,255,0.2); border-radius:3px; margin-top:16px; overflow:hidden; }
-.progress-fill { height:100%; background:#fff; border-radius:3px; transition:width 0.3s ease; }
-.progress-text { font-size:0.78rem; margin-top:6px; opacity:0.8; }
-.form-body { max-width:600px; margin:0 auto; padding:20px 16px 100px; }
-.section { background:#fff; border-radius:14px; padding:24px 20px; margin-bottom:16px; box-shadow:0 1px 4px rgba(0,0,0,0.05); display:none; }
-.section.active { display:block; }
-.section-title { font-size:1.1rem; font-weight:700; margin-bottom:4px; color:#1a1a2e; }
-.section-count { font-size:0.8rem; color:#6b7280; margin-bottom:20px; }
-.field-group { margin-bottom:18px; }
-.field-label { display:block; font-size:0.85rem; font-weight:600; color:#374151; margin-bottom:6px; }
-.field-required { color:#dc2626; margin-left:2px; }
-.field-input { width:100%; padding:11px 14px; border:1.5px solid #d1d5db; border-radius:10px; font-size:0.95rem; outline:none; transition:border-color 0.2s; font-family:inherit; background:#fff; }
-.field-input:focus { border-color:#2563EB; box-shadow:0 0 0 3px rgba(99,102,241,0.1); }
-.field-input.filled { border-color:#059669; background:#f0fdf4; }
-select.field-input { -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; }
-.field-toggle { display:flex; align-items:center; gap:10px; }
-.toggle-switch { width:44px; height:24px; background:#d1d5db; border-radius:12px; position:relative; cursor:pointer; transition:background 0.2s; }
-.toggle-switch.on { background:#2563EB; }
-.toggle-switch::after { content:''; position:absolute; width:20px; height:20px; background:#fff; border-radius:50%; top:2px; left:2px; transition:transform 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.2); }
-.toggle-switch.on::after { transform:translateX(20px); }
-.ssn-container { position:relative; }
-.ssn-toggle { position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:#2563EB; font-size:0.8rem; cursor:pointer; font-weight:600; }
-.address-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-.address-grid .full-width { grid-column:1/-1; }
-.upload-zone { border:2px dashed #d1d5db; border-radius:10px; padding:20px; text-align:center; cursor:pointer; transition:border-color 0.2s,background 0.2s; margin-top:8px; }
-.upload-zone:hover { border-color:#2563EB; background:rgba(99,102,241,0.03); }
-.upload-zone-label { font-size:0.85rem; color:#6b7280; margin-top:6px; }
-.nav-buttons { position:fixed; bottom:0; left:0; right:0; background:#fff; padding:14px 16px; border-top:1px solid #e5e7eb; display:flex; gap:10px; max-width:600px; margin:0 auto; z-index:10; }
-.nav-btn { flex:1; padding:12px; border:none; border-radius:10px; font-size:0.95rem; font-weight:600; cursor:pointer; transition:opacity 0.2s; }
-.nav-prev { background:#f3f4f6; color:#374151; }
-.nav-next { background:linear-gradient(135deg,#2563EB,#3B82F6); color:#fff; }
-.nav-next:disabled { opacity:0.5; cursor:not-allowed; }
-.nav-submit { background:linear-gradient(135deg,#059669,#10b981); color:#fff; }
-.submitted-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; z-index:100; }
-.submitted-card { background:#fff; border-radius:16px; padding:40px 32px; text-align:center; max-width:400px; width:90%; }
-.submitted-icon { width:64px; height:64px; background:#ecfdf5; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; margin-bottom:16px; }
-@media(max-width:500px) { .address-grid { grid-template-columns:1fr; } .form-header { padding:28px 16px 20px; } }
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html { height:100%; }
+body { font-family:'DM Sans',sans-serif; background:#FFFFFF; color:#1A1A1A; min-height:100%; -webkit-font-smoothing:antialiased; }
+
+/* ── Header ── */
+.intake-header { position:sticky; top:0; z-index:20; background:#fff; padding:16px 20px 12px; border-bottom:1px solid #F3F4F6; }
+.intake-header-firm { font-size:14px; font-weight:600; color:#1A1A1A; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+.intake-header-firm svg { flex-shrink:0; }
+.intake-progress { display:flex; gap:3px; margin-bottom:6px; }
+.intake-progress-seg { flex:1; height:4px; border-radius:2px; background:#E5E7EB; transition:background 0.3s; }
+.intake-progress-seg.done { background:#059669; }
+.intake-progress-seg.current { background:#2563EB; }
+.intake-progress-text { font-size:12px; color:#6B7280; font-weight:500; }
+
+/* ── Container ── */
+.intake-container { max-width:480px; margin:0 auto; padding:0 20px; min-height:calc(100vh - 80px); display:flex; flex-direction:column; }
+
+/* ── Welcome / Return State ── */
+.intake-welcome { padding:40px 0 32px; flex:1; }
+.intake-welcome h1 { font-family:'Instrument Serif',serif; font-size:32px; font-weight:400; color:#1A1A1A; margin-bottom:8px; line-height:1.2; }
+.intake-welcome p { font-size:15px; color:#6B7280; line-height:1.6; margin-bottom:24px; }
+.intake-channel-card { display:flex; align-items:center; gap:16px; padding:20px; border:1px solid #E5E7EB; border-radius:16px; margin-bottom:12px; cursor:pointer; transition:all 0.2s; min-height:72px; background:#fff; }
+.intake-channel-card:hover, .intake-channel-card:active { border-color:#2563EB; background:#FAFBFF; transform:translateY(-1px); box-shadow:0 4px 12px rgba(37,99,235,0.08); }
+.intake-channel-icon { width:48px; height:48px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:24px; flex-shrink:0; }
+.intake-channel-label { font-size:15px; font-weight:600; color:#1A1A1A; }
+.intake-channel-desc { font-size:13px; color:#6B7280; margin-top:2px; }
+.intake-security { display:flex; align-items:flex-start; gap:8px; font-size:13px; color:#6B7280; margin-top:32px; line-height:1.5; padding:16px; background:#F9FAFB; border-radius:12px; }
+.intake-security svg { flex-shrink:0; margin-top:1px; }
+
+/* ── Return State Checklist ── */
+.intake-checklist { list-style:none; margin:20px 0; }
+.intake-checklist li { display:flex; align-items:center; gap:10px; padding:10px 0; font-size:14px; border-bottom:1px solid #F3F4F6; }
+.intake-checklist li:last-child { border-bottom:none; }
+.intake-check-done { color:#059669; font-size:18px; }
+.intake-check-pending { width:18px; height:18px; border:2px solid #D1D5DB; border-radius:50%; flex-shrink:0; }
+.intake-check-label { color:#1A1A1A; }
+.intake-check-label.pending { color:#6B7280; }
+
+/* ── Form Step ── */
+.intake-step { padding:32px 0; flex:1; display:none; flex-direction:column; }
+.intake-step.active { display:flex; }
+.intake-step-title { font-family:'Instrument Serif',serif; font-size:24px; font-weight:400; color:#1A1A1A; margin-bottom:8px; }
+.intake-step-desc { font-size:14px; color:#6B7280; line-height:1.5; margin-bottom:24px; }
+.intake-step-tip { display:flex; align-items:flex-start; gap:8px; padding:12px 14px; background:#FFFBEB; border-radius:10px; font-size:13px; color:#92400E; line-height:1.5; margin-bottom:20px; }
+.intake-step-tip svg { flex-shrink:0; margin-top:1px; }
+
+/* ── Field Inputs ── */
+.intake-field { margin-bottom:20px; }
+.intake-field-label { display:block; font-size:13px; font-weight:600; color:#374151; margin-bottom:6px; }
+.intake-field-required { color:#DC2626; margin-left:2px; }
+.intake-input { width:100%; padding:14px 16px; border:1.5px solid #D1D5DB; border-radius:12px; font-size:16px; font-family:'DM Sans',sans-serif; outline:none; transition:border-color 0.2s,box-shadow 0.2s; background:#fff; -webkit-appearance:none; }
+.intake-input:focus { border-color:#2563EB; box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
+.intake-input.filled { border-color:#059669; background:#F0FDF4; }
+select.intake-input { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 14px center; }
+.intake-toggle { display:flex; align-items:center; gap:10px; }
+.intake-toggle-switch { width:48px; height:28px; background:#D1D5DB; border-radius:14px; position:relative; cursor:pointer; transition:background 0.2s; -webkit-tap-highlight-color:transparent; }
+.intake-toggle-switch.on { background:#2563EB; }
+.intake-toggle-switch::after { content:''; position:absolute; width:24px; height:24px; background:#fff; border-radius:50%; top:2px; left:2px; transition:transform 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.2); }
+.intake-toggle-switch.on::after { transform:translateX(20px); }
+.intake-ssn-wrap { position:relative; }
+.intake-ssn-toggle { position:absolute; right:14px; top:50%; transform:translateY(-50%); background:none; border:none; color:#2563EB; font-size:13px; cursor:pointer; font-weight:600; font-family:'DM Sans',sans-serif; padding:4px; }
+.intake-addr-grid { display:grid; grid-template-columns:1fr; gap:10px; }
+@media(min-width:400px) { .intake-addr-grid { grid-template-columns:1fr 1fr; } .intake-addr-full { grid-column:1/-1; } }
+
+/* ── Upload Zone ── */
+.intake-upload { border:2px dashed #D1D5DB; border-radius:14px; padding:24px 16px; text-align:center; cursor:pointer; transition:all 0.2s; margin-top:8px; }
+.intake-upload:hover, .intake-upload:active { border-color:#2563EB; background:rgba(37,99,235,0.02); }
+.intake-upload-label { font-size:14px; color:#6B7280; margin-top:8px; }
+.intake-upload-or { font-size:13px; color:#9CA3AF; margin:10px 0; }
+.intake-upload-alt { display:inline-flex; align-items:center; gap:6px; padding:10px 20px; border:1px solid #E5E7EB; border-radius:10px; font-size:14px; color:#1A1A1A; font-weight:500; cursor:pointer; background:#fff; margin-top:4px; }
+
+/* ── Nav Buttons ── */
+.intake-nav { position:fixed; bottom:0; left:0; right:0; background:#fff; padding:12px 20px calc(12px + env(safe-area-inset-bottom, 0px)); border-top:1px solid #E5E7EB; z-index:20; }
+.intake-nav-inner { max-width:480px; margin:0 auto; display:flex; gap:10px; align-items:center; }
+.intake-nav-back { padding:12px 20px; border:1px solid #E5E7EB; border-radius:12px; background:#fff; color:#374151; font-size:15px; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; min-height:48px; }
+.intake-nav-next { flex:1; padding:12px 20px; border:none; border-radius:12px; background:#2563EB; color:#fff; font-size:15px; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; min-height:48px; transition:opacity 0.2s; }
+.intake-nav-next:disabled { opacity:0.5; cursor:not-allowed; }
+.intake-nav-next.submit { background:#059669; }
+.intake-nav-continue { width:100%; padding:14px 20px; border:none; border-radius:12px; background:#2563EB; color:#fff; font-size:15px; font-weight:600; cursor:pointer; font-family:'DM Sans',sans-serif; min-height:48px; margin-top:24px; }
+
+/* ── Save Indicator ── */
+.intake-saved { text-align:center; font-size:12px; color:#059669; padding:8px 0 0; opacity:0; transition:opacity 0.3s; }
+.intake-saved.visible { opacity:1; }
+
+/* ── Confirmation ── */
+.intake-confirm { padding:48px 0; text-align:center; flex:1; }
+.intake-confirm-icon { width:72px; height:72px; background:#ECFDF5; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; margin-bottom:20px; }
+.intake-confirm h1 { font-family:'Instrument Serif',serif; font-size:28px; font-weight:400; margin-bottom:8px; }
+.intake-confirm p { font-size:14px; color:#6B7280; line-height:1.6; }
+.intake-receipt { text-align:left; background:#F9FAFB; border-radius:14px; padding:20px; margin:24px 0; }
+.intake-receipt-title { font-size:13px; font-weight:600; color:#1A1A1A; margin-bottom:12px; display:flex; align-items:center; gap:6px; }
+.intake-receipt li { font-size:13px; color:#374151; padding:4px 0; list-style:none; display:flex; align-items:center; gap:8px; }
+.intake-receipt li::before { content:'\\2713'; color:#059669; font-weight:700; font-size:12px; }
+.intake-next-steps { text-align:left; margin-top:24px; padding:20px; border:1px solid #E5E7EB; border-radius:14px; }
+.intake-next-steps h3 { font-size:14px; font-weight:600; color:#1A1A1A; margin-bottom:8px; }
+.intake-next-steps p { font-size:13px; color:#6B7280; line-height:1.6; }
 </style></head><body>
-<div class="form-header">
-  <div class="form-logo">CA</div>
-  <div class="form-title">${escHtml(spoke.name)}</div>
-  <div class="form-sub">${escHtml(template.display_name || '')} Intake Form</div>
-  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-  <div class="progress-text" id="progressText">0 of ${requiredFields} required items</div>
+
+<!-- Header -->
+<div class="intake-header" id="intakeHeader">
+  <div class="intake-header-firm">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18M3 9h18"/></svg>
+    ${escHtml(firmName)}
+  </div>
+  <div class="intake-progress" id="progressBar"></div>
+  <div class="intake-progress-text" id="progressText"></div>
 </div>
-<div class="form-body" id="formBody"></div>
-<div class="nav-buttons" id="navButtons"></div>
+
+<div class="intake-container" id="intakeContainer">
+  <!-- Content injected by JS -->
+</div>
+
+<div class="intake-nav" id="intakeNav" style="display:none;">
+  <div class="intake-nav-inner" id="navInner"></div>
+</div>
 
 <script>
 var SECTIONS = ${sectionsJSON};
 var SAVED = ${savedJSON};
 var TOKEN = '${shareToken}';
-var currentSection = 0;
-var formData = Object.assign({}, SAVED);
+var CHAT_URL = '${chatUrl}';
+var CLIENT_NAME = '${escHtml(clientName)}';
+var FIRM_NAME = '${escHtml(firmName)}';
+var TEMPLATE_NAME = '${escHtml(templateName)}';
+
+// Flatten all fields into steps (one field per screen for mobile)
+var ALL_STEPS = [];
+for (var si = 0; si < SECTIONS.length; si++) {
+  var sec = SECTIONS[si];
+  for (var fi = 0; fi < sec.fields.length; fi++) {
+    ALL_STEPS.push({
+      sectionTitle: sec.title,
+      sectionId: sec.section_id,
+      allowsUpload: sec.allows_upload && fi === sec.fields.length - 1,
+      field: sec.fields[fi]
+    });
+  }
+}
+
+var formData = {};
 var uploadedFiles = [];
+var currentStep = -1; // -1 = welcome/return state
+var _saveTimer = null;
+var _savedIndicator = null;
 
+function esc(s) { return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+// ── Init ──
 function init() {
-  renderSection(0);
-  restoreSavedState();
-  updateProgress();
+  // Merge server saved state + localStorage
+  var lsKey = 'intake_' + TOKEN;
+  try { var ls = JSON.parse(localStorage.getItem(lsKey) || '{}'); for (var k in ls) { if (!SAVED[k]) SAVED[k] = ls[k]; } } catch(e){}
+  for (var k in SAVED) formData[k] = SAVED[k];
+
+  // Check if returning visitor
+  var filled = countFilled();
+  if (filled.done > 0) {
+    showReturnState(filled);
+  } else {
+    showWelcome();
+  }
+  updateProgressBar(-1);
 }
 
-function restoreSavedState() {
-  for (var key in SAVED) {
-    formData[key] = SAVED[key];
-    var el = document.getElementById('field-' + key);
-    if (el) {
-      if (el.type === 'checkbox') el.checked = !!SAVED[key];
-      else el.value = SAVED[key];
-      if (SAVED[key]) el.classList.add('filled');
-    }
+function countFilled() {
+  var done = 0; var total = ALL_STEPS.length;
+  var items = [];
+  for (var i = 0; i < ALL_STEPS.length; i++) {
+    var f = ALL_STEPS[i].field;
+    var val = formData[f.field_id];
+    var isDone = !!(val && (typeof val !== 'object' || Object.values(val).some(function(v){return !!v;})));
+    items.push({ name: f.display_name, done: isDone, required: f.required, idx: i });
+    if (isDone) done++;
   }
+  return { done: done, total: total, items: items };
 }
 
-function renderSection(idx) {
-  currentSection = idx;
-  var body = document.getElementById('formBody');
-  var html = '';
-
-  for (var s = 0; s < SECTIONS.length; s++) {
-    var sec = SECTIONS[s];
-    html += '<div class="section' + (s === idx ? ' active' : '') + '" id="sec-' + s + '">';
-    html += '<div class="section-title">' + esc(sec.title) + '</div>';
-    html += '<div class="section-count">Section ' + (s + 1) + ' of ' + SECTIONS.length + ' &middot; ' + sec.fields.length + ' fields</div>';
-
-    for (var f = 0; f < sec.fields.length; f++) {
-      var field = sec.fields[f];
-      // Conditional visibility
-      if (field.conditional) {
-        var depVal = formData[field.conditional.depends_on];
-        if (field.conditional.type === 'show_if' && depVal != field.conditional.value) continue;
-        if (field.conditional.type === 'hide_if' && depVal == field.conditional.value) continue;
-      }
-      html += renderField(field);
-    }
-
-    if (sec.allows_upload) {
-      html += '<div class="upload-zone" onclick="triggerUpload(\\'' + esc(sec.section_id) + '\\')">';
-      html += '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
-      html += '<div class="upload-zone-label">' + esc(sec.title) + ' — drag file here or tap to upload</div>';
-      html += '</div>';
-      html += '<input type="file" id="upload-' + esc(sec.section_id) + '" style="display:none" multiple onchange="handleFormUpload(event)" />';
-    }
-    html += '</div>';
+// ── Progress Bar ──
+function updateProgressBar(step) {
+  var pb = document.getElementById('progressBar');
+  var pt = document.getElementById('progressText');
+  var filled = countFilled();
+  var segs = '';
+  for (var i = 0; i < ALL_STEPS.length; i++) {
+    var cls = 'intake-progress-seg';
+    if (filled.items[i] && filled.items[i].done) cls += ' done';
+    else if (i === step) cls += ' current';
+    segs += '<div class="' + cls + '"></div>';
   }
-  body.innerHTML = html;
+  pb.innerHTML = segs;
+  pt.textContent = filled.done + ' of ' + filled.total + ' complete';
+}
 
-  restoreSavedState();
+// ── Welcome State ──
+function showWelcome() {
+  currentStep = -1;
+  var nav = document.getElementById('intakeNav');
+  nav.style.display = 'none';
+  var c = document.getElementById('intakeContainer');
+  var timeEst = Math.max(5, Math.ceil(ALL_STEPS.length * 1.2));
+  var h = '<div class="intake-welcome">';
+  h += '<h1>Hi there \\u{1F44B}</h1>';
+  h += '<p>' + esc(FIRM_NAME) + ' needs some information for your case. This should take about ' + timeEst + ' minutes. Your progress saves automatically.</p>';
+
+  // Form channel
+  h += '<div class="intake-channel-card" onclick="startForm()">';
+  h += '<div class="intake-channel-icon" style="background:#EFF6FF;">\\u{1F4DD}</div>';
+  h += '<div><div class="intake-channel-label">Fill Out Form</div>';
+  h += '<div class="intake-channel-desc">Answer questions step by step</div></div>';
+  h += '</div>';
+
+  // Chat channel
+  h += '<div class="intake-channel-card" onclick="window.location.href=CHAT_URL">';
+  h += '<div class="intake-channel-icon" style="background:#F0FDF4;">\\u{1F4AC}</div>';
+  h += '<div><div class="intake-channel-label">Talk to AI Assistant</div>';
+  h += '<div class="intake-channel-desc">Have a conversation instead</div></div>';
+  h += '</div>';
+
+  // Security note
+  h += '<div class="intake-security">';
+  h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>';
+  h += '<span>Your information is encrypted and shared only with your provider.</span>';
+  h += '</div>';
+
+  h += '</div>';
+  c.innerHTML = h;
+}
+
+// ── Return State ──
+function showReturnState(filled) {
+  currentStep = -1;
+  var nav = document.getElementById('intakeNav');
+  nav.style.display = 'none';
+  var c = document.getElementById('intakeContainer');
+  var firstName = CLIENT_NAME.split(/\\s/)[0] || '';
+  var greeting = firstName ? ('Welcome back, ' + esc(firstName) + ' \\u{1F44B}') : 'Welcome back \\u{1F44B}';
+
+  var h = '<div class="intake-welcome">';
+  h += '<h1>' + greeting + '</h1>';
+  h += '<p>You\\u2019ve completed ' + filled.done + ' of ' + filled.total + ' items. Pick up where you left off.</p>';
+
+  // Checklist
+  h += '<ul class="intake-checklist">';
+  for (var i = 0; i < filled.items.length; i++) {
+    var item = filled.items[i];
+    if (item.done) {
+      h += '<li><span class="intake-check-done">\\u2705</span><span class="intake-check-label">' + esc(item.name) + '</span></li>';
+    } else {
+      h += '<li><span class="intake-check-pending"></span><span class="intake-check-label pending">' + esc(item.name) + '</span></li>';
+    }
+  }
+  h += '</ul>';
+
+  // Continue button — jump to first incomplete
+  var nextIdx = 0;
+  for (var j = 0; j < filled.items.length; j++) {
+    if (!filled.items[j].done) { nextIdx = filled.items[j].idx; break; }
+  }
+  h += '<button class="intake-nav-continue" onclick="goToStep(' + nextIdx + ')">Continue \\u2192</button>';
+  h += '</div>';
+  c.innerHTML = h;
+}
+
+// ── Start Form ──
+function startForm() {
+  goToStep(0);
+}
+
+// ── Render Step ──
+function goToStep(idx) {
+  if (idx < 0 || idx >= ALL_STEPS.length) return;
+  currentStep = idx;
+  updateProgressBar(idx);
+
+  var nav = document.getElementById('intakeNav');
+  nav.style.display = 'block';
+
+  var step = ALL_STEPS[idx];
+  var field = step.field;
+  var c = document.getElementById('intakeContainer');
+
+  var h = '<div class="intake-step active">';
+
+  // Step title — use friendly language
+  var friendlyName = field.display_name;
+  var isUpload = (field.field_type === 'file' || step.allowsUpload);
+  var isPhoto = /photo|id|license|passport|image/i.test(friendlyName);
+
+  h += '<div class="intake-step-title">' + esc(friendlyName) + '</div>';
+
+  // Contextual descriptions
+  if (isPhoto) {
+    h += '<div class="intake-step-desc">We need a clear photo of your document.</div>';
+    h += '<div class="intake-step-tip"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#92400E" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg><span>Tip: We may ask to use your camera. Tap "Allow" when prompted.</span></div>';
+  } else if (/ssn|social security/i.test(friendlyName)) {
+    h += '<div class="intake-step-desc">This is encrypted and only your provider can see it.</div>';
+  } else if (/ein|tax id/i.test(friendlyName)) {
+    h += '<div class="intake-step-desc">Your business tax identification number.</div>';
+  }
+
+  // Render the field
+  h += renderIntakeField(field);
+
+  // Upload zone (if section allows it and this is the last field in the section)
+  if (step.allowsUpload) {
+    h += '<div style="margin-top:24px;padding-top:20px;border-top:1px solid #F3F4F6;">';
+    h += '<div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px;">Have a document to upload?</div>';
+    h += '<div class="intake-upload" onclick="document.getElementById(\\'stepUpload\\').click()">';
+    if (isPhoto) {
+      h += '<div style="font-size:28px;">\\u{1F4F8}</div>';
+      h += '<div class="intake-upload-label">Take Photo</div>';
+      h += '<div class="intake-upload-or">&mdash; or &mdash;</div>';
+      h += '<div class="intake-upload-alt">\\u{1F4C1} Choose from Files</div>';
+    } else {
+      h += '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
+      h += '<div class="intake-upload-label">Tap to upload a file</div>';
+    }
+    h += '</div>';
+    h += '<input type="file" id="stepUpload" style="display:none" ' + (isPhoto ? 'accept="image/*" capture="environment"' : 'accept="*/*"') + ' onchange="handleStepUpload(event)" />';
+    h += '<div id="uploadStatus" style="display:none;margin-top:8px;font-size:13px;color:#059669;text-align:center;"></div>';
+    h += '</div>';
+  }
+
+  // Save indicator
+  h += '<div class="intake-saved" id="savedIndicator">\\u{1F4BE} Saved automatically</div>';
+
+  h += '</div>';
+  c.innerHTML = h;
+
+  // Restore value
+  restoreFieldValue(field);
+
+  // Render nav
   renderNav();
-  checkConditionals();
+  window.scrollTo(0, 0);
 }
 
-function renderField(field) {
+function renderIntakeField(field) {
   var val = formData[field.field_id] || '';
   var filledClass = val ? ' filled' : '';
-  var h = '<div class="field-group" id="group-' + esc(field.field_id) + '">';
-  h += '<label class="field-label">' + esc(field.display_name);
-  if (field.required) h += '<span class="field-required"> *</span>';
-  h += '</label>';
-
   var ft = field.field_type || 'text';
+  var h = '<div class="intake-field">';
+
   if (ft === 'boolean') {
     var isOn = !!formData[field.field_id];
-    h += '<div class="field-toggle">';
-    h += '<div class="toggle-switch' + (isOn ? ' on' : '') + '" id="field-' + esc(field.field_id) + '" onclick="toggleBool(\\'' + esc(field.field_id) + '\\')"></div>';
-    h += '<span>' + (isOn ? 'Yes' : 'No') + '</span>';
+    h += '<div class="intake-toggle">';
+    h += '<div class="intake-toggle-switch' + (isOn ? ' on' : '') + '" id="field-' + esc(field.field_id) + '" onclick="toggleBool(\\'' + esc(field.field_id) + '\\')"></div>';
+    h += '<span style="font-size:15px;">' + (isOn ? 'Yes' : 'No') + '</span>';
     h += '</div>';
   } else if (ft === 'ssn') {
-    h += '<div class="ssn-container">';
-    h += '<input class="field-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="password" maxlength="11" placeholder="XXX-XX-XXXX" value="' + esc(val) + '" oninput="maskSSN(this);fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
-    h += '<button class="ssn-toggle" onclick="toggleSSN(\\'' + esc(field.field_id) + '\\')">Show</button>';
+    h += '<div class="intake-ssn-wrap">';
+    h += '<input class="intake-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="password" inputmode="numeric" maxlength="11" placeholder="XXX-XX-XXXX" value="' + esc(val) + '" oninput="maskSSN(this);fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
+    h += '<button class="intake-ssn-toggle" type="button" onclick="toggleSSN(\\'' + esc(field.field_id) + '\\')">Show</button>';
     h += '</div>';
   } else if (ft === 'ein') {
-    h += '<input class="field-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="text" maxlength="10" placeholder="XX-XXXXXXX" value="' + esc(val) + '" oninput="maskEIN(this);fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
+    h += '<input class="intake-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="text" inputmode="numeric" maxlength="10" placeholder="XX-XXXXXXX" value="' + esc(val) + '" oninput="maskEIN(this);fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
   } else if (ft === 'date') {
-    h += '<input class="field-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="date" value="' + esc(val) + '" onchange="fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
+    h += '<input class="intake-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="date" value="' + esc(val) + '" onchange="fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
   } else if (ft === 'email') {
-    h += '<input class="field-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="email" placeholder="email@example.com" value="' + esc(val) + '" oninput="fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
+    h += '<input class="intake-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="email" inputmode="email" placeholder="email@example.com" value="' + esc(val) + '" oninput="fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
   } else if (ft === 'phone') {
-    h += '<input class="field-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="tel" placeholder="(555) 123-4567" value="' + esc(val) + '" oninput="maskPhone(this);fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
-  } else if (ft === 'currency' || ft === 'number') {
-    h += '<input class="field-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="' + (ft === 'currency' ? 'text' : 'number') + '" placeholder="' + (ft === 'currency' ? '$0.00' : '0') + '" value="' + esc(val) + '" oninput="fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
+    h += '<input class="intake-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="tel" inputmode="tel" placeholder="(555) 123-4567" value="' + esc(val) + '" oninput="maskPhone(this);fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
+  } else if (ft === 'currency') {
+    h += '<input class="intake-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="text" inputmode="decimal" placeholder="$0.00" value="' + esc(val) + '" oninput="fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
+  } else if (ft === 'number') {
+    h += '<input class="intake-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="number" inputmode="numeric" placeholder="0" value="' + esc(val) + '" oninput="fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
   } else if (ft === 'address') {
     var addr = (typeof val === 'object' && val) ? val : {};
-    h += '<div class="address-grid">';
-    h += '<input class="field-input full-width" placeholder="Street Address" value="' + esc(addr.street || '') + '" oninput="addrChanged(\\'' + esc(field.field_id) + '\\',\\'street\\',this.value)" />';
-    h += '<input class="field-input" placeholder="City" value="' + esc(addr.city || '') + '" oninput="addrChanged(\\'' + esc(field.field_id) + '\\',\\'city\\',this.value)" />';
-    h += '<input class="field-input" placeholder="State" value="' + esc(addr.state || '') + '" oninput="addrChanged(\\'' + esc(field.field_id) + '\\',\\'state\\',this.value)" />';
-    h += '<input class="field-input" placeholder="ZIP Code" value="' + esc(addr.zip || '') + '" oninput="addrChanged(\\'' + esc(field.field_id) + '\\',\\'zip\\',this.value)" />';
+    h += '<div class="intake-addr-grid">';
+    h += '<input class="intake-input intake-addr-full" placeholder="Street Address" value="' + esc(addr.street || '') + '" oninput="addrChanged(\\'' + esc(field.field_id) + '\\',\\'street\\',this.value)" />';
+    h += '<input class="intake-input" placeholder="City" value="' + esc(addr.city || '') + '" oninput="addrChanged(\\'' + esc(field.field_id) + '\\',\\'city\\',this.value)" />';
+    h += '<input class="intake-input" placeholder="State" value="' + esc(addr.state || '') + '" oninput="addrChanged(\\'' + esc(field.field_id) + '\\',\\'state\\',this.value)" />';
+    h += '<input class="intake-input intake-addr-full" placeholder="ZIP Code" inputmode="numeric" value="' + esc(addr.zip || '') + '" oninput="addrChanged(\\'' + esc(field.field_id) + '\\',\\'zip\\',this.value)" />';
     h += '</div>';
   } else {
-    h += '<input class="field-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="text" value="' + esc(val) + '" oninput="fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
+    h += '<input class="intake-input' + filledClass + '" id="field-' + esc(field.field_id) + '" type="text" value="' + esc(val) + '" oninput="fieldChanged(\\'' + esc(field.field_id) + '\\',this.value)" />';
   }
+
   h += '</div>';
   return h;
 }
 
-function esc(s) { return (s||'').toString().replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function restoreFieldValue(field) {
+  var val = formData[field.field_id];
+  if (!val) return;
+  var el = document.getElementById('field-' + field.field_id);
+  if (el && el.tagName !== 'DIV') {
+    el.value = (typeof val === 'object') ? '' : val;
+    if (val) el.classList.add('filled');
+  }
+}
 
+// ── Field Change Handlers ──
 function fieldChanged(id, val) {
   formData[id] = val;
   var el = document.getElementById('field-' + id);
   if (el) { if (val) el.classList.add('filled'); else el.classList.remove('filled'); }
-  updateProgress();
-  checkConditionals();
   autoSave();
 }
 
 function addrChanged(id, key, val) {
   if (!formData[id] || typeof formData[id] !== 'object') formData[id] = {};
   formData[id][key] = val;
-  updateProgress();
   autoSave();
 }
 
 function toggleBool(id) {
   formData[id] = !formData[id];
-  renderSection(currentSection);
+  goToStep(currentStep);
 }
 
 function maskSSN(el) {
@@ -10447,99 +10678,78 @@ function toggleSSN(id) {
   var el = document.getElementById('field-' + id);
   if (el) {
     el.type = (el.type === 'password') ? 'text' : 'password';
-    el.nextElementSibling.textContent = (el.type === 'password') ? 'Show' : 'Hide';
+    var btn = el.parentElement.querySelector('.intake-ssn-toggle');
+    if (btn) btn.textContent = (el.type === 'password') ? 'Show' : 'Hide';
   }
 }
 
-function checkConditionals() {
-  for (var s = 0; s < SECTIONS.length; s++) {
-    for (var f = 0; f < SECTIONS[s].fields.length; f++) {
-      var field = SECTIONS[s].fields[f];
-      if (!field.conditional) continue;
-      var group = document.getElementById('group-' + field.field_id);
-      if (!group) continue;
-      var depVal = formData[field.conditional.depends_on];
-      var show = true;
-      if (field.conditional.type === 'show_if') show = (depVal == field.conditional.value);
-      if (field.conditional.type === 'hide_if') show = (depVal != field.conditional.value);
-      group.style.display = show ? 'block' : 'none';
-    }
-  }
-}
-
-function updateProgress() {
-  var filled = 0, total = 0;
-  for (var s = 0; s < SECTIONS.length; s++) {
-    for (var f = 0; f < SECTIONS[s].fields.length; f++) {
-      var field = SECTIONS[s].fields[f];
-      if (!field.required) continue;
-      total++;
-      var val = formData[field.field_id];
-      if (val && (typeof val !== 'object' || Object.values(val).some(function(v){return !!v;}))) filled++;
-    }
-  }
-  var pct = total > 0 ? Math.round(filled / total * 100) : 0;
-  var bar = document.getElementById('progressFill');
-  var text = document.getElementById('progressText');
-  if (bar) bar.style.width = pct + '%';
-  if (text) text.textContent = filled + ' of ' + total + ' required items completed';
-}
-
-function renderNav() {
-  var nav = document.getElementById('navButtons');
-  var h = '';
-  if (currentSection > 0) h += '<button class="nav-btn nav-prev" onclick="goSection(' + (currentSection - 1) + ')">Back</button>';
-  if (currentSection < SECTIONS.length - 1) {
-    h += '<button class="nav-btn nav-next" onclick="goSection(' + (currentSection + 1) + ')">Next</button>';
-  } else {
-    h += '<button class="nav-btn nav-submit" onclick="submitForm()">Submit</button>';
-  }
-  nav.innerHTML = h;
-}
-
-function goSection(idx) {
-  if (idx < 0 || idx >= SECTIONS.length) return;
-  renderSection(idx);
-  window.scrollTo(0, 0);
-}
-
-var _saveTimer = null;
+// ── Auto-Save ──
 function autoSave() {
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(function() {
+    // Save to localStorage
+    try { localStorage.setItem('intake_' + TOKEN, JSON.stringify(formData)); } catch(e){}
+    // Save to server
     fetch('/shared/' + TOKEN + '/form-save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fields: formData })
     }).catch(function(){});
-  }, 2000);
+    // Show saved indicator
+    showSaved();
+  }, 500);
 }
 
-function triggerUpload(sectionId) {
-  document.getElementById('upload-' + sectionId).click();
+function showSaved() {
+  var el = document.getElementById('savedIndicator');
+  if (el) {
+    el.classList.add('visible');
+    clearTimeout(_savedIndicator);
+    _savedIndicator = setTimeout(function() { el.classList.remove('visible'); }, 2000);
+  }
 }
 
-function handleFormUpload(event) {
+// ── Upload Handler ──
+function handleStepUpload(event) {
   var files = event.target.files;
+  if (!files || files.length === 0) return;
   for (var i = 0; i < files.length; i++) uploadedFiles.push(files[i]);
-  event.target.parentElement.querySelector('.upload-zone-label').textContent = files.length + ' file(s) selected';
+  var status = document.getElementById('uploadStatus');
+  if (status) {
+    status.style.display = 'block';
+    status.textContent = '\\u2705 ' + files[0].name + ' selected';
+  }
 }
 
+// ── Nav ──
+function renderNav() {
+  var nav = document.getElementById('navInner');
+  var h = '';
+  if (currentStep > 0) {
+    h += '<button class="intake-nav-back" onclick="goToStep(' + (currentStep - 1) + ')">\\u2190 Back</button>';
+  }
+  if (currentStep < ALL_STEPS.length - 1) {
+    h += '<button class="intake-nav-next" onclick="goToStep(' + (currentStep + 1) + ')">Next \\u2192</button>';
+  } else {
+    h += '<button class="intake-nav-next submit" onclick="submitForm()">Submit \\u2713</button>';
+  }
+  nav.innerHTML = h;
+}
+
+// ── Submit ──
 function submitForm() {
   // Check required fields
   var missing = [];
-  for (var s = 0; s < SECTIONS.length; s++) {
-    for (var f = 0; f < SECTIONS[s].fields.length; f++) {
-      var field = SECTIONS[s].fields[f];
-      if (!field.required) continue;
-      var val = formData[field.field_id];
-      if (!val || (typeof val === 'object' && !Object.values(val).some(function(v){return !!v;}))) {
-        missing.push(field.display_name);
-      }
+  for (var i = 0; i < ALL_STEPS.length; i++) {
+    var f = ALL_STEPS[i].field;
+    if (!f.required) continue;
+    var val = formData[f.field_id];
+    if (!val || (typeof val === 'object' && !Object.values(val).some(function(v){return !!v;}))) {
+      missing.push(f.display_name);
     }
   }
   if (missing.length > 0) {
-    alert('Please fill in the following required fields:\\n\\n' + missing.join('\\n'));
+    alert('Please complete the following items:\\n\\n' + missing.join('\\n'));
     return;
   }
 
@@ -10547,37 +10757,79 @@ function submitForm() {
   fd.append('fields', JSON.stringify(formData));
   for (var i = 0; i < uploadedFiles.length; i++) fd.append('files', uploadedFiles[i]);
 
-  var btn = document.querySelector('.nav-submit');
+  // Disable submit
+  var btn = document.querySelector('.intake-nav-next.submit');
   if (btn) { btn.textContent = 'Submitting...'; btn.disabled = true; }
 
   fetch('/shared/' + TOKEN + '/form-submit', { method: 'POST', body: fd })
     .then(function(r) { return r.json(); })
     .then(function(data) {
       if (data.ok) {
-        document.getElementById('formBody').innerHTML = '';
-        document.getElementById('navButtons').innerHTML = '';
-        var overlay = document.createElement('div');
-        overlay.className = 'submitted-overlay';
-        overlay.innerHTML = '<div class="submitted-card">'
-          + '<div class="submitted-icon"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>'
-          + '<div style="font-size:1.3rem;font-weight:700;margin-bottom:8px;">Submitted!</div>'
-          + '<div style="color:#6b7280;font-size:0.95rem;">' + (data.message || 'Your information has been received.') + '</div>'
-          + '</div>';
-        document.body.appendChild(overlay);
+        showConfirmation();
       } else {
-        alert(data.error || 'Submission failed');
-        if (btn) { btn.textContent = 'Submit'; btn.disabled = false; }
+        alert(data.error || 'Submission failed. Please try again.');
+        if (btn) { btn.textContent = 'Submit \\u2713'; btn.disabled = false; }
       }
     }).catch(function(err) {
-      alert('Error: ' + err.message);
-      if (btn) { btn.textContent = 'Submit'; btn.disabled = false; }
+      alert('Connection error. Your progress is saved — please try again.');
+      if (btn) { btn.textContent = 'Submit \\u2713'; btn.disabled = false; }
     });
+}
+
+// ── Confirmation Screen ──
+function showConfirmation() {
+  document.getElementById('intakeNav').style.display = 'none';
+  var c = document.getElementById('intakeContainer');
+  var filled = countFilled();
+  var firstName = CLIENT_NAME.split(/\\s/)[0] || '';
+  var thankYou = firstName ? ('All done! Thank you, ' + esc(firstName) + '.') : 'All done! Thank you.';
+  var pct = filled.total > 0 ? Math.round(filled.done / filled.total * 100) : 100;
+
+  // Update progress bar to full
+  var pb = document.getElementById('progressBar');
+  var segs = '';
+  for (var i = 0; i < ALL_STEPS.length; i++) segs += '<div class="intake-progress-seg done"></div>';
+  pb.innerHTML = segs;
+  document.getElementById('progressText').textContent = filled.total + ' of ' + filled.total + ' complete';
+
+  var h = '<div class="intake-confirm">';
+  h += '<div class="intake-confirm-icon"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>';
+  h += '<h1>' + thankYou + '</h1>';
+  h += '<p>We\\u2019ve received everything ' + esc(FIRM_NAME) + ' needs right now.</p>';
+
+  // Receipt of integrity
+  h += '<div class="intake-receipt">';
+  h += '<div class="intake-receipt-title">\\u{1F4CB} What you provided:</div>';
+  h += '<ul>';
+  for (var i = 0; i < filled.items.length; i++) {
+    if (filled.items[i].done) {
+      h += '<li>' + esc(filled.items[i].name) + '</li>';
+    }
+  }
+  h += '</ul>';
+  if (pct < 100) {
+    h += '<div style="margin-top:12px;font-size:13px;color:#059669;font-weight:600;">Your filing is now ' + pct + '% complete.</div>';
+  }
+  h += '</div>';
+
+  // Next steps
+  h += '<div class="intake-next-steps">';
+  h += '<h3>What happens next</h3>';
+  h += '<p>Your provider will review your information and reach out if anything else is needed. You don\\u2019t need to do anything else right now.</p>';
+  h += '</div>';
+
+  h += '</div>';
+  c.innerHTML = h;
+
+  // Clear localStorage
+  try { localStorage.removeItem('intake_' + TOKEN); } catch(e){}
 }
 
 init();
 </script>
 </body></html>`;
 }
+
 
 // ---------------------------------------------------------------------------
 // Build 17: Event & Timeline Tracking
