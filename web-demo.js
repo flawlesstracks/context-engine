@@ -13376,6 +13376,100 @@ const WIKI_HTML = `<!DOCTYPE html>
     border-left-color: #2563EB;
   }
 
+  /* --- Build 32: Matter View Redesign --- */
+  .matter-header { padding: 20px 32px 0; background: #fff; border-bottom: 1px solid #E5E7EB; }
+  .matter-header-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
+  .matter-back { font-size: 13px; color: #6B7280; cursor: pointer; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+  .matter-back:hover { color: #2563EB; }
+  .matter-name { font-family: var(--font-display, 'Instrument Serif', serif); font-size: 28px; font-weight: 400; line-height: 1.2; color: #1A1A1A; }
+  .matter-template { font-size: 13px; color: #6B7280; margin-top: 2px; }
+  .matter-actions { display: flex; gap: 8px; }
+  .matter-action-btn { padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: var(--font-sans, 'DM Sans', sans-serif); display: flex; align-items: center; gap: 5px; transition: all 0.15s; }
+  .matter-action-btn.outline { background: #fff; border: 1px solid #E5E7EB; color: #1A1A1A; }
+  .matter-action-btn.outline:hover { border-color: #2563EB; color: #2563EB; }
+  .matter-action-btn.primary { background: #059669; border: 1px solid #059669; color: #fff; }
+  .matter-action-btn.primary:hover { background: #047857; }
+  .metrics-bar { display: flex; gap: 0; margin-top: 4px; }
+  .metric { flex: 1; padding: 12px 0; }
+  .metric + .metric { padding-left: 24px; }
+  .metric-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #6B7280; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; }
+  .metric-value { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 14px; font-weight: 500; }
+  .metric-bar { height: 3px; background: #F3F4F6; border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .metric-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+  .metric-bar-fill.danger { background: #DC2626; }
+  .metric-bar-fill.warning { background: #D97706; }
+  .metric-bar-fill.success { background: #059669; }
+  .matter-body { flex: 1; display: flex; overflow: hidden; }
+  .mv-doc-panel { width: 240px; min-width: 240px; background: #fff; border-right: 1px solid #E5E7EB; display: flex; flex-direction: column; overflow: hidden; }
+  .mv-doc-panel-header { padding: 16px 16px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #F3F4F6; flex-shrink: 0; }
+  .mv-doc-panel-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6B7280; }
+  .mv-doc-panel-upload { font-size: 12px; color: #2563EB; cursor: pointer; font-weight: 500; }
+  .mv-doc-panel-upload:hover { text-decoration: underline; }
+  .mv-doc-list { flex: 1; overflow-y: auto; }
+  .mv-doc-card { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid #F3F4F6; cursor: pointer; transition: all 0.15s; border-left: 3px solid transparent; position: relative; }
+  .mv-doc-card:hover { background: #F3F4F6; }
+  .mv-doc-card.selected { background: #EFF6FF; border-left-color: #2563EB; }
+  .mv-doc-card-icon { font-size: 16px; flex-shrink: 0; opacity: 0.6; }
+  .mv-doc-card-info { flex: 1; min-width: 0; }
+  .mv-doc-card-name { font-size: 13px; font-weight: 500; color: #1A1A1A; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mv-doc-card-meta { font-size: 11px; color: #6B7280; margin-top: 1px; }
+  .mv-doc-card-status { font-size: 14px; flex-shrink: 0; }
+  .mv-doc-card-new { position: absolute; top: 6px; right: 12px; font-size: 9px; font-weight: 700; text-transform: uppercase; background: #2563EB; color: #fff; padding: 1px 5px; border-radius: 3px; letter-spacing: 0.04em; }
+  .mv-doc-panel-footer { padding: 12px 16px; border-top: 1px dashed #E5E7EB; flex-shrink: 0; }
+  .mv-doc-upload-btn { width: 100%; padding: 8px; text-align: center; font-size: 13px; color: #2563EB; cursor: pointer; border-radius: 6px; transition: background 0.15s; }
+  .mv-doc-upload-btn:hover { background: #EFF6FF; }
+  .mv-center-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+  .mv-tab-bar { display: flex; border-bottom: 1px solid #E5E7EB; background: #fff; flex-shrink: 0; padding: 0 24px; }
+  .mv-tab { padding: 14px 20px; font-size: 14px; color: #6B7280; cursor: pointer; position: relative; display: flex; align-items: center; gap: 8px; transition: color 0.15s; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .mv-tab:hover { color: #1A1A1A; }
+  .mv-tab.active { color: #1A1A1A; font-weight: 600; border-bottom-color: #2563EB; }
+  .mv-tab-badge { font-size: 11px; padding: 1px 7px; border-radius: 10px; font-weight: 600; }
+  .mv-tab-badge.neutral { background: #F3F4F6; color: #6B7280; }
+  .mv-tab-badge.danger { background: #DC2626; color: #fff; }
+  .mv-tab-content { flex: 1; overflow-y: auto; padding: 20px 24px; }
+  .mv-tab-content.hidden { display: none; }
+  .mv-doc-viewer { width: 384px; min-width: 384px; background: #fff; border-left: 1px solid #E5E7EB; display: flex; flex-direction: column; overflow: hidden; transition: width 300ms ease-in-out, min-width 300ms ease-in-out, opacity 200ms ease; }
+  .mv-doc-viewer.hidden { width: 0; min-width: 0; opacity: 0; border: none; overflow: hidden; }
+  .mv-doc-viewer-header { padding: 16px 20px; border-bottom: 1px solid #F3F4F6; flex-shrink: 0; display: flex; align-items: flex-start; justify-content: space-between; }
+  .mv-doc-viewer-title { font-size: 15px; font-weight: 600; color: #1A1A1A; }
+  .mv-doc-viewer-meta { font-size: 12px; color: #6B7280; margin-top: 2px; }
+  .mv-doc-viewer-status { font-size: 12px; margin-top: 4px; display: flex; align-items: center; gap: 4px; }
+  .mv-doc-viewer-close { width: 28px; height: 28px; border: 1px solid #E5E7EB; background: #fff; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; color: #6B7280; flex-shrink: 0; transition: all 0.15s; }
+  .mv-doc-viewer-close:hover { background: #F3F4F6; color: #1A1A1A; }
+  .mv-doc-viewer-content { flex: 1; overflow-y: auto; padding: 16px 20px; }
+  .mv-doc-text { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 12px; line-height: 1.7; color: #1A1A1A; white-space: pre-wrap; }
+  .mv-doc-text .highlight { background: #FEF3C7; border-bottom: 2px solid #D97706; padding: 1px 2px; border-radius: 2px; cursor: pointer; position: relative; }
+  .mv-doc-text .highlight:hover { background: #FDE68A; }
+  .mv-doc-text .highlight:hover::after { content: attr(data-field); position: absolute; bottom: 100%; left: 0; background: #1A1A1A; color: #fff; font-size: 11px; padding: 3px 8px; border-radius: 4px; white-space: nowrap; margin-bottom: 4px; font-family: var(--font-sans, 'DM Sans', sans-serif); }
+  .mv-doc-line-num { display: inline-block; width: 28px; color: #D1D5DB; user-select: none; font-size: 11px; text-align: right; margin-right: 12px; }
+  .mv-doc-viewer-values { padding: 16px 20px; border-top: 1px solid #F3F4F6; flex-shrink: 0; max-height: 240px; overflow-y: auto; }
+  .mv-doc-values-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6B7280; margin-bottom: 10px; }
+  .mv-doc-value-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #F3F4F6; font-size: 12px; }
+  .mv-doc-value-row:last-child { border-bottom: none; }
+  .mv-doc-value-field { color: #6B7280; }
+  .mv-doc-value-val { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 11px; color: #1A1A1A; }
+  .mv-doc-value-status { font-size: 11px; }
+  .mv-doc-value-status.verified { color: #059669; }
+  .mv-doc-value-status.unreviewed { color: #D97706; }
+  .mv-need-section { margin-bottom: 24px; }
+  .mv-need-section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #F3F4F6; }
+  .mv-need-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .mv-need-dot.blocking { background: #DC2626; }
+  .mv-need-dot.expected { background: #D97706; }
+  .mv-need-dot.enriching { background: #6B7280; }
+  .mv-need-section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .mv-need-section-count { font-size: 12px; color: #6B7280; }
+  .mv-need-section-request { margin-left: auto; font-size: 12px; color: #2563EB; cursor: pointer; font-weight: 500; }
+  .mv-need-section-request:hover { text-decoration: underline; }
+  .mv-need-item { display: flex; align-items: center; padding: 10px 12px; border-bottom: 1px solid #F3F4F6; gap: 12px; }
+  .mv-need-item-info { flex: 1; }
+  .mv-need-item-name { font-size: 14px; font-weight: 500; color: #1A1A1A; }
+  .mv-need-item-cat { font-size: 12px; color: #6B7280; margin-top: 1px; }
+  .mv-need-request-btn { padding: 5px 12px; border: 1px solid #E5E7EB; background: #fff; border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; color: #6B7280; font-family: var(--font-sans, 'DM Sans', sans-serif); transition: all 0.15s; }
+  .mv-need-request-btn:hover { border-color: #2563EB; color: #2563EB; }
+  .mv-source-link { font-size: 11px; color: #2563EB; cursor: pointer; margin-top: 2px; display: inline-block; }
+  .mv-source-link:hover { text-decoration: underline; }
+
   /* --- Review Queue Badge --- */
   .review-queue-badge {
     display: inline-block; background: #ef4444; color: #fff; font-size: 10px; font-weight: 700;
@@ -18425,11 +18519,17 @@ function _buildShareHtml() {
 
 // Build 26: Matter View — Three-Panel State-Driven Layout
 
+var _mvSelectedDoc = null;
+var _mvActiveTab = 'know';
+var _mvFilesCache = [];
+
 function showClientWorkspace(spokeId, tab) {
   if (!spokeId) return;
   _selectedSpoke = spokeId;
   _activeClientTab = tab || 'overview';
   selectedView = 'client_workspace';
+  _mvSelectedDoc = null;
+  _mvActiveTab = 'know';
 
   var spokeName = spokeId;
   for (var i = 0; i < _spokesList.length; i++) {
@@ -18443,48 +18543,52 @@ function showClientWorkspace(spokeId, tab) {
   renderBreadcrumbs();
 
   var mainEl = document.getElementById('main');
-  var h = '<div id="matterViewContainer" style="padding:24px 28px;overflow-y:auto;height:calc(100vh - 50px);">';
-
-  // Back link
-  h += '<div style="margin-bottom:16px;">';
-  h += '<a onclick="showClientDashboard()" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#6B7280;cursor:pointer;text-decoration:none;transition:color 0.15s;" onmouseover="this.style.color=\\'#2563EB\\'" onmouseout="this.style.color=\\'#6B7280\\'">';
-  h += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><polyline points="15 18 9 12 15 6"/></svg>';
-  h += '\\u2190 Clients</a>';
-  h += '</div>';
-
-  // Client name + action bar
-  h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:12px;">';
-  h += '<div>';
-  h += '<div style="font-family:var(--font-display);font-size:28px;color:#1A1A1A;line-height:1.2;" id="matterClientName">' + esc(spokeName) + '</div>';
-  h += '<span id="matterTemplateBadge" style="display:inline-block;margin-top:6px;padding:4px 12px;border-radius:9999px;font-size:12px;font-weight:500;background:#F3F4F6;color:#6B7280;"></span>';
-  h += '</div>';
-  h += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
-  h += '<button onclick="document.getElementById(\\'matterFileInput\\').click()" style="padding:7px 14px;border:1px solid #E5E7EB;border-radius:8px;background:#fff;font-size:12px;font-weight:600;color:#1A1A1A;cursor:pointer;font-family:var(--font-sans);display:flex;align-items:center;gap:5px;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\\'#2563EB\\'" onmouseout="this.style.borderColor=\\'#E5E7EB\\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Upload</button>';
-  h += '<button onclick="showShareModal()" style="padding:7px 14px;border:1px solid #E5E7EB;border-radius:8px;background:#fff;font-size:12px;font-weight:600;color:#1A1A1A;cursor:pointer;font-family:var(--font-sans);display:flex;align-items:center;gap:5px;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\\'#2563EB\\'" onmouseout="this.style.borderColor=\\'#E5E7EB\\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Share</button>';
-  h += '<button onclick="matterViewGenerate()" style="padding:7px 14px;border:none;border-radius:8px;background:#2563EB;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-sans);display:flex;align-items:center;gap:5px;transition:background 0.15s;" onmouseover="this.style.background=\\'#1D4ED8\\'" onmouseout="this.style.background=\\'#2563EB\\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Generate</button>';
-  h += '<button onclick="downloadExportCsv()" style="padding:7px 14px;border:1px solid #E5E7EB;border-radius:8px;background:#fff;font-size:12px;font-weight:600;color:#1A1A1A;cursor:pointer;font-family:var(--font-sans);display:flex;align-items:center;gap:5px;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\\'#2563EB\\'" onmouseout="this.style.borderColor=\\'#E5E7EB\\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export</button>';
-  h += '<button onclick="generateRequestEmail()" style="padding:7px 14px;border:1px solid #FECACA;border-radius:8px;background:#FEF2F2;font-size:12px;font-weight:600;color:#DC2626;cursor:pointer;font-family:var(--font-sans);display:flex;align-items:center;gap:5px;transition:all 0.15s;" onmouseover="this.style.background=\\'#DC2626\\';this.style.color=\\'#fff\\'" onmouseout="this.style.background=\\'#FEF2F2\\';this.style.color=\\'#DC2626\\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Request Missing</button>';
-  h += '</div></div>';
+  var h = '<div id="matterViewContainer" style="display:flex;flex-direction:column;height:calc(100vh - 50px);overflow:hidden;">';
 
   // Hidden file input
   h += '<input type="file" id="matterFileInput" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.json" style="display:none" onchange="handleMatterUpload(event)" />';
 
-  // Metric bars placeholder
-  h += '<div id="matterMetrics" style="display:flex;gap:32px;margin-bottom:24px;padding:16px 0;border-top:1px solid #E5E7EB;border-bottom:1px solid #E5E7EB;">';
-  h += '<div style="color:#9CA3AF;font-size:13px;">Loading metrics...</div>';
+  // Matter header
+  h += '<div class="matter-header">';
+  h += '<div class="matter-header-top">';
+  h += '<div>';
+  h += '<div class="matter-back" onclick="showClientDashboard()">\\u2190 Clients</div>';
+  h += '<div class="matter-name" id="matterClientName">' + esc(spokeName) + '</div>';
+  h += '<div class="matter-template" id="matterTemplateBadge"></div>';
   h += '</div>';
-
-  // Three panels
-  h += '<div style="display:grid;grid-template-columns:250px 1fr 280px;gap:24px;margin-bottom:24px;" id="matterPanels">';
-  h += '<div id="matterDocPanel"><div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading...</div></div>';
-  h += '<div id="matterDataPanel"><div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading...</div></div>';
-  h += '<div id="matterMissingPanel"><div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading...</div></div>';
+  h += '<div class="matter-actions">';
+  h += '<button class="matter-action-btn outline" onclick="document.getElementById(\\'matterFileInput\\').click()">\\u2191 Upload</button>';
+  h += '<button class="matter-action-btn outline" onclick="showShareModal()">\\u2197 Share</button>';
+  h += '<button class="matter-action-btn primary" onclick="matterViewGenerate()">\\u2726 Generate</button>';
+  h += '<button class="matter-action-btn outline" onclick="downloadExportCsv()">\\u2193 Export</button>';
   h += '</div>';
-
-  // Timeline placeholder
-  h += '<div id="matterTimeline"></div>';
-
   h += '</div>';
+  // Metrics bar
+  h += '<div class="metrics-bar" id="matterMetrics"><div style="color:#9CA3AF;font-size:13px;">Loading metrics...</div></div>';
+  h += '</div>'; // end matter-header
+
+  // Body: 2-3 panel layout
+  h += '<div class="matter-body">';
+
+  // Left: document cards
+  h += '<div class="mv-doc-panel" id="mvDocPanel"><div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading...</div></div>';
+
+  // Center: tabbed content
+  h += '<div class="mv-center-panel">';
+  h += '<div class="mv-tab-bar" id="mvTabBar"></div>';
+  h += '<div id="mvTabKnow" class="mv-tab-content"><div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading...</div></div>';
+  h += '<div id="mvTabNeed" class="mv-tab-content hidden"><div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading...</div></div>';
+  h += '</div>'; // end center-panel
+
+  // Right: document viewer (hidden by default)
+  h += '<div class="mv-doc-viewer hidden" id="mvDocViewer"></div>';
+
+  h += '</div>'; // end matter-body
+
+  // Timeline below body
+  h += '<div id="matterTimeline" style="border-top:1px solid #E5E7EB;flex-shrink:0;"></div>';
+
+  h += '</div>'; // end matterViewContainer
   mainEl.innerHTML = h;
 
   // Fetch all data
@@ -18527,30 +18631,40 @@ function loadMatterViewData() {
       badge.onclick = function() { loadClientTabContent_legacy('completeness'); };
     }
 
-    // Build metrics
+    // Build metrics (Build 32: now in header)
     var metricsEl = document.getElementById('matterMetrics');
     if (metricsEl) metricsEl.innerHTML = _buildMatterMetrics(gapData, exportData);
 
-    // Build panels
-    var docEl = document.getElementById('matterDocPanel');
+    // Build doc panel (Build 32: mvDocPanel)
+    var docEl = document.getElementById('mvDocPanel');
     if (docEl) {
       docEl.innerHTML = _buildDocPanel(filesData ? filesData.files || [] : []);
       _setupDocPanelDragDrop();
     }
 
-    var dataEl = document.getElementById('matterDataPanel');
-    if (dataEl) dataEl.innerHTML = _buildDataPanel(exportData, gapData);
+    // Build tab bar (Build 32)
+    var tabBarEl = document.getElementById('mvTabBar');
+    if (tabBarEl) tabBarEl.innerHTML = _buildTabBar(exportData, gapData);
 
-    var missingEl = document.getElementById('matterMissingPanel');
-    if (missingEl) missingEl.innerHTML = _buildMissingPanel(gapData);
+    // Build center panel tabs (Build 32)
+    var knowEl = document.getElementById('mvTabKnow');
+    if (knowEl) knowEl.innerHTML = _buildDataPanel(exportData, gapData);
+
+    var needEl = document.getElementById('mvTabNeed');
+    if (needEl) needEl.innerHTML = _buildMissingPanel(gapData);
+
+    // Restore active tab state
+    if (_mvActiveTab === 'need') {
+      if (knowEl) knowEl.classList.add('hidden');
+      if (needEl) needEl.classList.remove('hidden');
+    }
 
     // Build timeline
     var timelineEl = document.getElementById('matterTimeline');
     if (timelineEl) timelineEl.innerHTML = _buildTimelineCollapsible(eventsData);
 
-    // Also update right panel review queue
+    // Update spoke review progress in sidebar
     if (exportData) {
-      updateContextRightPanel('review_queue');
       renderSpokeReviewProgress();
     }
   });
@@ -18568,7 +18682,7 @@ function loadClientTabContent(tab) {
 
 // Keep legacy tab loader for template selector flow
 function loadClientTabContent_legacy(tab) {
-  var container = document.getElementById('clientTabContent') || document.getElementById('matterDataPanel');
+  var container = document.getElementById('clientTabContent') || document.getElementById('mvTabKnow') || document.getElementById('matterDataPanel');
   if (!container) return;
   if (tab === 'completeness') {
     api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/gaps').then(function(data) {
@@ -18638,18 +18752,15 @@ function _buildMatterMetrics(gapData, exportData) {
   var compPct = gapData ? Math.round(((gapData.document_score || 0) * 0.5 + (gapData.entity_score || 0) * 0.5) * 100) : 0;
   var compColor = compPct >= 80 ? '#059669' : (compPct >= 50 ? '#D97706' : '#DC2626');
 
-  // Metric bar builder
+  // Metric bar builder (Build 32: uses CSS classes)
   function metricBar(label, value, valueLabel, color, maxVal) {
     var pct = maxVal ? Math.round((value / maxVal) * 100) : value;
     pct = Math.min(pct, 100);
-    var r = '<div style="flex:1;">';
-    r += '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">';
-    r += '<span style="font-size:12px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.03em;">' + label + '</span>';
-    r += '<span style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:' + color + ';">' + valueLabel + '</span>';
+    var fillClass = pct >= 80 ? 'success' : (pct >= 50 ? 'warning' : 'danger');
+    var r = '<div class="metric">';
+    r += '<div class="metric-label">' + label + ' <span class="metric-value" style="color:' + color + ';">' + valueLabel + '</span></div>';
+    r += '<div class="metric-bar"><div class="metric-bar-fill ' + fillClass + '" style="width:' + pct + '%;"></div></div>';
     r += '</div>';
-    r += '<div style="height:6px;background:#E5E7EB;border-radius:3px;overflow:hidden;">';
-    r += '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:3px;transition:width 0.5s;"></div>';
-    r += '</div></div>';
     return r;
   }
 
@@ -18660,47 +18771,52 @@ function _buildMatterMetrics(gapData, exportData) {
   return h;
 }
 
-// ===== LEFT PANEL: DOCUMENTS =====
+// ===== LEFT PANEL: DOCUMENTS (Build 32) =====
 function _buildDocPanel(files) {
+  _mvFilesCache = files;
   var h = '';
 
   // Header
-  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">';
-  h += '<div style="font-size:13px;font-weight:600;color:#1A1A1A;text-transform:uppercase;letter-spacing:0.05em;">Documents (' + files.length + ')</div>';
-  h += '<button onclick="document.getElementById(\\'matterFileInput\\').click()" style="padding:4px 10px;border:1px solid #E5E7EB;border-radius:6px;background:#fff;font-size:11px;font-weight:600;color:#2563EB;cursor:pointer;">+ Upload</button>';
+  h += '<div class="mv-doc-panel-header">';
+  h += '<span class="mv-doc-panel-title">Documents (' + files.length + ')</span>';
+  h += '<span class="mv-doc-panel-upload" onclick="document.getElementById(\\'matterFileInput\\').click()">+ Upload</span>';
   h += '</div>';
 
+  // Document list
+  h += '<div class="mv-doc-list" id="docPanelDropzone">';
   if (files.length === 0) {
-    // Empty state drop zone
-    h += '<div id="docPanelDropzone" onclick="document.getElementById(\\'matterFileInput\\').click()" style="border:2px dashed #E5E7EB;border-radius:12px;padding:32px 16px;text-align:center;cursor:pointer;transition:border-color 0.2s;" onmouseover="this.style.borderColor=\\'#2563EB\\'" onmouseout="this.style.borderColor=\\'#E5E7EB\\'">';
-    h += '<svg viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5" style="width:32px;height:32px;margin:0 auto 8px;display:block;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
+    h += '<div onclick="document.getElementById(\\'matterFileInput\\').click()" style="padding:32px 16px;text-align:center;cursor:pointer;">';
     h += '<div style="font-size:13px;color:#6B7280;">Drop files here or click to upload</div>';
     h += '<div style="font-size:11px;color:#9CA3AF;margin-top:4px;">PDF, DOCX, CSV, TXT, JSON</div>';
     h += '</div>';
   } else {
-    h += '<div id="docPanelDropzone">';
     for (var i = 0; i < files.length; i++) {
       var f = files[i];
+      var fId = f.id || f.filename;
       var fName = f.original_name || f.filename || f.id;
       var fDate = f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
-      var fSize = f.size ? (f.size > 1024*1024 ? (f.size/(1024*1024)).toFixed(1) + ' MB' : Math.round(f.size/1024) + ' KB') : '';
       var isNew = f.uploaded_at && (Date.now() - new Date(f.uploaded_at).getTime() < 86400000);
+      var sel = _mvSelectedDoc === fId ? ' selected' : '';
 
-      h += '<div onclick="selectDocumentDetail(\\'' + esc(f.id || f.filename) + '\\')" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid #E5E7EB;border-radius:10px;margin-bottom:6px;cursor:pointer;transition:all 0.15s;background:#fff;" onmouseover="this.style.borderColor=\\'#2563EB\\';this.style.background=\\'#F9FAFB\\'" onmouseout="this.style.borderColor=\\'#E5E7EB\\';this.style.background=\\'#fff\\'">';
-      h += '<svg viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="1.5" style="width:18px;height:18px;flex-shrink:0;margin-top:1px;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
-      h += '<div style="flex:1;min-width:0;">';
-      h += '<div style="font-size:13px;font-weight:500;color:#1A1A1A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(fName) + '</div>';
-      h += '<div style="font-size:11px;color:#9CA3AF;margin-top:2px;">' + esc(fDate) + (fSize ? ' \\u00B7 ' + esc(fSize) : '') + '</div>';
+      h += '<div class="mv-doc-card' + sel + '" data-fileid="' + esc(fId) + '" onclick="mvSelectDoc(\\'' + esc(fId) + '\\')">';
+      h += '<span class="mv-doc-card-icon">\\uD83D\\uDCC4</span>';
+      h += '<div class="mv-doc-card-info">';
+      h += '<div class="mv-doc-card-name">' + esc(fName) + '</div>';
+      h += '<div class="mv-doc-card-meta">' + esc(fDate) + '</div>';
       h += '</div>';
       if (isNew) {
-        h += '<span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;background:#EFF6FF;color:#2563EB;flex-shrink:0;">NEW</span>';
-      } else {
-        h += '<span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;background:#F0FDF4;color:#059669;flex-shrink:0;">\\u2713</span>';
+        h += '<span class="mv-doc-card-new">NEW</span>';
       }
+      h += '<span class="mv-doc-card-status" style="color:#059669;">\\u2713</span>';
       h += '</div>';
     }
-    h += '</div>';
   }
+  h += '</div>';
+
+  // Footer upload button
+  h += '<div class="mv-doc-panel-footer">';
+  h += '<div class="mv-doc-upload-btn" onclick="document.getElementById(\\'matterFileInput\\').click()">\\uFF0B Upload Documents</div>';
+  h += '</div>';
 
   return h;
 }
@@ -18714,6 +18830,168 @@ function _setupDocPanelDragDrop() {
     e.preventDefault(); dz.style.borderColor = '#E5E7EB'; dz.style.background = '';
     if (e.dataTransfer.files.length > 0) uploadFilesToSpoke(e.dataTransfer.files);
   });
+}
+
+// ===== Build 32: TAB BAR =====
+function _buildTabBar(exportData, gapData) {
+  var knowCount = 0;
+  if (exportData && exportData.roles) {
+    for (var ri = 0; ri < exportData.roles.length; ri++) {
+      for (var ei = 0; ei < (exportData.roles[ri].entities || []).length; ei++) {
+        for (var fi = 0; fi < (exportData.roles[ri].entities[ei].fields || []).length; fi++) {
+          if (exportData.roles[ri].entities[ei].fields[fi].value) knowCount++;
+        }
+      }
+    }
+  }
+  var needCount = 0;
+  if (gapData) {
+    needCount += (gapData.missing_documents || []).length;
+    needCount += (gapData.missing_entity_fields || []).length;
+    needCount += (gapData.missing_relationships || []).length;
+  }
+
+  var h = '';
+  h += '<div class="mv-tab' + (_mvActiveTab === 'know' ? ' active' : '') + '" onclick="mvSwitchTab(\\'know\\')">';
+  h += 'What We Know <span class="mv-tab-badge neutral">' + knowCount + '</span>';
+  h += '</div>';
+  h += '<div class="mv-tab' + (_mvActiveTab === 'need' ? ' active' : '') + '" onclick="mvSwitchTab(\\'need\\')">';
+  h += 'What We Still Need <span class="mv-tab-badge' + (needCount > 0 ? ' danger' : ' neutral') + '">' + needCount + '</span>';
+  h += '</div>';
+  return h;
+}
+
+function mvSwitchTab(tab) {
+  _mvActiveTab = tab;
+  var knowEl = document.getElementById('mvTabKnow');
+  var needEl = document.getElementById('mvTabNeed');
+  if (knowEl) knowEl.classList.toggle('hidden', tab !== 'know');
+  if (needEl) needEl.classList.toggle('hidden', tab !== 'need');
+  // Update tab bar active states
+  var tabs = document.querySelectorAll('.mv-tab-bar .mv-tab');
+  for (var i = 0; i < tabs.length; i++) {
+    tabs[i].classList.toggle('active', (i === 0 && tab === 'know') || (i === 1 && tab === 'need'));
+  }
+}
+
+// ===== Build 32: DOCUMENT VIEWER =====
+function _buildDocViewer(fileId) {
+  var file = null;
+  for (var i = 0; i < _mvFilesCache.length; i++) {
+    if ((_mvFilesCache[i].id || _mvFilesCache[i].filename) === fileId) { file = _mvFilesCache[i]; break; }
+  }
+  if (!file) return '<div style="padding:40px;text-align:center;color:#9CA3AF;font-size:13px;">File not found.</div>';
+
+  var fName = file.original_name || file.filename || file.id;
+  var fDate = file.uploaded_at ? new Date(file.uploaded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+  var fClass = file.classification || file.doc_type || '';
+
+  // Count values extracted from this file
+  var extractedFields = [];
+  if (_exportData && _exportData.roles) {
+    for (var ri = 0; ri < _exportData.roles.length; ri++) {
+      for (var ei = 0; ei < (_exportData.roles[ri].entities || []).length; ei++) {
+        var ent = _exportData.roles[ri].entities[ei];
+        for (var fi = 0; fi < (ent.fields || []).length; fi++) {
+          var f = ent.fields[fi];
+          if (!f.value) continue;
+          var prov = f.provenance || f.source || {};
+          var provFile = prov.file_id || prov.filename || prov.source_file || '';
+          if (provFile === fileId || provFile === fName || (typeof prov === 'string' && prov.indexOf(fName) !== -1)) {
+            extractedFields.push({
+              field: _exportFormatLabel(f.field),
+              value: String(f.value || ''),
+              status: f.status === 'verified' || (f.review && f.review.status === 'approved') ? 'verified' : 'unreviewed'
+            });
+          }
+        }
+      }
+    }
+  }
+
+  var h = '';
+  // Header
+  h += '<div class="mv-doc-viewer-header">';
+  h += '<div>';
+  h += '<div class="mv-doc-viewer-title">' + esc(fName) + '</div>';
+  h += '<div class="mv-doc-viewer-meta">' + esc(fClass) + (fDate ? ' \\u00B7 Uploaded ' + fDate : '') + '</div>';
+  h += '<div class="mv-doc-viewer-status">';
+  h += '<span style="color:#059669;">\\u2713</span> ';
+  h += '<span style="color:#6B7280;">Processed \\u00B7 ' + extractedFields.length + ' values extracted</span>';
+  h += '</div>';
+  h += '</div>';
+  h += '<button class="mv-doc-viewer-close" onclick="mvCloseDocViewer()">\\u2715</button>';
+  h += '</div>';
+
+  // Content: document text
+  h += '<div class="mv-doc-viewer-content">';
+  var textContent = file.text_content || file.extracted_text || file.content || '';
+  if (textContent) {
+    h += '<div class="mv-doc-text">';
+    var lines = textContent.split('\\n');
+    for (var li = 0; li < lines.length; li++) {
+      h += '<span style="display:block;"><span class="mv-doc-line-num">' + (li + 1) + '</span>' + esc(lines[li]) + '</span>';
+    }
+    h += '</div>';
+  } else {
+    h += '<div style="padding:40px 20px;text-align:center;color:#9CA3AF;font-size:13px;">';
+    h += '<svg viewBox="0 0 24 24" fill="none" stroke="#D1D5DB" stroke-width="1.5" style="width:32px;height:32px;margin:0 auto 8px;display:block;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+    h += 'Document text preview not available';
+    h += '</div>';
+  }
+  h += '</div>';
+
+  // Values extracted from this document
+  if (extractedFields.length > 0) {
+    h += '<div class="mv-doc-viewer-values">';
+    h += '<div class="mv-doc-values-title">Values extracted from this document (' + extractedFields.length + ')</div>';
+    for (var vi = 0; vi < extractedFields.length; vi++) {
+      var ef = extractedFields[vi];
+      h += '<div class="mv-doc-value-row">';
+      h += '<span class="mv-doc-value-field">' + esc(ef.field) + '</span>';
+      h += '<span class="mv-doc-value-val">' + esc(ef.value) + '</span>';
+      if (ef.status === 'verified') {
+        h += '<span class="mv-doc-value-status verified">\\u2713 Verified</span>';
+      } else {
+        h += '<span class="mv-doc-value-status unreviewed">\\u25CF Unreviewed</span>';
+      }
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  return h;
+}
+
+function mvSelectDoc(fileId) {
+  if (_mvSelectedDoc === fileId) {
+    mvCloseDocViewer();
+    return;
+  }
+  _mvSelectedDoc = fileId;
+
+  // Update card selection highlighting
+  var cards = document.querySelectorAll('.mv-doc-card');
+  for (var i = 0; i < cards.length; i++) {
+    cards[i].classList.toggle('selected', cards[i].getAttribute('data-fileid') === fileId);
+  }
+
+  // Render doc viewer content
+  var viewer = document.getElementById('mvDocViewer');
+  if (viewer) {
+    viewer.innerHTML = _buildDocViewer(fileId);
+    viewer.classList.remove('hidden');
+  }
+}
+
+function mvCloseDocViewer() {
+  _mvSelectedDoc = null;
+  var viewer = document.getElementById('mvDocViewer');
+  if (viewer) viewer.classList.add('hidden');
+  var cards = document.querySelectorAll('.mv-doc-card');
+  for (var i = 0; i < cards.length; i++) {
+    cards[i].classList.remove('selected');
+  }
 }
 
 // ===== CENTER PANEL: EXTRACTED DATA =====
@@ -18827,10 +19105,21 @@ function _buildDataPanel(exportData, gapData) {
           h += '<div style="flex:1;font-size:13px;color:#9CA3AF;font-style:italic;">\\u2014</div>';
           h += '<span style="padding:2px 8px;border-radius:9999px;font-size:10px;font-weight:600;background:#DC2626;color:#fff;">Missing</span>';
         } else {
-          // Value
+          // Value + source link (Build 32)
           var dispVal = isCorrected && f.review && f.review.correction ? f.review.correction : String(f.value || '');
-          h += '<div style="flex:1;font-size:13px;color:#1A1A1A;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="mfv_' + ri + '_' + ei + '_' + fi + '">' + esc(dispVal);
+          h += '<div style="flex:1;min-width:0;" id="mfv_' + ri + '_' + ei + '_' + fi + '">';
+          h += '<div style="font-size:13px;color:#1A1A1A;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(dispVal);
           if (isCorrected && f.value) h += ' <span style="text-decoration:line-through;color:#9CA3AF;font-size:11px;">' + esc(String(f.value)) + '</span>';
+          h += '</div>';
+          // Source provenance link
+          var prov = f.provenance || f.source || {};
+          var provFileId = prov.file_id || prov.filename || prov.source_file || (typeof prov === 'string' ? prov : '');
+          if (provFileId) {
+            var provLabel = prov.source_description || prov.filename || provFileId;
+            if (provLabel.indexOf('file_import:') === 0) provLabel = provLabel.replace('file_import:', '');
+            if (provLabel.indexOf('universal_parser:') === 0) provLabel = provLabel.replace('universal_parser:', '');
+            h += '<span class="mv-source-link" onclick="event.stopPropagation();mvSelectDoc(\\'' + esc(provFileId) + '\\')">\\u2190 ' + esc(provLabel) + '</span>';
+          }
           h += '</div>';
 
           // Confidence / status badge
@@ -19067,7 +19356,7 @@ function matterApproveField(ri, ei, fi, evt) {
   reviewFieldWithAction(ri, ei, fi, 'approve');
   setTimeout(function() {
     if (_exportData) {
-      var dp = document.getElementById('matterDataPanel');
+      var dp = document.getElementById('mvTabKnow') || document.getElementById('matterDataPanel');
       if (dp) dp.innerHTML = _buildDataPanel(_exportData, _gapData);
     }
   }, 1200);
@@ -19078,7 +19367,7 @@ function matterRejectField(ri, ei, fi, evt) {
   promptRejectField(ri, ei, fi);
   setTimeout(function() {
     if (_exportData) {
-      var dp = document.getElementById('matterDataPanel');
+      var dp = document.getElementById('mvTabKnow') || document.getElementById('matterDataPanel');
       if (dp) dp.innerHTML = _buildDataPanel(_exportData, _gapData);
     }
   }, 1500);
@@ -19106,7 +19395,7 @@ function matterSaveEdit(ri, ei, fi) {
   reviewFieldWithAction(ri, ei, fi, 'correct', newVal);
   setTimeout(function() {
     if (_exportData) {
-      var dp = document.getElementById('matterDataPanel');
+      var dp = document.getElementById('mvTabKnow') || document.getElementById('matterDataPanel');
       if (dp) dp.innerHTML = _buildDataPanel(_exportData, _gapData);
     }
   }, 1200);
