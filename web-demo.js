@@ -17868,89 +17868,157 @@ function _buildShareHtml() {
   return h;
 }
 
+// Build 26: Matter View — Three-Panel State-Driven Layout
+
 function showClientWorkspace(spokeId, tab) {
   if (!spokeId) return;
   _selectedSpoke = spokeId;
-  _activeClientTab = tab || 'completeness';
+  _activeClientTab = tab || 'overview';
   selectedView = 'client_workspace';
 
-  // Find spoke name
   var spokeName = spokeId;
   for (var i = 0; i < _spokesList.length; i++) {
     if (_spokesList[i].id === spokeId) { spokeName = _spokesList[i].name; break; }
   }
 
-  // Build breadcrumb + tab header
   breadcrumbs = [
     { label: 'Clients', action: 'showClientDashboard()' },
     { label: spokeName }
   ];
   renderBreadcrumbs();
 
-  // Render breadcrumb bar + tab bar + content
   var mainEl = document.getElementById('main');
-  var tabHtml = '<div class="client-breadcrumb">';
-  tabHtml += '<a onclick="showClientDashboard()">Clients</a>';
-  tabHtml += '<span class="cb-sep">&gt;</span>';
-  tabHtml += '<span class="cb-current">' + esc(spokeName) + '</span>';
-  tabHtml += '</div>';
-  tabHtml += '<div class="client-tab-bar">';
-  var tabs = [
-    { id: 'completeness', label: 'Completeness', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>' },
-    { id: 'export', label: 'Data Export', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>' },
-    { id: 'documents', label: 'Documents', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>' },
-    { id: 'timeline', label: 'Timeline', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>' },
-    { id: 'share', label: 'Share', icon: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>' }
-  ];
-  for (var t = 0; t < tabs.length; t++) {
-    var isActive = (_activeClientTab === tabs[t].id);
-    tabHtml += '<div class="client-tab' + (isActive ? ' active' : '') + '" onclick="switchClientTab(\\'' + tabs[t].id + '\\')">';
-    tabHtml += tabs[t].icon + ' ' + tabs[t].label;
-    tabHtml += '</div>';
-  }
-  tabHtml += '</div>';
-  tabHtml += '<div id="spokeReviewProgress"></div>';
-  tabHtml += '<div id="clientTabContent"></div>';
-  mainEl.innerHTML = tabHtml;
+  var h = '<div id="matterViewContainer" style="padding:24px 28px;overflow-y:auto;height:calc(100vh - 50px);">';
 
-  // Load tab content
-  loadClientTabContent(tab);
+  // Back link
+  h += '<div style="margin-bottom:16px;">';
+  h += '<a onclick="showClientDashboard()" style="display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#6B7280;cursor:pointer;text-decoration:none;transition:color 0.15s;" onmouseover="this.style.color=\\'#2563EB\\'" onmouseout="this.style.color=\\'#6B7280\\'">';
+  h += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><polyline points="15 18 9 12 15 6"/></svg>';
+  h += '\\u2190 Clients</a>';
+  h += '</div>';
+
+  // Client name + action bar
+  h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:12px;">';
+  h += '<div>';
+  h += '<div style="font-family:var(--font-display);font-size:28px;color:#1A1A1A;line-height:1.2;" id="matterClientName">' + esc(spokeName) + '</div>';
+  h += '<span id="matterTemplateBadge" style="display:inline-block;margin-top:6px;padding:4px 12px;border-radius:9999px;font-size:12px;font-weight:500;background:#F3F4F6;color:#6B7280;"></span>';
+  h += '</div>';
+  h += '<div style="display:flex;gap:8px;flex-wrap:wrap;">';
+  h += '<button onclick="document.getElementById(\\'matterFileInput\\').click()" style="padding:7px 14px;border:1px solid #E5E7EB;border-radius:8px;background:#fff;font-size:12px;font-weight:600;color:#1A1A1A;cursor:pointer;font-family:var(--font-sans);display:flex;align-items:center;gap:5px;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\\'#2563EB\\'" onmouseout="this.style.borderColor=\\'#E5E7EB\\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>Upload</button>';
+  h += '<button onclick="showShareModal()" style="padding:7px 14px;border:1px solid #E5E7EB;border-radius:8px;background:#fff;font-size:12px;font-weight:600;color:#1A1A1A;cursor:pointer;font-family:var(--font-sans);display:flex;align-items:center;gap:5px;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\\'#2563EB\\'" onmouseout="this.style.borderColor=\\'#E5E7EB\\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Share</button>';
+  h += '<button onclick="matterViewGenerate()" style="padding:7px 14px;border:none;border-radius:8px;background:#2563EB;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-sans);display:flex;align-items:center;gap:5px;transition:background 0.15s;" onmouseover="this.style.background=\\'#1D4ED8\\'" onmouseout="this.style.background=\\'#2563EB\\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Generate</button>';
+  h += '<button onclick="downloadExportCsv()" style="padding:7px 14px;border:1px solid #E5E7EB;border-radius:8px;background:#fff;font-size:12px;font-weight:600;color:#1A1A1A;cursor:pointer;font-family:var(--font-sans);display:flex;align-items:center;gap:5px;transition:border-color 0.15s;" onmouseover="this.style.borderColor=\\'#2563EB\\'" onmouseout="this.style.borderColor=\\'#E5E7EB\\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Export</button>';
+  h += '<button onclick="generateRequestEmail()" style="padding:7px 14px;border:1px solid #FECACA;border-radius:8px;background:#FEF2F2;font-size:12px;font-weight:600;color:#DC2626;cursor:pointer;font-family:var(--font-sans);display:flex;align-items:center;gap:5px;transition:all 0.15s;" onmouseover="this.style.background=\\'#DC2626\\';this.style.color=\\'#fff\\'" onmouseout="this.style.background=\\'#FEF2F2\\';this.style.color=\\'#DC2626\\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>Request Missing</button>';
+  h += '</div></div>';
+
+  // Hidden file input
+  h += '<input type="file" id="matterFileInput" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.json" style="display:none" onchange="handleMatterUpload(event)" />';
+
+  // Metric bars placeholder
+  h += '<div id="matterMetrics" style="display:flex;gap:32px;margin-bottom:24px;padding:16px 0;border-top:1px solid #E5E7EB;border-bottom:1px solid #E5E7EB;">';
+  h += '<div style="color:#9CA3AF;font-size:13px;">Loading metrics...</div>';
+  h += '</div>';
+
+  // Three panels
+  h += '<div style="display:grid;grid-template-columns:250px 1fr 280px;gap:24px;margin-bottom:24px;" id="matterPanels">';
+  h += '<div id="matterDocPanel"><div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading...</div></div>';
+  h += '<div id="matterDataPanel"><div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading...</div></div>';
+  h += '<div id="matterMissingPanel"><div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading...</div></div>';
+  h += '</div>';
+
+  // Timeline placeholder
+  h += '<div id="matterTimeline"></div>';
+
+  h += '</div>';
+  mainEl.innerHTML = h;
+
+  // Fetch all data
+  loadMatterViewData();
 }
 
 function switchClientTab(tab) {
-  _activeClientTab = tab;
-  // Update active tab visual
-  var tabEls = document.querySelectorAll('.client-tab');
-  for (var i = 0; i < tabEls.length; i++) {
-    tabEls[i].classList.remove('active');
-    if (tabEls[i].textContent.toLowerCase().indexOf(tab === 'export' ? 'data' : tab) >= 0) {
-      tabEls[i].classList.add('active');
-    }
-  }
-  // Simpler: rebuild tabs
+  // Backward compatibility — just reload the workspace
   showClientWorkspace(_selectedSpoke, tab);
 }
 
-function loadClientTabContent(tab) {
-  var container = document.getElementById('clientTabContent');
-  if (!container) return;
-  container.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text-muted);">Loading...</div>';
+function loadMatterViewData() {
+  if (!_selectedSpoke) return;
+  var spokeId = _selectedSpoke;
 
-  // Update right panel context based on tab
-  if (tab === 'completeness' || tab === 'export') {
-    // Load export data for review queue (needed by both tabs)
-    api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/export').then(function(data) {
-      _exportData = data;
-      if (tab === 'completeness') updateContextRightPanel('review_queue');
+  // Fetch all data in parallel
+  var gapPromise = api('GET', '/api/spoke/' + encodeURIComponent(spokeId) + '/gaps').catch(function() { return null; });
+  var exportPromise = api('GET', '/api/spoke/' + encodeURIComponent(spokeId) + '/export').catch(function() { return null; });
+  var filesPromise = api('GET', '/api/spoke/' + encodeURIComponent(spokeId) + '/files').catch(function() { return { files: [] }; });
+  var eventsPromise = api('GET', '/api/spoke/' + encodeURIComponent(spokeId) + '/events').catch(function() { return { events: [] }; });
+
+  Promise.all([gapPromise, exportPromise, filesPromise, eventsPromise]).then(function(results) {
+    if (_selectedSpoke !== spokeId || selectedView !== 'client_workspace') return; // stale
+
+    var gapData = results[0];
+    var exportData = results[1];
+    var filesData = results[2];
+    var eventsData = results[3];
+
+    _gapData = gapData;
+    _exportData = exportData;
+
+    // Update template badge
+    var badge = document.getElementById('matterTemplateBadge');
+    if (badge && gapData && gapData.template_name) {
+      badge.textContent = gapData.template_name;
+    } else if (badge) {
+      badge.textContent = 'No template';
+      badge.style.cursor = 'pointer';
+      badge.onclick = function() { loadClientTabContent_legacy('completeness'); };
+    }
+
+    // Build metrics
+    var metricsEl = document.getElementById('matterMetrics');
+    if (metricsEl) metricsEl.innerHTML = _buildMatterMetrics(gapData, exportData);
+
+    // Build panels
+    var docEl = document.getElementById('matterDocPanel');
+    if (docEl) {
+      docEl.innerHTML = _buildDocPanel(filesData ? filesData.files || [] : []);
+      _setupDocPanelDragDrop();
+    }
+
+    var dataEl = document.getElementById('matterDataPanel');
+    if (dataEl) dataEl.innerHTML = _buildDataPanel(exportData, gapData);
+
+    var missingEl = document.getElementById('matterMissingPanel');
+    if (missingEl) missingEl.innerHTML = _buildMissingPanel(gapData);
+
+    // Build timeline
+    var timelineEl = document.getElementById('matterTimeline');
+    if (timelineEl) timelineEl.innerHTML = _buildTimelineCollapsible(eventsData);
+
+    // Also update right panel review queue
+    if (exportData) {
+      updateContextRightPanel('review_queue');
       renderSpokeReviewProgress();
-    }).catch(function() {});
-  }
+    }
+  });
+}
 
+function loadClientTabContent(tab) {
+  // Backward compat — if called from old code, reload matter view
+  if (selectedView === 'client_workspace') {
+    loadMatterViewData();
+    return;
+  }
+  // Fallback to legacy if needed
+  loadClientTabContent_legacy(tab);
+}
+
+// Keep legacy tab loader for template selector flow
+function loadClientTabContent_legacy(tab) {
+  var container = document.getElementById('clientTabContent') || document.getElementById('matterDataPanel');
+  if (!container) return;
   if (tab === 'completeness') {
     api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/gaps').then(function(data) {
       _gapData = data;
       container.innerHTML = _buildCompletenessHtml(data);
-      // Populate template selector async
       api('GET', '/api/templates').then(function(tData) {
         var sel = document.getElementById('gapTemplateSelect');
         if (!sel) return;
@@ -17975,8 +18043,8 @@ function loadClientTabContent(tab) {
           h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;">';
           for (var i = 0; i < templates.length; i++) {
             var t = templates[i];
-            h += '<div class="gap-missing-item" style="cursor:pointer;transition:border-color 0.15s;" onclick="setMatterType(\\'' + esc(t.id) + '\\')" onmouseover="this.style.borderColor=\\'#0a66c2\\'" onmouseout="this.style.borderColor=\\'#e0e0e0\\'">';
-            h += '<svg viewBox="0 0 24 24" fill="none" stroke="#0a66c2" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+            h += '<div class="gap-missing-item" style="cursor:pointer;transition:border-color 0.15s;" onclick="setMatterType(\\'' + esc(t.id) + '\\')" onmouseover="this.style.borderColor=\\'#2563EB\\'" onmouseout="this.style.borderColor=\\'#e0e0e0\\'">';
+            h += '<svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
             h += '<div><div class="gap-item-name">' + esc(t.label) + '</div>';
             h += '<div class="gap-item-detail">' + t.category_count + ' categories &middot; ' + t.entity_roles + ' roles</div></div>';
             h += '</div>';
@@ -17984,39 +18052,530 @@ function loadClientTabContent(tab) {
           h += '</div></div>';
           container.innerHTML = h;
         });
-      } else {
-        container.innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Failed to load') + '</div>';
       }
-    });
-  } else if (tab === 'export') {
-    api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/export').then(function(data) {
-      _exportData = data;
-      container.innerHTML = _buildExportHtml(data);
-    }).catch(function(err) {
-      container.innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Failed to load export') + '</div>';
-    });
-  } else if (tab === 'documents') {
-    // Show file list + upload zone for this spoke
-    api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/files').then(function(data) {
-      renderDocumentsTab(container, data.files || []);
-    }).catch(function(err) {
-      container.innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Failed to load files') + '</div>';
-    });
-  } else if (tab === 'timeline') {
-    api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/events').then(function(data) {
-      container.innerHTML = _buildTimelineHtml(data);
-    }).catch(function(err) {
-      container.innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Failed to load timeline') + '</div>';
-    });
-  } else if (tab === 'share') {
-    api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/shares').then(function(data) {
-      _spokeShares = data.shares || [];
-      container.innerHTML = _buildShareHtml();
-    }).catch(function(err) {
-      container.innerHTML = '<div style="padding:40px;color:#991B1B;">' + esc(err.message || 'Failed to load shares') + '</div>';
     });
   }
 }
+
+// ===== METRIC BARS =====
+function _buildMatterMetrics(gapData, exportData) {
+  var h = '';
+  var filingPct = gapData ? Math.round((gapData.overall_score || 0) * 100) : 0;
+  var filingColor = filingPct >= 80 ? '#059669' : (filingPct >= 50 ? '#D97706' : '#DC2626');
+
+  // Quality from avg confidence
+  var avgConf = 0;
+  var confCount = 0;
+  if (exportData && exportData.roles) {
+    for (var ri = 0; ri < exportData.roles.length; ri++) {
+      for (var ei = 0; ei < (exportData.roles[ri].entities || []).length; ei++) {
+        for (var fi = 0; fi < (exportData.roles[ri].entities[ei].fields || []).length; fi++) {
+          var f = exportData.roles[ri].entities[ei].fields[fi];
+          if (f.confidence != null && f.status !== 'missing') { avgConf += f.confidence; confCount++; }
+        }
+      }
+    }
+  }
+  avgConf = confCount > 0 ? avgConf / confCount : 0;
+  var qualityColor = avgConf >= 0.85 ? '#059669' : (avgConf >= 0.60 ? '#D97706' : '#DC2626');
+
+  // Completeness from document + entity score
+  var compPct = gapData ? Math.round(((gapData.document_score || 0) * 0.5 + (gapData.entity_score || 0) * 0.5) * 100) : 0;
+  var compColor = compPct >= 80 ? '#059669' : (compPct >= 50 ? '#D97706' : '#DC2626');
+
+  // Metric bar builder
+  function metricBar(label, value, valueLabel, color, maxVal) {
+    var pct = maxVal ? Math.round((value / maxVal) * 100) : value;
+    pct = Math.min(pct, 100);
+    var r = '<div style="flex:1;">';
+    r += '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">';
+    r += '<span style="font-size:12px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.03em;">' + label + '</span>';
+    r += '<span style="font-family:var(--font-mono);font-size:13px;font-weight:600;color:' + color + ';">' + valueLabel + '</span>';
+    r += '</div>';
+    r += '<div style="height:6px;background:#E5E7EB;border-radius:3px;overflow:hidden;">';
+    r += '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:3px;transition:width 0.5s;"></div>';
+    r += '</div></div>';
+    return r;
+  }
+
+  h += metricBar('Filing Readiness', filingPct, filingPct + '%', filingColor, 100);
+  h += metricBar('Quality', avgConf, avgConf.toFixed(2), qualityColor, 1);
+  h += metricBar('Completeness', compPct, compPct + '%', compColor, 100);
+
+  return h;
+}
+
+// ===== LEFT PANEL: DOCUMENTS =====
+function _buildDocPanel(files) {
+  var h = '';
+
+  // Header
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">';
+  h += '<div style="font-size:13px;font-weight:600;color:#1A1A1A;text-transform:uppercase;letter-spacing:0.05em;">Documents (' + files.length + ')</div>';
+  h += '<button onclick="document.getElementById(\\'matterFileInput\\').click()" style="padding:4px 10px;border:1px solid #E5E7EB;border-radius:6px;background:#fff;font-size:11px;font-weight:600;color:#2563EB;cursor:pointer;">+ Upload</button>';
+  h += '</div>';
+
+  if (files.length === 0) {
+    // Empty state drop zone
+    h += '<div id="docPanelDropzone" onclick="document.getElementById(\\'matterFileInput\\').click()" style="border:2px dashed #E5E7EB;border-radius:12px;padding:32px 16px;text-align:center;cursor:pointer;transition:border-color 0.2s;" onmouseover="this.style.borderColor=\\'#2563EB\\'" onmouseout="this.style.borderColor=\\'#E5E7EB\\'">';
+    h += '<svg viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5" style="width:32px;height:32px;margin:0 auto 8px;display:block;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
+    h += '<div style="font-size:13px;color:#6B7280;">Drop files here or click to upload</div>';
+    h += '<div style="font-size:11px;color:#9CA3AF;margin-top:4px;">PDF, DOCX, CSV, TXT, JSON</div>';
+    h += '</div>';
+  } else {
+    h += '<div id="docPanelDropzone">';
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i];
+      var fName = f.original_name || f.filename || f.id;
+      var fDate = f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '';
+      var fSize = f.size ? (f.size > 1024*1024 ? (f.size/(1024*1024)).toFixed(1) + ' MB' : Math.round(f.size/1024) + ' KB') : '';
+      var isNew = f.uploaded_at && (Date.now() - new Date(f.uploaded_at).getTime() < 86400000);
+
+      h += '<div onclick="selectDocumentDetail(\\'' + esc(f.id || f.filename) + '\\')" style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid #E5E7EB;border-radius:10px;margin-bottom:6px;cursor:pointer;transition:all 0.15s;background:#fff;" onmouseover="this.style.borderColor=\\'#2563EB\\';this.style.background=\\'#F9FAFB\\'" onmouseout="this.style.borderColor=\\'#E5E7EB\\';this.style.background=\\'#fff\\'">';
+      h += '<svg viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="1.5" style="width:18px;height:18px;flex-shrink:0;margin-top:1px;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+      h += '<div style="flex:1;min-width:0;">';
+      h += '<div style="font-size:13px;font-weight:500;color:#1A1A1A;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(fName) + '</div>';
+      h += '<div style="font-size:11px;color:#9CA3AF;margin-top:2px;">' + esc(fDate) + (fSize ? ' \\u00B7 ' + esc(fSize) : '') + '</div>';
+      h += '</div>';
+      if (isNew) {
+        h += '<span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;background:#EFF6FF;color:#2563EB;flex-shrink:0;">NEW</span>';
+      } else {
+        h += '<span style="padding:2px 6px;border-radius:4px;font-size:10px;font-weight:600;background:#F0FDF4;color:#059669;flex-shrink:0;">\\u2713</span>';
+      }
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  return h;
+}
+
+function _setupDocPanelDragDrop() {
+  var dz = document.getElementById('docPanelDropzone');
+  if (!dz) return;
+  dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.style.borderColor = '#2563EB'; dz.style.background = '#EFF6FF'; });
+  dz.addEventListener('dragleave', function() { dz.style.borderColor = '#E5E7EB'; dz.style.background = ''; });
+  dz.addEventListener('drop', function(e) {
+    e.preventDefault(); dz.style.borderColor = '#E5E7EB'; dz.style.background = '';
+    if (e.dataTransfer.files.length > 0) uploadFilesToSpoke(e.dataTransfer.files);
+  });
+}
+
+// ===== CENTER PANEL: EXTRACTED DATA =====
+function _buildDataPanel(exportData, gapData) {
+  var h = '';
+
+  if (!exportData || !exportData.roles || exportData.roles.length === 0) {
+    // NEW state banner
+    h += '<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:24px;text-align:center;">';
+    h += '<svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.5" style="width:36px;height:36px;margin:0 auto 12px;display:block;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+    h += '<div style="font-size:15px;font-weight:600;color:#1D4ED8;margin-bottom:4px;">No data extracted yet</div>';
+    h += '<div style="font-size:13px;color:#6B7280;margin-bottom:16px;">Upload documents to get started. Data will be automatically extracted and organized.</div>';
+    h += '<button onclick="document.getElementById(\\'matterFileInput\\').click()" style="padding:8px 20px;border:none;border-radius:8px;background:#2563EB;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);">Upload Documents</button>';
+    h += '</div>';
+    return h;
+  }
+
+  var summary = exportData.summary || {};
+  var totalFields = summary.total_fields || 0;
+  var verified = summary.verified || 0;
+  var missing = summary.missing || 0;
+  var roles = exportData.roles || [];
+
+  // Count bulk-eligible
+  var bulkEligible = 0;
+  for (var ri = 0; ri < roles.length; ri++) {
+    for (var ei = 0; ei < (roles[ri].entities || []).length; ei++) {
+      for (var fi = 0; fi < (roles[ri].entities[ei].fields || []).length; fi++) {
+        var bf = roles[ri].entities[ei].fields[fi];
+        if (bf.value && bf.confidence >= 0.85 && bf.status !== 'verified' && (!bf.review || bf.review.status !== 'approved')) {
+          bulkEligible++;
+        }
+      }
+    }
+  }
+
+  // State detection
+  var completeness = gapData ? (gapData.overall_score || 0) : 0;
+  var hasMissingBlockers = gapData ? ((gapData.missing_documents || []).length > 0) : false;
+  var state = 'IN_PROGRESS';
+  if (completeness >= 0.9 && !hasMissingBlockers && verified >= totalFields - missing) state = 'COMPLETE';
+  if (totalFields === 0) state = 'NEW';
+
+  // State banner
+  if (state === 'COMPLETE') {
+    h += '<div style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">';
+    h += '<div style="display:flex;align-items:center;gap:8px;"><svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="width:18px;height:18px;"><polyline points="20 6 9 17 4 12"/></svg>';
+    h += '<span style="font-size:14px;font-weight:600;color:#065F46;">All blocking fields verified. Ready for filing.</span></div>';
+    h += '<div style="display:flex;gap:8px;">';
+    h += '<button onclick="matterViewGenerate()" style="padding:6px 14px;border:none;border-radius:8px;background:#059669;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Generate Document</button>';
+    h += '<button onclick="downloadExportCsv()" style="padding:6px 14px;border:1px solid #059669;border-radius:8px;background:none;color:#059669;font-size:12px;font-weight:600;cursor:pointer;">Export</button>';
+    h += '</div></div>';
+  } else if (state === 'IN_PROGRESS') {
+    h += '<div style="background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">';
+    h += '<span style="font-size:14px;font-weight:600;color:#1D4ED8;">' + (totalFields - missing) + ' fields extracted.' + (bulkEligible > 0 ? ' ' + bulkEligible + ' eligible for bulk approve.' : '') + '</span>';
+    h += '<div style="display:flex;gap:8px;">';
+    if (bulkEligible > 0) {
+      h += '<button onclick="matterBulkApprove()" style="padding:6px 14px;border:none;border-radius:8px;background:#2563EB;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Approve ' + bulkEligible + '</button>';
+    }
+    h += '</div></div>';
+  }
+
+  // Bulk approve bar (sticky)
+  if (bulkEligible > 0 && state !== 'COMPLETE') {
+    h += '<div style="background:#fff;border:1px solid #BFDBFE;border-radius:10px;padding:10px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,0.04);">';
+    h += '<span style="font-size:12px;color:#1D4ED8;font-weight:500;">' + bulkEligible + ' fields eligible for bulk approve (confidence \\u2265 0.85)</span>';
+    h += '<button onclick="matterBulkApprove()" style="padding:5px 12px;border:none;border-radius:6px;background:#2563EB;color:#fff;font-size:11px;font-weight:600;cursor:pointer;">Approve All ' + bulkEligible + '</button>';
+    h += '</div>';
+  }
+
+  // Heading
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+  h += '<span style="font-size:13px;font-weight:600;color:#1A1A1A;text-transform:uppercase;letter-spacing:0.05em;">Extracted Data</span>';
+  h += '<span style="font-size:12px;color:#9CA3AF;">' + (totalFields - missing) + ' of ' + totalFields + ' fields</span>';
+  h += '</div>';
+
+  // Entity-grouped fields
+  for (var ri = 0; ri < roles.length; ri++) {
+    var role = roles[ri];
+    for (var ei = 0; ei < (role.entities || []).length; ei++) {
+      var ent = role.entities[ei];
+      if (!ent.entity_id && (!ent.fields || ent.fields.length === 0)) continue;
+      var entName = ent.entity_name || _exportFormatLabel(role.role);
+
+      h += '<div style="margin-top:' + (ri > 0 || ei > 0 ? '16px' : '0') + ';background:#fff;border:1px solid #E5E7EB;border-radius:12px;overflow:hidden;">';
+
+      // Entity header
+      h += '<div style="display:flex;align-items:center;gap:8px;padding:12px 16px;background:#F9FAFB;border-bottom:1px solid #E5E7EB;">';
+      h += _exportRoleIcon(role.role);
+      h += '<span style="font-size:14px;font-weight:600;color:#1A1A1A;">' + esc(entName) + '</span>';
+      h += '<span style="font-size:11px;color:#9CA3AF;">(' + esc(_exportFormatLabel(role.role)) + ')</span>';
+      h += '</div>';
+
+      // Fields
+      for (var fi = 0; fi < (ent.fields || []).length; fi++) {
+        var f = ent.fields[fi];
+        var isMissing = f.status === 'missing';
+        var isVerified = f.status === 'verified' || (f.review && f.review.status === 'approved');
+        var isCorrected = f.review && f.review.status === 'corrected';
+        var isRejected = f.review && f.review.status === 'rejected';
+        var conf = f.confidence;
+        var confColor = !conf ? '#9CA3AF' : (conf >= 0.85 ? '#059669' : (conf >= 0.60 ? '#D97706' : '#DC2626'));
+        var rowBg = isVerified ? '#F0FDF4' : (isRejected ? '#FEF2F2' : 'transparent');
+
+        h += '<div style="display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid #F3F4F6;background:' + rowBg + ';transition:background 0.1s;" id="mf_' + ri + '_' + ei + '_' + fi + '">';
+
+        // Field name
+        h += '<div style="width:130px;font-size:12px;font-weight:500;color:#6B7280;flex-shrink:0;">' + esc(_exportFormatLabel(f.field)) + '</div>';
+
+        if (isMissing) {
+          h += '<div style="flex:1;font-size:13px;color:#9CA3AF;font-style:italic;">\\u2014</div>';
+          h += '<span style="padding:2px 8px;border-radius:9999px;font-size:10px;font-weight:600;background:#DC2626;color:#fff;">Missing</span>';
+        } else {
+          // Value
+          var dispVal = isCorrected && f.review && f.review.correction ? f.review.correction : String(f.value || '');
+          h += '<div style="flex:1;font-size:13px;color:#1A1A1A;font-weight:500;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="mfv_' + ri + '_' + ei + '_' + fi + '">' + esc(dispVal);
+          if (isCorrected && f.value) h += ' <span style="text-decoration:line-through;color:#9CA3AF;font-size:11px;">' + esc(String(f.value)) + '</span>';
+          h += '</div>';
+
+          // Confidence / status badge
+          if (isVerified) {
+            h += '<span style="display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:9999px;font-size:10px;font-weight:600;background:#059669;color:#fff;flex-shrink:0;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="width:9px;height:9px;"><polyline points="20 6 9 17 4 12"/></svg>Verified</span>';
+          } else if (isRejected) {
+            h += '<span style="padding:2px 8px;border-radius:9999px;font-size:10px;font-weight:600;background:#DC2626;color:#fff;flex-shrink:0;">Rejected</span>';
+          } else {
+            h += '<span style="display:inline-flex;align-items:center;gap:3px;flex-shrink:0;" title="Confidence: ' + (conf != null ? conf.toFixed(2) : 'unknown') + '">';
+            h += '<span style="width:7px;height:7px;border-radius:50%;background:' + confColor + ';"></span>';
+            h += '<span style="font-family:var(--font-mono);font-size:10px;color:' + confColor + ';">' + (conf != null ? conf.toFixed(2) : '\\u2014') + '</span>';
+            h += '</span>';
+          }
+
+          // Inline review actions
+          if (!isVerified && !isRejected) {
+            h += '<div style="display:flex;gap:3px;flex-shrink:0;">';
+            h += '<button onclick="matterApproveField(' + ri + ',' + ei + ',' + fi + ',event)" style="width:26px;height:26px;border:1px solid #BBF7D0;border-radius:6px;background:#F0FDF4;color:#059669;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all 0.1s;padding:0;" onmouseover="this.style.background=\\'#059669\\';this.style.color=\\'#fff\\'" onmouseout="this.style.background=\\'#F0FDF4\\';this.style.color=\\'#059669\\'" title="Approve">\\u2713</button>';
+            h += '<button onclick="matterEditField(' + ri + ',' + ei + ',' + fi + ',event)" style="width:26px;height:26px;border:1px solid #E5E7EB;border-radius:6px;background:#fff;color:#6B7280;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all 0.1s;padding:0;" onmouseover="this.style.background=\\'#2563EB\\';this.style.color=\\'#fff\\'" onmouseout="this.style.background=\\'#fff\\';this.style.color=\\'#6B7280\\'" title="Edit">\\u270E</button>';
+            h += '<button onclick="matterRejectField(' + ri + ',' + ei + ',' + fi + ',event)" style="width:26px;height:26px;border:1px solid #FECACA;border-radius:6px;background:#FEF2F2;color:#DC2626;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all 0.1s;padding:0;" onmouseover="this.style.background=\\'#DC2626\\';this.style.color=\\'#fff\\'" onmouseout="this.style.background=\\'#FEF2F2\\';this.style.color=\\'#DC2626\\'" title="Reject">\\u2717</button>';
+            h += '</div>';
+          }
+        }
+
+        h += '</div>'; // end field row
+      }
+      h += '</div>'; // end entity card
+    }
+  }
+
+  return h;
+}
+
+// ===== RIGHT PANEL: MISSING ITEMS =====
+function _buildMissingPanel(gapData) {
+  var h = '';
+
+  if (!gapData) {
+    h += '<div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">No analysis available.<br/>Set a template to begin.</div>';
+    return h;
+  }
+
+  var missingDocs = gapData.missing_documents || [];
+  var missingFields = gapData.missing_entity_fields || [];
+  var missingRels = gapData.missing_relationships || [];
+  var totalMissing = missingDocs.length + missingFields.length + missingRels.length;
+
+  // Header
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">';
+  h += '<div style="font-size:13px;font-weight:600;color:#1A1A1A;text-transform:uppercase;letter-spacing:0.05em;">Missing Items (' + totalMissing + ')</div>';
+  if (totalMissing > 0) {
+    h += '<button onclick="generateRequestEmail()" style="padding:4px 10px;border:1px solid #FECACA;border-radius:6px;background:#FEF2F2;font-size:11px;font-weight:600;color:#DC2626;cursor:pointer;">Request All</button>';
+  }
+  h += '</div>';
+
+  if (totalMissing === 0) {
+    h += '<div style="text-align:center;padding:32px;background:#F0FDF4;border-radius:12px;border:1px solid #BBF7D0;">';
+    h += '<svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="width:28px;height:28px;margin:0 auto 8px;display:block;"><polyline points="20 6 9 17 4 12"/></svg>';
+    h += '<div style="font-size:14px;font-weight:600;color:#065F46;">Nothing missing!</div>';
+    h += '<div style="font-size:12px;color:#6B7280;margin-top:4px;">All required items are accounted for.</div>';
+    h += '</div>';
+    return h;
+  }
+
+  // Separate by priority: BLOCKING (HIGH), EXPECTED (MEDIUM), ENRICHING (LOW)
+  var blocking = [];
+  var expected = [];
+  var enriching = [];
+
+  for (var d = 0; d < missingDocs.length; d++) {
+    var doc = missingDocs[d];
+    var prio = (doc.priority || 'medium').toLowerCase();
+    var item = { name: _gapFormatLabel(doc.item), category: _gapFormatLabel(doc.category), priority: doc.priority || 'MEDIUM', type: 'document' };
+    if (prio === 'high' || prio === 'blocking') blocking.push(item);
+    else if (prio === 'low' || prio === 'enriching') enriching.push(item);
+    else expected.push(item);
+  }
+  for (var f = 0; f < missingFields.length; f++) {
+    var field = missingFields[f];
+    var item2 = { name: _gapFormatLabel(field.missing), category: _gapFormatLabel(field.role) + (field.entity ? ' \\u00B7 ' + field.entity : ''), priority: 'MEDIUM', type: 'field' };
+    expected.push(item2);
+  }
+  for (var r = 0; r < missingRels.length; r++) {
+    enriching.push({ name: _gapFormatLabel(missingRels[r].expected), category: 'Relationship', priority: 'LOW', type: 'relationship' });
+  }
+
+  function renderMissingSection(title, items, color, bgColor, collapsed) {
+    if (items.length === 0) return '';
+    var s = '<div style="margin-bottom:12px;">';
+    s += '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">';
+    s += '<span style="width:8px;height:8px;border-radius:50%;background:' + color + ';flex-shrink:0;"></span>';
+    s += '<span style="font-size:12px;font-weight:600;color:' + color + ';text-transform:uppercase;letter-spacing:0.03em;">' + title + ' (' + items.length + ')</span>';
+    s += '</div>';
+    var showCount = collapsed ? 0 : Math.min(items.length, 5);
+    for (var i = 0; i < showCount; i++) {
+      var it = items[i];
+      s += '<div style="padding:8px 12px;border:1px solid #E5E7EB;border-radius:8px;margin-bottom:4px;background:#fff;">';
+      s += '<div style="font-size:13px;font-weight:500;color:#1A1A1A;">' + esc(it.name) + '</div>';
+      s += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px;">';
+      s += '<span style="font-size:11px;color:#9CA3AF;">' + esc(it.category) + '</span>';
+      s += '<button onclick="toast(\\'Request sent for ' + esc(it.name).replace(/'/g, '') + '\\')" style="padding:3px 8px;border:1px solid ' + color + ';border-radius:5px;background:none;font-size:10px;font-weight:600;color:' + color + ';cursor:pointer;">Request</button>';
+      s += '</div></div>';
+    }
+    if (items.length > 5) {
+      s += '<div style="text-align:center;padding:6px;"><span style="font-size:11px;color:' + color + ';cursor:pointer;font-weight:500;">+' + (items.length - 5) + ' more</span></div>';
+    }
+    if (collapsed && items.length > 0) {
+      s += '<div style="text-align:center;padding:8px;"><span onclick="this.parentElement.parentElement.querySelectorAll(\\'.enrich-item\\').forEach(function(e){e.style.display=\\'block\\'});this.style.display=\\'none\\'" style="font-size:11px;color:#6B7280;cursor:pointer;font-weight:500;">Show ' + items.length + ' enriching items</span></div>';
+    }
+    s += '</div>';
+    return s;
+  }
+
+  h += renderMissingSection('Blocking', blocking, '#DC2626', '#FEF2F2', false);
+  h += renderMissingSection('Expected', expected, '#D97706', '#FFFBEB', false);
+  h += renderMissingSection('Enriching', enriching, '#6B7280', '#F9FAFB', true);
+
+  // Found documents (compact)
+  var found = gapData.found_documents || [];
+  if (found.length > 0) {
+    h += '<div style="margin-top:16px;padding-top:12px;border-top:1px solid #E5E7EB;">';
+    h += '<div style="font-size:11px;font-weight:600;color:#059669;text-transform:uppercase;letter-spacing:0.03em;margin-bottom:8px;">\\u2713 Found (' + found.length + ')</div>';
+    for (var fd = 0; fd < Math.min(found.length, 5); fd++) {
+      h += '<div style="font-size:12px;color:#6B7280;padding:2px 0;display:flex;align-items:center;gap:4px;"><svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" style="width:10px;height:10px;"><polyline points="20 6 9 17 4 12"/></svg>' + esc(_gapFormatLabel(found[fd].item)) + '</div>';
+    }
+    if (found.length > 5) h += '<div style="font-size:11px;color:#9CA3AF;padding-top:4px;">+' + (found.length - 5) + ' more</div>';
+    h += '</div>';
+  }
+
+  return h;
+}
+
+// ===== TIMELINE (Collapsible) =====
+function _buildTimelineCollapsible(eventsData) {
+  var events = eventsData ? eventsData.events || [] : [];
+  var h = '';
+
+  h += '<div style="border:1px solid #E5E7EB;border-radius:12px;overflow:hidden;">';
+  h += '<div onclick="toggleMatterTimeline()" style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;cursor:pointer;background:#F9FAFB;transition:background 0.15s;" onmouseover="this.style.background=\\'#F3F4F6\\'" onmouseout="this.style.background=\\'#F9FAFB\\'">';
+  h += '<div style="display:flex;align-items:center;gap:8px;">';
+  h += '<svg viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" style="width:16px;height:16px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+  h += '<span style="font-size:13px;font-weight:600;color:#1A1A1A;text-transform:uppercase;letter-spacing:0.05em;">Timeline</span>';
+  h += '<span style="font-size:12px;color:#9CA3AF;">(' + events.length + ' events)</span>';
+  h += '</div>';
+  h += '<div style="display:flex;align-items:center;gap:8px;">';
+  h += '<button onclick="event.stopPropagation();showAddEventModal()" style="padding:4px 10px;border:1px solid #E5E7EB;border-radius:6px;background:#fff;font-size:11px;font-weight:600;color:#2563EB;cursor:pointer;">+ Add Event</button>';
+  h += '<svg id="timelineChevron" viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" style="width:16px;height:16px;transition:transform 0.2s;"><polyline points="6 9 12 15 18 9"/></svg>';
+  h += '</div></div>';
+
+  h += '<div id="timelineBody" style="display:none;padding:16px 20px;max-height:400px;overflow-y:auto;">';
+
+  if (events.length === 0) {
+    h += '<div style="text-align:center;padding:20px;color:#9CA3AF;font-size:13px;">No events yet. Click "+ Add Event" to track deadlines, filings, and more.</div>';
+  } else {
+    var typeColors = { medical_visit:'#3b82f6', payment:'#059669', court_date:'#dc2626', deadline:'#f59e0b', filing:'#2563EB', communication:'#6b7280', treatment:'#06b6d4', custom:'#374151' };
+    h += '<div style="position:relative;padding-left:28px;">';
+    h += '<div style="position:absolute;left:7px;top:4px;bottom:4px;width:2px;background:#E5E7EB;"></div>';
+
+    for (var e = 0; e < events.length; e++) {
+      var evt = events[e];
+      var color = typeColors[evt.type] || '#374151';
+      var evtDate = new Date(evt.date);
+      var dateStr = evtDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      var now = new Date();
+      var isOverdue = (evt.type === 'deadline' && evtDate < now);
+
+      h += '<div style="position:relative;margin-bottom:14px;">';
+      h += '<div style="position:absolute;left:-25px;top:4px;width:10px;height:10px;border-radius:50%;background:' + color + ';border:2px solid #fff;box-shadow:0 0 0 1px ' + color + ';"></div>';
+      h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;">';
+      h += '<div>';
+      h += '<span style="font-size:11px;color:#9CA3AF;">' + esc(dateStr) + '</span>';
+      h += '<div style="font-size:13px;font-weight:500;color:#1A1A1A;margin-top:2px;">';
+      h += '<span style="display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:600;background:' + color + '20;color:' + color + ';margin-right:6px;">' + esc(evt.type.replace(/_/g, ' ')) + '</span>';
+      h += esc(evt.title);
+      if (isOverdue) h += ' <span style="font-size:10px;color:#DC2626;font-weight:600;">OVERDUE</span>';
+      h += '</div>';
+      if (evt.description) h += '<div style="font-size:12px;color:#6B7280;margin-top:2px;">' + esc(evt.description) + '</div>';
+      h += '</div>';
+      h += '<div style="display:flex;gap:4px;flex-shrink:0;">';
+      h += '<button onclick="editTimelineEvent(\\'' + esc(evt.event_id) + '\\')" style="padding:3px 8px;border:1px solid #E5E7EB;border-radius:4px;background:#fff;font-size:10px;color:#6B7280;cursor:pointer;">Edit</button>';
+      h += '<button onclick="deleteTimelineEvent(\\'' + esc(evt.event_id) + '\\')" style="padding:3px 8px;border:1px solid #FECACA;border-radius:4px;background:#fff;font-size:10px;color:#DC2626;cursor:pointer;">Del</button>';
+      h += '</div></div></div>';
+    }
+    h += '</div>';
+  }
+
+  h += '</div></div>';
+  return h;
+}
+
+function toggleMatterTimeline() {
+  var body = document.getElementById('timelineBody');
+  var chevron = document.getElementById('timelineChevron');
+  if (!body) return;
+  if (body.style.display === 'none') {
+    body.style.display = 'block';
+    if (chevron) chevron.style.transform = 'rotate(180deg)';
+  } else {
+    body.style.display = 'none';
+    if (chevron) chevron.style.transform = '';
+  }
+}
+
+// ===== ACTION HANDLERS =====
+function handleMatterUpload(event) {
+  var files = event.target.files;
+  if (files && files.length > 0) uploadFilesToSpoke(files);
+}
+
+function matterViewGenerate() {
+  toast('Generating document...');
+  console.log('// TODO: wire to document generation endpoint', _selectedSpoke);
+}
+
+function showShareModal() {
+  api('GET', '/api/spoke/' + encodeURIComponent(_selectedSpoke) + '/shares').then(function(data) {
+    _spokeShares = data.shares || [];
+    var overlay = document.createElement('div');
+    overlay.id = 'shareModal';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:1000;';
+    overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+    var modal = document.createElement('div');
+    modal.style.cssText = 'background:#fff;border-radius:16px;padding:0;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.15);';
+    modal.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;padding:20px 24px;border-bottom:1px solid #E5E7EB;"><span style="font-size:16px;font-weight:600;color:#1A1A1A;">Share & Intake Links</span><button onclick="document.getElementById(\'shareModal\').remove()" style="border:none;background:none;font-size:20px;cursor:pointer;color:#6B7280;padding:4px;">&times;</button></div>' + '<div style="padding:4px;">' + _buildShareHtml() + '</div>';
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+  });
+}
+
+function matterApproveField(ri, ei, fi, evt) {
+  if (evt) evt.stopPropagation();
+  var row = document.getElementById('mf_' + ri + '_' + ei + '_' + fi);
+  if (row) row.style.opacity = '0.5';
+  reviewFieldWithAction(ri, ei, fi, 'approve');
+  setTimeout(function() {
+    if (_exportData) {
+      var dp = document.getElementById('matterDataPanel');
+      if (dp) dp.innerHTML = _buildDataPanel(_exportData, _gapData);
+    }
+  }, 1200);
+}
+
+function matterRejectField(ri, ei, fi, evt) {
+  if (evt) evt.stopPropagation();
+  promptRejectField(ri, ei, fi);
+  setTimeout(function() {
+    if (_exportData) {
+      var dp = document.getElementById('matterDataPanel');
+      if (dp) dp.innerHTML = _buildDataPanel(_exportData, _gapData);
+    }
+  }, 1500);
+}
+
+function matterEditField(ri, ei, fi, evt) {
+  if (evt) evt.stopPropagation();
+  // Get current value
+  var roles = _exportData ? _exportData.roles || [] : [];
+  if (!roles[ri] || !roles[ri].entities[ei] || !roles[ri].entities[ei].fields[fi]) return;
+  var f = roles[ri].entities[ei].fields[fi];
+  var valEl = document.getElementById('mfv_' + ri + '_' + ei + '_' + fi);
+  if (!valEl) return;
+  var currentVal = f.value || '';
+  valEl.innerHTML = '<input type="text" id="mfe_' + ri + '_' + ei + '_' + fi + '" value="' + esc(String(currentVal)) + '" style="width:100%;padding:4px 8px;border:1px solid #2563EB;border-radius:4px;font-size:13px;font-family:var(--font-sans);outline:none;" onkeydown="if(event.key===\\'Enter\\')matterSaveEdit(' + ri + ',' + ei + ',' + fi + ');if(event.key===\\'Escape\\')loadMatterViewData();" />';
+  var inp = document.getElementById('mfe_' + ri + '_' + ei + '_' + fi);
+  if (inp) { inp.focus(); inp.select(); }
+}
+
+function matterSaveEdit(ri, ei, fi) {
+  var inp = document.getElementById('mfe_' + ri + '_' + ei + '_' + fi);
+  if (!inp) return;
+  var newVal = inp.value.trim();
+  if (!newVal) return;
+  reviewFieldWithAction(ri, ei, fi, 'correct', newVal);
+  setTimeout(function() {
+    if (_exportData) {
+      var dp = document.getElementById('matterDataPanel');
+      if (dp) dp.innerHTML = _buildDataPanel(_exportData, _gapData);
+    }
+  }, 1200);
+}
+
+function matterBulkApprove() {
+  if (!_exportData) return;
+  var roles = _exportData.roles || [];
+  var count = 0;
+  for (var ri = 0; ri < roles.length; ri++) {
+    for (var ei = 0; ei < (roles[ri].entities || []).length; ei++) {
+      for (var fi = 0; fi < (roles[ri].entities[ei].fields || []).length; fi++) {
+        var f = roles[ri].entities[ei].fields[fi];
+        if (f.value && f.confidence >= 0.85 && f.status !== 'verified' && (!f.review || f.review.status !== 'approved')) {
+          reviewFieldWithAction(ri, ei, fi, 'approve');
+          count++;
+        }
+      }
+    }
+  }
+  toast(count + ' fields approved');
+  setTimeout(function() { loadMatterViewData(); }, 2000);
+}
+
 
 // ---------------------------------------------------------------------------
 // Build 17: Timeline Tab UI
@@ -18289,8 +18848,10 @@ function uploadFilesToSpoke(files) {
     body: formData
   }).then(function(r) { return r.json(); }).then(function(data) {
     toast('Upload complete! ' + (data.clusters_created || 0) + ' signals created.');
-    // Refresh documents tab
-    if (_activeClientTab === 'documents') {
+    // Refresh matter view panels (Build 26) or legacy documents tab
+    if (document.getElementById('matter-doc-panel')) {
+      loadMatterViewData();
+    } else if (_activeClientTab === 'documents') {
       loadClientTabContent('documents');
     }
     refreshReviewQueueBadge();
