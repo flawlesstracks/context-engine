@@ -8060,12 +8060,12 @@ app.get('/admin/migrate', (req, res) => {
   .stat-label { color: #666; }
   .stat-value { font-weight: 600; }
   .btn { display: inline-block; padding: 10px 24px; border-radius: 6px; border: none; font-size: 0.95rem; font-weight: 600; cursor: pointer; }
-  .btn-primary { background: #6366f1; color: white; }
+  .btn-primary { background: #2563EB; color: white; }
   .btn-primary:hover { background: #5558e6; }
   .btn-primary:disabled { background: #ccc; cursor: not-allowed; }
   .progress { margin-top: 16px; display: none; }
   .progress-bar { height: 8px; background: #e0e0e0; border-radius: 4px; overflow: hidden; }
-  .progress-fill { height: 100%; background: #6366f1; transition: width 0.3s; width: 0%; }
+  .progress-fill { height: 100%; background: #2563EB; transition: width 0.3s; width: 0%; }
   .progress-text { font-size: 0.85rem; color: #666; margin-top: 8px; }
   .results { margin-top: 16px; display: none; }
   .results pre { background: #f8f8f8; padding: 12px; border-radius: 6px; font-size: 0.82rem; overflow-x: auto; white-space: pre-wrap; }
@@ -8276,7 +8276,7 @@ const HTML = `<!DOCTYPE html>
   }
 
   h1 span {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6, #a78bfa);
+    background: linear-gradient(135deg, #2563EB, #3B82F6, #a78bfa);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
@@ -8357,12 +8357,12 @@ const HTML = `<!DOCTYPE html>
   }
 
   .btn-person {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    background: linear-gradient(135deg, #2563EB, #3B82F6);
     color: white;
   }
 
   .btn-person:hover:not(:disabled) {
-    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    background: linear-gradient(135deg, #4f46e5, #1D4ED8);
     transform: translateY(-1px);
     box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
   }
@@ -8417,7 +8417,7 @@ const HTML = `<!DOCTYPE html>
     width: 32px;
     height: 32px;
     border: 3px solid #1e1e2e;
-    border-top-color: #8b5cf6;
+    border-top-color: #3B82F6;
     border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
@@ -8451,7 +8451,7 @@ const HTML = `<!DOCTYPE html>
   .stat-label { color: #6b7280; }
 
   /* JSON syntax highlighting */
-  .json-key { color: #8b5cf6; }
+  .json-key { color: #3B82F6; }
   .json-string { color: #34d399; }
   .json-number { color: #f59e0b; }
   .json-bool { color: #f472b6; }
@@ -8488,7 +8488,7 @@ const HTML = `<!DOCTYPE html>
 
   .entity-id {
     font-size: 0.7rem;
-    color: #6366f1;
+    color: #2563EB;
     font-family: monospace;
     background: rgba(99,102,241,0.1);
     padding: 2px 8px;
@@ -8527,7 +8527,7 @@ const HTML = `<!DOCTYPE html>
   }
 
   .item-key {
-    color: #8b5cf6;
+    color: #3B82F6;
     font-weight: 600;
     min-width: 70px;
   }
@@ -8608,7 +8608,7 @@ const HTML = `<!DOCTYPE html>
   }
 
   .view-btn.active {
-    border-color: #8b5cf6;
+    border-color: #3B82F6;
     color: #a78bfa;
   }
 
@@ -8626,7 +8626,7 @@ const HTML = `<!DOCTYPE html>
   }
 
   .provenance code {
-    color: #6366f1;
+    color: #2563EB;
     font-size: 0.7rem;
   }
 
@@ -8639,7 +8639,7 @@ const HTML = `<!DOCTYPE html>
   }
 
   .btn-sample:hover:not(:disabled) {
-    border-color: #8b5cf6;
+    border-color: #3B82F6;
     color: #a78bfa;
   }
 
@@ -8658,7 +8658,7 @@ const HTML = `<!DOCTYPE html>
   }
 
   .btn-action:hover:not(:disabled) {
-    border-color: #8b5cf6;
+    border-color: #3B82F6;
     color: #a78bfa;
   }
 
@@ -8956,7 +8956,7 @@ function buildStructuredView(data) {
       html += '<div class="constraint-name">' + esc(c.type || c.constraint_id || '') + '</div>';
       html += '<div class="constraint-desc">' + esc(c.description || '') + '</div>';
       if (c.linked_entities && c.linked_entities.length > 0) {
-        html += '<div class="constraint-desc" style="margin-top:4px;color:#6366f1;">Linked: ' + c.linked_entities.map(function(le) { return esc(le); }).join(', ') + '</div>';
+        html += '<div class="constraint-desc" style="margin-top:4px;color:#2563EB;">Linked: ' + c.linked_entities.map(function(le) { return esc(le); }).join(', ') + '</div>';
       }
       html += '</div>';
     });
@@ -9073,7 +9073,7 @@ const INGEST_HTML = `<!DOCTYPE html>
   header { text-align: center; margin-bottom: 48px; }
   h1 { font-size: 2.2rem; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
   h1 span {
-    background: linear-gradient(135deg, #6366f1, #8b5cf6, #a78bfa);
+    background: linear-gradient(135deg, #2563EB, #3B82F6, #a78bfa);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
   }
@@ -9094,7 +9094,7 @@ const INGEST_HTML = `<!DOCTYPE html>
     border: 1px solid #1e1e2e; border-radius: 8px; color: #e0e0e0;
     font-size: 0.9rem; outline: none; font-family: 'SF Mono', 'Fira Code', monospace;
   }
-  .field input:focus { border-color: #6366f1; }
+  .field input:focus { border-color: #2563EB; }
 
   .drop-zone {
     border: 2px dashed #2a2a3e; border-radius: 12px;
@@ -9102,7 +9102,7 @@ const INGEST_HTML = `<!DOCTYPE html>
     transition: all 0.2s; background: #12121a; margin-bottom: 24px;
   }
   .drop-zone:hover, .drop-zone.dragover {
-    border-color: #6366f1; background: rgba(99, 102, 241, 0.05);
+    border-color: #2563EB; background: rgba(99, 102, 241, 0.05);
   }
   .drop-zone.has-file {
     border-color: #34d399; background: rgba(52, 211, 153, 0.05);
@@ -9118,7 +9118,7 @@ const INGEST_HTML = `<!DOCTYPE html>
   .btn {
     width: 100%; padding: 14px; border: none; border-radius: 8px;
     font-size: 1rem; font-weight: 600; cursor: pointer;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white;
+    background: linear-gradient(135deg, #2563EB, #3B82F6); color: white;
     transition: all 0.2s;
   }
   .btn:hover:not(:disabled) {
@@ -9134,7 +9134,7 @@ const INGEST_HTML = `<!DOCTYPE html>
     border-radius: 4px; overflow: hidden; margin-bottom: 12px;
   }
   .progress-bar {
-    height: 100%; background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    height: 100%; background: linear-gradient(90deg, #2563EB, #3B82F6);
     border-radius: 4px; transition: width 0.3s; width: 0%;
   }
   .progress-text { font-size: 0.85rem; color: #9ca3af; }
@@ -9479,13 +9479,13 @@ function renderSharedProfilePage(entity, share) {
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8f9fa; color: #1a1a2e; min-height: 100vh; }
-  .sp-header { background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 48px 24px 36px; text-align: center; color: #fff; }
+  .sp-header { background: linear-gradient(135deg, #2563EB, #3B82F6); padding: 48px 24px 36px; text-align: center; color: #fff; }
   .sp-avatar { width: 80px; height: 80px; border-radius: 50%; background: rgba(255,255,255,0.2); display: inline-flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: 700; margin-bottom: 16px; border: 3px solid rgba(255,255,255,0.3); }
   .sp-name { font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; }
   .sp-subtitle { font-size: 0.95rem; opacity: 0.85; }
   .sp-body { max-width: 640px; margin: -20px auto 40px; padding: 0 16px; }
   .sp-section { background: #fff; border-radius: 10px; padding: 24px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
-  .sp-section h2 { font-size: 1rem; font-weight: 600; color: #6366f1; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.8rem; }
+  .sp-section h2 { font-size: 1rem; font-weight: 600; color: #2563EB; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.8rem; }
   .sp-section > p { font-size: 0.92rem; line-height: 1.7; color: #475569; }
   .sp-card { padding: 12px 0; border-bottom: 1px solid #f1f5f9; }
   .sp-card:last-child { border-bottom: none; padding-bottom: 0; }
@@ -9495,7 +9495,7 @@ function renderSharedProfilePage(entity, share) {
   .sp-card-meta { font-size: 0.78rem; color: #94a3b8; margin-top: 2px; }
   .sp-card-desc { font-size: 0.85rem; color: #64748b; margin-top: 6px; line-height: 1.5; }
   .sp-skills { display: flex; flex-wrap: wrap; gap: 8px; }
-  .sp-skill-tag { display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 500; background: #ede9fe; color: #6366f1; }
+  .sp-skill-tag { display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 500; background: #EFF6FF; color: #2563EB; }
   .sp-footer { text-align: center; padding: 24px; font-size: 0.75rem; color: #94a3b8; }
   @media (max-width: 600px) {
     .sp-header { padding: 32px 16px 28px; }
@@ -9603,7 +9603,7 @@ function renderPortalCompleteness(gapData) {
     h += `<h3 style="font-size:0.85rem;font-weight:600;color:#7C3AED;margin:0 0 12px;">Missing Relationships (${missingRels.length})</h3>`;
     h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:8px;">';
     for (const rel of missingRels) {
-      h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;font-size:0.82rem;">';
+      h += '<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#EFF6FF;border:1px solid #ddd6fe;border-radius:8px;font-size:0.82rem;">';
       h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="1.5"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>';
       h += `<span>${escHtml(_portalFormatLabel(rel.expected))}</span></div>`;
     }
@@ -9667,7 +9667,7 @@ function renderPortalExport(exportData, spoke, token) {
     if (isOrg) {
       h += '<div style="width:28px;height:28px;border-radius:6px;background:#dbeafe;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>';
     } else {
-      h += '<div style="width:28px;height:28px;border-radius:6px;background:#ede9fe;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg></div>';
+      h += '<div style="width:28px;height:28px;border-radius:6px;background:#EFF6FF;display:flex;align-items:center;justify-content:center;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M6 21v-2a4 4 0 014-4h4a4 4 0 014 4v2"/></svg></div>';
     }
     h += `<span style="font-weight:600;font-size:0.9rem;flex:1;">${escHtml(_portalFormatLabel(role.role))}</span>`;
     h += `<span style="font-size:0.78rem;color:${allComplete ? '#16A34A' : '#6B7280'};font-weight:600;">${roleVerified}/${roleTotal} fields</span>`;
@@ -9707,7 +9707,7 @@ function renderPortalExport(exportData, spoke, token) {
           h += '</span></div>';
           // Evidence expansion area
           if (f.provenance && f.provenance.snippet) {
-            h += '<div style="display:none;padding:8px 12px;margin:4px 0 4px 140px;background:#f8f9fa;border-radius:6px;font-size:0.78rem;border-left:3px solid #6366f1;">';
+            h += '<div style="display:none;padding:8px 12px;margin:4px 0 4px 140px;background:#f8f9fa;border-radius:6px;font-size:0.78rem;border-left:3px solid #2563EB;">';
             h += `<div style="color:#475569;font-style:italic;">&ldquo;${escHtml(f.provenance.snippet)}&rdquo;</div>`;
             if (f.provenance.location) h += `<div style="color:#94a3b8;margin-top:4px;">Location: ${escHtml(f.provenance.location)}</div>`;
             h += '</div>';
@@ -9736,14 +9736,14 @@ function renderPortalFiles(files, spokeId, token) {
       const downloadUrl = `/api/spoke/${encodeURIComponent(spokeId)}/file/${encodeURIComponent(file.file_id)}?token=${encodeURIComponent(token)}`;
 
       h += '<div style="display:flex;align-items:center;gap:12px;padding:14px 16px;border:1px solid #e5e5ea;border-radius:10px;transition:border-color 0.15s;">';
-      h += '<div style="width:36px;height:36px;border-radius:8px;background:#ede9fe;display:flex;align-items:center;justify-content:center;flex-shrink:0;">';
-      h += '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>';
+      h += '<div style="width:36px;height:36px;border-radius:8px;background:#EFF6FF;display:flex;align-items:center;justify-content:center;flex-shrink:0;">';
+      h += '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>';
       h += '<div style="flex:1;min-width:0;">';
       h += `<div style="font-size:0.85rem;font-weight:600;color:#1a1a2e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(file.original_name || file.file_id)}</div>`;
       const meta = [size, date].filter(Boolean).join(' · ');
       if (meta) h += `<div style="font-size:0.75rem;color:#94a3b8;margin-top:2px;">${escHtml(meta)}</div>`;
       h += '</div>';
-      h += `<a href="${downloadUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:#6366f1;color:#fff;border-radius:6px;font-size:0.78rem;font-weight:600;text-decoration:none;white-space:nowrap;">`;
+      h += `<a href="${downloadUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;padding:6px 12px;background:#2563EB;color:#fff;border-radius:6px;font-size:0.78rem;font-weight:600;text-decoration:none;white-space:nowrap;">`;
       h += '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
       h += ' Download</a>';
       h += '</div>';
@@ -9761,11 +9761,11 @@ function renderPortalUploadZone(clientName, token) {
   <h2 style="font-size:1rem;font-weight:700;color:#1a1a2e;margin:0 0 6px;">Upload Documents</h2>
   <p style="font-size:0.85rem;color:#6B7280;margin:0 0 20px;">Upload documents for ${escHtml(clientName)}. Supported formats: PDF, DOCX, XLSX, CSV, TXT, JSON.</p>
   <div id="portalDropzone" style="border:2px dashed #d1d5db;border-radius:12px;padding:40px 24px;text-align:center;cursor:pointer;transition:all 0.2s;background:#fafafe;"
-    ondragover="event.preventDefault();this.style.borderColor='#6366f1';this.style.background='#f0f0ff';"
+    ondragover="event.preventDefault();this.style.borderColor='#2563EB';this.style.background='#f0f0ff';"
     ondragleave="this.style.borderColor='#d1d5db';this.style.background='#fafafe';"
     ondrop="event.preventDefault();this.style.borderColor='#d1d5db';this.style.background='#fafafe';portalUploadFiles(event.dataTransfer.files);"
     onclick="document.getElementById('portalFileInput').click();">
-    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5" style="margin-bottom:12px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.5" style="margin-bottom:12px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
     <div style="font-size:0.95rem;font-weight:600;color:#333;margin-bottom:4px;">Drop files here or click to browse</div>
     <div style="font-size:0.8rem;color:#94a3b8;">Up to 20 files, 50MB each</div>
     <input type="file" id="portalFileInput" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.json" style="display:none;" onchange="portalUploadFiles(this.files);">
@@ -9819,14 +9819,14 @@ function renderSharedClientPortal(spoke, gapData, exportData, files, share) {
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8f9fa; color: #1a1a2e; min-height: 100vh; }
-  .portal-header { background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 48px 24px 36px; text-align: center; color: #fff; }
+  .portal-header { background: linear-gradient(135deg, #2563EB, #3B82F6); padding: 48px 24px 36px; text-align: center; color: #fff; }
   .portal-logo { width: 44px; height: 44px; border-radius: 10px; background: rgba(255,255,255,0.2); display: inline-flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 800; margin-bottom: 14px; border: 2px solid rgba(255,255,255,0.3); letter-spacing: -0.5px; }
   .portal-name { font-size: 1.6rem; font-weight: 700; margin-bottom: 8px; }
   .portal-meta { display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 0.85rem; opacity: 0.85; flex-wrap: wrap; }
   .portal-badge { display: inline-block; padding: 3px 10px; background: rgba(255,255,255,0.2); border-radius: 12px; font-size: 0.78rem; font-weight: 600; }
   .portal-body { max-width: 800px; margin: -20px auto 40px; padding: 0 16px; }
   .portal-footer { text-align: center; padding: 32px 24px; font-size: 0.75rem; color: #94a3b8; }
-  .portal-footer a { color: #6366f1; text-decoration: none; }
+  .portal-footer a { color: #2563EB; text-decoration: none; }
   @media (max-width: 600px) {
     .portal-header { padding: 32px 16px 28px; }
     .portal-name { font-size: 1.3rem; }
@@ -10239,7 +10239,7 @@ function renderSmartFormPage(spoke, template, sections, savedState, shareToken) 
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#f8f9fa; color:#1a1a2e; min-height:100vh; }
-.form-header { background:linear-gradient(135deg,#6366f1,#8b5cf6); padding:36px 24px 28px; text-align:center; color:#fff; }
+.form-header { background:linear-gradient(135deg,#2563EB,#3B82F6); padding:36px 24px 28px; text-align:center; color:#fff; }
 .form-logo { width:40px; height:40px; border-radius:10px; background:rgba(255,255,255,0.2); display:inline-flex; align-items:center; justify-content:center; font-size:1rem; font-weight:800; margin-bottom:12px; border:2px solid rgba(255,255,255,0.3); }
 .form-title { font-size:1.4rem; font-weight:700; margin-bottom:6px; }
 .form-sub { font-size:0.85rem; opacity:0.85; }
@@ -10255,25 +10255,25 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
 .field-label { display:block; font-size:0.85rem; font-weight:600; color:#374151; margin-bottom:6px; }
 .field-required { color:#dc2626; margin-left:2px; }
 .field-input { width:100%; padding:11px 14px; border:1.5px solid #d1d5db; border-radius:10px; font-size:0.95rem; outline:none; transition:border-color 0.2s; font-family:inherit; background:#fff; }
-.field-input:focus { border-color:#6366f1; box-shadow:0 0 0 3px rgba(99,102,241,0.1); }
+.field-input:focus { border-color:#2563EB; box-shadow:0 0 0 3px rgba(99,102,241,0.1); }
 .field-input.filled { border-color:#059669; background:#f0fdf4; }
 select.field-input { -webkit-appearance:none; appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; }
 .field-toggle { display:flex; align-items:center; gap:10px; }
 .toggle-switch { width:44px; height:24px; background:#d1d5db; border-radius:12px; position:relative; cursor:pointer; transition:background 0.2s; }
-.toggle-switch.on { background:#6366f1; }
+.toggle-switch.on { background:#2563EB; }
 .toggle-switch::after { content:''; position:absolute; width:20px; height:20px; background:#fff; border-radius:50%; top:2px; left:2px; transition:transform 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.2); }
 .toggle-switch.on::after { transform:translateX(20px); }
 .ssn-container { position:relative; }
-.ssn-toggle { position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:#6366f1; font-size:0.8rem; cursor:pointer; font-weight:600; }
+.ssn-toggle { position:absolute; right:12px; top:50%; transform:translateY(-50%); background:none; border:none; color:#2563EB; font-size:0.8rem; cursor:pointer; font-weight:600; }
 .address-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
 .address-grid .full-width { grid-column:1/-1; }
 .upload-zone { border:2px dashed #d1d5db; border-radius:10px; padding:20px; text-align:center; cursor:pointer; transition:border-color 0.2s,background 0.2s; margin-top:8px; }
-.upload-zone:hover { border-color:#6366f1; background:rgba(99,102,241,0.03); }
+.upload-zone:hover { border-color:#2563EB; background:rgba(99,102,241,0.03); }
 .upload-zone-label { font-size:0.85rem; color:#6b7280; margin-top:6px; }
 .nav-buttons { position:fixed; bottom:0; left:0; right:0; background:#fff; padding:14px 16px; border-top:1px solid #e5e7eb; display:flex; gap:10px; max-width:600px; margin:0 auto; z-index:10; }
 .nav-btn { flex:1; padding:12px; border:none; border-radius:10px; font-size:0.95rem; font-weight:600; cursor:pointer; transition:opacity 0.2s; }
 .nav-prev { background:#f3f4f6; color:#374151; }
-.nav-next { background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; }
+.nav-next { background:linear-gradient(135deg,#2563EB,#3B82F6); color:#fff; }
 .nav-next:disabled { opacity:0.5; cursor:not-allowed; }
 .nav-submit { background:linear-gradient(135deg,#059669,#10b981); color:#fff; }
 .submitted-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; z-index:100; }
@@ -10341,7 +10341,7 @@ function renderSection(idx) {
 
     if (sec.allows_upload) {
       html += '<div class="upload-zone" onclick="triggerUpload(\\'' + esc(sec.section_id) + '\\')">';
-      html += '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
+      html += '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
       html += '<div class="upload-zone-label">' + esc(sec.title) + ' — drag file here or tap to upload</div>';
       html += '</div>';
       html += '<input type="file" id="upload-' + esc(sec.section_id) + '" style="display:none" multiple onchange="handleFormUpload(event)" />';
@@ -10999,7 +10999,7 @@ function renderChatPage(spoke, template, totalFields, requiredFields, shareToken
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#f8f9fa; color:#1a1a2e; height:100vh; display:flex; flex-direction:column; }
-.chat-header { background:linear-gradient(135deg,#6366f1,#8b5cf6); padding:20px 16px 14px; color:#fff; flex-shrink:0; }
+.chat-header { background:linear-gradient(135deg,#2563EB,#3B82F6); padding:20px 16px 14px; color:#fff; flex-shrink:0; }
 .chat-header-row { display:flex; align-items:center; gap:12px; }
 .chat-logo { width:36px; height:36px; border-radius:10px; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.9rem; border:2px solid rgba(255,255,255,0.3); }
 .chat-title { font-size:1.1rem; font-weight:700; }
@@ -11011,7 +11011,7 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
 .chat-messages { flex:1; overflow-y:auto; padding:16px; display:flex; flex-direction:column; gap:12px; }
 .msg { max-width:85%; padding:12px 16px; border-radius:16px; font-size:0.93rem; line-height:1.5; word-wrap:break-word; }
 .msg-ai { background:#fff; align-self:flex-start; border-bottom-left-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
-.msg-user { background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; align-self:flex-end; border-bottom-right-radius:4px; }
+.msg-user { background:linear-gradient(135deg,#2563EB,#3B82F6); color:#fff; align-self:flex-end; border-bottom-right-radius:4px; }
 .msg-typing { background:#fff; align-self:flex-start; border-bottom-left-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.06); }
 .typing-dots { display:flex; gap:4px; padding:4px 0; }
 .typing-dots span { width:8px; height:8px; background:#c4b5fd; border-radius:50%; animation:dotPulse 1.2s infinite; }
@@ -11020,8 +11020,8 @@ body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif
 @keyframes dotPulse { 0%,80%,100% { opacity:0.3; transform:scale(0.8); } 40% { opacity:1; transform:scale(1); } }
 .chat-input-bar { flex-shrink:0; background:#fff; border-top:1px solid #e5e7eb; padding:10px 12px; display:flex; gap:8px; align-items:flex-end; }
 .chat-input { flex:1; padding:10px 14px; border:1.5px solid #d1d5db; border-radius:20px; font-size:0.93rem; outline:none; resize:none; max-height:120px; font-family:inherit; line-height:1.4; }
-.chat-input:focus { border-color:#6366f1; }
-.chat-send { width:40px; height:40px; border:none; border-radius:50%; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.chat-input:focus { border-color:#2563EB; }
+.chat-send { width:40px; height:40px; border:none; border-radius:50%; background:linear-gradient(135deg,#2563EB,#3B82F6); color:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .chat-send:disabled { opacity:0.4; cursor:not-allowed; }
 .chat-mic { width:40px; height:40px; border:none; border-radius:50%; background:#f3f4f6; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .chat-mic.recording { background:#fee2e2; animation:micPulse 1.5s infinite; }
@@ -11211,45 +11211,48 @@ const WIKI_HTML = `<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Context Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
     /* Backgrounds */
-    --bg-primary: #f5f5f7;
-    --bg-secondary: #ffffff;
-    --bg-card: #ffffff;
-    --bg-elevated: #ffffff;
-    --bg-hover: rgba(99,102,241,0.05);
-    --bg-active: rgba(99,102,241,0.08);
-    --bg-input: #f5f5f7;
-    --bg-tertiary: #eeeef0;
+    --bg-primary: #FAFAF9;
+    --bg-secondary: #FFFFFF;
+    --bg-card: #FFFFFF;
+    --bg-elevated: #FFFFFF;
+    --bg-hover: rgba(37,99,235,0.05);
+    --bg-active: rgba(37,99,235,0.08);
+    --bg-input: #FAFAF9;
+    --bg-tertiary: #F5F5F4;
 
     /* Borders */
-    --border-primary: #e5e5ea;
-    --border-subtle: #f0f0f2;
-    --border-focus: #6366f1;
+    --border-primary: #E5E7EB;
+    --border-subtle: #F3F4F6;
+    --border-focus: #2563EB;
 
     /* Text */
-    --text-primary: #1a1a1a;
-    --text-secondary: #4b5563;
-    --text-tertiary: #6b7280;
-    --text-muted: #9ca3af;
-    --text-faint: #d1d5db;
+    --text-primary: #1A1A1A;
+    --text-secondary: #6B7280;
+    --text-tertiary: #9CA3AF;
+    --text-muted: #9CA3AF;
+    --text-faint: #D1D5DB;
 
     /* Accents */
-    --accent-primary: #6366f1;
-    --accent-secondary: #7c3aed;
-    --accent-tertiary: #8b5cf6;
-    --accent-light: #6366f1;
-    --accent-gradient: linear-gradient(135deg, #6366f1, #8b5cf6);
+    --accent-primary: #2563EB;
+    --accent-secondary: #1D4ED8;
+    --accent-tertiary: #3B82F6;
+    --accent-light: #2563EB;
+    --accent-gradient: linear-gradient(135deg, #2563EB, #3B82F6);
 
     /* Status */
     --success: #059669;
     --success-bg: rgba(5,150,105,0.08);
-    --warning: #d97706;
+    --warning: #D97706;
     --warning-bg: rgba(217,119,6,0.08);
-    --error: #dc2626;
+    --error: #DC2626;
     --error-bg: rgba(220,38,38,0.06);
-    --info: #2563eb;
+    --info: #2563EB;
     --info-bg: rgba(37,99,235,0.06);
 
     /* Layout */
@@ -11267,8 +11270,9 @@ const WIKI_HTML = `<!DOCTYPE html>
     --transition-normal: 0.2s ease;
 
     /* Typography */
-    --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --font-mono: 'SF Mono', 'Fira Code', 'JetBrains Mono', monospace;
+    --font-display: 'Instrument Serif', serif;
+    --font-sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -11361,7 +11365,8 @@ const WIKI_HTML = `<!DOCTYPE html>
     width: var(--sidebar-width); min-width: var(--sidebar-width);
     border: 0; outline: 0; box-shadow: none;
     display: flex; flex-direction: column;
-    background: #fafafa;
+    background: var(--bg-primary);
+    border-right: 1px solid var(--border-primary);
   }
 
   /* --- Sidebar Brand --- */
@@ -11394,7 +11399,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     color: #666; font-size: 10px; gap: 3px;
     transition: background 0.15s;
   }
-  .sidebar-utility-link:hover { background: #f0f0f0; }
+  .sidebar-utility-link:hover { background: var(--bg-tertiary); }
   .sidebar-utility-link svg { width: 20px; height: 20px; }
 
   /* --- Sidebar Search (togglable) --- */
@@ -11498,10 +11503,10 @@ const WIKI_HTML = `<!DOCTYPE html>
   }
   .sb-template-item:hover { background: #f0f0f0; }
   .sb-template-item.active {
-    font-weight: 600; border-left-color: #7c3aed; color: #7c3aed;
+    font-weight: 600; border-left-color: #1D4ED8; color: #1D4ED8;
   }
   .sb-template-item svg { width: 14px; height: 14px; color: #999; flex-shrink: 0; }
-  .sb-template-item.active svg { color: #7c3aed; }
+  .sb-template-item.active svg { color: #1D4ED8; }
 
   /* --- Add Item Button (shared) --- */
   .sb-add-btn {
@@ -11690,7 +11695,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     color: #9ca3af; text-decoration: none; cursor: pointer;
     transition: color 0.15s;
   }
-  .client-breadcrumb a:hover { color: #6366f1; }
+  .client-breadcrumb a:hover { color: #2563EB; }
   .client-breadcrumb .cb-sep {
     color: #d1d5db; margin: 0 8px; font-size: 12px;
   }
@@ -11770,13 +11775,13 @@ const WIKI_HTML = `<!DOCTYPE html>
     text-transform: uppercase; letter-spacing: 0.04em;
     vertical-align: middle; margin-left: 6px;
   }
-  .type-badge.person { background: rgba(99,102,241,0.1); color: #6366f1; }
+  .type-badge.person { background: rgba(99,102,241,0.1); color: #2563EB; }
   .type-badge.business { background: rgba(14,165,233,0.1); color: #0284c7; }
   .type-badge.role { background: rgba(59,130,246,0.1); color: #2563eb; }
   .type-badge.organization { background: rgba(34,197,94,0.1); color: #16a34a; }
   .type-badge.credential { background: rgba(245,158,11,0.1); color: #d97706; }
   .type-badge.skill { background: rgba(20,184,166,0.1); color: #0d9488; }
-  .type-badge.institution { background: rgba(168,85,247,0.1); color: #7c3aed; }
+  .type-badge.institution { background: rgba(168,85,247,0.1); color: #1D4ED8; }
 
   /* --- Main Panel --- */
   #main {
@@ -11859,7 +11864,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     display: inline-flex; align-items: center; justify-content: center;
     font-size: 12px; font-weight: 700; color: #fff; padding: 0 6px;
   }
-  .pp-section.collect .pp-badge { background: #7c3aed; }
+  .pp-section.collect .pp-badge { background: #1D4ED8; }
   .pp-section.review .pp-badge { background: #f59e0b; }
   .pp-section.confirm .pp-badge { background: #10b981; }
   .pp-chevron { font-size: 12px; color: #999; transition: transform 0.15s; margin-left: 6px; }
@@ -11875,7 +11880,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     min-height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 6px;
   }
-  .pp-dropzone:hover, .pp-dropzone.dragover { border-color: #7c3aed; background: #f5f3ff; color: #7c3aed; }
+  .pp-dropzone:hover, .pp-dropzone.dragover { border-color: #1D4ED8; background: #EFF6FF; color: #1D4ED8; }
   .pp-dropzone .pp-drop-icon { font-size: 32px; color: #ccc; margin-bottom: 4px; }
   .pp-dropzone .pp-drop-sub { font-size: 13px; color: #bbb; }
   .pp-files-header {
@@ -11895,10 +11900,10 @@ const WIKI_HTML = `<!DOCTYPE html>
     flex: 3; padding: 10px 12px; font-size: 15px; border: 1px solid #ddd;
     border-radius: 6px; outline: none; min-width: 0;
   }
-  .pp-url-input:focus { border-color: #7c3aed; }
+  .pp-url-input:focus { border-color: #1D4ED8; }
   .pp-url-btn {
     flex: 1; padding: 10px 14px; font-size: 14px; font-weight: 600;
-    background: #7c3aed; color: #fff; border: none; border-radius: 6px;
+    background: #1D4ED8; color: #fff; border: none; border-radius: 6px;
     cursor: pointer; white-space: nowrap;
   }
   .pp-url-btn:hover { background: #6d28d9; }
@@ -11927,7 +11932,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     width: 14px; height: 14px; border-radius: 50%; background: #fff;
     transition: transform 0.2s;
   }
-  .pp-toggle.on { background: #7c3aed; }
+  .pp-toggle.on { background: #1D4ED8; }
   .pp-toggle.on::after { transform: translateX(14px); }
 
   /* Review section */
@@ -12702,7 +12707,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     color: var(--text-muted); text-decoration: none; cursor: pointer;
     transition: color 0.15s;
   }
-  .breadcrumb-bar a:hover { color: #6366f1; }
+  .breadcrumb-bar a:hover { color: #2563EB; }
   .breadcrumb-sep {
     margin: 0 6px; color: var(--text-muted); font-size: 0.7rem;
   }
@@ -12726,7 +12731,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     border-radius: var(--radius-md); padding: 14px 16px; cursor: pointer;
     transition: all var(--transition-fast); position: relative;
   }
-  .cat-card:hover { border-color: #6366f1; box-shadow: 0 2px 8px rgba(99,102,241,0.1); }
+  .cat-card:hover { border-color: #2563EB; box-shadow: 0 2px 8px rgba(99,102,241,0.1); }
   .cat-card-name { font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
   .cat-card-subtitle { font-size: 0.82rem; color: #555555; margin-bottom: 6px; }
   .cat-card-summary { font-size: 0.8rem; color: var(--text-secondary); line-height: 1.4; }
@@ -12852,7 +12857,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   }
   .btn-merge { background: #22c55e; color: #fff; border-color: #22c55e; }
   .btn-merge:hover { background: #16a34a; }
-  .btn-create-entity { background: #6366f1; color: #fff; border-color: #6366f1; }
+  .btn-create-entity { background: #2563EB; color: #fff; border-color: #2563EB; }
   .btn-create-entity:hover { background: #4f46e5; }
   .btn-add-source { background: #f59e0b; color: #fff; border-color: #f59e0b; }
   .btn-add-source:hover { background: #d97706; }
@@ -13141,9 +13146,9 @@ const WIKI_HTML = `<!DOCTYPE html>
     white-space: nowrap;
   }
   .rel-type-badge.friend { background: rgba(59,130,246,0.1); color: #2563eb; }
-  .rel-type-badge.colleague { background: rgba(99,102,241,0.1); color: #6366f1; }
+  .rel-type-badge.colleague { background: rgba(99,102,241,0.1); color: #2563EB; }
   .rel-type-badge.family { background: rgba(236,72,153,0.1); color: #ec4899; }
-  .rel-type-badge.mentor { background: rgba(168,85,247,0.1); color: #7c3aed; }
+  .rel-type-badge.mentor { background: rgba(168,85,247,0.1); color: #1D4ED8; }
   .rel-type-badge.default { background: rgba(107,114,128,0.1); color: var(--text-tertiary); }
 
   /* --- Source Attribution --- */
@@ -13190,7 +13195,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   .rq-stat-num {
     font-size: 1.3rem; font-weight: 700; letter-spacing: -0.02em;
   }
-  .rq-stat-num.unresolved { color: #6366f1; }
+  .rq-stat-num.unresolved { color: #2563EB; }
   .rq-stat-num.provisional { color: #f59e0b; }
   .rq-stat-num.ready { color: #22c55e; }
   .rq-stat-label {
@@ -13263,7 +13268,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   }
   .rq-btn-create { background: #22c55e; color: #fff; }
   .rq-btn-create:hover { background: #16a34a; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(34,197,94,0.3); }
-  .rq-btn-merge { background: #6366f1; color: #fff; }
+  .rq-btn-merge { background: #2563EB; color: #fff; }
   .rq-btn-merge:hover { background: #4f46e5; transform: translateY(-1px); box-shadow: 0 2px 8px rgba(99,102,241,0.3); }
   .rq-btn-hold { background: var(--bg-tertiary); color: var(--text-secondary); border: 1px solid var(--border-primary) !important; }
   .rq-btn-hold:hover { background: var(--bg-hover); }
@@ -13318,7 +13323,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   }
   .rq-bundle-count {
     font-size: 0.68rem; font-weight: 700; padding: 2px 8px;
-    border-radius: 10px; background: rgba(99,102,241,0.1); color: #6366f1;
+    border-radius: 10px; background: rgba(99,102,241,0.1); color: #2563EB;
   }
   .rq-bundle-chevron {
     font-size: 0.9rem; color: var(--text-muted); transition: transform 0.2s;
@@ -13333,7 +13338,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   }
   .rq-bundle-primary-label {
     font-size: 0.62rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.06em; color: #6366f1; margin-bottom: 6px;
+    letter-spacing: 0.06em; color: #2563EB; margin-bottom: 6px;
   }
   .rq-bundle-related {
     padding: 12px 0;
@@ -13350,7 +13355,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   }
   .rq-related-item:hover { background: var(--bg-tertiary); }
   .rq-related-check {
-    width: 16px; height: 16px; cursor: pointer; accent-color: #6366f1;
+    width: 16px; height: 16px; cursor: pointer; accent-color: #2563EB;
   }
   .rq-related-icon {
     width: 28px; height: 28px; border-radius: 6px;
@@ -13488,7 +13493,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     font-size: 0.75rem; font-weight: 700; color: var(--text-muted);
     flex-shrink: 0;
   }
-  .conn-grid-avatar.in-graph { background: rgba(99,102,241,0.1); color: #6366f1; }
+  .conn-grid-avatar.in-graph { background: rgba(99,102,241,0.1); color: #2563EB; }
   .conn-grid-info { flex: 1; min-width: 0; overflow: hidden; }
   .conn-grid-name {
     font-size: 0.82rem; font-weight: 600; color: var(--text-primary);
@@ -13615,7 +13620,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     border-radius: var(--radius-md); padding: 14px 12px; text-align: center;
   }
   .ov-stat-value {
-    font-size: 1.5rem; font-weight: 800; color: #6366f1;
+    font-size: 1.5rem; font-weight: 800; color: #2563EB;
     line-height: 1;
   }
   .ov-stat-label {
@@ -13628,7 +13633,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   }
   .ov-activity-item:last-child { border-bottom: none; }
   .ov-activity-dot {
-    width: 8px; height: 8px; border-radius: 50%; background: #6366f1;
+    width: 8px; height: 8px; border-radius: 50%; background: #2563EB;
     flex-shrink: 0; margin-top: 6px;
   }
   .ov-activity-text {
@@ -13648,7 +13653,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     border-radius: var(--radius-md); padding: 12px 14px;
     transition: all var(--transition-fast);
   }
-  .ov-conn-card:hover { border-color: #6366f1; transform: translateY(-1px); }
+  .ov-conn-card:hover { border-color: #2563EB; transform: translateY(-1px); }
   .ov-conn-avatar {
     width: 36px; height: 36px; border-radius: 50%;
     background: var(--bg-tertiary); display: flex; align-items: center; justify-content: center;
@@ -13673,7 +13678,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     display: flex; align-items: center; gap: 6px;
   }
   .ov-source-count {
-    font-size: 0.75rem; font-weight: 700; color: #6366f1;
+    font-size: 0.75rem; font-weight: 700; color: #2563EB;
     background: rgba(99,102,241,0.1); padding: 2px 8px;
     border-radius: 10px;
   }
@@ -13730,9 +13735,9 @@ const WIKI_HTML = `<!DOCTYPE html>
   }
   .enrich-prompt-text { flex: 1; }
   .enrich-prompt-action {
-    font-size: 0.72rem; font-weight: 600; color: #6366f1;
+    font-size: 0.72rem; font-weight: 600; color: #2563EB;
     white-space: nowrap; cursor: pointer;
-    padding: 4px 10px; border: 1px solid #6366f1;
+    padding: 4px 10px; border: 1px solid #2563EB;
     border-radius: var(--radius-sm); background: transparent;
   }
   .enrich-prompt-action:hover {
@@ -13994,7 +13999,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   .li-insight-source { font-size: 12px; color: #666; margin-top: 4px; }
 
   .li-mbti-badge { display: inline-block; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 8px 14px; font-weight: 700; font-size: 16px; color: #1d4ed8; }
-  .li-enneagram-badge { display: inline-block; background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 8px 14px; font-weight: 700; font-size: 16px; color: #7c3aed; }
+  .li-enneagram-badge { display: inline-block; background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 8px; padding: 8px 14px; font-weight: 700; font-size: 16px; color: #1D4ED8; }
 
   .li-family-member { display: flex; gap: 14px; padding: 14px; background: #fafafa; border: 1px solid #f0f0f0; border-radius: 8px; margin-bottom: 8px; }
   .li-family-avatar { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #0a66c2, #004182); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: #fff; flex-shrink: 0; }
@@ -14046,7 +14051,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   .li-edu-logo {
     width: 40px; height: 40px; border-radius: 4px; background: #f5f0ff;
     display: flex; align-items: center; justify-content: center;
-    font-size: 14px; font-weight: 700; color: #7c3aed; flex-shrink: 0;
+    font-size: 14px; font-weight: 700; color: #1D4ED8; flex-shrink: 0;
   }
   .li-edu-info { flex: 1; }
   .li-edu-name { font-size: 14px; font-weight: 600; color: #191919; }
@@ -14379,7 +14384,7 @@ const WIKI_HTML = `<!DOCTYPE html>
       <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
         <rect width="36" height="36" rx="10" fill="url(#loginGrad)"/>
         <text x="18" y="23" text-anchor="middle" fill="white" font-size="14" font-weight="700" font-family="system-ui">CA</text>
-        <defs><linearGradient id="loginGrad" x1="0" y1="0" x2="36" y2="36"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs>
+        <defs><linearGradient id="loginGrad" x1="0" y1="0" x2="36" y2="36"><stop stop-color="#2563EB"/><stop offset="1" stop-color="#3B82F6"/></linearGradient></defs>
       </svg>
     </div>
     <h1><span>Context Architecture</span></h1>
@@ -15823,7 +15828,7 @@ function generateRequestEmail() {
     // Share URL
     if (data.share_url) {
       mh += '<div style="margin-bottom:20px;padding:12px 16px;background:#eff6ff;border-radius:8px;font-size:13px;">';
-      mh += '<strong>Client Upload Link:</strong> <a href="' + esc(data.share_url) + '" target="_blank" style="color:#6366f1;word-break:break-all;">' + esc(data.share_url) + '</a>';
+      mh += '<strong>Client Upload Link:</strong> <a href="' + esc(data.share_url) + '" target="_blank" style="color:#2563EB;word-break:break-all;">' + esc(data.share_url) + '</a>';
       mh += '</div>';
     }
 
@@ -15833,7 +15838,7 @@ function generateRequestEmail() {
 
     // Action buttons
     mh += '<div style="display:flex;gap:10px;">';
-    mh += '<button onclick="copyEmailToClipboard()" style="flex:1;padding:10px;border:none;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">Copy to Clipboard</button>';
+    mh += '<button onclick="copyEmailToClipboard()" style="flex:1;padding:10px;border:none;border-radius:8px;background:linear-gradient(135deg,#2563EB,#3B82F6);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">Copy to Clipboard</button>';
     if (data.mailto_link) {
       mh += '<a href="' + esc(data.mailto_link) + '" style="flex:1;padding:10px;border:1px solid #e5e7eb;border-radius:8px;text-align:center;text-decoration:none;color:#333;font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;">Open in Email</a>';
     }
@@ -16187,7 +16192,7 @@ function renderProfileOverview(data) {
   }
 
   h += '<div class="ov-section">';
-  h += '<div class="ov-section-title">Data Coverage <span style="float:right;color:#6366f1;font-weight:800;">' + coveragePct + '%</span></div>';
+  h += '<div class="ov-section-title">Data Coverage <span style="float:right;color:#2563EB;font-weight:800;">' + coveragePct + '%</span></div>';
   h += '<div class="ov-coverage-grid">';
   h += '<div class="ov-coverage-cat"><div class="ov-coverage-cat-title">Professional</div>';
   h += covItem(hasWorkHistory, 'Work History');
@@ -16278,13 +16283,13 @@ function renderProfileOverview(data) {
     var innerPct = Math.round(innerCount / tierTotal * 100);
     var outerPct = Math.max(0, 100 - selfPct - innerPct);
     h += '<div class="ov-tier-bar">';
-    if (selfPct > 0) h += '<div style="width:' + selfPct + '%;background:#8b5cf6;" title="Self: ' + selfCount + '"></div>';
-    if (innerPct > 0) h += '<div style="width:' + innerPct + '%;background:#6366f1;" title="Inner: ' + innerCount + '"></div>';
+    if (selfPct > 0) h += '<div style="width:' + selfPct + '%;background:#3B82F6;" title="Self: ' + selfCount + '"></div>';
+    if (innerPct > 0) h += '<div style="width:' + innerPct + '%;background:#2563EB;" title="Inner: ' + innerCount + '"></div>';
     if (outerPct > 0) h += '<div style="width:' + outerPct + '%;background:var(--bg-tertiary);" title="Outer: ' + outerCount + '"></div>';
     h += '</div>';
     h += '<div class="ov-tier-legend">';
-    h += '<span><span class="ov-tier-dot" style="background:#8b5cf6;"></span>Self (' + selfCount + ')</span>';
-    h += '<span><span class="ov-tier-dot" style="background:#6366f1;"></span>Inner (' + innerCount + ')</span>';
+    h += '<span><span class="ov-tier-dot" style="background:#3B82F6;"></span>Self (' + selfCount + ')</span>';
+    h += '<span><span class="ov-tier-dot" style="background:#2563EB;"></span>Inner (' + innerCount + ')</span>';
     h += '<span><span class="ov-tier-dot" style="background:var(--bg-tertiary);border:1px solid var(--border-primary);"></span>Outer (' + outerCount + ')</span>';
     h += '</div>';
   }
@@ -17182,7 +17187,7 @@ function renderSpokeShareManager() {
       var created = s.created_at ? new Date(s.created_at).toLocaleDateString() : '';
       var incTags = (s.includes || []).map(function(inc) {
         var labels = { gaps: 'Completeness', export: 'Export', files: 'Files' };
-        return '<span style="display:inline-block;padding:2px 8px;background:#ede9fe;color:#6366f1;border-radius:10px;font-size:10px;font-weight:600;">' + (labels[inc] || inc) + '</span>';
+        return '<span style="display:inline-block;padding:2px 8px;background:#EFF6FF;color:#2563EB;border-radius:10px;font-size:10px;font-weight:600;">' + (labels[inc] || inc) + '</span>';
       }).join(' ');
 
       h += '<div style="background:var(--bg-card);border:1px solid var(--border-primary);border-radius:10px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">';
@@ -17333,7 +17338,7 @@ function showIntakeLinkResult(type, url) {
   el.innerHTML = '<div style="padding:12px 16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;">'
     + '<div style="font-size:12px;font-weight:600;color:#1e40af;margin-bottom:4px;">' + esc(type) + ' Link</div>'
     + '<div style="font-size:13px;color:#1e40af;word-break:break-all;">' + esc(url) + '</div>'
-    + '<button onclick="navigator.clipboard.writeText(\\'' + esc(url) + '\\');toast(\\'Link copied!\\')" style="margin-top:8px;padding:6px 14px;border:none;border-radius:6px;background:#6366f1;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Copy Link</button>'
+    + '<button onclick="navigator.clipboard.writeText(\\'' + esc(url) + '\\');toast(\\'Link copied!\\')" style="margin-top:8px;padding:6px 14px;border:none;border-radius:6px;background:#2563EB;color:#fff;font-size:12px;font-weight:600;cursor:pointer;">Copy Link</button>'
     + '</div>';
 }
 
@@ -17487,8 +17492,8 @@ function renderSidebar() {
   html += '<div class="sb-add-btn" onclick="showTemplateEditor(null)">';
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
   html += '+ New Template</div>';
-  html += '<div class="sb-add-btn" onclick="showAITemplateGenerator()" style="color:#8b5cf6;">';
-  html += '<svg viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>';
+  html += '<div class="sb-add-btn" onclick="showAITemplateGenerator()" style="color:#3B82F6;">';
+  html += '<svg viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>';
   html += 'AI Generate from Form</div>';
 
   // ── PROJECTS section ──
@@ -17601,7 +17606,7 @@ function _buildCompletenessHtml(data) {
   var totalMissing = (data.missing_documents || []).length + (data.missing_entity_fields || []).length;
   if (totalMissing > 0) {
     h += '<div style="display:flex;gap:10px;margin-bottom:20px;">';
-    h += '<button onclick="generateRequestEmail()" style="display:flex;align-items:center;gap:8px;padding:10px 20px;border:none;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity=\\'0.9\\'" onmouseout="this.style.opacity=\\'1\\'">';
+    h += '<button onclick="generateRequestEmail()" style="display:flex;align-items:center;gap:8px;padding:10px 20px;border:none;border-radius:8px;background:linear-gradient(135deg,#2563EB,#3B82F6);color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity=\\'0.9\\'" onmouseout="this.style.opacity=\\'1\\'">';
     h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>';
     h += 'Request Missing Documents (' + totalMissing + ')</button>';
     h += '</div>';
@@ -17823,7 +17828,7 @@ function _buildShareHtml() {
   h += '<h3 style="font-size:0.9rem;font-weight:600;margin:0 0 12px;color:var(--text-primary);">Client Intake Links</h3>';
   h += '<div style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:16px;">Send these to your client for self-service intake.</div>';
   h += '<div style="display:flex;gap:10px;flex-wrap:wrap;">';
-  h += '<button onclick="generateFormLink()" style="display:flex;align-items:center;gap:6px;padding:10px 16px;border:1px solid #c4b5fd;border-radius:8px;background:#f5f3ff;color:#6d28d9;font-size:13px;font-weight:600;cursor:pointer;">';
+  h += '<button onclick="generateFormLink()" style="display:flex;align-items:center;gap:6px;padding:10px 16px;border:1px solid #c4b5fd;border-radius:8px;background:#EFF6FF;color:#6d28d9;font-size:13px;font-weight:600;cursor:pointer;">';
   h += '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6d28d9" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
   h += 'Send Smart Form</button>';
   h += '<button onclick="generateChatLink()" style="display:flex;align-items:center;gap:6px;padding:10px 16px;border:1px solid #a7f3d0;border-radius:8px;background:#ecfdf5;color:#065f46;font-size:13px;font-weight:600;cursor:pointer;">';
@@ -17841,7 +17846,7 @@ function _buildShareHtml() {
       var created = s.created_at ? new Date(s.created_at).toLocaleDateString() : '';
       var incTags = (s.includes || []).map(function(inc) {
         var labels = { gaps: 'Completeness', export: 'Export', files: 'Files' };
-        return '<span style="display:inline-block;padding:2px 8px;background:#ede9fe;color:#6366f1;border-radius:10px;font-size:10px;font-weight:600;">' + (labels[inc] || inc) + '</span>';
+        return '<span style="display:inline-block;padding:2px 8px;background:#EFF6FF;color:#2563EB;border-radius:10px;font-size:10px;font-weight:600;">' + (labels[inc] || inc) + '</span>';
       }).join(' ');
 
       h += '<div style="background:var(--bg-card);border:1px solid var(--border-primary);border-radius:10px;padding:14px 16px;margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">';
@@ -18026,7 +18031,7 @@ function _buildTimelineHtml(data) {
   // Header
   h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">';
   h += '<div style="font-size:18px;font-weight:700;">Timeline</div>';
-  h += '<button onclick="showAddEventModal()" style="padding:8px 16px;border:none;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">+ Add Event</button>';
+  h += '<button onclick="showAddEventModal()" style="padding:8px 16px;border:none;border-radius:8px;background:linear-gradient(135deg,#2563EB,#3B82F6);color:#fff;font-size:13px;font-weight:600;cursor:pointer;">+ Add Event</button>';
   h += '</div>';
 
   // Filter chips
@@ -18035,7 +18040,7 @@ function _buildTimelineHtml(data) {
   h += '<div style="display:flex;gap:6px;margin-bottom:20px;flex-wrap:wrap;">';
   for (var i = 0; i < types.length; i++) {
     var active = (_timelineFilter === types[i]);
-    h += '<button onclick="_timelineFilter=\\'' + types[i] + '\\';switchClientTab(\\'timeline\\')" style="padding:5px 12px;border:1px solid ' + (active ? '#6366f1' : '#e5e7eb') + ';border-radius:16px;background:' + (active ? '#6366f1' : '#fff') + ';color:' + (active ? '#fff' : '#374151') + ';font-size:12px;font-weight:500;cursor:pointer;">' + (typeLabels[types[i]] || types[i]) + '</button>';
+    h += '<button onclick="_timelineFilter=\\'' + types[i] + '\\';switchClientTab(\\'timeline\\')" style="padding:5px 12px;border:1px solid ' + (active ? '#2563EB' : '#e5e7eb') + ';border-radius:16px;background:' + (active ? '#2563EB' : '#fff') + ';color:' + (active ? '#fff' : '#374151') + ';font-size:12px;font-weight:500;cursor:pointer;">' + (typeLabels[types[i]] || types[i]) + '</button>';
   }
   h += '</div>';
 
@@ -18072,7 +18077,7 @@ function _buildTimelineHtml(data) {
   if (filtered.length === 0) {
     h += '<div style="padding:40px;text-align:center;color:var(--text-muted);font-size:14px;">No events yet. Click "+ Add Event" to track medical visits, payments, deadlines, and more.</div>';
   } else {
-    var typeColors = { medical_visit:'#3b82f6', payment:'#059669', court_date:'#dc2626', deadline:'#f59e0b', filing:'#8b5cf6', communication:'#6b7280', treatment:'#06b6d4', custom:'#374151' };
+    var typeColors = { medical_visit:'#3b82f6', payment:'#059669', court_date:'#dc2626', deadline:'#f59e0b', filing:'#3B82F6', communication:'#6b7280', treatment:'#06b6d4', custom:'#374151' };
     var typeIcons = { medical_visit:'M22 12h-4l-3 9L9 3l-3 9H2', payment:'M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6', court_date:'M3 21h18M3 10h18M3 7l9-4 9 4M4 10v11M20 10v11', deadline:'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z', filing:'M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z', communication:'M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z', treatment:'M22 12h-4l-3 9L9 3l-3 9H2', custom:'M12 2L2 7l10 5 10-5-10-5z' };
 
     h += '<div style="position:relative;padding-left:40px;">';
@@ -18117,7 +18122,7 @@ function _buildTimelineHtml(data) {
       }
 
       // Source badge
-      if (evt.source === 'extracted') h += '<span style="display:inline-block;margin-top:6px;padding:2px 6px;font-size:10px;background:#ede9fe;color:#7c3aed;border-radius:4px;font-weight:600;">AI-extracted</span>';
+      if (evt.source === 'extracted') h += '<span style="display:inline-block;margin-top:6px;padding:2px 6px;font-size:10px;background:#EFF6FF;color:#1D4ED8;border-radius:4px;font-weight:600;">AI-extracted</span>';
       h += '</div>';
       h += '<div style="font-size:12px;color:#9ca3af;white-space:nowrap;">' + esc(dateStr) + '</div>';
       h += '</div>';
@@ -18168,7 +18173,7 @@ function showAddEventModal() {
   mh += '<input id="evtFacility" placeholder="Facility" style="' + ist + '" />';
   mh += '</div>';
 
-  mh += '<button onclick="saveNewEvent()" style="width:100%;padding:12px;border:none;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;">Save Event</button>';
+  mh += '<button onclick="saveNewEvent()" style="width:100%;padding:12px;border:none;border-radius:8px;background:linear-gradient(135deg,#2563EB,#3B82F6);color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px;">Save Event</button>';
   mh += '</div>';
 
   overlay.innerHTML = mh;
@@ -18325,7 +18330,7 @@ function promptNewClient() {
     // Client name
     mh += '<div style="margin-bottom:20px;">';
     mh += '<label style="display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:6px;">Client Name</label>';
-    mh += '<input id="onboard-name" type="text" placeholder="e.g. Acme Corp" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;outline:none;transition:border 0.2s;" onfocus="this.style.borderColor=\\'#6366f1\\'" onblur="this.style.borderColor=\\'#ddd\\'" />';
+    mh += '<input id="onboard-name" type="text" placeholder="e.g. Acme Corp" style="width:100%;padding:10px 14px;border:1px solid #ddd;border-radius:8px;font-size:14px;outline:none;transition:border 0.2s;" onfocus="this.style.borderColor=\\'#2563EB\\'" onblur="this.style.borderColor=\\'#ddd\\'" />';
     mh += '</div>';
 
     // Template dropdown
@@ -18341,7 +18346,7 @@ function promptNewClient() {
     // File drop zone
     mh += '<div style="margin-bottom:24px;">';
     mh += '<label style="display:block;font-size:13px;font-weight:600;color:#555;margin-bottom:6px;">Initial Documents (optional)</label>';
-    mh += '<div id="onboard-dropzone" style="border:2px dashed #ddd;border-radius:10px;padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:#fafafa;" onclick="document.getElementById(\\'onboard-file-input\\').click()" ondragover="event.preventDefault();this.style.borderColor=\\'#6366f1\\';this.style.background=\\'#f0f0ff\\'" ondragleave="this.style.borderColor=\\'#ddd\\';this.style.background=\\'#fafafa\\'" ondrop="handleOnboardDrop(event)">';
+    mh += '<div id="onboard-dropzone" style="border:2px dashed #ddd;border-radius:10px;padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:#fafafa;" onclick="document.getElementById(\\'onboard-file-input\\').click()" ondragover="event.preventDefault();this.style.borderColor=\\'#2563EB\\';this.style.background=\\'#f0f0ff\\'" ondragleave="this.style.borderColor=\\'#ddd\\';this.style.background=\\'#fafafa\\'" ondrop="handleOnboardDrop(event)">';
     mh += '<svg viewBox="0 0 24 24" fill="none" stroke="#999" stroke-width="1.5" style="width:32px;height:32px;margin-bottom:8px;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
     mh += '<div style="font-size:14px;color:#666;">Drop files here or click to browse</div>';
     mh += '<div style="font-size:12px;color:#999;margin-top:4px;">PDF, DOC, XLSX, CSV, TXT</div>';
@@ -18352,7 +18357,7 @@ function promptNewClient() {
 
     // Create button
     mh += '<div style="padding-bottom:28px;">';
-    mh += '<button id="onboard-btn" onclick="submitOnboard()" style="width:100%;padding:12px;border:none;border-radius:10px;background:var(--accent-gradient, linear-gradient(135deg,#6366f1,#8b5cf6));color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity=\\'0.9\\'" onmouseout="this.style.opacity=\\'1\\'">Create Client</button>';
+    mh += '<button id="onboard-btn" onclick="submitOnboard()" style="width:100%;padding:12px;border:none;border-radius:10px;background:var(--accent-gradient, linear-gradient(135deg,#2563EB,#3B82F6));color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity=\\'0.9\\'" onmouseout="this.style.opacity=\\'1\\'">Create Client</button>';
     mh += '</div></div>';
 
     modal.innerHTML = mh;
@@ -18522,10 +18527,10 @@ function renderTemplateEditor() {
 
   // ── AI Preview Banner (Build 15) ──
   if (t._ai_preview) {
-    h += '<div style="padding:14px 18px;background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1px solid #c4b5fd;border-radius:10px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">';
-    h += '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>';
+    h += '<div style="padding:14px 18px;background:linear-gradient(135deg,#EFF6FF,#EFF6FF);border:1px solid #c4b5fd;border-radius:10px;margin-bottom:20px;display:flex;align-items:center;gap:12px;">';
+    h += '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>';
     h += '<div style="flex:1;"><div style="font-size:14px;font-weight:600;color:#6d28d9;">AI-generated template from ' + esc(t._ai_source || 'uploaded document') + '</div>';
-    h += '<div style="font-size:12px;color:#7c3aed;margin-top:2px;">Review and adjust before saving. Fields marked with AI badge were auto-generated.</div></div></div>';
+    h += '<div style="font-size:12px;color:#1D4ED8;margin-top:2px;">Review and adjust before saving. Fields marked with AI badge were auto-generated.</div></div></div>';
   }
 
   // ── Header row: title + Save button ──
@@ -18535,7 +18540,7 @@ function renderTemplateEditor() {
   if (!window._tplIsNew) {
     h += '<button onclick="deleteCurrentTemplate()" style="padding:8px 16px;border:1px solid #fca5a5;border-radius:8px;background:#fff;color:#dc2626;font-size:13px;font-weight:600;cursor:pointer;">Delete</button>';
   }
-  h += '<button onclick="saveCurrentTemplate()" style="padding:8px 20px;border:none;border-radius:8px;background:var(--accent-gradient, linear-gradient(135deg,#6366f1,#8b5cf6));color:#fff;font-size:13px;font-weight:600;cursor:pointer;">Save Template</button>';
+  h += '<button onclick="saveCurrentTemplate()" style="padding:8px 20px;border:none;border-radius:8px;background:var(--accent-gradient, linear-gradient(135deg,#2563EB,#3B82F6));color:#fff;font-size:13px;font-weight:600;cursor:pointer;">Save Template</button>';
   h += '</div></div>';
 
   // ── Metadata section ──
@@ -18557,7 +18562,7 @@ function renderTemplateEditor() {
 
   // Version badge
   h += '<div style="margin-bottom:24px;display:flex;gap:16px;align-items:center;">';
-  h += '<span style="padding:4px 12px;background:#ede9fe;color:#6366f1;border-radius:16px;font-size:12px;font-weight:600;">v' + esc(t.version || '1.0.0') + '</span>';
+  h += '<span style="padding:4px 12px;background:#EFF6FF;color:#2563EB;border-radius:16px;font-size:12px;font-weight:600;">v' + esc(t.version || '1.0.0') + '</span>';
   var dtCount = (t.document_types || []).length;
   var fieldCount = 0;
   for (var fc = 0; fc < (t.document_types || []).length; fc++) fieldCount += ((t.document_types[fc] || {}).extraction_spec || []).length;
@@ -18584,7 +18589,7 @@ function _renderDocTypesSection(t) {
   var sectionHdr = 'font-size:16px;font-weight:700;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;';
   var cardStyle = 'border:1px solid #e5e7eb;border-radius:10px;margin-bottom:10px;overflow:hidden;background:#fff;';
   var cardHdr = 'padding:14px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:background 0.15s;';
-  var addBtn = 'display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border:1px dashed #d1d5db;border-radius:8px;font-size:12px;color:#6366f1;cursor:pointer;background:transparent;font-weight:600;';
+  var addBtn = 'display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border:1px dashed #d1d5db;border-radius:8px;font-size:12px;color:#2563EB;cursor:pointer;background:transparent;font-weight:600;';
 
   var h = '<div style="margin-bottom:32px;">';
   h += '<div style="' + sectionHdr + '"><span>Document Types (' + (t.document_types || []).length + ')</span>';
@@ -18601,7 +18606,7 @@ function _renderDocTypesSection(t) {
     // Card header
     h += '<div style="' + cardHdr + (expanded ? 'background:#fafafe;border-bottom:1px solid #e5e7eb;' : '') + '" onclick="tplToggleDt(' + i + ')">';
     h += '<div style="display:flex;align-items:center;gap:10px;">';
-    h += '<svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5" style="width:18px;height:18px;transform:rotate(' + (expanded ? '90' : '0') + 'deg);transition:transform 0.2s;"><polyline points="9 18 15 12 9 6"/></svg>';
+    h += '<svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.5" style="width:18px;height:18px;transform:rotate(' + (expanded ? '90' : '0') + 'deg);transition:transform 0.2s;"><polyline points="9 18 15 12 9 6"/></svg>';
     h += '<div><div style="font-size:14px;font-weight:600;">' + esc(dt.display_name || dt.type_id || 'Unnamed') + '</div>';
     h += '<div style="font-size:11px;color:var(--text-muted);">' + esc(dt.type_id || '') + ' &middot; ' + esc(dt.category || '') + ' &middot; ' + specCount + ' fields &middot; ' + sigCount + ' signals</div></div>';
     h += '</div>';
@@ -18634,7 +18639,7 @@ function _renderDocTypesSection(t) {
       // Extraction spec fields table
       h += '<div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">';
       h += '<span style="font-size:13px;font-weight:600;">Extraction Fields (' + specCount + ')</span>';
-      h += '<button onclick="tplAddField(' + i + ')" style="border:1px dashed #d1d5db;border-radius:6px;background:transparent;padding:4px 10px;font-size:11px;color:#6366f1;cursor:pointer;font-weight:600;">+ Add Field</button>';
+      h += '<button onclick="tplAddField(' + i + ')" style="border:1px dashed #d1d5db;border-radius:6px;background:transparent;padding:4px 10px;font-size:11px;color:#2563EB;cursor:pointer;font-weight:600;">+ Add Field</button>';
       h += '</div>';
 
       if (specCount > 0) {
@@ -18686,7 +18691,7 @@ function _renderRolesSection(t) {
   var sectionHdr = 'font-size:16px;font-weight:700;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;';
   var cardStyle = 'border:1px solid #e5e7eb;border-radius:10px;margin-bottom:10px;overflow:hidden;background:#fff;';
   var cardHdr = 'padding:14px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:background 0.15s;';
-  var addBtn = 'display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border:1px dashed #d1d5db;border-radius:8px;font-size:12px;color:#6366f1;cursor:pointer;background:transparent;font-weight:600;';
+  var addBtn = 'display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border:1px dashed #d1d5db;border-radius:8px;font-size:12px;color:#2563EB;cursor:pointer;background:transparent;font-weight:600;';
   var tiers = ['BLOCKING', 'EXPECTED', 'ENRICHING'];
 
   var h = '<div style="margin-bottom:32px;">';
@@ -18701,7 +18706,7 @@ function _renderRolesSection(t) {
     h += '<div style="' + cardStyle + '">';
     h += '<div style="' + cardHdr + (expanded ? 'background:#fafafe;border-bottom:1px solid #e5e7eb;' : '') + '" onclick="tplToggleRole(' + i + ')">';
     h += '<div style="display:flex;align-items:center;gap:10px;">';
-    h += '<svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5" style="width:18px;height:18px;transform:rotate(' + (expanded ? '90' : '0') + 'deg);transition:transform 0.2s;"><polyline points="9 18 15 12 9 6"/></svg>';
+    h += '<svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.5" style="width:18px;height:18px;transform:rotate(' + (expanded ? '90' : '0') + 'deg);transition:transform 0.2s;"><polyline points="9 18 15 12 9 6"/></svg>';
     h += '<div><div style="font-size:14px;font-weight:600;">' + esc(role.display_name || role.role_id || 'Unnamed Role') + '</div>';
     h += '<div style="font-size:11px;color:var(--text-muted);">' + esc(role.role_id || '') + ' &middot; ' + esc(role.type || 'person') + ' &middot; ' + rfCount + ' fields' + (role.optional ? ' &middot; optional' : '') + '</div></div>';
     h += '</div>';
@@ -18727,7 +18732,7 @@ function _renderRolesSection(t) {
       // Required fields
       h += '<div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">';
       h += '<span style="font-size:13px;font-weight:600;">Required Fields (' + rfCount + ')</span>';
-      h += '<button onclick="tplAddRoleField(' + i + ')" style="border:1px dashed #d1d5db;border-radius:6px;background:transparent;padding:4px 10px;font-size:11px;color:#6366f1;cursor:pointer;font-weight:600;">+ Add Field</button>';
+      h += '<button onclick="tplAddRoleField(' + i + ')" style="border:1px dashed #d1d5db;border-radius:6px;background:transparent;padding:4px 10px;font-size:11px;color:#2563EB;cursor:pointer;font-weight:600;">+ Add Field</button>';
       h += '</div>';
 
       if (rfCount > 0) {
@@ -18778,7 +18783,7 @@ function _renderRulesSection(t) {
   var sectionHdr = 'font-size:16px;font-weight:700;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;';
   var cardStyle = 'border:1px solid #e5e7eb;border-radius:10px;margin-bottom:10px;overflow:hidden;background:#fff;';
   var cardHdr = 'padding:14px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:background 0.15s;';
-  var addBtn = 'display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border:1px dashed #d1d5db;border-radius:8px;font-size:12px;color:#6366f1;cursor:pointer;background:transparent;font-weight:600;';
+  var addBtn = 'display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border:1px dashed #d1d5db;border-radius:8px;font-size:12px;color:#2563EB;cursor:pointer;background:transparent;font-weight:600;';
 
   var h = '<div style="margin-bottom:32px;">';
   h += '<div style="' + sectionHdr + '"><span>Cross-Document Rules (' + (t.cross_doc_rules || []).length + ')</span>';
@@ -18792,7 +18797,7 @@ function _renderRulesSection(t) {
     h += '<div style="' + cardStyle + '">';
     h += '<div style="' + cardHdr + (expanded ? 'background:#fafafe;border-bottom:1px solid #e5e7eb;' : '') + '" onclick="tplToggleRule(' + i + ')">';
     h += '<div style="display:flex;align-items:center;gap:10px;">';
-    h += '<svg viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5" style="width:18px;height:18px;transform:rotate(' + (expanded ? '90' : '0') + 'deg);transition:transform 0.2s;"><polyline points="9 18 15 12 9 6"/></svg>';
+    h += '<svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.5" style="width:18px;height:18px;transform:rotate(' + (expanded ? '90' : '0') + 'deg);transition:transform 0.2s;"><polyline points="9 18 15 12 9 6"/></svg>';
     h += '<div><div style="font-size:14px;font-weight:600;">' + esc(rule.rule_id || 'Unnamed Rule') + '</div>';
     h += '<div style="font-size:11px;color:var(--text-muted);">' + esc(rule.description || '') + '</div></div>';
     h += '</div>';
@@ -18966,12 +18971,12 @@ function showAITemplateGenerator() {
 
   // Upload zone
   h += '<div id="aiGenDropzone" class="pp-dropzone" onclick="document.getElementById(\\'aiGenFileInput\\').click()" style="margin-bottom:20px;border:2px dashed #c4b5fd;background:rgba(139,92,246,0.04);">';
-  h += '<div class="pp-drop-icon"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>';
-  h += '<div style="font-weight:600;color:#6366f1;">Drop intake form here or click to browse</div>';
+  h += '<div class="pp-drop-icon"><svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#3B82F6" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>';
+  h += '<div style="font-weight:600;color:#2563EB;">Drop intake form here or click to browse</div>';
   h += '<div class="pp-drop-sub">PDF, DOCX, XLSX, CSV, TXT, or images of paper forms</div>';
   h += '</div>';
   h += '<input type="file" id="aiGenFileInput" accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.jpg,.jpeg,.png,.webp" style="display:none" onchange="aiGenFileSelected(event)" />';
-  h += '<div id="aiGenFileName" style="display:none;margin-bottom:16px;padding:10px 14px;background:#f5f3ff;border:1px solid #c4b5fd;border-radius:8px;font-size:13px;color:#6366f1;font-weight:500;"></div>';
+  h += '<div id="aiGenFileName" style="display:none;margin-bottom:16px;padding:10px 14px;background:#EFF6FF;border:1px solid #c4b5fd;border-radius:8px;font-size:13px;color:#2563EB;font-weight:500;"></div>';
 
   // Or: text input
   h += '<div style="margin-bottom:16px;text-align:center;font-size:13px;color:var(--text-muted);font-weight:600;">— OR —</div>';
@@ -18987,7 +18992,7 @@ function showAITemplateGenerator() {
 
   // Generate button
   h += '<div style="margin-top:24px;display:flex;gap:10px;">';
-  h += '<button id="aiGenBtn" onclick="runAITemplateGeneration()" style="flex:1;padding:12px;border:none;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity=\\'0.9\\'" onmouseout="this.style.opacity=\\'1\\'">Generate Template</button>';
+  h += '<button id="aiGenBtn" onclick="runAITemplateGeneration()" style="flex:1;padding:12px;border:none;border-radius:8px;background:linear-gradient(135deg,#2563EB,#3B82F6);color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity=\\'0.9\\'" onmouseout="this.style.opacity=\\'1\\'">Generate Template</button>';
   h += '</div>';
   h += '<div id="aiGenStatus" style="margin-top:16px;display:none;text-align:center;"></div>';
   h += '</div>';
@@ -18997,7 +19002,7 @@ function showAITemplateGenerator() {
   // Drag-and-drop handlers
   var dz = document.getElementById('aiGenDropzone');
   if (dz) {
-    dz.ondragover = function(e) { e.preventDefault(); dz.style.borderColor = '#6366f1'; dz.style.background = 'rgba(99,102,241,0.08)'; };
+    dz.ondragover = function(e) { e.preventDefault(); dz.style.borderColor = '#2563EB'; dz.style.background = 'rgba(99,102,241,0.08)'; };
     dz.ondragleave = function() { dz.style.borderColor = '#c4b5fd'; dz.style.background = 'rgba(139,92,246,0.04)'; };
     dz.ondrop = function(e) {
       e.preventDefault();
@@ -19093,7 +19098,7 @@ function showClientDashboard() {
   renderClientDashboard();
 }
 
-window._dashboardSortCol = 'completeness';
+window._dashboardSortCol = 'actionability';
 window._dashboardSortAsc = true;
 window._dashboardActiveChip = null;
 window._dashboardData = null;
@@ -19117,6 +19122,85 @@ function renderClientDashboard() {
   });
 }
 
+// Build 25: Dashboard helpers
+function getMatterState(s) {
+  var fr = s.filing_readiness_pct;
+  var comp = s.completeness_score_pct != null ? s.completeness_score_pct : s.completeness_pct;
+  var reviewed = s.reviewed_count || 0;
+  var total = s.total_reviewable || 0;
+  var missing = (s.missing_documents || []).length;
+  // Verified Complete: all blocking fields present AND all reviewed
+  if (fr != null && fr >= 100 && total > 0 && reviewed >= total) return 'verified_complete';
+  // Ready for Approve: good filing readiness, decent completeness, has unreviewed items
+  if (fr != null && fr >= 80 && comp != null && comp >= 60) return 'ready_for_approve';
+  // Missing/Blocked: low filing readiness or missing critical docs
+  if (missing > 0 || (fr != null && fr < 50)) return 'missing_blocked';
+  // Unreviewed: has data but not enough for ready_for_approve
+  if ((comp != null && comp > 0) || (s.entity_count > 0)) return 'unreviewed';
+  return 'missing_blocked';
+}
+
+function getMatterStateInfo(state) {
+  var map = {
+    'verified_complete': { label: 'Verified Complete', color: '#059669', bg: '#059669' },
+    'ready_for_approve': { label: 'Ready for Approve', color: '#2563EB', bg: '#2563EB' },
+    'unreviewed': { label: 'Unreviewed', color: '#D97706', bg: '#D97706' },
+    'missing_blocked': { label: 'Missing Docs', color: '#DC2626', bg: '#DC2626' }
+  };
+  return map[state] || map['missing_blocked'];
+}
+
+function getMatterBlocker(s) {
+  var missing = s.missing_documents || [];
+  if (missing.length > 0) {
+    var name = missing[0].replace(/_/g, ' ');
+    return 'Missing ' + name.charAt(0).toUpperCase() + name.slice(1);
+  }
+  if (s.cross_doc_violations > 0) return s.cross_doc_violations + ' doc conflict' + (s.cross_doc_violations > 1 ? 's' : '');
+  return 'Missing documents';
+}
+
+function dashTimeAgo(dateStr) {
+  if (!dateStr) return '';
+  var diff = Date.now() - new Date(dateStr).getTime();
+  var mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + 'm ago';
+  var hours = Math.floor(mins / 60);
+  if (hours < 24) return hours + 'h ago';
+  var days = Math.floor(hours / 24);
+  if (days < 7) return days + 'd ago';
+  return Math.floor(days / 7) + 'w ago';
+}
+
+function getMatterStatePriority(state) {
+  var p = { 'missing_blocked': 0, 'ready_for_approve': 1, 'unreviewed': 2, 'verified_complete': 3 };
+  return p[state] != null ? p[state] : 4;
+}
+
+function dashboardAction(spokeId, action, evt) {
+  if (evt) evt.stopPropagation();
+  if (action === 'generate') {
+    toast('Generating output for matter...');
+    console.log('// TODO: wire to generate endpoint', spokeId);
+  } else if (action === 'approve') {
+    toast('Bulk approve queued');
+    console.log('// TODO: wire to bulk approve endpoint', spokeId);
+  } else if (action === 'review') {
+    selectClient(spokeId);
+  } else if (action === 'nudge') {
+    toast('Client nudge sent');
+    console.log('// TODO: wire to nudge endpoint', spokeId);
+  } else if (action === 'resolve') {
+    selectClient(spokeId);
+  }
+}
+
+function dismissAlert(el) {
+  el.style.opacity = '0';
+  setTimeout(function() { el.style.display = 'none'; }, 200);
+}
+
 function renderDashboardContent(data) {
   var spokes = data.spokes || [];
   var stats = data.stats || {};
@@ -19128,60 +19212,192 @@ function renderDashboardContent(data) {
     return;
   }
 
-  var h = '<div style="padding:24px 28px;">';
+  // Compute matter states
+  var i, s;
+  for (i = 0; i < spokes.length; i++) {
+    spokes[i]._state = getMatterState(spokes[i]);
+  }
 
-  // Header row with title + New Client button
-  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">';
-  h += '<div style="font-size:22px;font-weight:700;">Client Dashboard</div>';
-  h += '<button onclick="promptNewClient()" style="display:flex;align-items:center;gap:6px;padding:8px 16px;border:none;border-radius:8px;background:var(--accent-gradient, linear-gradient(135deg,#6366f1,#8b5cf6));color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:opacity 0.2s;" onmouseover="this.style.opacity=\\'0.9\\'" onmouseout="this.style.opacity=\\'1\\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New Client</button>';
-  h += '</div>';
+  // Hero stats
+  var readyCount = 0, inProgressCount = 0, blockedCount = 0;
+  for (i = 0; i < spokes.length; i++) {
+    if (spokes[i]._state === 'verified_complete') readyCount++;
+    else if (spokes[i]._state === 'ready_for_approve' || spokes[i]._state === 'unreviewed') inProgressCount++;
+    else blockedCount++;
+  }
 
-  // Cross-spoke search bar (Build 14)
-  h += '<div style="margin-bottom:16px;position:relative;">';
-  h += '<svg viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
-  h += '<input id="dashboardSearch" type="text" placeholder="Search clients, documents, fields... (e.g. missing W-2, unreviewed)" value="' + esc(window._dashboardSearchQuery || '') + '" onkeydown="if(event.key===\\'Enter\\')dashboardSearch(this.value)" style="width:100%;padding:10px 14px 10px 36px;border:1px solid #e5e7eb;border-radius:10px;font-size:13px;outline:none;background:#fff;transition:border-color 0.2s;" onfocus="this.style.borderColor=\\'#6366f1\\'" onblur="this.style.borderColor=\\'#e5e7eb\\'">';
+  var h = '<div style="padding:28px 32px;max-width:1200px;">';
+
+  // ===== SECTION 1: HERO STATS BAR =====
+  h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:28px;">';
+
+  // Ready to File — HERO card
+  h += '<div style="background:#fff;border:1px solid #E5E7EB;border-radius:24px;padding:28px 24px;box-shadow:0 1px 3px rgba(0,0,0,0.04);transition:box-shadow 0.2s;" onmouseover="this.style.boxShadow=\\'0 4px 12px rgba(0,0,0,0.08)\\'" onmouseout="this.style.boxShadow=\\'0 1px 3px rgba(0,0,0,0.04)\\'">';
+  h += '<div style="font-family:var(--font-display);font-size:48px;color:#059669;line-height:1;">' + readyCount + '</div>';
+  h += '<div style="font-family:var(--font-sans);font-size:14px;font-weight:500;color:#6B7280;margin-top:8px;">Ready to File</div>';
+  h += '<div style="display:flex;gap:4px;margin-top:12px;">';
+  for (i = 0; i < Math.min(readyCount, 12); i++) h += '<div style="width:8px;height:8px;border-radius:50%;background:#059669;opacity:0.7;"></div>';
+  h += '</div></div>';
+
+  // In Progress
+  h += '<div style="background:#fff;border:1px solid #E5E7EB;border-radius:24px;padding:28px 24px;box-shadow:0 1px 3px rgba(0,0,0,0.04);transition:box-shadow 0.2s;" onmouseover="this.style.boxShadow=\\'0 4px 12px rgba(0,0,0,0.08)\\'" onmouseout="this.style.boxShadow=\\'0 1px 3px rgba(0,0,0,0.04)\\'">';
+  h += '<div style="font-family:var(--font-display);font-size:36px;color:#6B7280;line-height:1;">' + inProgressCount + '</div>';
+  h += '<div style="font-family:var(--font-sans);font-size:14px;font-weight:500;color:#6B7280;margin-top:8px;">In Progress</div>';
+  h += '<div style="display:flex;gap:4px;margin-top:12px;">';
+  for (i = 0; i < Math.min(inProgressCount, 12); i++) h += '<div style="width:8px;height:8px;border-radius:50%;background:#6B7280;opacity:0.5;"></div>';
+  h += '</div></div>';
+
+  // Blocked
+  var blockedColor = blockedCount > 0 ? '#DC2626' : '#6B7280';
+  var blockedBorder = blockedCount > 0 ? '#FCA5A5' : '#E5E7EB';
+  h += '<div style="background:#fff;border:1px solid ' + blockedBorder + ';border-radius:24px;padding:28px 24px;box-shadow:0 1px 3px rgba(0,0,0,0.04);transition:box-shadow 0.2s;" onmouseover="this.style.boxShadow=\\'0 4px 12px rgba(0,0,0,0.08)\\'" onmouseout="this.style.boxShadow=\\'0 1px 3px rgba(0,0,0,0.04)\\'">';
+  h += '<div style="font-family:var(--font-display);font-size:36px;color:' + blockedColor + ';line-height:1;">' + blockedCount + '</div>';
+  h += '<div style="font-family:var(--font-sans);font-size:14px;font-weight:500;color:' + blockedColor + ';margin-top:8px;">Blocked</div>';
+  h += '<div style="display:flex;gap:4px;margin-top:12px;">';
+  for (i = 0; i < Math.min(blockedCount, 12); i++) h += '<div style="width:8px;height:8px;border-radius:50%;background:#DC2626;opacity:0.7;"></div>';
+  h += '</div></div>';
+
+  h += '</div>'; // end hero grid
+
+  // ===== SECTION 2: ALERT BADGES =====
+  var alerts = [];
+  var recentUploads = 0;
+  for (i = 0; i < spokes.length; i++) {
+    if (spokes[i].last_updated) {
+      var diff = Date.now() - new Date(spokes[i].last_updated).getTime();
+      if (diff < 86400000) recentUploads++;
+    }
+  }
+  if (recentUploads > 0) alerts.push({ icon: '\uD83D\uDD14', text: recentUploads + ' new upload' + (recentUploads > 1 ? 's' : ''), color: '#2563EB', bg: '#EFF6FF' });
+
+  var weekDeadlines = 0;
+  for (i = 0; i < spokes.length; i++) {
+    if (spokes[i].next_deadline && spokes[i].next_deadline.days_remaining <= 7 && spokes[i].next_deadline.days_remaining >= 0) weekDeadlines++;
+  }
+  if (weekDeadlines > 0) alerts.push({ icon: '\u26A0\uFE0F', text: weekDeadlines + ' deadline' + (weekDeadlines > 1 ? 's' : '') + ' this week', color: '#D97706', bg: '#FFFBEB' });
+
+  var totalConflicts = 0;
+  for (i = 0; i < spokes.length; i++) totalConflicts += (spokes[i].cross_doc_violations || 0);
+  if (totalConflicts > 0) alerts.push({ icon: '\u26A1', text: totalConflicts + ' cross-doc conflict' + (totalConflicts > 1 ? 's' : ''), color: '#DC2626', bg: '#FEF2F2' });
+
+  if (alerts.length > 0) {
+    h += '<div style="display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;">';
+    for (i = 0; i < alerts.length; i++) {
+      var al = alerts[i];
+      h += '<div onclick="dismissAlert(this)" style="display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:500;color:' + al.color + ';background:' + al.bg + ';cursor:pointer;transition:opacity 0.2s;" title="Click to dismiss">';
+      h += '<span>' + al.icon + '</span><span>' + al.text + '</span>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  // ===== SECTION 3: BLOCKING TRAY =====
+  var blockingItems = [];
+  for (i = 0; i < spokes.length; i++) {
+    s = spokes[i];
+    if (s._state !== 'missing_blocked') continue;
+    var urgency = '';
+    if (s.next_deadline && s.next_deadline.days_remaining <= 7 && s.next_deadline.days_remaining >= 0) {
+      urgency = s.next_deadline.days_remaining + ' day' + (s.next_deadline.days_remaining !== 1 ? 's' : '') + ' until deadline';
+    } else if (s.overdue_deadlines > 0) {
+      urgency = 'Overdue';
+    } else if (s.cross_doc_violations > 0) {
+      urgency = s.cross_doc_violations + ' conflict' + (s.cross_doc_violations > 1 ? 's' : '');
+    }
+    blockingItems.push({
+      spoke_id: s.spoke_id,
+      name: s.name,
+      template_label: s.template_label || '',
+      blocker: getMatterBlocker(s),
+      urgency: urgency,
+      completeness: s.completeness_score_pct != null ? s.completeness_score_pct : (s.completeness_pct || 0),
+      actionLabel: s.cross_doc_violations > 0 ? 'Resolve Conflict' : 'Nudge Client',
+      actionType: s.cross_doc_violations > 0 ? 'resolve' : 'nudge'
+    });
+  }
+  blockingItems.sort(function(a, b) {
+    if (a.urgency && !b.urgency) return -1;
+    if (!a.urgency && b.urgency) return 1;
+    return a.completeness - b.completeness;
+  });
+
+  if (blockingItems.length > 0) {
+    var showMax = Math.min(blockingItems.length, 5);
+    h += '<div style="background:#FEF2F2;border:1px solid #FECACA;border-radius:16px;padding:20px 24px;margin-bottom:28px;">';
+    h += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:16px;">';
+    h += '<svg viewBox="0 0 24 24" fill="none" stroke="#DC2626" stroke-width="2" style="width:18px;height:18px;flex-shrink:0;"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+    h += '<span style="font-size:13px;font-weight:600;color:#991B1B;text-transform:uppercase;letter-spacing:0.05em;">Needs Attention (' + blockingItems.length + ')</span>';
+    h += '</div>';
+
+    for (i = 0; i < showMax; i++) {
+      var bi = blockingItems[i];
+      var biComp = bi.completeness;
+      var biBarColor = biComp >= 50 ? '#D97706' : '#DC2626';
+      h += '<div style="display:flex;align-items:center;gap:16px;padding:12px 0;' + (i < showMax - 1 ? 'border-bottom:1px solid #FECACA;' : '') + '">';
+      h += '<div style="flex:1;min-width:0;">';
+      h += '<div style="font-size:14px;font-weight:600;color:#1A1A1A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(bi.name) + '</div>';
+      h += '<div style="font-size:12px;color:#6B7280;margin-top:2px;">' + esc(bi.template_label) + '</div>';
+      h += '</div>';
+      h += '<div style="flex:1;font-size:13px;color:#DC2626;font-weight:500;">' + esc(bi.blocker) + '</div>';
+      h += '<div style="width:110px;display:flex;align-items:center;gap:6px;">';
+      h += '<div style="flex:1;height:4px;background:#FCA5A5;border-radius:2px;overflow:hidden;"><div style="width:' + Math.min(biComp, 100) + '%;height:100%;background:' + biBarColor + ';border-radius:2px;"></div></div>';
+      h += '<span style="font-family:var(--font-mono);font-size:11px;color:#991B1B;min-width:30px;text-align:right;">' + biComp + '%</span>';
+      h += '</div>';
+      if (bi.urgency) {
+        h += '<div style="font-size:12px;color:#991B1B;font-weight:500;white-space:nowrap;min-width:100px;">' + esc(bi.urgency) + '</div>';
+      } else {
+        h += '<div style="min-width:100px;"></div>';
+      }
+      h += '<button onclick="dashboardAction(\\'' + esc(bi.spoke_id) + '\\', \\'' + bi.actionType + '\\', event)" style="padding:6px 14px;border:1px solid #DC2626;border-radius:8px;background:none;color:#DC2626;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:var(--font-sans);transition:all 0.15s;" onmouseover="this.style.background=\\'#DC2626\\';this.style.color=\\'#fff\\'" onmouseout="this.style.background=\\'none\\';this.style.color=\\'#DC2626\\'">' + esc(bi.actionLabel) + '</button>';
+      h += '</div>';
+    }
+
+    if (blockingItems.length > 5) {
+      h += '<div style="padding-top:12px;text-align:center;"><span style="font-size:13px;color:#DC2626;cursor:pointer;font-weight:500;">Show ' + (blockingItems.length - 5) + ' more</span></div>';
+    }
+    h += '</div>';
+  }
+
+  // ===== SECTION 4: MATTER LIST =====
+  // Search + New Matter header
+  h += '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">';
+  h += '<div style="flex:1;position:relative;">';
+  h += '<svg viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;pointer-events:none;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
+  h += '<input id="dashboardSearch" type="text" placeholder="Search matters..." value="' + esc(window._dashboardSearchQuery || '') + '" onkeydown="if(event.key===\\'Enter\\')dashboardSearch(this.value)" style="width:100%;padding:10px 14px 10px 38px;border:1px solid #E5E7EB;border-radius:12px;font-size:13px;font-family:var(--font-sans);outline:none;background:#fff;transition:border-color 0.2s;" onfocus="this.style.borderColor=\\'#2563EB\\'" onblur="this.style.borderColor=\\'#E5E7EB\\'">';
   if (window._dashboardSearchQuery) {
-    h += '<button onclick="clearDashboardSearch()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;color:#94a3b8;font-size:16px;padding:2px 6px;" title="Clear search">&times;</button>';
+    h += '<button onclick="clearDashboardSearch()" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);border:none;background:none;cursor:pointer;color:#9CA3AF;font-size:16px;padding:2px 6px;" title="Clear search">&times;</button>';
   }
   h += '</div>';
-
-  // Summary stats header (Build 11 + 11.5)
-  h += '<div style="display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;">';
-  h += '<div style="padding:14px 20px;background:#f8f8fa;border-radius:10px;font-size:13px;flex:1;min-width:100px;text-align:center;"><strong style="font-size:22px;display:block;color:var(--text-primary);">' + stats.total + '</strong><span style="color:var(--text-muted);">Total Clients</span></div>';
-  if (stats.filing_not_ready > 0) h += '<div style="padding:14px 20px;background:#fef2f2;border-radius:10px;font-size:13px;flex:1;min-width:100px;text-align:center;"><strong style="font-size:22px;display:block;color:#991B1B;">' + stats.filing_not_ready + '</strong><span style="color:#991B1B;">Filing Not Ready</span></div>';
-  if (stats.critical > 0) h += '<div style="padding:14px 20px;background:#fff7ed;border-radius:10px;font-size:13px;flex:1;min-width:100px;text-align:center;"><strong style="font-size:22px;display:block;color:#9A3412;">' + stats.critical + '</strong><span style="color:#9A3412;">Critical (&lt;50%)</span></div>';
-  if (stats.in_progress > 0) h += '<div style="padding:14px 20px;background:#fefce8;border-radius:10px;font-size:13px;flex:1;min-width:100px;text-align:center;"><strong style="font-size:22px;display:block;color:#92400E;">' + stats.in_progress + '</strong><span style="color:#92400E;">In Progress</span></div>';
-  if (stats.filing_ready > 0) h += '<div style="padding:14px 20px;background:#f0fdf4;border-radius:10px;font-size:13px;flex:1;min-width:100px;text-align:center;"><strong style="font-size:22px;display:block;color:#065F46;">' + stats.filing_ready + '</strong><span style="color:#065F46;">Filing Ready</span></div>';
-  if (stats.fully_reviewed > 0) h += '<div style="padding:14px 20px;background:#eff6ff;border-radius:10px;font-size:13px;flex:1;min-width:100px;text-align:center;"><strong style="font-size:22px;display:block;color:#1D4ED8;">' + stats.fully_reviewed + '</strong><span style="color:#1D4ED8;">Fully Reviewed</span></div>';
+  h += '<button onclick="promptNewClient()" style="display:flex;align-items:center;gap:6px;padding:10px 20px;border:none;border-radius:12px;background:#2563EB;color:#fff;font-size:13px;font-weight:600;font-family:var(--font-sans);cursor:pointer;white-space:nowrap;transition:background 0.15s;" onmouseover="this.style.background=\\'#1D4ED8\\'" onmouseout="this.style.background=\\'#2563EB\\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New Matter</button>';
   h += '</div>';
 
-  // Filter chips (Build 11 + 11.5)
+  // Filter chips
   if (filterChips.length > 0) {
     h += '<div style="display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;">';
     for (var ci = 0; ci < filterChips.length; ci++) {
       var chip = filterChips[ci];
       var isActive = (window._dashboardActiveChip === chip.id);
-      var chipBg = isActive ? 'var(--accent-primary)' : (chip.type === 'universal' ? '#f0f0f2' : '#ede9fe');
-      var chipColor = isActive ? '#fff' : (chip.type === 'universal' ? 'var(--text-secondary)' : '#6366f1');
-      h += '<span data-chip="' + esc(chip.id) + '" onclick="toggleDashboardChip(\\'' + esc(chip.id) + '\\')" style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;background:' + chipBg + ';color:' + chipColor + ';transition:all 0.15s;border:1px solid ' + (isActive ? 'var(--accent-primary)' : 'transparent') + ';">' + esc(chip.label) + '</span>';
+      var chipBg = isActive ? '#2563EB' : '#F3F4F6';
+      var chipColor = isActive ? '#fff' : '#6B7280';
+      h += '<span data-chip="' + esc(chip.id) + '" onclick="toggleDashboardChip(\\'' + esc(chip.id) + '\\')" style="display:inline-flex;align-items:center;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;background:' + chipBg + ';color:' + chipColor + ';transition:all 0.15s;border:1px solid ' + (isActive ? '#2563EB' : 'transparent') + ';font-family:var(--font-sans);">' + esc(chip.label) + '</span>';
     }
     h += '</div>';
   }
 
-  // Apply filter (Build 11 + 11.5 tier-aware filters)
+  // Apply filter
   var filtered = spokes;
   if (window._dashboardActiveChip && window._dashboardData) {
     var activeChip = filterChips.find(function(c) { return c.id === window._dashboardActiveChip; });
     if (activeChip && activeChip.filter) {
-      filtered = spokes.filter(function(s) {
-        if (activeChip.filter.completeness_max != null && (s.completeness_pct == null || s.completeness_pct > activeChip.filter.completeness_max)) return false;
-        if (activeChip.filter.completeness_min != null && (s.completeness_pct == null || s.completeness_pct < activeChip.filter.completeness_min)) return false;
-        if (activeChip.filter.review_incomplete && s.total_reviewable > 0 && s.reviewed_count >= s.total_reviewable) return false;
-        if (activeChip.filter.missing_document && !s.missing_documents.includes(activeChip.filter.missing_document)) return false;
-        if (activeChip.filter.has_cross_doc_violations && s.cross_doc_violations === 0) return false;
-        if (activeChip.filter.filing_not_ready && (s.filing_readiness_pct == null || s.filing_readiness_pct >= 100)) return false;
-        if (activeChip.filter.quality_max != null && (s.quality_score_pct == null || s.quality_score_pct > activeChip.filter.quality_max)) return false;
-        if (activeChip.template_type && s.template_type !== activeChip.template_type) return false;
+      filtered = spokes.filter(function(sp) {
+        if (activeChip.filter.completeness_max != null && (sp.completeness_pct == null || sp.completeness_pct > activeChip.filter.completeness_max)) return false;
+        if (activeChip.filter.completeness_min != null && (sp.completeness_pct == null || sp.completeness_pct < activeChip.filter.completeness_min)) return false;
+        if (activeChip.filter.review_incomplete && sp.total_reviewable > 0 && sp.reviewed_count >= sp.total_reviewable) return false;
+        if (activeChip.filter.missing_document && !sp.missing_documents.includes(activeChip.filter.missing_document)) return false;
+        if (activeChip.filter.has_cross_doc_violations && sp.cross_doc_violations === 0) return false;
+        if (activeChip.filter.filing_not_ready && (sp.filing_readiness_pct == null || sp.filing_readiness_pct >= 100)) return false;
+        if (activeChip.filter.quality_max != null && (sp.quality_score_pct == null || sp.quality_score_pct > activeChip.filter.quality_max)) return false;
+        if (activeChip.template_type && sp.template_type !== activeChip.template_type) return false;
         return true;
       });
     }
@@ -19192,82 +19408,104 @@ function renderDashboardContent(data) {
   var sortAsc = window._dashboardSortAsc;
   filtered.sort(function(a, b) {
     var av, bv;
+    if (sortCol === 'actionability') {
+      av = getMatterStatePriority(a._state);
+      bv = getMatterStatePriority(b._state);
+      if (av !== bv) return sortAsc ? av - bv : bv - av;
+      av = a.completeness_pct || 0; bv = b.completeness_pct || 0;
+      return av - bv;
+    }
     if (sortCol === 'name') { av = (a.name || '').toLowerCase(); bv = (b.name || '').toLowerCase(); return sortAsc ? (av < bv ? -1 : 1) : (bv < av ? -1 : 1); }
     if (sortCol === 'template') { av = (a.template_label || '').toLowerCase(); bv = (b.template_label || '').toLowerCase(); return sortAsc ? (av < bv ? -1 : 1) : (bv < av ? -1 : 1); }
     if (sortCol === 'filing') { av = a.filing_readiness_pct != null ? a.filing_readiness_pct : -1; bv = b.filing_readiness_pct != null ? b.filing_readiness_pct : -1; return sortAsc ? av - bv : bv - av; }
-    if (sortCol === 'quality') { av = a.quality_score_pct != null ? a.quality_score_pct : -1; bv = b.quality_score_pct != null ? b.quality_score_pct : -1; return sortAsc ? av - bv : bv - av; }
     if (sortCol === 'completeness') { av = a.completeness_pct != null ? a.completeness_pct : -1; bv = b.completeness_pct != null ? b.completeness_pct : -1; return sortAsc ? av - bv : bv - av; }
-    if (sortCol === 'review') { av = a.reviewed_count || 0; bv = b.reviewed_count || 0; return sortAsc ? av - bv : bv - av; }
-    if (sortCol === 'entities') { av = a.entity_count || 0; bv = b.entity_count || 0; return sortAsc ? av - bv : bv - av; }
     if (sortCol === 'updated') { av = a.last_updated || ''; bv = b.last_updated || ''; return sortAsc ? (av < bv ? -1 : 1) : (bv < av ? -1 : 1); }
     return 0;
   });
 
-  // Helper: render a mini tier bar
-  function tierBar(pct, color, label) {
-    if (pct == null) return '<span style="color:var(--text-muted);font-size:10px;">\\u2014</span>';
-    var w = Math.min(pct, 100);
-    return '<div style="display:flex;align-items:center;gap:4px;margin-bottom:2px;" title="' + label + ': ' + pct + '%">' +
-      '<div style="width:60px;height:5px;background:#e8e8e8;border-radius:3px;overflow:hidden;"><div style="width:' + w + '%;height:100%;background:' + color + ';border-radius:3px;"></div></div>' +
-      '<span style="font-size:10px;font-weight:600;color:' + color + ';min-width:28px;">' + pct + '%</span>' +
-      '</div>';
-  }
-
-  // Table (Build 11.5 — three-tier columns)
-  h += '<table style="width:100%;border-collapse:collapse;font-size:14px;">';
-  h += '<thead><tr style="border-bottom:2px solid #e8e8e8;text-align:left;">';
-  var cols = [
-    { key: 'name', label: 'Client' },
-    { key: 'template', label: 'Template' },
-    { key: 'filing', label: 'Filing Ready' },
-    { key: 'quality', label: 'Quality' },
-    { key: 'completeness', label: 'Complete' },
-    { key: 'review', label: 'Review' },
-    { key: 'entities', label: 'Ent.' },
-    { key: 'updated', label: 'Updated' }
+  // Sort controls
+  h += '<div style="display:flex;gap:16px;align-items:center;margin-bottom:12px;font-size:12px;color:#9CA3AF;">';
+  h += '<span style="font-weight:500;">Sort:</span>';
+  var sortOpts = [
+    { key: 'actionability', label: 'Priority' },
+    { key: 'name', label: 'Name' },
+    { key: 'completeness', label: 'Completion' },
+    { key: 'updated', label: 'Last Updated' }
   ];
-  for (var ci = 0; ci < cols.length; ci++) {
-    var col = cols[ci];
-    var arrow = (sortCol === col.key) ? (sortAsc ? ' \\u25B2' : ' \\u25BC') : '';
-    h += '<th style="padding:10px 8px;font-weight:600;color:var(--text-secondary);cursor:pointer;user-select:none;white-space:nowrap;font-size:12px;" onclick="sortDashboard(\\'' + col.key + '\\')">' + col.label + arrow + '</th>';
-  }
-  h += '</tr></thead><tbody>';
-
-  for (var i = 0; i < filtered.length; i++) {
-    var s = filtered[i];
-    var updated = s.last_updated ? new Date(s.last_updated).toLocaleDateString() : '\\u2014';
-    var templateLabel = s.template_label || '\\u2014';
-
-    // Filing readiness color: red if <100, green if 100
-    var frPct = s.filing_readiness_pct;
-    var frColor = frPct == null ? '#999' : (frPct >= 100 ? '#16A34A' : frPct >= 80 ? '#CA8A04' : '#DC2626');
-    // Quality color
-    var qPct = s.quality_score_pct;
-    var qColor = qPct == null ? '#999' : (qPct >= 80 ? '#16A34A' : qPct >= 50 ? '#CA8A04' : '#DC2626');
-    // Completeness color
-    var cPct = s.completeness_score_pct != null ? s.completeness_score_pct : s.completeness_pct;
-    var cColor = cPct == null ? '#999' : (cPct >= 80 ? '#16A34A' : cPct >= 50 ? '#CA8A04' : '#DC2626');
-
-    h += '<tr style="border-bottom:1px solid #f0f0f0;cursor:pointer;transition:background 0.15s;" onclick="selectClient(\\'' + esc(s.spoke_id) + '\\')" onmouseover="this.style.background=\\'#f8f8fa\\'" onmouseout="this.style.background=\\'\\'">';
-    h += '<td style="padding:10px 8px;font-weight:500;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + esc(s.name) + '</td>';
-    h += '<td style="padding:10px 8px;"><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;background:#f0f0f2;color:var(--text-secondary);white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis;">' + esc(templateLabel) + '</span></td>';
-    // Filing Readiness
-    h += '<td style="padding:10px 8px;">' + tierBar(frPct, frColor, 'Filing Readiness') + '</td>';
-    // Quality Score
-    h += '<td style="padding:10px 8px;">' + tierBar(qPct, qColor, 'Quality Score') + '</td>';
-    // Completeness
-    h += '<td style="padding:10px 8px;">' + tierBar(cPct, cColor, 'Completeness') + '</td>';
-    h += '<td style="padding:10px 8px;"><span style="font-size:12px;color:var(--text-muted);">' + esc(s.review_status) + '</span></td>';
-    h += '<td style="padding:10px 8px;text-align:center;"><span style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#f0f0f2;font-size:11px;font-weight:600;color:var(--text-secondary);">' + (s.entity_count || 0) + '</span></td>';
-    h += '<td style="padding:10px 8px;color:var(--text-muted);font-size:12px;">' + esc(updated) + '</td>';
-    h += '</tr>';
-  }
-
-  h += '</tbody></table>';
-  if (filtered.length === 0 && spokes.length > 0) {
-    h += '<div style="padding:40px;text-align:center;color:var(--text-muted);font-size:14px;">No clients match this filter.</div>';
+  for (var si = 0; si < sortOpts.length; si++) {
+    var so = sortOpts[si];
+    var isSortActive = (sortCol === so.key);
+    var arrow = isSortActive ? (sortAsc ? ' \u25B2' : ' \u25BC') : '';
+    h += '<span onclick="sortDashboard(\\'' + so.key + '\\')" style="cursor:pointer;font-weight:' + (isSortActive ? '600' : '400') + ';color:' + (isSortActive ? '#2563EB' : '#9CA3AF') + ';transition:color 0.15s;">' + so.label + arrow + '</span>';
   }
   h += '</div>';
+
+  // Matter rows
+  for (i = 0; i < filtered.length; i++) {
+    s = filtered[i];
+    var state = s._state;
+    var stateInfo = getMatterStateInfo(state);
+    var rowComp = s.completeness_score_pct != null ? s.completeness_score_pct : (s.completeness_pct || 0);
+    var progressColor = stateInfo.color;
+    var updated = dashTimeAgo(s.last_updated);
+
+    // Action button
+    var actionHtml = '';
+    if (state === 'verified_complete') {
+      actionHtml = '<button onclick="dashboardAction(\\'' + esc(s.spoke_id) + '\\', \\'generate\\', event)" style="padding:6px 16px;border:none;border-radius:8px;background:#2563EB;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-sans);transition:background 0.15s;" onmouseover="this.style.background=\\'#1D4ED8\\'" onmouseout="this.style.background=\\'#2563EB\\'">Generate</button>';
+    } else if (state === 'ready_for_approve') {
+      var approveCount = Math.max((s.total_reviewable || 0) - (s.reviewed_count || 0), 0);
+      actionHtml = '<button onclick="dashboardAction(\\'' + esc(s.spoke_id) + '\\', \\'approve\\', event)" style="padding:6px 16px;border:1px solid #2563EB;border-radius:8px;background:none;color:#2563EB;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-sans);transition:all 0.15s;" onmouseover="this.style.background=\\'#2563EB\\';this.style.color=\\'#fff\\'" onmouseout="this.style.background=\\'none\\';this.style.color=\\'#2563EB\\'">Approve ' + approveCount + '</button>';
+    } else if (state === 'unreviewed') {
+      actionHtml = '<button onclick="dashboardAction(\\'' + esc(s.spoke_id) + '\\', \\'review\\', event)" style="padding:6px 16px;border:none;border-radius:8px;background:none;color:#2563EB;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-sans);text-decoration:underline;text-underline-offset:2px;">Review</button>';
+    } else {
+      actionHtml = '<button onclick="dashboardAction(\\'' + esc(s.spoke_id) + '\\', \\'nudge\\', event)" style="padding:6px 16px;border:1px solid #DC2626;border-radius:8px;background:none;color:#DC2626;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-sans);transition:all 0.15s;" onmouseover="this.style.background=\\'#DC2626\\';this.style.color=\\'#fff\\'" onmouseout="this.style.background=\\'none\\';this.style.color=\\'#DC2626\\'">Nudge</button>';
+    }
+
+    // Badge label
+    var badgeLabel = stateInfo.label;
+    if (state === 'missing_blocked') {
+      var bl = getMatterBlocker(s);
+      badgeLabel = bl.length > 22 ? 'Missing Docs' : bl;
+    }
+
+    // Matter row
+    h += '<div onclick="selectClient(\\'' + esc(s.spoke_id) + '\\')" style="display:flex;align-items:center;gap:16px;padding:16px 20px;background:#fff;border:1px solid #E5E7EB;border-radius:12px;margin-bottom:8px;cursor:pointer;transition:all 0.15s;" onmouseover="this.style.background=\\'#F5F5F4\\';this.style.borderColor=\\'#D1D5DB\\'" onmouseout="this.style.background=\\'#fff\\';this.style.borderColor=\\'#E5E7EB\\'">';
+
+    // Left: dot + name + template
+    h += '<div style="flex:1;min-width:0;display:flex;align-items:center;gap:12px;">';
+    h += '<div style="width:10px;height:10px;border-radius:50%;background:' + stateInfo.color + ';flex-shrink:0;"></div>';
+    h += '<div style="min-width:0;">';
+    h += '<div style="font-size:15px;font-weight:600;color:#1A1A1A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(s.name) + '</div>';
+    h += '<div style="font-size:12px;color:#9CA3AF;margin-top:2px;">' + esc(s.template_label || '') + '</div>';
+    h += '</div></div>';
+
+    // Badge
+    h += '<span style="display:inline-flex;padding:4px 12px;border-radius:9999px;font-size:11px;font-weight:600;background:' + stateInfo.bg + ';color:#fff;white-space:nowrap;letter-spacing:0.01em;flex-shrink:0;">' + esc(badgeLabel) + '</span>';
+
+    // Progress bar
+    h += '<div style="width:100px;display:flex;align-items:center;gap:6px;flex-shrink:0;">';
+    h += '<div style="flex:1;height:4px;background:#E5E7EB;border-radius:2px;overflow:hidden;"><div style="width:' + Math.min(rowComp, 100) + '%;height:100%;background:' + progressColor + ';border-radius:2px;transition:width 0.3s;"></div></div>';
+    h += '<span style="font-family:var(--font-mono);font-size:11px;font-weight:500;color:#6B7280;min-width:28px;text-align:right;">' + rowComp + '%</span>';
+    h += '</div>';
+
+    // Updated
+    h += '<div style="font-size:12px;color:#9CA3AF;white-space:nowrap;min-width:80px;text-align:right;flex-shrink:0;">' + (updated ? 'Updated ' + updated : '') + '</div>';
+
+    // Action button
+    h += '<div style="min-width:95px;text-align:right;flex-shrink:0;">' + actionHtml + '</div>';
+
+    h += '</div>'; // end matter row
+  }
+
+  if (filtered.length === 0 && spokes.length > 0) {
+    h += '<div style="padding:48px;text-align:center;color:#9CA3AF;font-size:14px;">No matters match this filter.</div>';
+  }
+
+  h += '</div>'; // end container
+
+  // FAB — floating action button
+  h += '<button onclick="promptNewClient()" style="position:fixed;bottom:28px;right:28px;width:56px;height:56px;border-radius:50%;border:none;background:#2563EB;color:#fff;font-size:24px;cursor:pointer;box-shadow:0 4px 12px rgba(37,99,235,0.4);display:flex;align-items:center;justify-content:center;transition:transform 0.15s,box-shadow 0.15s;z-index:100;" onmouseover="this.style.transform=\\'scale(1.1)\\';this.style.boxShadow=\\'0 6px 20px rgba(37,99,235,0.5)\\'" onmouseout="this.style.transform=\\'scale(1)\\';this.style.boxShadow=\\'0 4px 12px rgba(37,99,235,0.4)\\'"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:24px;height:24px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>';
 
   mainEl.innerHTML = h;
 }
@@ -19277,7 +19515,7 @@ function sortDashboard(col) {
     window._dashboardSortAsc = !window._dashboardSortAsc;
   } else {
     window._dashboardSortCol = col;
-    window._dashboardSortAsc = (col === 'filing' || col === 'completeness' || col === 'quality'); // tier cols default asc
+    window._dashboardSortAsc = (col === 'actionability' || col === 'filing' || col === 'completeness');
   }
   if (window._dashboardData) renderDashboardContent(window._dashboardData);
 }
@@ -19316,8 +19554,8 @@ function dashboardSearch(query) {
       var mainEl = document.getElementById('main');
       if (mainEl) {
         var banner = document.createElement('div');
-        banner.style.cssText = 'padding:8px 16px;background:#ede9fe;border-radius:8px;font-size:13px;color:#6366f1;margin:0 28px 16px;display:flex;justify-content:space-between;align-items:center;';
-        banner.innerHTML = '<span>Search: "' + esc(query) + '" \\u2014 ' + data.results.length + ' result' + (data.results.length !== 1 ? 's' : '') + '</span><button onclick="clearDashboardSearch()" style="border:none;background:none;cursor:pointer;color:#6366f1;font-weight:600;font-size:12px;">Clear</button>';
+        banner.style.cssText = 'padding:8px 16px;background:#EFF6FF;border-radius:8px;font-size:13px;color:#2563EB;margin:0 28px 16px;display:flex;justify-content:space-between;align-items:center;';
+        banner.innerHTML = '<span>Search: "' + esc(query) + '" \\u2014 ' + data.results.length + ' result' + (data.results.length !== 1 ? 's' : '') + '</span><button onclick="clearDashboardSearch()" style="border:none;background:none;cursor:pointer;color:#2563EB;font-weight:600;font-size:12px;">Clear</button>';
         var firstChild = mainEl.firstChild;
         if (firstChild) mainEl.insertBefore(banner, firstChild.nextSibling);
       }
@@ -20106,7 +20344,7 @@ function renderDocumentDetailPanel(rp, detail) {
   var h = '<div style="padding:4px 0;">';
 
   h += '<div class="rp-section-title">';
-  h += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+  h += '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1D4ED8" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
   h += 'DOCUMENT DETAIL</div>';
 
   var fName = detail.original_name || detail.filename || detail.id || '';
@@ -20822,7 +21060,7 @@ function showUploadView() {
   h += '<div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);margin-bottom:8px;">Or paste a URL</div>';
   h += '<div style="display:flex;gap:8px;">';
   h += '<input type="url" id="urlExtractInput" placeholder="https://example.com/about" style="flex:1;padding:8px 12px;border:1px solid var(--border,#e2e2e5);border-radius:6px;font-size:0.85rem;background:var(--bg-primary,#fff);color:var(--text-primary);" />';
-  h += '<button onclick="extractFromURL()" id="btnExtractUrl" style="padding:8px 16px;border:none;border-radius:6px;background:#6366f1;color:#fff;font-size:0.82rem;font-weight:600;cursor:pointer;white-space:nowrap;">Extract</button>';
+  h += '<button onclick="extractFromURL()" id="btnExtractUrl" style="padding:8px 16px;border:none;border-radius:6px;background:#2563EB;color:#fff;font-size:0.82rem;font-weight:600;cursor:pointer;white-space:nowrap;">Extract</button>';
   h += '</div>';
   h += '<div id="urlExtractStatus" style="margin-top:8px;font-size:0.78rem;color:var(--text-muted);display:none;"></div>';
   h += '</div>';
@@ -20996,7 +21234,7 @@ function discoverEntity() {
 
     if (data.status === 'disambiguation') {
       // Multiple candidates — show picker with context highlighting
-      var msgColor = data.context_warning ? 'var(--warning,#d97706)' : '#6366f1';
+      var msgColor = data.context_warning ? 'var(--warning,#d97706)' : '#2563EB';
       statusEl.innerHTML = '<div style="color:' + msgColor + ';font-size:0.82rem;font-weight:600;">' + esc(data.message) + '</div>';
       candidatesEl.style.display = 'block';
       var ch = '';
@@ -21043,7 +21281,7 @@ function discoverEntity() {
       fh += '<div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);">' + esc(data.match.name) + '</div>';
       if (data.match.headline) fh += '<div style="font-size:0.75rem;color:var(--text-muted);">' + esc(data.match.headline) + '</div>';
       if (data.match.location) fh += '<div style="font-size:0.72rem;color:var(--text-muted);">' + esc(data.match.location) + '</div>';
-      fh += '<div style="font-size:0.72rem;color:#6366f1;margin-top:4px;">' + data.cluster_count + ' clusters staged for review</div>';
+      fh += '<div style="font-size:0.72rem;color:#2563EB;margin-top:4px;">' + data.cluster_count + ' clusters staged for review</div>';
       fh += '</div>';
       candidatesEl.style.display = 'block';
       candidatesEl.innerHTML = fh;
@@ -21079,7 +21317,7 @@ function selectDiscoverCandidate(slug, linkedinUrl) {
       statusEl.innerHTML = '<div style="color:var(--success,#22c55e);font-size:0.82rem;font-weight:600;">' + esc(data.message) + '</div>';
       var fh = '<div style="padding:10px 12px;background:var(--bg-card);border:1px solid var(--border-primary);border-radius:8px;margin-top:8px;">';
       fh += '<div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);">' + esc(data.match.name) + '</div>';
-      fh += '<div style="font-size:0.72rem;color:#6366f1;margin-top:4px;">' + data.cluster_count + ' clusters staged for review</div>';
+      fh += '<div style="font-size:0.72rem;color:#2563EB;margin-top:4px;">' + data.cluster_count + ' clusters staged for review</div>';
       fh += '</div>';
       candidatesEl.style.display = 'block';
       candidatesEl.innerHTML = fh;
@@ -21114,14 +21352,14 @@ function enrichOrgFromWeb(entityId, orgName) {
       btn.textContent = 'Not Found';
       btn.style.color = 'var(--warning, #d97706)';
       btn.disabled = false;
-      setTimeout(function() { btn.textContent = 'Enrich from Web'; btn.style.color = '#6366f1'; }, 3000);
+      setTimeout(function() { btn.textContent = 'Enrich from Web'; btn.style.color = '#2563EB'; }, 3000);
     }
   }).catch(function(err) {
     toast('Enrichment error: ' + (err.message || 'Unknown error'));
     btn.disabled = false;
     btn.textContent = 'Retry';
     btn.style.color = 'var(--error, #ef4444)';
-    setTimeout(function() { btn.textContent = 'Enrich from Web'; btn.style.color = '#6366f1'; }, 3000);
+    setTimeout(function() { btn.textContent = 'Enrich from Web'; btn.style.color = '#2563EB'; }, 3000);
   });
 }
 
@@ -21820,7 +22058,7 @@ function renderReviewQueue(data) {
       if (pOrgs.length > 0) signalBits.push(pOrgs.slice(0, 3).join(', '));
       if (signalBits.length > 0) h += '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:2px;">' + esc(signalBits.join(' \\u2022 ')) + '</div>';
       if (p.candidate_entity_name) {
-        h += '<div style="font-size:0.72rem;color:#6366f1;margin-top:2px;">\\u2192 Match: ' + esc(p.candidate_entity_name) + ' (' + Math.round((p.confidence || 0) * 100) + '% confidence)</div>';
+        h += '<div style="font-size:0.72rem;color:#2563EB;margin-top:2px;">\\u2192 Match: ' + esc(p.candidate_entity_name) + ' (' + Math.round((p.confidence || 0) * 100) + '% confidence)</div>';
       }
       h += '</div>';
       h += '<span class="rq-quadrant q' + p.quadrant + '">' + esc(p.quadrant_label) + '</span>';
@@ -23569,7 +23807,7 @@ function renderDynamicCardContent(sectionKey, sectionData) {
         var child = fam.children[i];
         var cInit = (child.name || '').split(/\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
         h += '<div class="li-family-member">';
-        h += '<div class="li-family-avatar" style="background:linear-gradient(135deg,#7c3aed,#5b21b6)">' + esc(cInit) + '</div>';
+        h += '<div class="li-family-avatar" style="background:linear-gradient(135deg,#1D4ED8,#5b21b6)">' + esc(cInit) + '</div>';
         h += '<div class="li-family-info">';
         h += '<div class="li-family-name">' + esc(child.name || '') + '</div>';
         var childMeta = [];
@@ -24474,7 +24712,7 @@ function renderOrgDossier(data) {
   h += '<span class="entity-id-badge">' + esc(e.entity_id || '') + '</span>';
   h += renderDensityBadge(data);
   if ((e.entity_id || '') !== primaryEntityId) h += '<button class="btn-delete-entity" onclick="confirmDeleteEntity(' + "'" + esc(e.entity_id || '') + "'" + ', ' + "'" + esc(name).replace(/'/g, '') + "'" + ')" title="Delete entity">Delete</button>';
-  h += '<button class="btn-enrich-org" id="btnEnrichOrg" onclick="enrichOrgFromWeb(' + "'" + esc(e.entity_id || '') + "'" + ', ' + "'" + esc(name).replace(/'/g, '') + "'" + ')" style="margin-left:8px;padding:4px 12px;border:1px solid #6366f1;border-radius:6px;background:transparent;color:#6366f1;font-size:0.72rem;font-weight:600;cursor:pointer;">Enrich from Web</button>';
+  h += '<button class="btn-enrich-org" id="btnEnrichOrg" onclick="enrichOrgFromWeb(' + "'" + esc(e.entity_id || '') + "'" + ', ' + "'" + esc(name).replace(/'/g, '') + "'" + ')" style="margin-left:8px;padding:4px 12px;border:1px solid #2563EB;border-radius:6px;background:transparent;color:#2563EB;font-size:0.72rem;font-weight:600;cursor:pointer;">Enrich from Web</button>';
   h += '</div>';
 
   // Enrichment prompts for skeleton/partial orgs
@@ -24605,7 +24843,7 @@ function renderConnectedDetail(data) {
   if (parentId) {
     h += '<div class="section" style="padding:8px 0;">';
     h += '<span style="font-size:0.82rem;color:var(--text-muted);">Parent: </span>';
-    h += '<a href="#" style="font-size:0.82rem;color:#6366f1;text-decoration:none;" onclick="event.preventDefault();selectEntity(' + "'" + esc(parentId) + "'" + ')">' + esc(parentId) + '</a>';
+    h += '<a href="#" style="font-size:0.82rem;color:#2563EB;text-decoration:none;" onclick="event.preventDefault();selectEntity(' + "'" + esc(parentId) + "'" + ')">' + esc(parentId) + '</a>';
     h += '</div>';
   }
 
