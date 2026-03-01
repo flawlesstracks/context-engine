@@ -19832,9 +19832,9 @@ function _buildMatterMetrics34() {
 function _buildTabBar34() {
   var s = _demoStats();
   var h = '';
-  h += '<div class="mv-tab' + (_mvActiveTab === 'know' ? ' active' : '') + '" onclick="mvSwitchTab(\'know\')">';
+  h += '<div class="mv-tab' + (_mvActiveTab === 'know' ? ' active' : '') + '" onclick="mvSwitchTab(\\'know\\')">';
   h += 'What We Know <span class="mv-tab-badge" style="background:#2563EB;color:#fff;">' + (s.total - s.missing) + '</span></div>';
-  h += '<div class="mv-tab' + (_mvActiveTab === 'need' ? ' active' : '') + '" onclick="mvSwitchTab(\'need\')">';
+  h += '<div class="mv-tab' + (_mvActiveTab === 'need' ? ' active' : '') + '" onclick="mvSwitchTab(\\'need\\')">';
   h += 'What We Still Need <span class="mv-tab-badge" style="background:' + (s.needTotal > 0 ? '#DC2626' : '#059669') + ';color:#fff;">' + s.needTotal + '</span></div>';
   return h;
 }
@@ -19845,7 +19845,7 @@ function _buildDocPanel34() {
   var h = '';
   h += '<div class="mv-doc-panel-header">';
   h += '<span style="font-size:12px;font-weight:600;color:#1A1A1A;text-transform:uppercase;letter-spacing:0.05em;">Documents (' + docs.length + ')</span>';
-  h += '<span style="font-size:11px;color:#2563EB;cursor:pointer;font-weight:500;" onclick="document.getElementById(\'matterFileInput\').click()">+ Upload</span>';
+  h += '<span style="font-size:11px;color:#2563EB;cursor:pointer;font-weight:500;" onclick="document.getElementById(\\'matterFileInput\\').click()">+ Upload</span>';
   h += '</div>';
   h += '<div class="mv-doc-list" style="flex:1;overflow-y:auto;padding:8px;">';
 
@@ -19855,7 +19855,7 @@ function _buildDocPanel34() {
     var icon = doc.classification === 'W-9 Form' ? '\ud83d\udcdd' : doc.classification === 'Formation Document' ? '\ud83c\udfe2' : doc.classification === 'Operating Agreement' ? '\ud83d\udcc4' : doc.classification === 'EIN Confirmation' ? '\ud83c\udfe6' : doc.classification === 'Tax Return' ? '\ud83d\udcca' : doc.classification === '1099-NEC' ? '\ud83d\udccb' : '\ud83d\udcc4';
     var statusIcon = doc.status === 'processed' ? '<span style="color:#059669;">\u2713</span>' : '<span style="color:#D97706;">\u25cf</span>';
 
-    h += '<div class="mv-doc-card' + (isSelected ? ' selected' : '') + '" data-fileid="' + doc.id + '" onclick="mvSelectDoc34(\'' + doc.id + '\')">';
+    h += '<div class="mv-doc-card' + (isSelected ? ' selected' : '') + '" data-fileid="' + doc.id + '" onclick="mvSelectDoc34(\\'' + doc.id + '\\')">';
     h += '<div style="display:flex;align-items:center;gap:8px;">';
     h += '<span style="font-size:16px;">' + icon + '</span>';
     h += '<div style="flex:1;min-width:0;">';
@@ -19869,7 +19869,7 @@ function _buildDocPanel34() {
 
   h += '</div>';
   h += '<div style="padding:8px;border-top:1px solid #E5E7EB;">';
-  h += '<button onclick="document.getElementById(\'matterFileInput\').click()" style="width:100%;padding:8px;border:1px dashed #D1D5DB;border-radius:8px;background:none;color:#6B7280;font-size:12px;cursor:pointer;">+ Upload Documents</button>';
+  h += '<button onclick="document.getElementById(\\'matterFileInput\\').click()" style="width:100%;padding:8px;border:1px dashed #D1D5DB;border-radius:8px;background:none;color:#6B7280;font-size:12px;cursor:pointer;">+ Upload Documents</button>';
   h += '</div>';
   return h;
 }
@@ -19989,7 +19989,7 @@ function _buildDataPanel34() {
       h += '<div>';
       if (fSource && fSource.file) {
         var shortFile = fSource.file.length > 18 ? fSource.file.substring(0, 15) + '...' : fSource.file;
-        h += '<span class="b34-source-link" onclick="event.stopPropagation();b34OpenSource(\'' + esc(fSource.file) + '\',' + (fSource.line || 0) + ')">' + esc(shortFile) + ':' + (fSource.line || '') + '</span>';
+        h += '<span class="b34-source-link" onclick="event.stopPropagation();b34OpenSource(\\'' + esc(fSource.file) + '\\',' + (fSource.line || 0) + ')">' + esc(shortFile) + ':' + (fSource.line || '') + '</span>';
       } else if (fStatus !== 'missing') {
         h += '<span class="b34-source-none">No source</span>';
       }
@@ -19998,15 +19998,15 @@ function _buildDataPanel34() {
       // Actions
       h += '<div class="b34-actions">';
       if (fStatus === 'verified') {
-        h += '<button class="b34-verify active" onclick="b34ToggleVerify(\'' + fieldKey + '\')" title="Un-verify">\u2713</button>';
-        h += '<button class="b34-edit" onclick="b34StartEdit(\'' + fieldKey + '\')" title="Edit">\u270e</button>';
-        h += '<button class="b34-delete" onclick="b34DeleteField(\'' + fieldKey + '\')" title="Delete">\ud83d\uddd1</button>';
+        h += '<button class="b34-verify active" onclick="b34ToggleVerify(\\'' + fieldKey + '\\')" title="Un-verify">\u2713</button>';
+        h += '<button class="b34-edit" onclick="b34StartEdit(\\'' + fieldKey + '\\')" title="Edit">\u270e</button>';
+        h += '<button class="b34-delete" onclick="b34DeleteField(\\'' + fieldKey + '\\')" title="Delete">\ud83d\uddd1</button>';
       } else if (fStatus === 'missing') {
-        h += '<button class="b34-edit" onclick="b34StartEdit(\'' + fieldKey + '\')" title="Enter value">\u270e</button>';
+        h += '<button class="b34-edit" onclick="b34StartEdit(\\'' + fieldKey + '\\')" title="Enter value">\u270e</button>';
       } else {
-        h += '<button class="b34-verify" onclick="b34ToggleVerify(\'' + fieldKey + '\')" title="Verify">\u2713</button>';
-        h += '<button class="b34-edit" onclick="b34StartEdit(\'' + fieldKey + '\')" title="Edit">\u270e</button>';
-        h += '<button class="b34-delete" onclick="b34DeleteField(\'' + fieldKey + '\')" title="Delete">\ud83d\uddd1</button>';
+        h += '<button class="b34-verify" onclick="b34ToggleVerify(\\'' + fieldKey + '\\')" title="Verify">\u2713</button>';
+        h += '<button class="b34-edit" onclick="b34StartEdit(\\'' + fieldKey + '\\')" title="Edit">\u270e</button>';
+        h += '<button class="b34-delete" onclick="b34DeleteField(\\'' + fieldKey + '\\')" title="Delete">\ud83d\uddd1</button>';
       }
       h += '</div>';
 
@@ -20033,9 +20033,9 @@ function _buildMissingPanel34() {
   var rCount = 0, recCount = 0;
   for (var i = 0; i < _demoMissing.required.length; i++) { if (_demoDismissed.indexOf(_demoMissing.required[i].id) === -1 && !_demoRequested[_demoMissing.required[i].id] && !_demoManualEntries[_demoMissing.required[i].id]) rCount++; }
   for (var i = 0; i < _demoMissing.recommended.length; i++) { if (_demoDismissed.indexOf(_demoMissing.recommended[i].id) === -1 && !_demoRequested[_demoMissing.recommended[i].id] && !_demoManualEntries[_demoMissing.recommended[i].id]) recCount++; }
-  h += '<div onclick="b34RequestAllTier(\'required\')">Request All Required (' + rCount + ')</div>';
-  h += '<div onclick="b34RequestAllTier(\'recommended\')">Request All Recommended (' + recCount + ')</div>';
-  h += '<div onclick="b34RequestAllTier(\'all\')">Request All (' + (rCount + recCount) + ')</div>';
+  h += '<div onclick="b34RequestAllTier(\\'required\\')">Request All Required (' + rCount + ')</div>';
+  h += '<div onclick="b34RequestAllTier(\\'recommended\\')">Request All Recommended (' + recCount + ')</div>';
+  h += '<div onclick="b34RequestAllTier(\\'all\\')">Request All (' + (rCount + recCount) + ')</div>';
   h += '</div></div></div>';
 
   if (s.needTotal === 0) {
@@ -20062,7 +20062,7 @@ function _buildMissingPanel34() {
       if (!item) continue;
       h += '<div class="b34-not-needed-item">';
       h += '<span>\ud83d\udccb ' + esc(item.name) + '</span>';
-      h += '<span class="b34-restore-link" onclick="b34RestoreItem(\'' + item.id + '\')">Restore</span>';
+      h += '<span class="b34-restore-link" onclick="b34RestoreItem(\\'' + item.id + '\\')">Restore</span>';
       h += '</div>';
     }
     h += '</div>';
@@ -20109,22 +20109,22 @@ function _buildTierSection(tier, items, label, color, subtext, collapsedDefault)
     h += '<div class="b34-need-item-actions">';
 
     // Upload button
-    h += '<button class="b34-need-btn upload" onclick="b34UploadFor(\'' + item.id + '\')">\u2191 Upload Document</button>';
+    h += '<button class="b34-need-btn upload" onclick="b34UploadFor(\\'' + item.id + '\\')">\u2191 Upload Document</button>';
 
     // Request button (or Requested state)
     if (isRequested) {
       h += '<button class="b34-need-btn requested">\ud83d\udce4 Requested ' + isRequested + '</button>';
     } else {
-      h += '<button class="b34-need-btn request" onclick="b34RequestItem(\'' + item.id + '\')">\ud83d\udce4 Request from Client</button>';
+      h += '<button class="b34-need-btn request" onclick="b34RequestItem(\\'' + item.id + '\\')">\ud83d\udce4 Request from Client</button>';
     }
 
     // Manual entry (if allowed)
     if (item.canManualEntry) {
-      h += '<button class="b34-need-btn manual" onclick="b34ManualEntry(\'' + item.id + '\')">\u270e Enter Manually</button>';
+      h += '<button class="b34-need-btn manual" onclick="b34ManualEntry(\\'' + item.id + '\\')">\u270e Enter Manually</button>';
     }
 
     // Not Needed dismiss
-    h += '<span class="b34-need-dismiss" onclick="b34DismissItem(\'' + item.id + '\',\'' + tier + '\')" title="Remove from requirements">\u2715 Not Needed</span>';
+    h += '<span class="b34-need-dismiss" onclick="b34DismissItem(\\'' + item.id + '\\',\\'' + tier + '\\')" title="Remove from requirements">\u2715 Not Needed</span>';
 
     h += '</div>'; // end actions
     h += '</div>'; // end item
@@ -20133,11 +20133,11 @@ function _buildTierSection(tier, items, label, color, subtext, collapsedDefault)
 
   // Show more link for recommended
   if (tier === 'recommended' && activeItems.length > 5) {
-    h += '<div class="b34-expand-link" style="color:' + color + ';" id="b34expand_' + tier + '" onclick="b34ExpandTier(\'' + tier + '\')">+' + (activeItems.length - 5) + ' more</div>';
+    h += '<div class="b34-expand-link" style="color:' + color + ';" id="b34expand_' + tier + '" onclick="b34ExpandTier(\\'' + tier + '\\')">+' + (activeItems.length - 5) + ' more</div>';
   }
   // Show/hide toggle for optional (collapsed by default)
   if (collapsedDefault && activeItems.length > 0) {
-    h += '<div class="b34-expand-link" style="color:' + color + ';" id="b34expand_' + tier + '" onclick="b34ExpandTier(\'' + tier + '\')">Show ' + activeItems.length + ' optional items \u25be</div>';
+    h += '<div class="b34-expand-link" style="color:' + color + ';" id="b34expand_' + tier + '" onclick="b34ExpandTier(\\'' + tier + '\\')">Show ' + activeItems.length + ' optional items \u25be</div>';
   }
 
   h += '</div>'; // end tier section
@@ -20331,7 +20331,7 @@ function b34StartEdit(fieldKey) {
         row.className = 'b34-field-row editing';
         valCell.innerHTML = '<div class="b34-inline-edit">' +
           '<input type="text" id="b34input_' + fieldKey + '" value="' + esc(String(curVal)) + '" />' +
-          '<button class="save-btn" onclick="b34SaveEdit(\'' + fieldKey + '\')">\u2713</button>' +
+          '<button class="save-btn" onclick="b34SaveEdit(\\'' + fieldKey + '\\')">\u2713</button>' +
           '<button class="cancel-btn" onclick="_b34RefreshDataPanel()">\u2715</button>' +
           '</div>';
         var inp = document.getElementById('b34input_' + fieldKey);
@@ -20360,7 +20360,7 @@ function b34DeleteField(fieldKey) {
   if (!valCell) return;
   row.style.background = '#FEF2F2';
   valCell.innerHTML = '<span style="font-size:13px;color:#DC2626;">Delete this value?</span> ' +
-    '<button onclick="b34ConfirmDelete(\'' + fieldKey + '\')" style="padding:3px 10px;border:none;border-radius:4px;background:#DC2626;color:#fff;font-size:11px;font-weight:600;cursor:pointer;margin-left:8px;">Yes</button> ' +
+    '<button onclick="b34ConfirmDelete(\\'' + fieldKey + '\\')" style="padding:3px 10px;border:none;border-radius:4px;background:#DC2626;color:#fff;font-size:11px;font-weight:600;cursor:pointer;margin-left:8px;">Yes</button> ' +
     '<button onclick="_b34RefreshDataPanel()" style="padding:3px 10px;border:1px solid #E5E7EB;border-radius:4px;background:#fff;color:#6B7280;font-size:11px;cursor:pointer;">No</button>';
 }
 
@@ -20427,7 +20427,7 @@ function b34DismissItem(itemId, tier) {
     if (el && item) {
       el.innerHTML = '<div style="padding:8px;text-align:center;">' +
         '<div style="font-size:13px;color:#DC2626;margin-bottom:8px;">This is marked as REQUIRED. Removing it means the matter may be filed incomplete. Are you sure?</div>' +
-        '<button onclick="_demoDismissed.push(\'' + itemId + '\');_b34RefreshAll();" style="padding:6px 14px;border:none;border-radius:6px;background:#DC2626;color:#fff;font-size:12px;font-weight:600;cursor:pointer;margin-right:8px;">Yes, Remove</button>' +
+        '<button onclick="_demoDismissed.push(\\'' + itemId + '\\');_b34RefreshAll();" style="padding:6px 14px;border:none;border-radius:6px;background:#DC2626;color:#fff;font-size:12px;font-weight:600;cursor:pointer;margin-right:8px;">Yes, Remove</button>' +
         '<button onclick="_b34RefreshAll();" style="padding:6px 14px;border:1px solid #E5E7EB;border-radius:6px;background:#fff;color:#1A1A1A;font-size:12px;cursor:pointer;">Keep It</button>' +
         '</div>';
       return;
@@ -20486,7 +20486,7 @@ function b34ManualEntry(itemId) {
     '<div style="font-size:13px;font-weight:600;margin-bottom:8px;">' + esc(item.name) + '</div>' +
     '<div class="b34-inline-edit">' +
     '<input type="text" id="b34manual_' + itemId + '" placeholder="Enter value..." style="flex:1;" />' +
-    '<button class="save-btn" onclick="b34SaveManualEntry(\'' + itemId + '\')">\u2713</button>' +
+    '<button class="save-btn" onclick="b34SaveManualEntry(\\'' + itemId + '\\')">\u2713</button>' +
     '<button class="cancel-btn" onclick="_b34RefreshAll()">\u2715</button>' +
     '</div></div>';
   var inp = document.getElementById('b34manual_' + itemId);
