@@ -12050,42 +12050,61 @@ const WIKI_HTML = `<!DOCTYPE html>
     line-height: 1.8; flex-direction: column; gap: 12px;
   }
 
-  /* --- Right Entity Pipeline Panel --- */
+  /* --- Right Entity Pipeline Panel (Build 30 — Claude pattern) --- */
   #rightPanel {
-    width: 280px; min-width: 280px;
+    width: 384px; min-width: 0;
     border: 0; outline: 0; box-shadow: none;
     background: #f4f2ee;
-    overflow-y: auto;
     display: flex; flex-direction: column;
     height: 100vh;
     position: relative;
-    transition: width 0.2s ease, min-width 0.2s ease, opacity 0.2s ease;
+    overflow: hidden;
+    transition: width 300ms ease-in-out;
   }
-  #rightPanel.collapsed { width: 0; min-width: 0; overflow: hidden; opacity: 0; padding: 0; }
+  #rightPanel.collapsed { width: 0; }
   #rightPanel.hidden { display: none; }
-  #rightPanelContent { padding: 36px 12px 24px; }
+  .rp-toggle-bar {
+    position: absolute; right: 0; top: 0; z-index: 20;
+    width: fit-content;
+    display: flex; justify-content: flex-end; align-items: center;
+    gap: 4px; height: 48px; padding-right: 12px;
+    transition: opacity 150ms ease-in-out;
+    opacity: 1; transition-delay: 300ms;
+  }
+  #rightPanel.collapsed .rp-toggle-bar { opacity: 0; pointer-events: none; transition-delay: 0ms; }
+  #rightPanelContent {
+    overflow-x: hidden; overflow-y: auto;
+    flex: 1; margin-top: 48px;
+    padding: 0 12px 24px;
+    transition: opacity 200ms ease;
+  }
+  #rightPanel.collapsed #rightPanelContent { opacity: 0; }
   .rp-collapse-toggle {
-    position: absolute; top: 10px; left: -14px; z-index: 10;
-    width: 28px; height: 28px; border-radius: 50%;
-    border: 1px solid #e0e0e0; background: #fff;
-    cursor: pointer; font-size: 13px; color: #666;
+    width: 32px; height: 32px; border-radius: 6px;
+    border: 1px solid #E5E7EB; background: #FFFFFF;
+    cursor: pointer; font-size: 16px; color: #666;
     display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
-    transition: transform 0.2s ease;
+    transition: background 150ms ease;
   }
-  .rp-collapse-toggle:hover { background: #f5f5f5; color: #333; }
-  #rightPanel.collapsed .rp-collapse-toggle { left: -32px; transform: rotate(180deg); }
+  .rp-collapse-toggle:hover { background: #F5F5F4; color: #333; }
+  /* Expand button — visible when panel collapsed */
   #rightPanelToggle {
-    display: none; position: fixed; right: 16px; top: 16px; z-index: 100;
-    width: 36px; height: 36px; border-radius: 8px; border: 1px solid #e0e0e0;
-    background: #fff; cursor: pointer; font-size: 16px; color: #666;
+    display: none; position: fixed; right: 12px; top: 12px; z-index: 10;
+    width: 32px; height: 32px; border-radius: 6px;
+    border: 1px solid #E5E7EB; background: #FFFFFF;
+    cursor: pointer; font-size: 16px; color: #666;
+    align-items: center; justify-content: center;
     box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    transition: background 150ms ease;
   }
-  #rightPanelToggle:hover { background: #f5f5f5; }
-  @media (max-width: 1200px) {
+  #rightPanelToggle:hover { background: #F5F5F4; }
+  /* Desktop: show expand button only when panel collapsed */
+  #rightPanel.collapsed ~ #rightPanelToggle { display: flex; }
+  /* Mobile: panel becomes full-width overlay */
+  @media (max-width: 768px) {
     #rightPanel { display: none; }
-    #rightPanel.force-show { display: flex; position: fixed; right: 0; top: 0; bottom: 0; z-index: 99; box-shadow: -4px 0 16px rgba(0,0,0,0.1); width: 280px; }
-    #rightPanelToggle { display: block; }
+    #rightPanel.force-show { display: flex; position: absolute; inset: 0; z-index: 99; width: 100%; border-radius: 16px 16px 0 0; background: var(--bg-primary, #FAFAF9); }
+    #rightPanelToggle { display: flex; }
   }
 
   /* Pipeline sections — separate cards */
@@ -14719,10 +14738,12 @@ const WIKI_HTML = `<!DOCTYPE html>
     </div>
   </div>
   <div id="rightPanel">
-    <button class="rp-collapse-toggle" onclick="toggleCollapseRightPanel()" title="Collapse panel">&#x203A;</button>
+    <div class="rp-toggle-bar">
+      <button class="rp-collapse-toggle" onclick="toggleCollapseRightPanel()" title="Collapse panel">&#x2039;</button>
+    </div>
     <div id="rightPanelContent"></div>
   </div>
-  <button id="rightPanelToggle" onclick="toggleRightPanel()" title="Toggle context panel">&#9776;</button>
+  <button id="rightPanelToggle" onclick="toggleCollapseRightPanel()" title="Expand panel">&#x203A;</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -17727,7 +17748,7 @@ function renderSidebar() {
     // + New Client button
     html += '<div class="sb-add-btn" onclick="promptNewClient()">';
     html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
-    html += '+ New Client</div>';
+    html += 'New Client</div>';
   }
 
   // ── TEMPLATES section ──
@@ -17743,7 +17764,7 @@ function renderSidebar() {
   }
   html += '<div class="sb-add-btn" onclick="showNewTemplateModal()">';
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
-  html += '+ New Template</div>';
+  html += 'New Template</div>';
 
   // ── PROJECTS section ──
   var allProjects = [].concat(data.projects.active || [], data.projects.rnd || [], data.projects.archive || []);
@@ -17752,7 +17773,7 @@ function renderSidebar() {
   // + New Project
   html += '<div class="sb-nav-item add-item" onclick="toast(\\'Project creation coming soon\\');">';
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
-  html += '+ New Project</div>';
+  html += 'New Project</div>';
 
   var showMax = _sbProjectsExpanded ? allProjects.length : 5;
   for (var i = 0; i < Math.min(showMax, allProjects.length); i++) {
@@ -21438,6 +21459,7 @@ function calcDecay(observedAt) {
 var ppCollapsed = {};
 
 function toggleRightPanel() {
+  // Build 30: mobile overlay toggle
   var rp = document.getElementById('rightPanel');
   if (rp.classList.contains('force-show')) {
     rp.classList.remove('force-show');
@@ -21447,9 +21469,22 @@ function toggleRightPanel() {
 }
 
 function toggleCollapseRightPanel() {
+  // Build 30: collapse/expand with localStorage persistence
   var rp = document.getElementById('rightPanel');
-  rp.classList.toggle('collapsed');
+  var isCollapsed = rp.classList.toggle('collapsed');
+  try { localStorage.setItem('rightPanelCollapsed', isCollapsed ? 'true' : 'false'); } catch(e) {}
 }
+
+function initRightPanelState() {
+  // Build 30: restore panel collapse state from localStorage
+  try {
+    if (localStorage.getItem('rightPanelCollapsed') === 'true') {
+      var rp = document.getElementById('rightPanel');
+      if (rp) rp.classList.add('collapsed');
+    }
+  } catch(e) {}
+}
+initRightPanelState();
 
 function togglePpSection(secId) {
   ppCollapsed[secId] = !ppCollapsed[secId];
