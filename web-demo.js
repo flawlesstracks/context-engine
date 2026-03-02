@@ -11619,10 +11619,17 @@ const WIKI_HTML = `<!DOCTYPE html>
     display: flex; flex-direction: column;
     background: var(--bg-primary);
     border-right: 1px solid var(--border-primary);
+    flex-shrink: 0;
     transition: width 0.3s ease, min-width 0.3s ease, opacity 0.2s ease;
   }
   #sidebar.collapsed { width: 0 !important; min-width: 0 !important; overflow: hidden !important; opacity: 0 !important; border-right: none !important; padding: 0 !important; }
-  #sidebar.collapsed * { white-space: nowrap; }
+  /* Prevent text wrapping during collapse animation */
+  #sidebar .sidebar-brand,
+  #sidebar .sidebar-utility-bar,
+  #sidebar .sidebar-bottom,
+  #sidebar [class*="sidebar-section"],
+  #sidebar [class*="sidebar-item"],
+  #sidebar [class*="sidebar-add"] { white-space: nowrap; }
 
   /* --- Sidebar Brand --- */
   .sidebar-brand {
@@ -13498,7 +13505,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   .co-modal-btn.create:hover { background: #1D4ED8; }
 
   /* --- Build 34: Project Detail Field Actions & Three-Tier --- */
-  .b34-field-row { display: grid; grid-template-columns: 160px 1fr 95px 80px 120px 80px 80px; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid #F3F4F6; transition: background 0.15s, border-left 0.15s; border-left: 3px solid transparent; cursor: pointer; }
+  .b34-field-row { display: grid; grid-template-columns: 160px 1fr 95px 80px 120px 80px 80px; align-items: center; gap: 8px; padding: 10px 16px 10px 13px; border-bottom: 1px solid #F3F4F6; transition: background 0.15s, border-left 0.15s; border-left: 3px solid transparent; cursor: pointer; }
   .b34-field-row:hover { background: #FAFAF9; }
   .b34-field-row:hover .b34-actions button { opacity: 1; }
   .b34-field-row.verified { border-left-color: #059669; background: #fff; }
@@ -13647,7 +13654,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   /* ═══ Day 11: Field Table Enhancements ═══ */
   .b34-field-row { cursor: pointer; }
   .b34-field-row.selected { background: #EFF6FF !important; }
-  .b34-field-header { display: grid; grid-template-columns: 160px 1fr 95px 80px 120px 80px 80px; gap: 8px; padding: 8px 16px; border-bottom: 1px solid #E5E7EB; background: #FAFAF9; }
+  .b34-field-header { display: grid; grid-template-columns: 160px 1fr 95px 80px 120px 80px 80px; gap: 8px; padding: 8px 16px; border-bottom: 1px solid #E5E7EB; background: #FAFAF9; border-left: 1px solid transparent; }
   .b34-field-header span { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #6B7280; }
   .b34-conf-wrap { display: flex; align-items: center; gap: 6px; }
   .b34-conf-bar { flex: 1; height: 4px; background: #F3F4F6; border-radius: 2px; overflow: hidden; max-width: 46px; }
@@ -18868,9 +18875,21 @@ var _coProjectFilter = 'all';
 var _coProjectSort = 'activity';
 var _coProjectSearch = '';
 
+// Restore rightPanel when leaving matter view
+function _restoreRightPanel() {
+  var rp = document.getElementById('rightPanel');
+  if (rp && rp.dataset.hiddenForMatter === 'true') {
+    rp.style.display = '';
+    delete rp.dataset.hiddenForMatter;
+  }
+  var rpToggle = document.getElementById('rightPanelToggle');
+  if (rpToggle) rpToggle.style.display = '';
+}
+
 // Build 33: Client Overview — shows all projects for a client
 function showClientWorkspace(spokeId, tab) {
   if (!spokeId) return;
+  _restoreRightPanel();
   _selectedSpoke = spokeId;
   selectedView = 'client_workspace';
   _currentClientView = 'client_overview';
@@ -19026,6 +19045,12 @@ function showProjectDetail(spokeId, tab) {
   // Restore sidebar if collapsed from a previous panel open
   var sb = document.getElementById('sidebar');
   if (sb) sb.classList.remove('collapsed');
+
+  // Hide rightPanel in matter view — matter view has its own slide-out panel
+  var rp = document.getElementById('rightPanel');
+  if (rp) { rp.dataset.hiddenForMatter = 'true'; rp.style.display = 'none'; }
+  var rpToggle = document.getElementById('rightPanelToggle');
+  if (rpToggle) rpToggle.style.display = 'none';
 
   var spokeName = spokeId;
   for (var i = 0; i < _spokesList.length; i++) {
@@ -20246,9 +20271,10 @@ function b34UpdatePriority(fieldKey, selectEl) {
 
 // ===== Day 11: SLIDE-OUT FIELD REVIEW PANEL =====
 function mvOpenFieldPanel(fieldKey) {
+  console.log('[mvOpenFieldPanel] called with:', fieldKey);
   // Parse entity index and field index from key (e.g. 'ent-001_0')
   var parts = fieldKey.match(/^(.+)_(\d+)$/);
-  if (!parts) return;
+  if (!parts) { console.log('[mvOpenFieldPanel] fieldKey parse failed'); return; }
   var entId = parts[1];
   var fi = parseInt(parts[2], 10);
 
@@ -20257,7 +20283,7 @@ function mvOpenFieldPanel(fieldKey) {
   for (var ei = 0; ei < _demoData.entities.length; ei++) {
     if (_demoData.entities[ei].id === entId) { entity = _demoData.entities[ei]; break; }
   }
-  if (!entity || !entity.fields[fi]) return;
+  if (!entity || !entity.fields[fi]) { console.log('[mvOpenFieldPanel] entity/field not found:', entId, fi); return; }
   field = entity.fields[fi];
 
   // Get current state
@@ -20277,7 +20303,19 @@ function mvOpenFieldPanel(fieldKey) {
 
   // Collapse sidebar
   var sidebar = document.getElementById('sidebar');
-  if (sidebar) sidebar.classList.add('collapsed');
+  if (sidebar) {
+    sidebar.classList.add('collapsed');
+    console.log('[mvOpenFieldPanel] sidebar.collapsed added, classList:', sidebar.className);
+  } else {
+    console.log('[mvOpenFieldPanel] WARNING: sidebar element not found');
+  }
+
+  // Also collapse rightPanel to free space for the review panel
+  var rp = document.getElementById('rightPanel');
+  if (rp && !rp.classList.contains('collapsed')) {
+    rp.classList.add('collapsed');
+    rp.dataset.wasOpenBeforeFieldPanel = 'true';
+  }
 
   // Highlight selected row, clear others
   var rows = document.querySelectorAll('.b34-field-row');
@@ -20293,10 +20331,14 @@ function mvOpenFieldPanel(fieldKey) {
   if (viewer) {
     viewer.innerHTML = html;
     viewer.classList.remove('hidden');
+    console.log('[mvOpenFieldPanel] viewer opened');
+  } else {
+    console.log('[mvOpenFieldPanel] WARNING: mvDocViewer element not found');
   }
 }
 
 function mvCloseFieldPanel() {
+  console.log('[mvCloseFieldPanel] called');
   _mvSelectedField = null;
 
   // Close panel
@@ -20306,6 +20348,13 @@ function mvCloseFieldPanel() {
   // Restore sidebar
   var sidebar = document.getElementById('sidebar');
   if (sidebar) sidebar.classList.remove('collapsed');
+
+  // Restore rightPanel if we collapsed it
+  var rp = document.getElementById('rightPanel');
+  if (rp && rp.dataset.wasOpenBeforeFieldPanel === 'true') {
+    rp.classList.remove('collapsed');
+    delete rp.dataset.wasOpenBeforeFieldPanel;
+  }
 
   // Remove row highlights
   var rows = document.querySelectorAll('.b34-field-row');
@@ -23365,6 +23414,7 @@ function deleteCurrentTemplate() {
 }
 
 function showClientDashboard() {
+  _restoreRightPanel();
   _selectedSpoke = null;
   selectedView = 'client_dashboard';
   selectedId = null;
