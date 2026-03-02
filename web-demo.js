@@ -11620,18 +11620,82 @@ const WIKI_HTML = `<!DOCTYPE html>
     background: var(--bg-primary);
     border-right: 1px solid var(--border-primary);
     flex-shrink: 0;
-    transition: width 0.3s ease, min-width 0.3s ease, max-width 0.3s ease, opacity 0.2s ease, padding 0.2s ease;
-  }
-  #sidebar.collapsed {
-    width: 0 !important;
-    min-width: 0 !important;
-    max-width: 0 !important;
-    overflow: hidden !important;
-    opacity: 0 !important;
-    padding: 0 !important;
-    border-right: none !important;
+    transition: width 0.3s ease, min-width 0.3s ease, max-width 0.3s ease;
   }
   #sidebar * { white-space: nowrap; }
+
+  /* Collapsed = icon rail (56px) */
+  #sidebar.collapsed {
+    width: 56px !important;
+    min-width: 56px !important;
+    max-width: 56px !important;
+    overflow: hidden !important;
+  }
+
+  /* Hide all text labels in collapsed state */
+  #sidebar.collapsed .brand-text,
+  #sidebar.collapsed .sb-section-label,
+  #sidebar.collapsed .sb-client-name,
+  #sidebar.collapsed .sb-client-meta,
+  #sidebar.collapsed .sb-add-btn span:not(svg),
+  #sidebar.collapsed .sidebar-utility-link span,
+  #sidebar.collapsed .sidebar-bottom-name,
+  #sidebar.collapsed .sidebar-bottom-actions,
+  #sidebar.collapsed #sidebarSearchPanel,
+  #sidebar.collapsed #spokeSelector {
+    display: none !important;
+  }
+
+  /* Center brand icon in rail */
+  #sidebar.collapsed .sidebar-brand {
+    justify-content: center;
+    padding: 20px 0 16px;
+  }
+
+  /* Center utility icons in rail */
+  #sidebar.collapsed .sidebar-utility-bar {
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 0;
+    gap: 2px;
+  }
+  #sidebar.collapsed .sidebar-utility-link {
+    padding: 10px 0;
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Center nav items (About, Career, etc.) */
+  #sidebar.collapsed .sb-nav-item {
+    justify-content: center;
+    padding: 8px 0;
+  }
+  #sidebar.collapsed .sb-nav-item svg { margin: 0; }
+
+  /* Center client items — show dot only */
+  #sidebar.collapsed .sb-client-item {
+    justify-content: center;
+    padding: 8px 0;
+  }
+
+  /* Center template items */
+  #sidebar.collapsed .sb-template-item {
+    justify-content: center;
+    padding: 8px 0;
+  }
+  #sidebar.collapsed .sb-template-item svg { margin: 0; }
+
+  /* Center add buttons — icon only */
+  #sidebar.collapsed .sb-add-btn {
+    justify-content: center;
+    padding: 8px 0;
+  }
+
+  /* Center footer avatar */
+  #sidebar.collapsed .sidebar-bottom {
+    justify-content: center;
+    padding: 12px 0;
+  }
 
   /* --- Sidebar Brand --- */
   .sidebar-brand {
@@ -13612,6 +13676,10 @@ const WIKI_HTML = `<!DOCTYPE html>
   .b35-field-card .field-input-row .save-btn.enabled:hover { background: #1D4ED8; }
   .b35-field-card .field-input-row .remove-btn { padding: 8px 10px; border: 1px solid #E5E7EB; border-radius: 6px; background: #fff; color: #6B7280; font-size: 12px; cursor: pointer; transition: all 0.15s; }
   .b35-field-card .field-input-row .remove-btn:hover { background: #FEF2F2; color: #DC2626; border-color: #FCA5A5; }
+  .b35-priority-select { padding: 6px 8px; border: 1px solid #E5E7EB; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; outline: none; font-family: var(--font-sans, 'DM Sans', sans-serif); appearance: auto; }
+  .b35-priority-select.p-required { background: #FEF2F2; color: #DC2626; border-color: #FECACA; }
+  .b35-priority-select.p-recommended { background: #FFFBEB; color: #D97706; border-color: #FDE68A; }
+  .b35-priority-select.p-optional { background: #EFF6FF; color: #2563EB; border-color: #BFDBFE; }
   .b35-currency-wrap { flex: 1; display: flex; align-items: center; border: 1px solid #E5E7EB; border-radius: 8px; overflow: hidden; transition: border 0.15s; }
   .b35-currency-wrap:focus-within { border-color: #2563EB; }
   .b35-currency-wrap .prefix { padding: 8px 0 8px 12px; font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 13px; color: #6B7280; }
@@ -20567,7 +20635,10 @@ function _buildMissingPanel34() {
 
   // Toolbar: + Add Field button + Filter
   h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">';
+  h += '<div style="display:flex;gap:8px;align-items:center;">';
   h += '<button onclick="b35ToggleAddField()" style="padding:8px 16px;border:1px solid #2563EB;border-radius:8px;background:#fff;color:#2563EB;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:var(--font-sans);">+ Add Field</button>';
+  h += '<button onclick="document.getElementById(\\'matterFileInput\\').click()" style="padding:7px 14px;border:1px solid #2563EB;background:#EFF6FF;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;color:#2563EB;font-family:var(--font-sans);transition:all 0.15s;" onmouseover="this.style.background=\\'#2563EB\\';this.style.color=\\'white\\'" onmouseout="this.style.background=\\'#EFF6FF\\';this.style.color=\\'#2563EB\\'">\\u2191 Upload</button>';
+  h += '</div>';
   h += '<div class="b35-filter-dd"><select id="b35Filter" onchange="b35ApplyFilter(this.value)">';
   h += '<option value="all"' + (_b35FilterValue === 'all' ? ' selected' : '') + '>All (' + s.needTotal + ')</option>';
   // Count per tier
@@ -20679,6 +20750,11 @@ function _buildFieldTierSection35(tier, items, label, color, subtext, collapsedD
     } else {
       h += '<input type="' + (item.inputType === 'date' ? 'text' : 'text') + '" id="b35input_' + item.id + '" placeholder="' + esc(item.placeholder || 'Enter value...') + '" oninput="b35ToggleSaveBtn(\\'' + item.id + '\\')" />';
     }
+    h += '<select class="b35-priority-select p-' + tier + '" onchange="b35UpdatePriority(\\'' + item.id + '\\',this)">';
+    h += '<option value="required"' + (tier === 'required' ? ' selected' : '') + '>Required</option>';
+    h += '<option value="recommended"' + (tier === 'recommended' ? ' selected' : '') + '>Recommended</option>';
+    h += '<option value="optional"' + (tier === 'optional' ? ' selected' : '') + '>Optional</option>';
+    h += '</select>';
     h += '<button class="save-btn" id="b35save_' + item.id + '" onclick="b35SaveField(\\'' + item.id + '\\')">Save</button>';
     h += '<button class="remove-btn" onclick="b35RemoveField(\\'' + item.id + '\\',\\'' + tier + '\\')">\u2715 Remove</button>';
     h += '</div>';
@@ -21222,6 +21298,31 @@ function b35RemoveField(itemId, tier) {
     '<button onclick="_demoRemovedFields.push(\\'' + itemId + '\\');_b34RefreshAll();" style="padding:6px 14px;border:none;border-radius:6px;background:#6B7280;color:#fff;font-size:12px;font-weight:600;cursor:pointer;margin-right:8px;font-family:var(--font-sans);">Yes</button>' +
     '<button onclick="_b34RefreshAll();" style="padding:6px 14px;border:1px solid #E5E7EB;border-radius:6px;background:#fff;color:#1A1A1A;font-size:12px;cursor:pointer;font-family:var(--font-sans);">No</button>' +
     '</div>';
+}
+
+function b35UpdatePriority(itemId, selectEl) {
+  var newTier = selectEl.value;
+  // Update select styling
+  selectEl.className = 'b35-priority-select p-' + newTier;
+  // Move item between tier arrays
+  var tiers = ['required', 'recommended', 'optional'];
+  var item = null;
+  for (var t = 0; t < tiers.length; t++) {
+    var arr = _demoMissing[tiers[t]] || [];
+    for (var i = 0; i < arr.length; i++) {
+      if (arr[i].id === itemId) {
+        item = arr.splice(i, 1)[0];
+        break;
+      }
+    }
+    if (item) break;
+  }
+  if (item) {
+    if (!_demoMissing[newTier]) _demoMissing[newTier] = [];
+    _demoMissing[newTier].push(item);
+    // Re-render the entire Need panel to move the card
+    _b34RefreshAll();
+  }
 }
 
 function b35RestoreField(itemId) {
