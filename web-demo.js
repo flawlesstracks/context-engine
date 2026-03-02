@@ -11620,16 +11620,18 @@ const WIKI_HTML = `<!DOCTYPE html>
     background: var(--bg-primary);
     border-right: 1px solid var(--border-primary);
     flex-shrink: 0;
-    transition: width 0.3s ease, min-width 0.3s ease, opacity 0.2s ease;
+    transition: width 0.3s ease, min-width 0.3s ease, max-width 0.3s ease, opacity 0.2s ease, padding 0.2s ease;
   }
-  #sidebar.collapsed { width: 0 !important; min-width: 0 !important; overflow: hidden !important; opacity: 0 !important; border-right: none !important; padding: 0 !important; }
-  /* Prevent text wrapping during collapse animation */
-  #sidebar .sidebar-brand,
-  #sidebar .sidebar-utility-bar,
-  #sidebar .sidebar-bottom,
-  #sidebar [class*="sidebar-section"],
-  #sidebar [class*="sidebar-item"],
-  #sidebar [class*="sidebar-add"] { white-space: nowrap; }
+  #sidebar.collapsed {
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    overflow: hidden !important;
+    opacity: 0 !important;
+    padding: 0 !important;
+    border-right: none !important;
+  }
+  #sidebar * { white-space: nowrap; }
 
   /* --- Sidebar Brand --- */
   .sidebar-brand {
@@ -19835,6 +19837,10 @@ function mvSwitchTab(tab) {
   _mvActiveTab = tab;
   // Close field review panel and restore sidebar on tab switch
   if (_mvSelectedField) mvCloseFieldPanel();
+  // Close doc viewer and restore sidebar on tab switch
+  if (_mvSelectedDoc) mvCloseDocViewer();
+  // Always ensure sidebar is restored when switching tabs
+  document.getElementById('sidebar').classList.remove('collapsed');
   var knowEl = document.getElementById('mvTabKnow');
   var needEl = document.getElementById('mvTabNeed');
   var docsEl = document.getElementById('mvTabDocuments');
@@ -19945,6 +19951,9 @@ function mvSelectDoc(fileId) {
   }
   _mvSelectedDoc = fileId;
 
+  // Collapse sidebar when doc viewer opens
+  document.getElementById('sidebar').classList.add('collapsed');
+
   // Update card selection highlighting
   var cards = document.querySelectorAll('.mv-doc-card');
   for (var i = 0; i < cards.length; i++) {
@@ -19963,6 +19972,8 @@ function mvCloseDocViewer() {
   _mvSelectedDoc = null;
   var viewer = document.getElementById('mvDocViewer');
   if (viewer) viewer.classList.add('hidden');
+  // Restore sidebar when doc viewer closes
+  document.getElementById('sidebar').classList.remove('collapsed');
   var cards = document.querySelectorAll('.mv-doc-card');
   for (var i = 0; i < cards.length; i++) {
     cards[i].classList.remove('selected');
@@ -20814,6 +20825,35 @@ function _buildDocViewer34(docId, highlightLine) {
     }
   }
 
+  // Find the field associated with the highlighted line (for review card)
+  var reviewField = null;
+  if (highlightLine) {
+    for (var ri = 0; ri < extractedFields.length; ri++) {
+      if (extractedFields[ri].line === highlightLine) { reviewField = extractedFields[ri]; break; }
+    }
+  }
+  // If no highlighted line, use first extracted field
+  if (!reviewField && extractedFields.length > 0) reviewField = extractedFields[0];
+
+  // Find full field data for confidence score
+  var reviewConf = null;
+  var reviewFieldKey = null;
+  if (reviewField) {
+    for (var ei2 = 0; ei2 < _demoData.entities.length; ei2++) {
+      var ent2 = _demoData.entities[ei2];
+      for (var fi2 = 0; fi2 < ent2.fields.length; fi2++) {
+        if (ent2.fields[fi2].name === reviewField.field && ent2.fields[fi2].source && ent2.fields[fi2].source.file === doc.filename) {
+          var fk2 = ent2.id + '_' + fi2;
+          var fs2 = _demoFieldState[fk2];
+          reviewConf = fs2 && fs2.confidence !== undefined ? fs2.confidence : ent2.fields[fi2].confidence;
+          reviewFieldKey = fk2;
+          break;
+        }
+      }
+      if (reviewConf !== null) break;
+    }
+  }
+
   var h = '';
   // Header
   h += '<div class="mv-doc-viewer-header">';
@@ -20827,6 +20867,39 @@ function _buildDocViewer34(docId, highlightLine) {
   h += '</div>';
   h += '<button class="mv-doc-viewer-close" onclick="mvCloseDocViewer()">\u2715</button>';
   h += '</div>';
+
+  // Review Action Card (above document content)
+  if (reviewField && reviewConf !== null) {
+    var rcColor = reviewConf >= 0.80 ? '#059669' : (reviewConf >= 0.50 ? '#D97706' : '#DC2626');
+    var rcLabel = reviewConf >= 0.80 ? 'HIGH' : (reviewConf >= 0.50 ? 'MEDIUM' : 'LOW');
+    var rcBg = reviewConf >= 0.80 ? '#ECFDF5' : (reviewConf >= 0.50 ? '#FFFBEB' : '#FEF2F2');
+    var rcDesc = reviewConf >= 0.80
+      ? 'Multiple sources agree and the data checks out. You can trust this.'
+      : (reviewConf >= 0.50
+        ? 'Came from one source, or the info may be outdated. Worth a quick check.'
+        : 'Only one weak source, or the data is outdated. Needs verification.');
+    var rcIsVerified = reviewField.status === 'verified';
+
+    h += '<div style="margin:16px 20px;background:#FFFFFF;border:1px solid #E5E7EB;border-radius:10px;overflow:hidden;">';
+    h += '<div style="padding:14px 16px 0;display:flex;align-items:center;justify-content:space-between;">';
+    h += '<span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;color:' + rcColor + ';">\u25cf ' + rcLabel + ' CONFIDENCE</span>';
+    h += '<span style="font-family:\\'JetBrains Mono\\',monospace;font-size:14px;font-weight:600;color:' + rcColor + ';">' + reviewConf.toFixed(2) + '</span>';
+    h += '</div>';
+    h += '<div style="padding:10px 16px 14px;">';
+    h += '<div style="font-size:13px;color:#6B7280;line-height:1.5;margin-bottom:12px;">' + rcDesc + '</div>';
+    h += '<div style="font-family:\\'JetBrains Mono\\',monospace;font-size:15px;font-weight:600;padding:10px 14px;background:#F3F4F6;border-radius:8px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;">';
+    h += esc(String(reviewField.value));
+    h += '<span style="font-size:10px;font-weight:600;background:' + rcBg + ';color:' + rcColor + ';padding:2px 8px;border-radius:4px;">';
+    h += rcIsVerified ? '\u2713 Verified' : '\u2696 Review';
+    h += '</span></div>';
+    if (!rcIsVerified) {
+      h += '<div style="display:flex;gap:8px;">';
+      h += '<button onclick="event.stopPropagation();' + (reviewFieldKey ? 'spAcceptField(\\'' + reviewFieldKey + '\\')' : '') + '" style="flex:1;padding:9px 0;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;text-align:center;background:#059669;border:1px solid #059669;color:white;font-family:\\'DM Sans\\',sans-serif;">Accept</button>';
+      h += '<button style="flex:1;padding:9px 0;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;text-align:center;background:white;border:1px solid #E5E7EB;color:#1A1A1A;font-family:\\'DM Sans\\',sans-serif;">Needs Enrichment</button>';
+      h += '</div>';
+    }
+    h += '</div></div>';
+  }
 
   // Content: document text with line numbers and highlighting
   h += '<div class="mv-doc-viewer-content">';
@@ -20881,6 +20954,9 @@ function mvSelectDoc34(docId) {
     return;
   }
   _mvSelectedDoc = docId;
+
+  // Collapse sidebar when doc viewer opens
+  document.getElementById('sidebar').classList.add('collapsed');
 
   // Update card selection
   var cards = document.querySelectorAll('.mv-doc-card');
