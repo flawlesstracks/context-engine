@@ -11621,8 +11621,8 @@ const WIKI_HTML = `<!DOCTYPE html>
     border-right: 1px solid var(--border-primary);
     transition: width 0.3s ease, min-width 0.3s ease, opacity 0.2s ease;
   }
-  #sidebar.sidebar-collapsed { width: 0; min-width: 0; overflow: hidden; opacity: 0; border: none; }
-  #sidebar.sidebar-collapsed * { white-space: nowrap; }
+  #sidebar.collapsed { width: 0 !important; min-width: 0 !important; overflow: hidden !important; opacity: 0 !important; border-right: none !important; padding: 0 !important; }
+  #sidebar.collapsed * { white-space: nowrap; }
 
   /* --- Sidebar Brand --- */
   .sidebar-brand {
@@ -13538,13 +13538,17 @@ const WIKI_HTML = `<!DOCTYPE html>
   .b34-inline-edit input:focus { outline: none; border-color: #2563EB; box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
   .b34-inline-edit .save-btn { width: 24px; height: 24px; border-radius: 4px; border: none; background: #059669; color: #fff; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
   .b34-inline-edit .cancel-btn { width: 24px; height: 24px; border-radius: 4px; border: 1px solid #E5E7EB; background: #fff; color: #6B7280; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
-  .b34-bulk-bar { background: #fff; border: 1px solid #BFDBFE; border-radius: 10px; padding: 10px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+  .b34-bulk-bar { background: #fff; border: 1px solid #BFDBFE; border-radius: 10px; padding: 10px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: opacity 0.2s ease, max-height 0.3s ease, margin 0.3s ease, padding 0.3s ease; overflow: hidden; }
+  .b34-bulk-bar.dismissed { opacity: 0; max-height: 0; margin: 0; padding: 0; border: none; }
   .b34-bulk-bar span { font-size: 12px; color: #1D4ED8; font-weight: 500; }
   .b34-bulk-bar button { padding: 5px 14px; border: none; border-radius: 6px; background: #2563EB; color: #fff; font-size: 11px; font-weight: 600; cursor: pointer; }
   .b34-bulk-bar button:hover { background: #1D4ED8; }
-  .b34-banner { border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+  .b34-banner { border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; transition: opacity 0.2s ease, max-height 0.3s ease, margin 0.3s ease, padding 0.3s ease; overflow: hidden; }
   .b34-banner.info { background: #EFF6FF; border: 1px solid #BFDBFE; }
-  .b34-banner-text { font-size: 14px; font-weight: 500; color: #1A1A1A; }
+  .b34-banner.dismissed { opacity: 0; max-height: 0; margin: 0; padding: 0; border: none; }
+  .b34-banner-text { font-size: 14px; font-weight: 500; color: #1A1A1A; flex: 1; }
+  .b34-banner-dismiss { background: none; border: none; font-size: 13px; color: #6B7280; cursor: pointer; padding: 2px 4px; line-height: 1; flex-shrink: 0; transition: color 0.15s; }
+  .b34-banner-dismiss:hover { color: #1A1A1A; }
 
   /* Three-tier missing */
   .b34-tier-section { border-radius: 10px; padding: 16px; margin-bottom: 16px; }
@@ -13751,14 +13755,14 @@ const WIKI_HTML = `<!DOCTYPE html>
   .mv-doc-upload-btn { width: 100%; padding: 8px; text-align: center; font-size: 13px; color: #2563EB; cursor: pointer; border-radius: 6px; transition: background 0.15s; }
   .mv-doc-upload-btn:hover { background: #EFF6FF; }
   .mv-center-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
-  .mv-tab-bar { display: flex; border-bottom: 1px solid #E5E7EB; background: #fff; flex-shrink: 0; padding: 0 24px; }
+  .mv-tab-bar { display: flex; border-bottom: 1px solid #E5E7EB; background: #fff; flex-shrink: 0; padding: 0 32px; }
   .mv-tab { padding: 14px 20px; font-size: 14px; color: #6B7280; cursor: pointer; position: relative; display: flex; align-items: center; gap: 8px; transition: color 0.15s; border-bottom: 2px solid transparent; margin-bottom: -1px; }
   .mv-tab:hover { color: #1A1A1A; }
   .mv-tab.active { color: #1A1A1A; font-weight: 600; border-bottom-color: #2563EB; }
   .mv-tab-badge { font-size: 11px; padding: 1px 7px; border-radius: 10px; font-weight: 600; }
   .mv-tab-badge.neutral { background: #F3F4F6; color: #6B7280; }
   .mv-tab-badge.danger { background: #DC2626; color: #fff; }
-  .mv-tab-content { flex: 1; overflow-y: auto; padding: 20px 24px; }
+  .mv-tab-content { flex: 1; overflow-y: auto; padding: 24px 32px; }
   .mv-tab-content.hidden { display: none; }
   .mv-doc-viewer { width: 420px; min-width: 420px; background: #fff; border-left: 1px solid #E5E7EB; display: flex; flex-direction: column; overflow: hidden; transition: width 300ms ease-in-out, min-width 300ms ease-in-out, opacity 200ms ease; }
   .mv-doc-viewer.hidden { width: 0; min-width: 0; opacity: 0; border: none; overflow: hidden; }
@@ -19017,7 +19021,11 @@ function showProjectDetail(spokeId, tab) {
   _currentClientView = 'project_detail';
   _selectedProjectId = spokeId;
   _mvSelectedDoc = null;
+  _mvSelectedField = null;
   _mvActiveTab = 'know';
+  // Restore sidebar if collapsed from a previous panel open
+  var sb = document.getElementById('sidebar');
+  if (sb) sb.classList.remove('collapsed');
 
   var spokeName = spokeId;
   for (var i = 0; i < _spokesList.length; i++) {
@@ -19944,16 +19952,27 @@ function _buildMatterMetrics34() {
   var verifiedPct = totalFields > 0 ? Math.round((s.verified / totalFields) * 100) : 0;
   var readyPct = s.needTotal === 0 && s.missing === 0 ? 100 : Math.max(0, Math.round(((totalFields - s.missing - s.needTotal) / Math.max(1, totalFields + s.needTotal)) * 100));
 
+  // Bar color logic: <50% red, 50-79% amber, 80-99% blue, 100% green
+  function barColor(pct) {
+    if (pct >= 100) return '#059669';
+    if (pct >= 80) return '#2563EB';
+    if (pct >= 50) return '#D97706';
+    return '#DC2626';
+  }
+
   var h = '';
-  h += '<div class="metric"><div class="metric-label">Completeness</div>';
-  h += '<div class="metric-value">' + completePct + '%</div>';
-  h += '<div class="metric-bar"><div class="metric-bar-fill" style="width:' + completePct + '%;background:#2563EB;"></div></div></div>';
-  h += '<div class="metric"><div class="metric-label">Verified</div>';
-  h += '<div class="metric-value">' + verifiedPct + '%</div>';
-  h += '<div class="metric-bar"><div class="metric-bar-fill" style="width:' + verifiedPct + '%;background:#059669;"></div></div></div>';
-  h += '<div class="metric"><div class="metric-label">Filing Readiness</div>';
-  h += '<div class="metric-value">' + readyPct + '%</div>';
-  h += '<div class="metric-bar"><div class="metric-bar-fill" style="width:' + readyPct + '%;background:' + (readyPct >= 80 ? '#059669' : readyPct >= 50 ? '#D97706' : '#DC2626') + ';"></div></div></div>';
+  // 1. Completeness
+  h += '<div class="metric"><div class="metric-label">Completeness <span style="font-size:13px;cursor:help;color:#9CA3AF;" title="How much of the available data has been captured. 100% means every known field has a value \\u2014 even if some still need review.">?</span></div>';
+  h += '<div class="metric-value" style="color:' + barColor(completePct) + ';">' + completePct + '%</div>';
+  h += '<div class="metric-bar"><div class="metric-bar-fill" style="width:' + completePct + '%;background:' + barColor(completePct) + ';"></div></div></div>';
+  // 2. Readiness (was Filing Readiness)
+  h += '<div class="metric" style="padding-left:24px;"><div class="metric-label">Readiness <span style="font-size:13px;cursor:help;color:#9CA3AF;" title="Whether all required fields are filled and verified. This must reach 100% before you can generate or export.">?</span></div>';
+  h += '<div class="metric-value" style="color:' + barColor(readyPct) + ';">' + readyPct + '%</div>';
+  h += '<div class="metric-bar"><div class="metric-bar-fill" style="width:' + readyPct + '%;background:' + barColor(readyPct) + ';"></div></div></div>';
+  // 3. Verified
+  h += '<div class="metric" style="padding-left:24px;"><div class="metric-label">Verified <span style="font-size:13px;cursor:help;color:#9CA3AF;" title="How many fields have been confirmed as accurate. Higher is better, but only Required fields block readiness.">?</span></div>';
+  h += '<div class="metric-value" style="color:' + barColor(verifiedPct) + ';">' + verifiedPct + '%</div>';
+  h += '<div class="metric-bar"><div class="metric-bar-fill" style="width:' + verifiedPct + '%;background:' + barColor(verifiedPct) + ';"></div></div></div>';
   return h;
 }
 
@@ -20028,21 +20047,23 @@ function _buildDataPanel34() {
   // Confidence Legend — plain language
   h += _buildConfidenceLegend();
 
-  // State banner
-  h += '<div class="b34-banner info">';
+  // State banner (dismissable)
+  h += '<div class="b34-banner info" id="b34SummaryBanner">';
   h += '<span class="b34-banner-text"><strong>' + (s.total - s.missing) + ' fields</strong> extracted. ';
   h += '<span style="color:#059669;">' + s.verified + ' verified</span>, ';
   h += '<span style="color:#D97706;">' + s.unreviewed + ' need review</span>, ';
   h += '<span style="color:#DC2626;">' + s.missing + ' missing</span>.</span>';
+  h += '<button class="b34-banner-dismiss" onclick="event.stopPropagation();this.parentElement.classList.add(\\'dismissed\\')" title="Dismiss">\u2715</button>';
   h += '</div>';
 
-  // Bulk verify bar
+  // Bulk verify bar (dismissable)
   if (bulkEligible > 0) {
-    h += '<div class="b34-bulk-bar">';
+    h += '<div class="b34-bulk-bar" id="b34BulkBanner">';
     h += '<span>\u2713 Bulk Verify: ' + bulkEligible + ' fields have high confidence (\u226580%)</span>';
-    h += '<div style="display:flex;gap:8px;">';
+    h += '<div style="display:flex;gap:8px;align-items:center;">';
     h += '<button onclick="event.stopPropagation();b34BulkPreview()" style="background:#fff;color:#2563EB;border:1px solid #BFDBFE;">Preview</button>';
     h += '<button onclick="event.stopPropagation();b34BulkVerify()">Verify All ' + bulkEligible + '</button>';
+    h += '<button class="b34-banner-dismiss" onclick="event.stopPropagation();this.closest(\\'.b34-bulk-bar\\').classList.add(\\'dismissed\\')" title="Dismiss">\u2715</button>';
     h += '</div></div>';
   }
 
@@ -20256,7 +20277,7 @@ function mvOpenFieldPanel(fieldKey) {
 
   // Collapse sidebar
   var sidebar = document.getElementById('sidebar');
-  if (sidebar) sidebar.classList.add('sidebar-collapsed');
+  if (sidebar) sidebar.classList.add('collapsed');
 
   // Highlight selected row, clear others
   var rows = document.querySelectorAll('.b34-field-row');
@@ -20284,7 +20305,7 @@ function mvCloseFieldPanel() {
 
   // Restore sidebar
   var sidebar = document.getElementById('sidebar');
-  if (sidebar) sidebar.classList.remove('sidebar-collapsed');
+  if (sidebar) sidebar.classList.remove('collapsed');
 
   // Remove row highlights
   var rows = document.querySelectorAll('.b34-field-row');
