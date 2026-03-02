@@ -11619,7 +11619,10 @@ const WIKI_HTML = `<!DOCTYPE html>
     display: flex; flex-direction: column;
     background: var(--bg-primary);
     border-right: 1px solid var(--border-primary);
+    transition: width 0.3s ease, min-width 0.3s ease, opacity 0.2s ease;
   }
+  #sidebar.sidebar-collapsed { width: 0; min-width: 0; overflow: hidden; opacity: 0; border: none; }
+  #sidebar.sidebar-collapsed * { white-space: nowrap; }
 
   /* --- Sidebar Brand --- */
   .sidebar-brand {
@@ -13495,7 +13498,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   .co-modal-btn.create:hover { background: #1D4ED8; }
 
   /* --- Build 34: Project Detail Field Actions & Three-Tier --- */
-  .b34-field-row { display: grid; grid-template-columns: 180px 1fr 80px 160px 110px; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid #F3F4F6; transition: background 0.15s, border-left 0.15s; border-left: 3px solid transparent; }
+  .b34-field-row { display: grid; grid-template-columns: 160px 1fr 95px 80px 120px 80px 80px; align-items: center; gap: 8px; padding: 10px 16px; border-bottom: 1px solid #F3F4F6; transition: background 0.15s, border-left 0.15s; border-left: 3px solid transparent; cursor: pointer; }
   .b34-field-row:hover { background: #FAFAF9; }
   .b34-field-row:hover .b34-actions button { opacity: 1; }
   .b34-field-row.verified { border-left-color: #059669; background: #fff; }
@@ -13628,6 +13631,83 @@ const WIKI_HTML = `<!DOCTYPE html>
   /* Doc viewer highlight */
   .mv-doc-line.highlighted { background: #FEF3C7; border-left: 3px solid #D97706; padding-left: 5px; }
 
+  /* ═══ Day 11: Confidence Legend ═══ */
+  .conf-legend { display: flex; gap: 12px; margin-bottom: 24px; }
+  .conf-legend-item { flex: 1; background: #fff; border: 1px solid #E5E7EB; border-radius: 10px; padding: 14px 16px; }
+  .conf-legend-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .conf-legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .conf-legend-label { font-size: 13px; font-weight: 700; }
+  .conf-legend-range { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 11px; margin-left: auto; }
+  .conf-legend-desc { font-size: 12px; color: #6B7280; line-height: 1.5; }
+
+  /* ═══ Day 11: Field Table Enhancements ═══ */
+  .b34-field-row { cursor: pointer; }
+  .b34-field-row.selected { background: #EFF6FF !important; }
+  .b34-field-header { display: grid; grid-template-columns: 160px 1fr 95px 80px 120px 80px 80px; gap: 8px; padding: 8px 16px; border-bottom: 1px solid #E5E7EB; background: #FAFAF9; }
+  .b34-field-header span { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #6B7280; }
+  .b34-conf-wrap { display: flex; align-items: center; gap: 6px; }
+  .b34-conf-bar { flex: 1; height: 4px; background: #F3F4F6; border-radius: 2px; overflow: hidden; max-width: 46px; }
+  .b34-conf-fill { height: 100%; border-radius: 2px; }
+  .b34-conf-num { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 11px; font-weight: 500; min-width: 28px; }
+  .b34-priority-select { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; padding: 3px 20px 3px 8px; border-radius: 5px; border: 1px solid transparent; cursor: pointer; font-family: var(--font-sans, 'DM Sans', sans-serif); appearance: none; -webkit-appearance: none; background-repeat: no-repeat; background-position: right 5px center; background-size: 8px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%236B7280'/%3E%3C/svg%3E"); transition: all 0.15s; }
+  .b34-priority-select:hover { border-color: #E5E7EB; }
+  .b34-priority-select.p-required { background-color: #FEF2F2; color: #DC2626; }
+  .b34-priority-select.p-recommended { background-color: #FFFBEB; color: #D97706; }
+  .b34-priority-select.p-optional { background-color: #EFF6FF; color: #2563EB; }
+  .b34-status-badge { font-size: 10px; font-weight: 600; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
+  .b34-status-badge.s-verified { background: #ECFDF5; color: #059669; }
+  .b34-status-badge.s-review { background: #FFFBEB; color: #D97706; }
+  .b34-status-badge.s-missing { background: #FEF2F2; color: #DC2626; }
+
+  /* ═══ Day 11: Slide-Out Review Panel ═══ */
+  .sp-header { padding: 16px 20px; border-bottom: 1px solid #E5E7EB; flex-shrink: 0; display: flex; align-items: flex-start; justify-content: space-between; }
+  .sp-title { font-size: 16px; font-weight: 700; color: #1A1A1A; }
+  .sp-subtitle { font-size: 12px; color: #6B7280; margin-top: 2px; }
+  .sp-close { width: 28px; height: 28px; border: 1px solid #E5E7EB; background: #fff; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; color: #6B7280; flex-shrink: 0; transition: all 0.15s; }
+  .sp-close:hover { background: #F3F4F6; color: #1A1A1A; }
+  .sp-body { flex: 1; overflow-y: auto; }
+  .sp-review-card { margin: 16px 20px; background: #fff; border: 1px solid #E5E7EB; border-radius: 10px; overflow: hidden; }
+  .sp-review-header { padding: 14px 16px 0; display: flex; align-items: center; justify-content: space-between; }
+  .sp-review-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+  .sp-review-conf { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 14px; font-weight: 600; }
+  .sp-review-body { padding: 10px 16px 14px; }
+  .sp-review-desc { font-size: 13px; color: #6B7280; line-height: 1.5; margin-bottom: 12px; }
+  .sp-review-value { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 15px; font-weight: 600; padding: 10px 14px; background: #F3F4F6; border-radius: 8px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+  .sp-review-source-tag { font-size: 10px; font-weight: 600; background: #EFF6FF; color: #2563EB; padding: 2px 8px; border-radius: 4px; }
+  .sp-review-actions { display: flex; gap: 8px; }
+  .sp-action-btn { flex: 1; padding: 9px 0; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; text-align: center; font-family: var(--font-sans, 'DM Sans', sans-serif); transition: all 0.15s; border: 1px solid #E5E7EB; background: #fff; color: #1A1A1A; }
+  .sp-action-btn.sp-accept { background: #059669; border-color: #059669; color: #fff; }
+  .sp-action-btn.sp-accept:hover { opacity: 0.9; }
+  .sp-action-btn:hover { border-color: #2563EB; color: #2563EB; }
+  .sp-action-btn.sp-accepted { background: #ECFDF5; border-color: #BBF7D0; color: #059669; opacity: 0.7; cursor: default; }
+  .sp-conflict { margin: 0 20px 16px; }
+  .sp-conflict-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: #D97706; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .sp-conflict-option { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 1px solid #E5E7EB; border-radius: 8px; margin-bottom: 6px; cursor: pointer; transition: all 0.15s; }
+  .sp-conflict-option:hover { border-color: #2563EB; background: #EFF6FF; }
+  .sp-conflict-option.sp-chosen { border-color: #059669; background: #ECFDF5; }
+  .sp-conflict-option .sp-co-source { font-size: 11px; color: #6B7280; }
+  .sp-conflict-option .sp-co-value { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 13px; font-weight: 600; flex: 1; }
+  .sp-conflict-option .sp-co-pick { font-size: 12px; font-weight: 600; color: #2563EB; opacity: 0; transition: opacity 0.15s; }
+  .sp-conflict-option:hover .sp-co-pick { opacity: 1; }
+  .sp-doc-section { border-top: 1px solid #E5E7EB; }
+  .sp-doc-header { padding: 14px 20px; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+  .sp-doc-header:hover { background: #F3F4F6; }
+  .sp-doc-title { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; color: #1A1A1A; }
+  .sp-doc-toggle { font-size: 12px; color: #6B7280; transition: transform 0.2s; }
+  .sp-doc-content { padding: 0 20px 16px; }
+  .sp-doc-text { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 11px; line-height: 1.8; background: #F3F4F6; border-radius: 8px; padding: 14px 16px; max-height: 280px; overflow-y: auto; white-space: pre-wrap; color: #1A1A1A; }
+  .sp-doc-text .sp-ln { display: inline-block; width: 24px; color: #D1D5DB; user-select: none; font-size: 10px; text-align: right; margin-right: 10px; }
+  .sp-doc-text .sp-hl { background: #FEF3C7; border-bottom: 2px solid #D97706; padding: 1px 2px; border-radius: 2px; }
+  .sp-values { padding: 0 20px 16px; }
+  .sp-values-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6B7280; margin-bottom: 8px; }
+  .sp-val-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #F3F4F6; font-size: 12px; }
+  .sp-val-row:last-child { border-bottom: none; }
+  .sp-val-field { color: #6B7280; }
+  .sp-val-data { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 11px; color: #1A1A1A; }
+  .sp-val-status { font-size: 11px; font-weight: 600; }
+  .sp-val-status.sp-v { color: #059669; }
+  .sp-val-status.sp-u { color: #D97706; }
+
   /* --- Build 32: Matter View Redesign --- */
   .matter-header { padding: 20px 32px 0; background: #fff; border-bottom: 1px solid #E5E7EB; }
   .matter-header-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
@@ -13680,7 +13760,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   .mv-tab-badge.danger { background: #DC2626; color: #fff; }
   .mv-tab-content { flex: 1; overflow-y: auto; padding: 20px 24px; }
   .mv-tab-content.hidden { display: none; }
-  .mv-doc-viewer { width: 384px; min-width: 384px; background: #fff; border-left: 1px solid #E5E7EB; display: flex; flex-direction: column; overflow: hidden; transition: width 300ms ease-in-out, min-width 300ms ease-in-out, opacity 200ms ease; }
+  .mv-doc-viewer { width: 420px; min-width: 420px; background: #fff; border-left: 1px solid #E5E7EB; display: flex; flex-direction: column; overflow: hidden; transition: width 300ms ease-in-out, min-width 300ms ease-in-out, opacity 200ms ease; }
   .mv-doc-viewer.hidden { width: 0; min-width: 0; opacity: 0; border: none; overflow: hidden; }
   .mv-doc-viewer-header { padding: 16px 20px; border-bottom: 1px solid #F3F4F6; flex-shrink: 0; display: flex; align-items: flex-start; justify-content: space-between; }
   .mv-doc-viewer-title { font-size: 15px; font-weight: 600; color: #1A1A1A; }
@@ -18772,6 +18852,7 @@ function _buildShareHtml() {
 // Build 26: Matter View — Three-Panel State-Driven Layout
 
 var _mvSelectedDoc = null;
+var _mvSelectedField = null;
 var _mvActiveTab = 'know';
 var _mvFilesCache = [];
 var _currentClientView = 'client_overview'; // 'client_overview' or 'project_detail'
@@ -19719,6 +19800,8 @@ function _buildTabBar(exportData, gapData) {
 
 function mvSwitchTab(tab) {
   _mvActiveTab = tab;
+  // Close field review panel and restore sidebar on tab switch
+  if (_mvSelectedField) mvCloseFieldPanel();
   var knowEl = document.getElementById('mvTabKnow');
   var needEl = document.getElementById('mvTabNeed');
   var docsEl = document.getElementById('mvTabDocuments');
@@ -19923,14 +20006,14 @@ function _buildDocPanel34() {
   return h;
 }
 
-// ===== Build 34: DATA PANEL (What We Know) =====
+// ===== Build 34: DATA PANEL (What We Know) — Day 11 Update =====
 function _buildDataPanel34() {
   var h = '';
   var s = _demoStats();
   var totalFields = s.total;
   var bulkEligible = 0;
 
-  // Count bulk-eligible (unreviewed with confidence >= 0.85)
+  // Count bulk-eligible (unreviewed with confidence >= 0.80)
   for (var ei = 0; ei < _demoData.entities.length; ei++) {
     var fields = _demoData.entities[ei].fields;
     for (var fi = 0; fi < fields.length; fi++) {
@@ -19938,9 +20021,12 @@ function _buildDataPanel34() {
       var st = _demoFieldState[key];
       var status = st ? st.status : fields[fi].status;
       var conf = st && st.confidence !== undefined ? st.confidence : fields[fi].confidence;
-      if (status === 'unreviewed' && conf && conf >= 0.85) bulkEligible++;
+      if (status === 'unreviewed' && conf && conf >= 0.80) bulkEligible++;
     }
   }
+
+  // Confidence Legend — plain language
+  h += _buildConfidenceLegend();
 
   // State banner
   h += '<div class="b34-banner info">';
@@ -19953,10 +20039,10 @@ function _buildDataPanel34() {
   // Bulk verify bar
   if (bulkEligible > 0) {
     h += '<div class="b34-bulk-bar">';
-    h += '<span>\u2713 Bulk Verify: ' + bulkEligible + ' fields have high confidence (\u226585%)</span>';
+    h += '<span>\u2713 Bulk Verify: ' + bulkEligible + ' fields have high confidence (\u226580%)</span>';
     h += '<div style="display:flex;gap:8px;">';
-    h += '<button onclick="b34BulkPreview()" style="background:#fff;color:#2563EB;border:1px solid #BFDBFE;">Preview</button>';
-    h += '<button onclick="b34BulkVerify()">Verify All ' + bulkEligible + '</button>';
+    h += '<button onclick="event.stopPropagation();b34BulkPreview()" style="background:#fff;color:#2563EB;border:1px solid #BFDBFE;">Preview</button>';
+    h += '<button onclick="event.stopPropagation();b34BulkVerify()">Verify All ' + bulkEligible + '</button>';
     h += '</div></div>';
   }
 
@@ -19964,6 +20050,11 @@ function _buildDataPanel34() {
   h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
   h += '<span style="font-size:13px;font-weight:600;color:#1A1A1A;text-transform:uppercase;letter-spacing:0.05em;">Extracted Data</span>';
   h += '<span style="font-size:12px;color:#9CA3AF;">' + (s.total - s.missing) + ' of ' + totalFields + ' fields</span>';
+  h += '</div>';
+
+  // Column header row
+  h += '<div class="b34-field-header">';
+  h += '<span>Field</span><span>Value</span><span>Priority</span><span>Confidence</span><span>Source</span><span>Status</span><span>Actions</span>';
   h += '</div>';
 
   // Entity sections
@@ -19997,23 +20088,27 @@ function _buildDataPanel34() {
       var fStatus = fieldState ? fieldState.status : field.status;
       var fConf = fieldState && fieldState.confidence !== undefined ? fieldState.confidence : field.confidence;
       var fSource = field.source;
+      var fPriority = fieldState && fieldState.priority ? fieldState.priority : 'required';
 
       if (fStatus === 'deleted') continue;
 
       var rowClass = 'b34-field-row';
       if (fStatus === 'verified') rowClass += ' verified';
       else if (fStatus === 'missing') rowClass += ' missing-row';
-      else if (fConf && fConf < 0.60) rowClass += ' low-conf';
+      else if (fConf && fConf < 0.50) rowClass += ' low-conf';
       else rowClass += ' unreviewed';
+      if (_mvSelectedField === fieldKey) rowClass += ' selected';
 
-      var confColor = !fConf ? '#9CA3AF' : (fConf >= 0.85 ? '#059669' : (fConf >= 0.60 ? '#D97706' : '#DC2626'));
+      var confColor = !fConf ? '#9CA3AF' : (fConf >= 0.80 ? '#059669' : (fConf >= 0.50 ? '#D97706' : '#DC2626'));
+      var confPct = fConf ? Math.round(fConf * 100) : 0;
 
-      h += '<div class="' + rowClass + '" id="b34row_' + fieldKey + '">';
+      h += '<div class="' + rowClass + '" id="b34row_' + fieldKey + '" onclick="mvOpenFieldPanel(\\'' + fieldKey + '\\')">';
 
-      // Field name
-      h += '<div class="b34-field-name">' + esc(field.name) + '</div>';
+      // Col 1: Field name + entity
+      h += '<div><div class="b34-field-name">' + esc(field.name) + '</div>';
+      h += '<div style="font-size:11px;color:#6B7280;margin-top:1px;">' + esc(entity.type) + ': ' + esc(entity.name) + '</div></div>';
 
-      // Value
+      // Col 2: Value
       h += '<div id="b34val_' + fieldKey + '">';
       if (fStatus === 'missing' || fVal === null) {
         h += '<span class="b34-field-value empty">\u2014</span>';
@@ -20022,40 +20117,58 @@ function _buildDataPanel34() {
       }
       h += '</div>';
 
-      // Confidence
-      h += '<div class="b34-conf">';
-      if (fStatus === 'verified') {
-        h += '<span class="b34-status-pill verified">\u2713 Verified</span>';
-      } else if (fStatus === 'missing') {
-        h += '<span class="b34-status-pill missing-pill">Missing</span>';
+      // Col 3: Priority dropdown
+      h += '<div>';
+      h += '<select class="b34-priority-select p-' + fPriority + '" onclick="event.stopPropagation()" onchange="event.stopPropagation();b34UpdatePriority(\\'' + fieldKey + '\\',this)">';
+      h += '<option value="required"' + (fPriority === 'required' ? ' selected' : '') + '>Required</option>';
+      h += '<option value="recommended"' + (fPriority === 'recommended' ? ' selected' : '') + '>Recommended</option>';
+      h += '<option value="optional"' + (fPriority === 'optional' ? ' selected' : '') + '>Optional</option>';
+      h += '</select>';
+      h += '</div>';
+
+      // Col 4: Confidence bar + number
+      h += '<div>';
+      if (fConf != null) {
+        h += '<div class="b34-conf-wrap">';
+        h += '<div class="b34-conf-bar"><div class="b34-conf-fill" style="width:' + confPct + '%;background:' + confColor + ';"></div></div>';
+        h += '<span class="b34-conf-num" style="color:' + confColor + ';">' + fConf.toFixed(2) + '</span>';
+        h += '</div>';
       } else {
-        h += '<span class="b34-conf-dot" style="background:' + confColor + ';"></span>';
-        h += '<span class="b34-conf-score" style="color:' + confColor + ';">' + (fConf != null ? fConf.toFixed(2) : '\u2014') + '</span>';
+        h += '<span style="font-size:11px;color:#9CA3AF;">\u2014</span>';
       }
       h += '</div>';
 
-      // Source link
+      // Col 5: Source link
       h += '<div>';
       if (fSource && fSource.file) {
         var shortFile = fSource.file.length > 18 ? fSource.file.substring(0, 15) + '...' : fSource.file;
-        h += '<span class="b34-source-link" onclick="event.stopPropagation();b34OpenSource(\\'' + esc(fSource.file) + '\\',' + (fSource.line || 0) + ')">\ud83d\udcc4 ' + esc(shortFile) + ':' + (fSource.line || '') + '</span>';
+        h += '<span class="b34-source-link" onclick="event.stopPropagation();b34OpenSource(\\'' + esc(fSource.file) + '\\',' + (fSource.line || 0) + ')">' + esc(shortFile) + '</span>';
       } else if (fStatus !== 'missing') {
         h += '<span class="b34-source-none">No source</span>';
       }
       h += '</div>';
 
-      // Actions
-      h += '<div class="b34-actions">';
+      // Col 6: Status badge
+      h += '<div>';
+      if (fStatus === 'verified') {
+        h += '<span class="b34-status-badge s-verified">\u2713 Verified</span>';
+      } else if (fStatus === 'missing') {
+        h += '<span class="b34-status-badge s-missing">Missing</span>';
+      } else {
+        h += '<span class="b34-status-badge s-review">\u2696 Review</span>';
+      }
+      h += '</div>';
+
+      // Col 7: Actions
+      h += '<div class="b34-actions" onclick="event.stopPropagation()">';
       if (fStatus === 'verified') {
         h += '<button class="b34-verify active" onclick="b34ToggleVerify(\\'' + fieldKey + '\\')" title="Un-verify">\u2713</button>';
         h += '<button class="b34-edit" onclick="b34StartEdit(\\'' + fieldKey + '\\')" title="Edit">\u270e</button>';
-        h += '<button class="b34-delete" onclick="b34DeleteField(\\'' + fieldKey + '\\')" title="Delete">\ud83d\uddd1</button>';
       } else if (fStatus === 'missing') {
         h += '<button class="b34-edit" onclick="b34StartEdit(\\'' + fieldKey + '\\')" title="Enter value">\u270e</button>';
       } else {
         h += '<button class="b34-verify" onclick="b34ToggleVerify(\\'' + fieldKey + '\\')" title="Verify">\u2713</button>';
         h += '<button class="b34-edit" onclick="b34StartEdit(\\'' + fieldKey + '\\')" title="Edit">\u270e</button>';
-        h += '<button class="b34-delete" onclick="b34DeleteField(\\'' + fieldKey + '\\')" title="Delete">\ud83d\uddd1</button>';
       }
       h += '</div>';
 
@@ -20066,6 +20179,296 @@ function _buildDataPanel34() {
   }
 
   return h;
+}
+
+// ===== Day 11: Confidence Legend =====
+function _buildConfidenceLegend() {
+  var h = '<div class="conf-legend">';
+  // Low Confidence
+  h += '<div class="conf-legend-item">';
+  h += '<div class="conf-legend-top">';
+  h += '<div class="conf-legend-dot" style="background:#DC2626;"></div>';
+  h += '<span class="conf-legend-label" style="color:#DC2626;">Low Confidence</span>';
+  h += '<span class="conf-legend-range" style="color:#DC2626;">.00 \u2013 .49</span>';
+  h += '</div>';
+  h += '<div class="conf-legend-desc">Only one weak source, or the data is outdated. Needs verification before you use it.</div>';
+  h += '</div>';
+  // Medium Confidence
+  h += '<div class="conf-legend-item">';
+  h += '<div class="conf-legend-top">';
+  h += '<div class="conf-legend-dot" style="background:#D97706;"></div>';
+  h += '<span class="conf-legend-label" style="color:#D97706;">Medium Confidence</span>';
+  h += '<span class="conf-legend-range" style="color:#D97706;">.50 \u2013 .79</span>';
+  h += '</div>';
+  h += '<div class="conf-legend-desc">Came from one good source, or the info is a bit old. Worth a quick check before relying on it.</div>';
+  h += '</div>';
+  // High Confidence
+  h += '<div class="conf-legend-item">';
+  h += '<div class="conf-legend-top">';
+  h += '<div class="conf-legend-dot" style="background:#059669;"></div>';
+  h += '<span class="conf-legend-label" style="color:#059669;">High Confidence</span>';
+  h += '<span class="conf-legend-range" style="color:#059669;">.80 \u2013 1.0</span>';
+  h += '</div>';
+  h += '<div class="conf-legend-desc">Multiple sources agree, the data is recent, and it checks out. You can trust this.</div>';
+  h += '</div>';
+  h += '</div>';
+  return h;
+}
+
+// ===== Day 11: Priority Update =====
+function b34UpdatePriority(fieldKey, selectEl) {
+  var val = selectEl.value;
+  if (!_demoFieldState[fieldKey]) _demoFieldState[fieldKey] = {};
+  _demoFieldState[fieldKey].priority = val;
+  selectEl.className = 'b34-priority-select p-' + val;
+}
+
+// ===== Day 11: SLIDE-OUT FIELD REVIEW PANEL =====
+function mvOpenFieldPanel(fieldKey) {
+  // Parse entity index and field index from key (e.g. 'ent-001_0')
+  var parts = fieldKey.match(/^(.+)_(\d+)$/);
+  if (!parts) return;
+  var entId = parts[1];
+  var fi = parseInt(parts[2], 10);
+
+  // Find entity and field
+  var entity = null, field = null;
+  for (var ei = 0; ei < _demoData.entities.length; ei++) {
+    if (_demoData.entities[ei].id === entId) { entity = _demoData.entities[ei]; break; }
+  }
+  if (!entity || !entity.fields[fi]) return;
+  field = entity.fields[fi];
+
+  // Get current state
+  var fieldState = _demoFieldState[fieldKey];
+  var fVal = fieldState && fieldState.value !== undefined ? fieldState.value : field.value;
+  var fStatus = fieldState ? fieldState.status : field.status;
+  var fConf = fieldState && fieldState.confidence !== undefined ? fieldState.confidence : field.confidence;
+
+  // If clicking the same row, close panel
+  if (_mvSelectedField === fieldKey) {
+    mvCloseFieldPanel();
+    return;
+  }
+
+  _mvSelectedField = fieldKey;
+  _mvSelectedDoc = null; // clear any doc selection
+
+  // Collapse sidebar
+  var sidebar = document.getElementById('sidebar');
+  if (sidebar) sidebar.classList.add('sidebar-collapsed');
+
+  // Highlight selected row, clear others
+  var rows = document.querySelectorAll('.b34-field-row');
+  for (var i = 0; i < rows.length; i++) {
+    rows[i].classList.toggle('selected', rows[i].id === 'b34row_' + fieldKey);
+  }
+
+  // Build panel content
+  var html = _buildFieldPanelContent(entity, field, fi, fieldKey, fVal, fStatus, fConf);
+
+  // Inject into doc viewer panel and open
+  var viewer = document.getElementById('mvDocViewer');
+  if (viewer) {
+    viewer.innerHTML = html;
+    viewer.classList.remove('hidden');
+  }
+}
+
+function mvCloseFieldPanel() {
+  _mvSelectedField = null;
+
+  // Close panel
+  var viewer = document.getElementById('mvDocViewer');
+  if (viewer) viewer.classList.add('hidden');
+
+  // Restore sidebar
+  var sidebar = document.getElementById('sidebar');
+  if (sidebar) sidebar.classList.remove('sidebar-collapsed');
+
+  // Remove row highlights
+  var rows = document.querySelectorAll('.b34-field-row');
+  for (var i = 0; i < rows.length; i++) {
+    rows[i].classList.remove('selected');
+  }
+}
+
+function _buildFieldPanelContent(entity, field, fi, fieldKey, fVal, fStatus, fConf) {
+  var confColor = !fConf ? '#9CA3AF' : (fConf >= 0.80 ? '#059669' : (fConf >= 0.50 ? '#D97706' : '#DC2626'));
+  var confLabel = !fConf ? 'UNKNOWN' : (fConf >= 0.80 ? 'HIGH' : (fConf >= 0.50 ? 'MEDIUM' : 'LOW'));
+
+  // Determine panel type
+  var panelType = 'review'; // default
+  if (fStatus === 'verified') panelType = 'verified';
+  if (fStatus === 'missing') panelType = 'missing';
+
+  // Generate confidence description
+  var confDesc = '';
+  if (fConf >= 0.80) {
+    confDesc = 'Multiple sources agree, the data is recent, and it checks out. You can trust this.';
+  } else if (fConf >= 0.50) {
+    confDesc = 'Came from one source. Worth a quick check before relying on it.';
+  } else if (fConf != null) {
+    confDesc = 'Single source, low confidence. The data may be outdated or from an unreliable source. Needs verification.';
+  } else {
+    confDesc = 'No confidence score available for this field.';
+  }
+
+  // Find source document
+  var srcDoc = null;
+  if (field.source && field.source.file) {
+    for (var di = 0; di < _demoData.documents.length; di++) {
+      if (_demoData.documents[di].filename === field.source.file || _demoData.documents[di].id === field.source.file) {
+        srcDoc = _demoData.documents[di];
+        break;
+      }
+    }
+  }
+
+  // Find all fields extracted from same source document
+  var extractedFields = [];
+  if (srcDoc) {
+    for (var ei = 0; ei < _demoData.entities.length; ei++) {
+      var ent = _demoData.entities[ei];
+      for (var ffi = 0; ffi < ent.fields.length; ffi++) {
+        var f = ent.fields[ffi];
+        if (!f.value || !f.source) continue;
+        if (f.source.file === srcDoc.filename || f.source.file === srcDoc.id) {
+          var fk = ent.id + '_' + ffi;
+          var fs = _demoFieldState[fk];
+          var fSt = fs ? fs.status : f.status;
+          extractedFields.push({
+            field: f.name,
+            value: String(fs && fs.value !== undefined ? fs.value : f.value),
+            status: fSt === 'verified' ? 'v' : 'u'
+          });
+        }
+      }
+    }
+  }
+
+  var h = '';
+
+  // Panel header
+  h += '<div class="sp-header">';
+  h += '<div><div class="sp-title">' + esc(field.name) + '</div>';
+  h += '<div class="sp-subtitle">' + esc(entity.type) + ': ' + esc(entity.name) + '</div></div>';
+  h += '<div class="sp-close" onclick="mvCloseFieldPanel()">\u2715</div>';
+  h += '</div>';
+
+  // Panel body
+  h += '<div class="sp-body">';
+
+  // Section A: Review Action Card
+  h += '<div class="sp-review-card">';
+  h += '<div class="sp-review-header">';
+  h += '<span class="sp-review-label" style="color:' + confColor + ';">\u2b24 ' + confLabel + ' CONFIDENCE</span>';
+  h += '<span class="sp-review-conf" style="color:' + confColor + ';">' + (fConf != null ? fConf.toFixed(2) : '\u2014') + '</span>';
+  h += '</div>';
+  h += '<div class="sp-review-body">';
+  h += '<div class="sp-review-desc">' + confDesc + '</div>';
+
+  if (panelType === 'verified') {
+    // Verified: show value with verified tag, no action buttons
+    h += '<div class="sp-review-value">' + esc(String(fVal || '')) + ' <span class="sp-review-source-tag">\u2713 Verified</span></div>';
+  } else if (panelType === 'review' && fVal != null) {
+    // Needs review: show value + source tag + action buttons
+    var sourceTag = srcDoc ? srcDoc.filename.replace(/\.[^.]+$/, '') : 'Unknown';
+    h += '<div class="sp-review-value">' + esc(String(fVal)) + ' <span class="sp-review-source-tag">' + esc(sourceTag) + '</span></div>';
+    h += '<div class="sp-review-actions">';
+    h += '<div class="sp-action-btn sp-accept" id="spAcceptBtn_' + fieldKey + '" onclick="event.stopPropagation();spAcceptField(\\'' + fieldKey + '\\')">Accept</div>';
+    if (fConf != null && fConf < 0.50) {
+      h += '<div class="sp-action-btn" onclick="event.stopPropagation()">Needs Enrichment</div>';
+    } else {
+      h += '<div class="sp-action-btn" onclick="event.stopPropagation()">Flag for Review</div>';
+    }
+    h += '</div>';
+  } else if (panelType === 'missing') {
+    h += '<div style="font-size:13px;color:#DC2626;font-style:italic;">No value extracted yet. Upload a document or enter manually.</div>';
+  }
+
+  h += '</div>'; // end sp-review-body
+  h += '</div>'; // end sp-review-card
+
+  // Section B: Source Document Viewer
+  if (srcDoc) {
+    var docContent = srcDoc.content || '';
+    var docLines = docContent.split('\\n');
+    var highlightLine = field.source ? (field.source.line || 0) : 0;
+
+    h += '<div class="sp-doc-section">';
+    h += '<div class="sp-doc-header" onclick="var c=this.nextElementSibling;c.style.display=c.style.display===\\'none\\'?\\'block\\':\\'none\\'">';
+    h += '<div class="sp-doc-title">\ud83d\udcc4 ' + esc(srcDoc.filename) + '</div>';
+    h += '<span class="sp-doc-toggle">\u25bc</span>';
+    h += '</div>';
+    h += '<div style="display:block">';
+    h += '<div class="sp-doc-content">';
+    h += '<div style="font-size:12px;color:#6B7280;margin-bottom:6px;">' + esc(srcDoc.classification || '') + ' \u00b7 Uploaded ' + esc(srcDoc.uploaded || '') + '</div>';
+    h += '<div style="font-size:11px;color:#059669;margin-bottom:10px;">\u2713 Processed \u00b7 ' + srcDoc.extractedCount + ' values extracted</div>';
+
+    // Document text with line numbers and highlights
+    h += '<div class="sp-doc-text">';
+    for (var li = 0; li < docLines.length; li++) {
+      var lineNum = li + 1;
+      var lineText = docLines[li];
+      var isHighlighted = (highlightLine > 0 && Math.abs(lineNum - highlightLine) <= 1);
+      if (isHighlighted) {
+        h += '<span class="sp-ln">' + lineNum + '</span><span class="sp-hl">' + esc(lineText) + '</span>\\n';
+      } else {
+        h += '<span class="sp-ln">' + lineNum + '</span>' + esc(lineText) + '\\n';
+      }
+    }
+    h += '</div>'; // end sp-doc-text
+
+    h += '</div>'; // end sp-doc-content
+
+    // Section C: Extracted Values Table
+    if (extractedFields.length > 0) {
+      h += '<div class="sp-values">';
+      h += '<div class="sp-values-title">Values Extracted from This Document (' + extractedFields.length + ')</div>';
+      for (var vi = 0; vi < extractedFields.length; vi++) {
+        var ef = extractedFields[vi];
+        h += '<div class="sp-val-row">';
+        h += '<span class="sp-val-field">' + esc(ef.field) + '</span>';
+        h += '<span class="sp-val-data">' + esc(ef.value) + '</span>';
+        if (ef.status === 'v') {
+          h += '<span class="sp-val-status sp-v">\u2713 Verified</span>';
+        } else {
+          h += '<span class="sp-val-status sp-u">\u25cf Unreviewed</span>';
+        }
+        h += '</div>';
+      }
+      h += '</div>'; // end sp-values
+    }
+
+    h += '</div>'; // end collapsible wrapper
+    h += '</div>'; // end sp-doc-section
+  }
+
+  h += '</div>'; // end sp-body
+
+  return h;
+}
+
+// ===== Day 11: Accept field from panel =====
+function spAcceptField(fieldKey) {
+  // Verify the field
+  b34ToggleVerify(fieldKey);
+
+  // Update the accept button to show accepted state
+  var btn = document.getElementById('spAcceptBtn_' + fieldKey);
+  if (btn) {
+    btn.textContent = '\u2713 Accepted';
+    btn.className = 'sp-action-btn sp-accepted';
+    btn.onclick = null;
+  }
+
+  // Update the row highlight to verified
+  var row = document.getElementById('b34row_' + fieldKey);
+  if (row) {
+    row.classList.remove('unreviewed', 'low-conf');
+    row.classList.add('verified', 'selected');
+  }
 }
 
 // ===== Build 35: MISSING PANEL (What We Need — field-centric) =====
@@ -20401,6 +20804,8 @@ function _buildDocViewer34(docId, highlightLine) {
 // ===== Build 34: INTERACTION HANDLERS =====
 
 function mvSelectDoc34(docId) {
+  // Close field panel if open
+  if (_mvSelectedField) mvCloseFieldPanel();
   if (_mvSelectedDoc === docId && !_mvHighlightLine) {
     mvCloseDocViewer();
     return;
