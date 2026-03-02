@@ -13571,6 +13571,51 @@ const WIKI_HTML = `<!DOCTYPE html>
   .b34-need-dismiss:hover { color: #DC2626; }
   .b34-not-needed-section { margin-top: 16px; padding-top: 12px; border-top: 1px dashed #E5E7EB; }
   .b34-not-needed-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; color: #9CA3AF; font-size: 12px; }
+
+  /* Build 35: Documents tab table */
+  .b35-doc-table { width: 100%; border-collapse: collapse; }
+  .b35-doc-table th { font-size: 11px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.05em; padding: 10px 12px; text-align: left; border-bottom: 1px solid #E5E7EB; background: #FAFAF9; }
+  .b35-doc-table td { padding: 12px; font-size: 13px; color: #1A1A1A; border-bottom: 1px solid #F3F4F6; }
+  .b35-doc-table tr:hover td { background: #F3F4F6; cursor: pointer; }
+  .b35-doc-name { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+  .b35-doc-badge { font-size: 12px; padding: 2px 8px; border-radius: 9999px; background: #F3F4F6; color: #6B7280; }
+  .b35-doc-fields { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 12px; }
+  .b35-upload-zone { border: 2px dashed #D1D5DB; border-radius: 12px; padding: 32px; text-align: center; margin-top: 20px; cursor: pointer; transition: all 0.2s; }
+  .b35-upload-zone:hover { border-color: #2563EB; background: #EFF6FF; }
+
+  /* Build 35: Field-centric What We Need */
+  .b35-field-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 8px; padding: 14px 16px; margin-bottom: 8px; transition: all 0.3s; }
+  .b35-field-card.saving { background: #F0FDF4; border-color: #BBF7D0; }
+  .b35-field-card .field-name { font-size: 14px; font-weight: 600; color: #1A1A1A; display: flex; align-items: center; gap: 6px; }
+  .b35-field-card .field-parent { font-size: 13px; color: #6B7280; margin-top: 2px; }
+  .b35-field-card .field-input-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .b35-field-card .field-input-row input { flex: 1; border: 1px solid #E5E7EB; border-radius: 8px; padding: 8px 12px; font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 13px; outline: none; transition: border 0.15s, background 0.15s; }
+  .b35-field-card .field-input-row input:focus { border-color: #2563EB; background: #F8FAFF; }
+  .b35-field-card .field-input-row .save-btn { padding: 8px 14px; border: none; border-radius: 6px; background: #2563EB; color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; opacity: 0.4; transition: opacity 0.15s; }
+  .b35-field-card .field-input-row .save-btn.enabled { opacity: 1; }
+  .b35-field-card .field-input-row .save-btn.enabled:hover { background: #1D4ED8; }
+  .b35-field-card .field-input-row .remove-btn { padding: 8px 10px; border: 1px solid #E5E7EB; border-radius: 6px; background: #fff; color: #6B7280; font-size: 12px; cursor: pointer; transition: all 0.15s; }
+  .b35-field-card .field-input-row .remove-btn:hover { background: #FEF2F2; color: #DC2626; border-color: #FCA5A5; }
+  .b35-currency-wrap { flex: 1; display: flex; align-items: center; border: 1px solid #E5E7EB; border-radius: 8px; overflow: hidden; transition: border 0.15s; }
+  .b35-currency-wrap:focus-within { border-color: #2563EB; }
+  .b35-currency-wrap .prefix { padding: 8px 0 8px 12px; font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 13px; color: #6B7280; }
+  .b35-currency-wrap input { border: none; padding: 8px 12px 8px 4px; font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 13px; outline: none; flex: 1; background: transparent; }
+  .b35-add-field-form { background: #FAFAF9; border: 1px solid #E5E7EB; border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+  .b35-add-field-form label { display: block; font-size: 12px; font-weight: 600; color: #6B7280; margin-bottom: 4px; margin-top: 10px; }
+  .b35-add-field-form label:first-child { margin-top: 0; }
+  .b35-add-field-form input, .b35-add-field-form select { width: 100%; padding: 8px 12px; border: 1px solid #E5E7EB; border-radius: 8px; font-size: 13px; font-family: var(--font-sans, 'DM Sans', sans-serif); outline: none; box-sizing: border-box; }
+  .b35-add-field-form input:focus, .b35-add-field-form select:focus { border-color: #2563EB; }
+  .b35-filter-dd { position: relative; display: inline-block; }
+  .b35-filter-dd select { padding: 6px 28px 6px 10px; border: 1px solid #E5E7EB; border-radius: 6px; font-size: 12px; font-weight: 500; background: #fff; cursor: pointer; appearance: auto; color: #1A1A1A; }
+  .b35-removed-section { margin-top: 16px; padding-top: 12px; border-top: 1px dashed #E5E7EB; }
+  .b35-removed-item { display: flex; align-items: center; justify-content: space-between; padding: 6px 12px; color: #9CA3AF; font-size: 12px; }
+  .b35-removed-item .restore-link { color: #2563EB; cursor: pointer; font-weight: 500; }
+  .b35-removed-item .restore-link:hover { text-decoration: underline; }
+
+  /* Build 35: Toast */
+  .b35-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: #1A1A1A; color: #fff; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 500; z-index: 9999; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); transition: opacity 0.3s; }
+  .b35-toast .dismiss { cursor: pointer; opacity: 0.6; margin-left: 8px; }
+  .b35-toast .dismiss:hover { opacity: 1; }
   .b34-restore-link { font-size: 11px; color: #2563EB; cursor: pointer; }
   .b34-restore-link:hover { text-decoration: underline; }
   .b34-expand-link { font-size: 12px; font-weight: 500; cursor: pointer; padding: 8px 0; }
@@ -18929,17 +18974,15 @@ function showProjectDetail(spokeId, tab) {
   h += '<div class="metrics-bar" id="matterMetrics"><div style="color:#9CA3AF;font-size:13px;">Loading metrics...</div></div>';
   h += '</div>'; // end matter-header
 
-  // Body: 2-3 panel layout
+  // Body: full-width tabbed layout + slide-out viewer (Build 35: removed left doc panel)
   h += '<div class="matter-body">';
 
-  // Left: document cards
-  h += '<div class="mv-doc-panel" id="mvDocPanel"><div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading...</div></div>';
-
-  // Center: tabbed content
-  h += '<div class="mv-center-panel">';
+  // Center: tabbed content (full width, no left panel)
+  h += '<div class="mv-center-panel" style="flex:1;">';
   h += '<div class="mv-tab-bar" id="mvTabBar"></div>';
   h += '<div id="mvTabKnow" class="mv-tab-content"><div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading...</div></div>';
   h += '<div id="mvTabNeed" class="mv-tab-content hidden"><div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading...</div></div>';
+  h += '<div id="mvTabDocuments" class="mv-tab-content hidden"><div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading...</div></div>';
   h += '</div>'; // end center-panel
 
   // Right: document viewer (hidden by default)
@@ -19357,27 +19400,30 @@ var _demoData = {
 
 var _demoMissing = {
   required: [
-    { id: 'miss-001', name: 'Government Issued ID', category: 'Identification', reason: 'Required for BOI filing and identity verification', canManualEntry: false },
-    { id: 'miss-002', name: 'SSN Card or ITIN Letter', category: 'Identification', reason: 'IRS requires for individual tax ID verification', canManualEntry: false },
-    { id: 'miss-003', name: 'Signed Engagement Letter', category: 'Legal', reason: 'Firm policy \u2014 cannot proceed without signed engagement', canManualEntry: false }
+    { id: 'miss-001', fieldName: 'Date of Birth', parentEntity: 'John R. Smith', parentType: 'Primary Client', inputType: 'date', placeholder: 'MM/DD/YYYY' },
+    { id: 'miss-002', fieldName: 'NAICS Code', parentEntity: 'Acme Consulting LLC', parentType: 'Business Entity', inputType: 'text', placeholder: 'e.g., 541611' },
+    { id: 'miss-003', fieldName: 'Contact Info', parentEntity: 'Sarah Chen', parentType: 'Officer', inputType: 'text', placeholder: 'Phone or email' },
+    { id: 'miss-004', fieldName: "Sarah Chen\\'s SSN/ITIN", parentEntity: 'Sarah Chen', parentType: 'Officer', inputType: 'text', placeholder: 'XXX-XX-XXXX' },
+    { id: 'miss-005', fieldName: 'Registered Agent Address', parentEntity: 'Acme Consulting LLC', parentType: 'Business Entity', inputType: 'text', placeholder: 'Full address' },
+    { id: 'miss-006', fieldName: 'Initial Capital Contribution', parentEntity: 'John R. Smith', parentType: 'Shareholder', inputType: 'currency', placeholder: '0.00' }
   ],
   recommended: [
-    { id: 'miss-004', name: 'Certificate of Good Standing', category: 'Formation', reason: 'Confirms active status with GA Secretary of State', canManualEntry: false },
-    { id: 'miss-005', name: 'Business License', category: 'Regulatory', reason: 'City/county operating license for Atlanta', canManualEntry: false },
-    { id: 'miss-006', name: 'Bank Statements (Q4 2025)', category: 'Financial', reason: 'Needed for cash flow verification', canManualEntry: false },
-    { id: 'miss-007', name: 'Contractor Agreements', category: 'Employment', reason: '1099 issued to Marcus Williams \u2014 need the agreement', canManualEntry: false },
-    { id: 'miss-008', name: 'Workers Comp Certificate', category: 'Insurance', reason: 'Required for payroll verification', canManualEntry: false },
-    { id: 'miss-009', name: 'Depreciation Schedule', category: 'Financial', reason: '$4,500 depreciation on P&L needs supporting schedule', canManualEntry: true },
-    { id: 'miss-010', name: "Sarah Chen's SSN/ITIN", category: 'Identification', reason: 'Required for K-1 issuance to 40% member', canManualEntry: true },
-    { id: 'miss-011', name: 'Initial Capital Contributions', category: 'Financial', reason: 'Operating agreement references $40K \u2014 need documentation', canManualEntry: true }
+    { id: 'miss-007', fieldName: 'Business License Number', parentEntity: 'Acme Consulting LLC', parentType: 'Business Entity', inputType: 'text', placeholder: 'License #' },
+    { id: 'miss-008', fieldName: 'Workers Comp Policy #', parentEntity: 'Acme Consulting LLC', parentType: 'Business Entity', inputType: 'text', placeholder: 'Policy number' },
+    { id: 'miss-009', fieldName: 'Depreciation Method', parentEntity: 'Acme Consulting LLC', parentType: 'Business Entity', inputType: 'text', placeholder: 'e.g., MACRS, Straight-line' },
+    { id: 'miss-010', fieldName: "Sarah Chen\\'s Capital Contribution", parentEntity: 'Sarah Chen', parentType: 'Officer', inputType: 'currency', placeholder: '0.00' },
+    { id: 'miss-011', fieldName: 'Contractor Agreement Date', parentEntity: 'Marcus Williams', parentType: 'Contractor', inputType: 'date', placeholder: 'MM/DD/YYYY' }
   ],
   optional: [
-    { id: 'miss-012', name: 'NAICS Code Documentation', category: 'Business Info', reason: 'Improves accuracy of return classification', canManualEntry: true },
-    { id: 'miss-013', name: 'Meeting Minutes (Annual)', category: 'Governance', reason: 'Supports S-Corp status maintenance', canManualEntry: false },
-    { id: 'miss-014', name: 'Insurance Declarations Page', category: 'Insurance', reason: 'Enables full insurance deduction optimization', canManualEntry: false },
-    { id: 'miss-015', name: 'Vehicle Mileage Log', category: 'Deductions', reason: 'John may have deductible business miles', canManualEntry: true }
+    { id: 'miss-012', fieldName: 'Annual Meeting Date', parentEntity: 'Acme Consulting LLC', parentType: 'Business Entity', inputType: 'date', placeholder: 'MM/DD/YYYY' },
+    { id: 'miss-013', fieldName: 'Insurance Policy Expiration', parentEntity: 'Acme Consulting LLC', parentType: 'Business Entity', inputType: 'date', placeholder: 'MM/DD/YYYY' },
+    { id: 'miss-014', fieldName: 'Vehicle Used for Business', parentEntity: 'John R. Smith', parentType: 'Primary Client', inputType: 'text', placeholder: 'Year, Make, Model' },
+    { id: 'miss-015', fieldName: 'Marketing Spend Breakdown', parentEntity: 'Acme Consulting LLC', parentType: 'Business Entity', inputType: 'currency', placeholder: '0.00' }
   ]
 };
+var _demoRemovedFields = []; // IDs of removed fields (graveyard)
+var _b35FilterValue = 'all'; // current filter for What We Need tab
+var _b35AddFieldOpen = false; // whether the Add Field form is open
 
 var _demoFieldState = {}; // tracks field edits/verifications/deletions: { 'ent-001_0': { status, value, ... } }
 var _demoDismissed = []; // IDs of dismissed missing items
@@ -19405,9 +19451,9 @@ function _demoStats() {
   var needTotal = 0;
   var allMissing = (_demoMissing.required || []).concat(_demoMissing.recommended || []).concat(_demoMissing.optional || []);
   for (var i = 0; i < allMissing.length; i++) {
-    if (_demoDismissed.indexOf(allMissing[i].id) === -1 && !_demoManualEntries[allMissing[i].id]) needTotal++;
+    if (_demoDismissed.indexOf(allMissing[i].id) === -1 && !_demoManualEntries[allMissing[i].id] && (_demoRemovedFields || []).indexOf(allMissing[i].id) === -1) needTotal++;
   }
-  return { total: total, verified: verified, unreviewed: unreviewed, missing: missing, needTotal: needTotal };
+  return { total: total, verified: verified, unreviewed: unreviewed, missing: missing, needTotal: needTotal, docCount: _demoData.documents.length };
 }
 
 // ===== Build 32: Project Detail Data Loading =====
@@ -19443,34 +19489,31 @@ function loadMatterViewData() {
       badge.onclick = function() { loadClientTabContent_legacy('completeness'); };
     }
 
-    // Build 34: Build metrics from demo stats
+    // Build 35: Build metrics from demo stats
     var metricsEl = document.getElementById('matterMetrics');
     if (metricsEl) metricsEl.innerHTML = _buildMatterMetrics34();
 
-    // Build 34: Doc panel from demo data
-    var docEl = document.getElementById('mvDocPanel');
-    if (docEl) {
-      docEl.innerHTML = _buildDocPanel34();
-      _setupDocPanelDragDrop();
-    }
-
-    // Build 34: Tab bar with demo counts
+    // Build 35: Tab bar with 3 tabs
     var tabBarEl = document.getElementById('mvTabBar');
     if (tabBarEl) tabBarEl.innerHTML = _buildTabBar34();
 
-    // Build 34: Data panel from demo entities
+    // Build 35: Data panel from demo entities
     var knowEl = document.getElementById('mvTabKnow');
     if (knowEl) knowEl.innerHTML = _buildDataPanel34();
 
-    // Build 34: Missing panel from demo tiers
+    // Build 35: Missing panel — field-centric
     var needEl = document.getElementById('mvTabNeed');
     if (needEl) needEl.innerHTML = _buildMissingPanel34();
 
-    // Restore active tab state
-    if (_mvActiveTab === 'need') {
-      if (knowEl) knowEl.classList.add('hidden');
-      if (needEl) needEl.classList.remove('hidden');
+    // Build 35: Documents tab
+    var docsEl = document.getElementById('mvTabDocuments');
+    if (docsEl) {
+      docsEl.innerHTML = _buildDocumentsTab35();
+      _setupDocTabDragDrop();
     }
+
+    // Restore active tab state (Build 35: 3-tab support)
+    mvSwitchTab(_mvActiveTab || 'know');
 
     // Build timeline
     var timelineEl = document.getElementById('matterTimeline');
@@ -19678,12 +19721,15 @@ function mvSwitchTab(tab) {
   _mvActiveTab = tab;
   var knowEl = document.getElementById('mvTabKnow');
   var needEl = document.getElementById('mvTabNeed');
+  var docsEl = document.getElementById('mvTabDocuments');
   if (knowEl) knowEl.classList.toggle('hidden', tab !== 'know');
   if (needEl) needEl.classList.toggle('hidden', tab !== 'need');
+  if (docsEl) docsEl.classList.toggle('hidden', tab !== 'documents');
   // Update tab bar active states
+  var tabMap = { know: 0, need: 1, documents: 2 };
   var tabs = document.querySelectorAll('.mv-tab-bar .mv-tab');
   for (var i = 0; i < tabs.length; i++) {
-    tabs[i].classList.toggle('active', (i === 0 && tab === 'know') || (i === 1 && tab === 'need'));
+    tabs[i].classList.toggle('active', i === tabMap[tab]);
   }
 }
 
@@ -19828,14 +19874,17 @@ function _buildMatterMetrics34() {
   return h;
 }
 
-// ===== Build 34: TAB BAR =====
+// ===== Build 35: TAB BAR (3 tabs) =====
 function _buildTabBar34() {
   var s = _demoStats();
+  var knowCount = s.total - s.missing;
   var h = '';
   h += '<div class="mv-tab' + (_mvActiveTab === 'know' ? ' active' : '') + '" onclick="mvSwitchTab(\\'know\\')">';
-  h += 'What We Know <span class="mv-tab-badge" style="background:#2563EB;color:#fff;">' + (s.total - s.missing) + '</span></div>';
+  h += 'What We Know <span class="mv-tab-badge" style="background:#2563EB;color:#fff;">' + knowCount + '</span></div>';
   h += '<div class="mv-tab' + (_mvActiveTab === 'need' ? ' active' : '') + '" onclick="mvSwitchTab(\\'need\\')">';
-  h += 'What We Still Need <span class="mv-tab-badge" style="background:' + (s.needTotal > 0 ? '#DC2626' : '#059669') + ';color:#fff;">' + s.needTotal + '</span></div>';
+  h += 'What We Need <span class="mv-tab-badge" style="background:' + (s.needTotal > 0 ? '#DC2626' : '#059669') + ';color:#fff;">' + s.needTotal + '</span></div>';
+  h += '<div class="mv-tab' + (_mvActiveTab === 'documents' ? ' active' : '') + '" onclick="mvSwitchTab(\\'documents\\')">';
+  h += 'Documents <span class="mv-tab-badge" style="background:#F3F4F6;color:#6B7280;">' + s.docCount + '</span></div>';
   return h;
 }
 
@@ -19989,7 +20038,7 @@ function _buildDataPanel34() {
       h += '<div>';
       if (fSource && fSource.file) {
         var shortFile = fSource.file.length > 18 ? fSource.file.substring(0, 15) + '...' : fSource.file;
-        h += '<span class="b34-source-link" onclick="event.stopPropagation();b34OpenSource(\\'' + esc(fSource.file) + '\\',' + (fSource.line || 0) + ')">' + esc(shortFile) + ':' + (fSource.line || '') + '</span>';
+        h += '<span class="b34-source-link" onclick="event.stopPropagation();b34OpenSource(\\'' + esc(fSource.file) + '\\',' + (fSource.line || 0) + ')">\ud83d\udcc4 ' + esc(shortFile) + ':' + (fSource.line || '') + '</span>';
       } else if (fStatus !== 'missing') {
         h += '<span class="b34-source-none">No source</span>';
       }
@@ -20019,63 +20068,96 @@ function _buildDataPanel34() {
   return h;
 }
 
-// ===== Build 34: MISSING PANEL (What We Still Need) =====
+// ===== Build 35: MISSING PANEL (What We Need — field-centric) =====
 function _buildMissingPanel34() {
   var h = '';
   var s = _demoStats();
 
-  // Header with Request All dropdown
+  // Header
+  h += '<div style="margin-bottom:16px;">';
+  h += '<div style="font-size:15px;font-weight:600;color:#1A1A1A;margin-bottom:4px;">What We Need</div>';
+  if (s.needTotal > 0) {
+    h += '<div style="font-size:13px;color:#6B7280;">' + s.needTotal + ' field' + (s.needTotal !== 1 ? 's' : '') + ' still need values. Add data manually, or upload a document to the <span style="color:#2563EB;cursor:pointer;font-weight:500;" onclick="mvSwitchTab(\\'documents\\')">Documents tab</span> to extract values automatically.</div>';
+  }
+  h += '</div>';
+
+  // Toolbar: + Add Field button + Filter
   h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">';
-  h += '<span style="font-size:15px;font-weight:600;color:#1A1A1A;">What We Still Need</span>';
-  h += '<div class="b34-request-all-wrap">';
-  h += '<button onclick="b34ToggleRequestAll()" class="b34-need-btn request" style="font-size:12px;">Request All Missing \u25be</button>';
-  h += '<div id="b34RequestAllDD" class="b34-request-all-dd">';
-  var rCount = 0, recCount = 0;
-  for (var i = 0; i < _demoMissing.required.length; i++) { if (_demoDismissed.indexOf(_demoMissing.required[i].id) === -1 && !_demoRequested[_demoMissing.required[i].id] && !_demoManualEntries[_demoMissing.required[i].id]) rCount++; }
-  for (var i = 0; i < _demoMissing.recommended.length; i++) { if (_demoDismissed.indexOf(_demoMissing.recommended[i].id) === -1 && !_demoRequested[_demoMissing.recommended[i].id] && !_demoManualEntries[_demoMissing.recommended[i].id]) recCount++; }
-  h += '<div onclick="b34RequestAllTier(\\'required\\')">Request All Required (' + rCount + ')</div>';
-  h += '<div onclick="b34RequestAllTier(\\'recommended\\')">Request All Recommended (' + recCount + ')</div>';
-  h += '<div onclick="b34RequestAllTier(\\'all\\')">Request All (' + (rCount + recCount) + ')</div>';
-  h += '</div></div></div>';
+  h += '<button onclick="b35ToggleAddField()" style="padding:8px 16px;border:1px solid #2563EB;border-radius:8px;background:#fff;color:#2563EB;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:var(--font-sans);">+ Add Field</button>';
+  h += '<div class="b35-filter-dd"><select id="b35Filter" onchange="b35ApplyFilter(this.value)">';
+  h += '<option value="all"' + (_b35FilterValue === 'all' ? ' selected' : '') + '>All (' + s.needTotal + ')</option>';
+  // Count per tier
+  var rCount = _b35CountTier('required');
+  var recCount = _b35CountTier('recommended');
+  var optCount = _b35CountTier('optional');
+  h += '<option value="required"' + (_b35FilterValue === 'required' ? ' selected' : '') + '>Required (' + rCount + ')</option>';
+  h += '<option value="recommended"' + (_b35FilterValue === 'recommended' ? ' selected' : '') + '>Recommended (' + recCount + ')</option>';
+  h += '<option value="optional"' + (_b35FilterValue === 'optional' ? ' selected' : '') + '>Optional (' + optCount + ')</option>';
+  // By entity
+  var entityNames = _b35UniqueEntities();
+  for (var i = 0; i < entityNames.length; i++) {
+    var eCount = _b35CountByEntity(entityNames[i]);
+    if (eCount > 0) {
+      h += '<option value="entity:' + esc(entityNames[i]) + '"' + (_b35FilterValue === 'entity:' + entityNames[i] ? ' selected' : '') + '>' + esc(entityNames[i]) + ' (' + eCount + ')</option>';
+    }
+  }
+  h += '</select></div>';
+  h += '</div>';
+
+  // Add Field form (inline, toggled)
+  if (_b35AddFieldOpen) {
+    h += _buildAddFieldForm35();
+  }
 
   if (s.needTotal === 0) {
     h += '<div style="text-align:center;padding:32px;background:#F0FDF4;border-radius:12px;border:1px solid #BBF7D0;">';
     h += '<div style="font-size:16px;margin-bottom:8px;">\u2705</div>';
-    h += '<div style="font-size:14px;font-weight:600;color:#065F46;">All required items resolved. This matter is ready to file.</div>';
+    h += '<div style="font-size:14px;font-weight:600;color:#065F46;">All fields have values. This matter is complete.</div>';
     h += '</div>';
-    return h;
+  } else {
+    // Render tiers
+    var showReq = _b35FilterValue === 'all' || _b35FilterValue === 'required' || _b35FilterValue.indexOf('entity:') === 0;
+    var showRec = _b35FilterValue === 'all' || _b35FilterValue === 'recommended' || _b35FilterValue.indexOf('entity:') === 0;
+    var showOpt = _b35FilterValue === 'all' || _b35FilterValue === 'optional' || _b35FilterValue.indexOf('entity:') === 0;
+
+    if (showReq) h += _buildFieldTierSection35('required', _demoMissing.required, 'REQUIRED', '#DC2626', 'Cannot proceed without these', false);
+    if (showRec) h += _buildFieldTierSection35('recommended', _demoMissing.recommended, 'RECOMMENDED', '#D97706', 'Recommended for a complete filing', false);
+    if (showOpt) h += _buildFieldTierSection35('optional', _demoMissing.optional, 'OPTIONAL', '#6B7280', 'Nice-to-have \\u2014 improves quality', true);
   }
 
-  // Render tiers
-  h += _buildTierSection('required', _demoMissing.required, 'REQUIRED', '#DC2626', 'Cannot proceed without these', false);
-  h += _buildTierSection('recommended', _demoMissing.recommended, 'RECOMMENDED', '#D97706', 'Recommended for a complete, quality filing', false);
-  h += _buildTierSection('optional', _demoMissing.optional, 'OPTIONAL', '#6B7280', 'Nice-to-have \u2014 improves quality and reduces risk', true);
-
-  // Not Needed section (dismissed items)
-  if (_demoDismissed.length > 0) {
-    h += '<div class="b34-not-needed-section">';
-    h += '<div style="font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.03em;margin-bottom:8px;">Not Needed</div>';
+  // Removed Fields graveyard
+  if (_demoRemovedFields && _demoRemovedFields.length > 0) {
+    h += '<div class="b35-removed-section">';
+    h += '<div style="font-size:11px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.03em;margin-bottom:8px;cursor:pointer;" onclick="b35ToggleRemoved()">Removed Fields (' + _demoRemovedFields.length + ') \u25be</div>';
+    h += '<div id="b35RemovedList">';
     var allItems = _demoMissing.required.concat(_demoMissing.recommended).concat(_demoMissing.optional);
-    for (var i = 0; i < _demoDismissed.length; i++) {
+    for (var i = 0; i < _demoRemovedFields.length; i++) {
       var item = null;
-      for (var j = 0; j < allItems.length; j++) { if (allItems[j].id === _demoDismissed[i]) { item = allItems[j]; break; } }
+      for (var j = 0; j < allItems.length; j++) { if (allItems[j].id === _demoRemovedFields[i]) { item = allItems[j]; break; } }
       if (!item) continue;
-      h += '<div class="b34-not-needed-item">';
-      h += '<span>\ud83d\udccb ' + esc(item.name) + '</span>';
-      h += '<span class="b34-restore-link" onclick="b34RestoreItem(\\'' + item.id + '\\')">Restore</span>';
+      h += '<div class="b35-removed-item">';
+      h += '<span>\ud83d\udccb ' + esc(item.fieldName) + ' \\u2014 ' + esc(item.parentEntity) + '</span>';
+      h += '<span class="restore-link" onclick="b35RestoreField(\\'' + item.id + '\\')">Restore</span>';
       h += '</div>';
     }
+    h += '</div>';
     h += '</div>';
   }
 
   return h;
 }
 
-function _buildTierSection(tier, items, label, color, subtext, collapsedDefault) {
-  // Filter out dismissed and manually-entered items
+// ===== Build 35: Field-centric tier section =====
+function _buildFieldTierSection35(tier, items, label, color, subtext, collapsedDefault) {
+  // Filter out removed and saved items
   var activeItems = [];
+  var entityFilter = _b35FilterValue.indexOf('entity:') === 0 ? _b35FilterValue.substring(7) : null;
   for (var i = 0; i < items.length; i++) {
-    if (_demoDismissed.indexOf(items[i].id) === -1 && !_demoManualEntries[items[i].id]) activeItems.push(items[i]);
+    if ((_demoRemovedFields || []).indexOf(items[i].id) !== -1) continue;
+    if (_demoManualEntries[items[i].id]) continue;
+    if (_demoDismissed.indexOf(items[i].id) !== -1) continue;
+    if (entityFilter && items[i].parentEntity !== entityFilter) continue;
+    activeItems.push(items[i]);
   }
   if (activeItems.length === 0) return '';
 
@@ -20091,56 +20173,143 @@ function _buildTierSection(tier, items, label, color, subtext, collapsedDefault)
   h += '<div class="b34-tier-sub" style="color:' + color + ';">' + subtext + '</div>';
 
   // Items
-  var showLimit = collapsedDefault ? 0 : (tier === 'recommended' ? 5 : activeItems.length);
-  var tierId = 'b34tier_' + tier;
+  var showLimit = collapsedDefault ? 0 : activeItems.length;
+  var tierId = 'b35tier_' + tier;
 
   h += '<div id="' + tierId + '">';
   for (var i = 0; i < activeItems.length; i++) {
     var item = activeItems[i];
     var isHidden = i >= showLimit;
-    var isRequested = _demoRequested[item.id];
 
-    h += '<div class="b34-need-item" id="b34item_' + item.id + '" style="' + (isHidden ? 'display:none;' : '') + '">';
-    h += '<div class="b34-need-item-header">';
-    h += '<span class="b34-need-item-name">\ud83d\udccb ' + esc(item.name) + '</span>';
-    h += '<span class="b34-need-item-cat">' + esc(item.category) + '</span>';
-    h += '</div>';
-    h += '<div class="b34-need-item-reason">' + esc(item.reason) + '</div>';
-    h += '<div class="b34-need-item-actions">';
-
-    // Upload button
-    h += '<button class="b34-need-btn upload" onclick="b34UploadFor(\\'' + item.id + '\\')">\u2191 Upload Document</button>';
-
-    // Request button (or Requested state)
-    if (isRequested) {
-      h += '<button class="b34-need-btn requested">\ud83d\udce4 Requested ' + isRequested + '</button>';
+    h += '<div class="b35-field-card" id="b35item_' + item.id + '" style="' + (isHidden ? 'display:none;' : '') + '">';
+    // Field name + parent entity
+    h += '<div class="field-name">\ud83d\udccb ' + esc(item.fieldName) + '</div>';
+    h += '<div class="field-parent">' + esc(item.parentType) + ': ' + esc(item.parentEntity) + '</div>';
+    // Inline input row
+    h += '<div class="field-input-row">';
+    if (item.inputType === 'currency') {
+      h += '<div class="b35-currency-wrap">';
+      h += '<span class="prefix">$</span>';
+      h += '<input type="text" id="b35input_' + item.id + '" placeholder="' + esc(item.placeholder || '') + '" oninput="b35ToggleSaveBtn(\\'' + item.id + '\\')" />';
+      h += '</div>';
     } else {
-      h += '<button class="b34-need-btn request" onclick="b34RequestItem(\\'' + item.id + '\\')">\ud83d\udce4 Request from Client</button>';
+      h += '<input type="' + (item.inputType === 'date' ? 'text' : 'text') + '" id="b35input_' + item.id + '" placeholder="' + esc(item.placeholder || 'Enter value...') + '" oninput="b35ToggleSaveBtn(\\'' + item.id + '\\')" />';
     }
-
-    // Manual entry (if allowed)
-    if (item.canManualEntry) {
-      h += '<button class="b34-need-btn manual" onclick="b34ManualEntry(\\'' + item.id + '\\')">\u270e Enter Manually</button>';
-    }
-
-    // Not Needed dismiss
-    h += '<span class="b34-need-dismiss" onclick="b34DismissItem(\\'' + item.id + '\\',\\'' + tier + '\\')" title="Remove from requirements">\u2715 Not Needed</span>';
-
-    h += '</div>'; // end actions
-    h += '</div>'; // end item
+    h += '<button class="save-btn" id="b35save_' + item.id + '" onclick="b35SaveField(\\'' + item.id + '\\')">Save</button>';
+    h += '<button class="remove-btn" onclick="b35RemoveField(\\'' + item.id + '\\',\\'' + tier + '\\')">\u2715 Remove</button>';
+    h += '</div>';
+    h += '</div>'; // end field-card
   }
   h += '</div>'; // end tier items container
 
-  // Show more link for recommended
-  if (tier === 'recommended' && activeItems.length > 5) {
-    h += '<div class="b34-expand-link" style="color:' + color + ';" id="b34expand_' + tier + '" onclick="b34ExpandTier(\\'' + tier + '\\')">+' + (activeItems.length - 5) + ' more</div>';
-  }
   // Show/hide toggle for optional (collapsed by default)
   if (collapsedDefault && activeItems.length > 0) {
-    h += '<div class="b34-expand-link" style="color:' + color + ';" id="b34expand_' + tier + '" onclick="b34ExpandTier(\\'' + tier + '\\')">Show ' + activeItems.length + ' optional items \u25be</div>';
+    h += '<div class="b34-expand-link" style="color:' + color + ';" id="b35expand_' + tier + '" onclick="b35ExpandTier(\\'' + tier + '\\')">Show ' + activeItems.length + ' optional fields \u25be</div>';
   }
 
   h += '</div>'; // end tier section
+  return h;
+}
+
+// ===== Build 35: Field helpers =====
+function _b35CountTier(tier) {
+  var items = _demoMissing[tier] || [];
+  var count = 0;
+  for (var i = 0; i < items.length; i++) {
+    if ((_demoRemovedFields || []).indexOf(items[i].id) === -1 && !_demoManualEntries[items[i].id] && _demoDismissed.indexOf(items[i].id) === -1) count++;
+  }
+  return count;
+}
+function _b35CountByEntity(entityName) {
+  var all = (_demoMissing.required || []).concat(_demoMissing.recommended || []).concat(_demoMissing.optional || []);
+  var count = 0;
+  for (var i = 0; i < all.length; i++) {
+    if (all[i].parentEntity === entityName && (_demoRemovedFields || []).indexOf(all[i].id) === -1 && !_demoManualEntries[all[i].id] && _demoDismissed.indexOf(all[i].id) === -1) count++;
+  }
+  return count;
+}
+function _b35UniqueEntities() {
+  var all = (_demoMissing.required || []).concat(_demoMissing.recommended || []).concat(_demoMissing.optional || []);
+  var seen = {};
+  var result = [];
+  for (var i = 0; i < all.length; i++) {
+    if (!seen[all[i].parentEntity]) { seen[all[i].parentEntity] = true; result.push(all[i].parentEntity); }
+  }
+  return result;
+}
+
+function _buildAddFieldForm35() {
+  var h = '<div class="b35-add-field-form" id="b35AddFieldForm">';
+  h += '<div style="font-size:12px;font-weight:600;color:#1A1A1A;text-transform:uppercase;letter-spacing:0.03em;margin-bottom:8px;">Add New Field</div>';
+  h += '<label>Field Name</label>';
+  h += '<input type="text" id="b35NewFieldName" placeholder="e.g., Mailing Address" />';
+  h += '<label>For Entity</label>';
+  h += '<select id="b35NewFieldEntity">';
+  for (var i = 0; i < _demoData.entities.length; i++) {
+    h += '<option value="' + esc(_demoData.entities[i].name) + '|' + esc(_demoData.entities[i].type) + '">' + esc(_demoData.entities[i].name) + ' (' + esc(_demoData.entities[i].type) + ')</option>';
+  }
+  h += '</select>';
+  h += '<label>Priority</label>';
+  h += '<div style="display:flex;gap:16px;margin-top:4px;">';
+  h += '<label style="display:flex;align-items:center;gap:4px;font-weight:400;"><input type="radio" name="b35priority" value="required" checked /> Required</label>';
+  h += '<label style="display:flex;align-items:center;gap:4px;font-weight:400;"><input type="radio" name="b35priority" value="recommended" /> Recommended</label>';
+  h += '<label style="display:flex;align-items:center;gap:4px;font-weight:400;"><input type="radio" name="b35priority" value="optional" /> Optional</label>';
+  h += '</div>';
+  h += '<label>Value (optional)</label>';
+  h += '<input type="text" id="b35NewFieldValue" placeholder="Leave blank to add as missing" />';
+  h += '<div style="display:flex;gap:8px;margin-top:12px;">';
+  h += '<button onclick="b35ToggleAddField()" style="padding:8px 16px;border:1px solid #E5E7EB;border-radius:6px;background:#fff;color:#6B7280;font-size:12px;cursor:pointer;font-family:var(--font-sans);">Cancel</button>';
+  h += '<button onclick="b35SubmitAddField()" style="padding:8px 16px;border:none;border-radius:6px;background:#2563EB;color:#fff;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-sans);">Add Field</button>';
+  h += '</div>';
+  h += '</div>';
+  return h;
+}
+
+// ===== Build 35: Documents Tab =====
+function _buildDocumentsTab35() {
+  var docs = _demoData.documents;
+  var h = '';
+
+  // Header
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">';
+  h += '<div>';
+  h += '<div style="font-size:15px;font-weight:600;color:#1A1A1A;">Documents</div>';
+  h += '<div style="font-size:13px;color:#6B7280;">' + docs.length + ' documents uploaded for Acme Consulting LLC</div>';
+  h += '</div>';
+  h += '<button onclick="document.getElementById(\\'matterFileInput\\').click()" style="padding:8px 16px;border:1px solid #2563EB;border-radius:8px;background:#fff;color:#2563EB;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:var(--font-sans);">\u2191 Upload</button>';
+  h += '</div>';
+
+  // Document table
+  h += '<table class="b35-doc-table">';
+  h += '<thead><tr>';
+  h += '<th>Document</th>';
+  h += '<th>Classification</th>';
+  h += '<th>Uploaded</th>';
+  h += '<th>Fields</th>';
+  h += '<th>Status</th>';
+  h += '</tr></thead>';
+  h += '<tbody>';
+  for (var i = 0; i < docs.length; i++) {
+    var doc = docs[i];
+    var statusHtml = doc.status === 'processed'
+      ? '<span style="color:#059669;">\u2713 Processed</span>'
+      : '<span style="color:#D97706;">\u27f3 Processing</span>';
+    h += '<tr onclick="mvSelectDoc34(\\'' + doc.id + '\\')">';
+    h += '<td><div class="b35-doc-name">\ud83d\udcc4 ' + esc(doc.filename) + '</div></td>';
+    h += '<td><span class="b35-doc-badge">' + esc(doc.classification) + '</span></td>';
+    h += '<td style="font-size:12px;color:#6B7280;">' + esc(doc.uploaded) + '</td>';
+    h += '<td><span class="b35-doc-fields">' + doc.extractedCount + '</span></td>';
+    h += '<td style="font-size:12px;">' + statusHtml + '</td>';
+    h += '</tr>';
+  }
+  h += '</tbody></table>';
+
+  // Upload zone
+  h += '<div class="b35-upload-zone" id="b35UploadZone" onclick="document.getElementById(\\'matterFileInput\\').click()">';
+  h += '<div style="font-size:14px;color:#6B7280;">Drop files here or <strong style="color:#2563EB;">click to upload</strong></div>';
+  h += '<div style="font-size:12px;color:#9CA3AF;margin-top:4px;">Uploaded documents are automatically analyzed and field values are extracted</div>';
+  h += '</div>';
+
   return h;
 }
 
@@ -20418,54 +20587,179 @@ function b34BulkVerify() {
   toast(count + ' fields verified. Undo available for 10s.');
 }
 
-function b34DismissItem(itemId, tier) {
-  if (tier === 'required') {
-    // Confirmation for required items
-    var item = null;
-    for (var i = 0; i < _demoMissing.required.length; i++) { if (_demoMissing.required[i].id === itemId) { item = _demoMissing.required[i]; break; } }
-    var el = document.getElementById('b34item_' + itemId);
-    if (el && item) {
-      el.innerHTML = '<div style="padding:8px;text-align:center;">' +
-        '<div style="font-size:13px;color:#DC2626;margin-bottom:8px;">This is marked as REQUIRED. Removing it means the matter may be filed incomplete. Are you sure?</div>' +
-        '<button onclick="_demoDismissed.push(\\'' + itemId + '\\');_b34RefreshAll();" style="padding:6px 14px;border:none;border-radius:6px;background:#DC2626;color:#fff;font-size:12px;font-weight:600;cursor:pointer;margin-right:8px;">Yes, Remove</button>' +
-        '<button onclick="_b34RefreshAll();" style="padding:6px 14px;border:1px solid #E5E7EB;border-radius:6px;background:#fff;color:#1A1A1A;font-size:12px;cursor:pointer;">Keep It</button>' +
-        '</div>';
-      return;
+// ===== Build 35: Field-centric interaction handlers =====
+function b35ToggleSaveBtn(itemId) {
+  var inp = document.getElementById('b35input_' + itemId);
+  var btn = document.getElementById('b35save_' + itemId);
+  if (inp && btn) {
+    if (inp.value.trim()) {
+      btn.classList.add('enabled');
+    } else {
+      btn.classList.remove('enabled');
     }
   }
-  _demoDismissed.push(itemId);
-  _b34RefreshAll();
 }
 
-function b34RestoreItem(itemId) {
-  var idx = _demoDismissed.indexOf(itemId);
-  if (idx !== -1) _demoDismissed.splice(idx, 1);
-  _b34RefreshAll();
-}
+function b35SaveField(itemId) {
+  var inp = document.getElementById('b35input_' + itemId);
+  if (!inp || !inp.value.trim()) return;
+  var val = inp.value.trim();
 
-function b34RequestItem(itemId) {
-  _demoRequested[itemId] = 'Mar 1';
-  toast('Request sent to client');
-  _b34RefreshAll();
-}
+  // Find the field definition
+  var allItems = _demoMissing.required.concat(_demoMissing.recommended).concat(_demoMissing.optional);
+  var item = null;
+  for (var i = 0; i < allItems.length; i++) { if (allItems[i].id === itemId) { item = allItems[i]; break; } }
+  if (!item) return;
 
-function b34RequestAllTier(tier) {
-  var items = tier === 'required' ? _demoMissing.required : tier === 'recommended' ? _demoMissing.recommended : _demoMissing.required.concat(_demoMissing.recommended);
-  var count = 0;
-  for (var i = 0; i < items.length; i++) {
-    if (_demoDismissed.indexOf(items[i].id) === -1 && !_demoRequested[items[i].id] && !_demoManualEntries[items[i].id]) {
-      _demoRequested[items[i].id] = 'Mar 1';
-      count++;
+  // Add to entity in _demoData (What We Know)
+  for (var ei = 0; ei < _demoData.entities.length; ei++) {
+    var ent = _demoData.entities[ei];
+    if (ent.name === item.parentEntity) {
+      var fi = ent.fields.length;
+      ent.fields.push({
+        name: item.fieldName,
+        value: val,
+        confidence: 1.00,
+        status: 'verified',
+        source: { file: 'Manual entry', line: null, snippet: 'Entered manually' }
+      });
+      var key = ent.id + '_' + fi;
+      _demoFieldState[key] = { status: 'verified', value: val, confidence: 1.00 };
+      break;
     }
   }
-  document.getElementById('b34RequestAllDD').classList.remove('open');
-  toast(count + ' requests sent to client');
+
+  // Mark as saved
+  _demoManualEntries[itemId] = { value: val };
+
+  // Green flash animation
+  var card = document.getElementById('b35item_' + itemId);
+  if (card) {
+    card.classList.add('saving');
+    setTimeout(function() {
+      _b34RefreshAll();
+      b35Toast(item.fieldName + ' saved to What We Know');
+    }, 300);
+  } else {
+    _b34RefreshAll();
+    b35Toast(item.fieldName + ' saved to What We Know');
+  }
+}
+
+function b35RemoveField(itemId, tier) {
+  var card = document.getElementById('b35item_' + itemId);
+  if (!card) return;
+
+  // Find tier
+  var isRequired = false;
+  for (var i = 0; i < _demoMissing.required.length; i++) {
+    if (_demoMissing.required[i].id === itemId) { isRequired = true; break; }
+  }
+
+  if (isRequired) {
+    card.innerHTML = '<div style="padding:10px;text-align:center;">' +
+      '<div style="font-size:13px;color:#DC2626;margin-bottom:8px;">This field is marked <strong>REQUIRED</strong>. Are you sure?</div>' +
+      '<button onclick="_demoRemovedFields.push(\\'' + itemId + '\\');_b34RefreshAll();" style="padding:6px 14px;border:none;border-radius:6px;background:#DC2626;color:#fff;font-size:12px;font-weight:600;cursor:pointer;margin-right:8px;font-family:var(--font-sans);">Remove Anyway</button>' +
+      '<button onclick="_b34RefreshAll();" style="padding:6px 14px;border:1px solid #E5E7EB;border-radius:6px;background:#fff;color:#1A1A1A;font-size:12px;cursor:pointer;font-family:var(--font-sans);">Keep</button>' +
+      '</div>';
+    return;
+  }
+
+  // Inline confirm for non-required
+  card.innerHTML = '<div style="padding:10px;text-align:center;">' +
+    '<div style="font-size:13px;color:#6B7280;margin-bottom:8px;">Remove this field from requirements?</div>' +
+    '<button onclick="_demoRemovedFields.push(\\'' + itemId + '\\');_b34RefreshAll();" style="padding:6px 14px;border:none;border-radius:6px;background:#6B7280;color:#fff;font-size:12px;font-weight:600;cursor:pointer;margin-right:8px;font-family:var(--font-sans);">Yes</button>' +
+    '<button onclick="_b34RefreshAll();" style="padding:6px 14px;border:1px solid #E5E7EB;border-radius:6px;background:#fff;color:#1A1A1A;font-size:12px;cursor:pointer;font-family:var(--font-sans);">No</button>' +
+    '</div>';
+}
+
+function b35RestoreField(itemId) {
+  var idx = (_demoRemovedFields || []).indexOf(itemId);
+  if (idx !== -1) _demoRemovedFields.splice(idx, 1);
   _b34RefreshAll();
 }
 
-function b34ToggleRequestAll() {
-  var dd = document.getElementById('b34RequestAllDD');
-  if (dd) dd.classList.toggle('open');
+function b35ToggleAddField() {
+  _b35AddFieldOpen = !_b35AddFieldOpen;
+  _b34RefreshAll();
+}
+
+function b35SubmitAddField() {
+  var nameInput = document.getElementById('b35NewFieldName');
+  var entitySelect = document.getElementById('b35NewFieldEntity');
+  var valueInput = document.getElementById('b35NewFieldValue');
+  if (!nameInput || !nameInput.value.trim()) { b35Toast('Please enter a field name'); return; }
+
+  var fieldName = nameInput.value.trim();
+  var entityParts = (entitySelect ? entitySelect.value : '').split('|');
+  var parentEntity = entityParts[0] || '';
+  var parentType = entityParts[1] || '';
+  var value = valueInput ? valueInput.value.trim() : '';
+  var priority = 'required';
+  var radios = document.querySelectorAll('input[name="b35priority"]');
+  for (var i = 0; i < radios.length; i++) { if (radios[i].checked) { priority = radios[i].value; break; } }
+
+  var newId = 'miss-custom-' + Date.now();
+
+  if (value) {
+    // Add directly to What We Know
+    for (var ei = 0; ei < _demoData.entities.length; ei++) {
+      if (_demoData.entities[ei].name === parentEntity) {
+        var fi = _demoData.entities[ei].fields.length;
+        _demoData.entities[ei].fields.push({
+          name: fieldName,
+          value: value,
+          confidence: 1.00,
+          status: 'verified',
+          source: { file: 'Manual entry', line: null, snippet: 'Entered manually' }
+        });
+        _demoFieldState[_demoData.entities[ei].id + '_' + fi] = { status: 'verified', value: value, confidence: 1.00 };
+        break;
+      }
+    }
+    b35Toast(fieldName + ' added to What We Know');
+  } else {
+    // Add to What We Need
+    var newItem = { id: newId, fieldName: fieldName, parentEntity: parentEntity, parentType: parentType, inputType: 'text', placeholder: 'Enter value...' };
+    if (!_demoMissing[priority]) _demoMissing[priority] = [];
+    _demoMissing[priority].push(newItem);
+    b35Toast(fieldName + ' added to ' + priority + ' fields');
+  }
+
+  _b35AddFieldOpen = false;
+  _b34RefreshAll();
+}
+
+function b35ApplyFilter(value) {
+  _b35FilterValue = value;
+  var needEl = document.getElementById('mvTabNeed');
+  if (needEl) needEl.innerHTML = _buildMissingPanel34();
+}
+
+function b35ExpandTier(tier) {
+  var container = document.getElementById('b35tier_' + tier);
+  if (!container) return;
+  var items = container.querySelectorAll('.b35-field-card');
+  for (var i = 0; i < items.length; i++) items[i].style.display = '';
+  var link = document.getElementById('b35expand_' + tier);
+  if (link) link.style.display = 'none';
+}
+
+function b35ToggleRemoved() {
+  var list = document.getElementById('b35RemovedList');
+  if (list) list.style.display = list.style.display === 'none' ? '' : 'none';
+}
+
+function b35Toast(msg) {
+  // Remove existing toast
+  var existing = document.querySelector('.b35-toast');
+  if (existing) existing.remove();
+  var toastEl = document.createElement('div');
+  toastEl.className = 'b35-toast';
+  toastEl.innerHTML = msg + '<span class="dismiss" onclick="this.parentElement.remove()">\u2715</span>';
+  document.body.appendChild(toastEl);
+  setTimeout(function() { if (toastEl.parentElement) toastEl.style.opacity = '0'; }, 2700);
+  setTimeout(function() { if (toastEl.parentElement) toastEl.remove(); }, 3000);
 }
 
 function b34UploadFor(itemId) {
@@ -20524,15 +20818,21 @@ function _b34RefreshAll() {
   _b34RefreshDataPanel();
   var needEl = document.getElementById('mvTabNeed');
   if (needEl) needEl.innerHTML = _buildMissingPanel34();
+  var docsEl = document.getElementById('mvTabDocuments');
+  if (docsEl) { docsEl.innerHTML = _buildDocumentsTab35(); _setupDocTabDragDrop(); }
 }
 
-// Close request all dropdown on outside click
-document.addEventListener('click', function(e) {
-  if (!e.target.closest('.b34-request-all-wrap')) {
-    var dd = document.getElementById('b34RequestAllDD');
-    if (dd) dd.classList.remove('open');
-  }
-});
+// Build 35: setup upload zone drag-drop for Documents tab
+function _setupDocTabDragDrop() {
+  var dz = document.getElementById('b35UploadZone');
+  if (!dz) return;
+  dz.addEventListener('dragover', function(e) { e.preventDefault(); dz.style.borderColor = '#2563EB'; dz.style.background = '#EFF6FF'; });
+  dz.addEventListener('dragleave', function() { dz.style.borderColor = '#D1D5DB'; dz.style.background = ''; });
+  dz.addEventListener('drop', function(e) {
+    e.preventDefault(); dz.style.borderColor = '#D1D5DB'; dz.style.background = '';
+    if (e.dataTransfer.files.length > 0) uploadFilesToSpoke(e.dataTransfer.files);
+  });
+}
 
 // ===== CENTER PANEL: EXTRACTED DATA (Legacy) =====
 function _buildDataPanel(exportData, gapData) {
