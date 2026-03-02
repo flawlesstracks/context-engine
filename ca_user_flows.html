@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context Architecture — User Flow Map</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAFAF9;
+    --surface: #FFFFFF;
+    --navy: #1A2332;
+    --text: #1A1A1A;
+    --text2: #6B7280;
+    --text3: #9CA3AF;
+    --accent: #2563EB;
+    --success: #059669;
+    --warning: #D97706;
+    --danger: #DC2626;
+    --info: #7C3AED;
+    --border: #E5E7EB;
+    --border2: #D1D5DB;
+    --accent-bg: #EFF6FF;
+    --success-bg: #ECFDF5;
+    --warning-bg: #FFFBEB;
+    --danger-bg: #FEF2F2;
+    --info-bg: #F5F3FF;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Header ── */
+  .header {
+    padding: 40px 60px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 24px;
+  }
+
+  .logo {
+    font-family: 'Instrument Serif', serif;
+    font-size: 32px;
+    color: var(--navy);
+    letter-spacing: -0.5px;
+  }
+
+  .logo span { color: var(--accent); }
+
+  .subtitle {
+    font-size: 14px;
+    color: var(--text3);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  /* ── Persona tabs ── */
+  .persona-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .persona-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 18px;
+    border-radius: 100px;
+    border: 1.5px solid var(--border);
+    background: var(--surface);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text2);
+    user-select: none;
+  }
+
+  .persona-tab:hover {
+    border-color: var(--border2);
+    background: var(--bg);
+  }
+
+  .persona-tab.active {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+    color: var(--accent);
+  }
+
+  .persona-tab .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .persona-tab[data-persona="solo"] .dot { background: var(--accent); }
+  .persona-tab[data-persona="paralegal"] .dot { background: var(--warning); }
+  .persona-tab[data-persona="accountant"] .dot { background: var(--success); }
+  .persona-tab[data-persona="partner"] .dot { background: var(--info); }
+  .persona-tab[data-persona="client"] .dot { background: var(--danger); }
+  .persona-tab[data-persona="all"] .dot { background: var(--navy); }
+
+  /* ── Main content ── */
+  .main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 40px 60px 120px;
+  }
+
+  /* ── Persona card ── */
+  .persona-card {
+    display: none;
+    animation: fadeUp 0.4s ease;
+  }
+
+  .persona-card.active { display: block; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .persona-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+    margin-bottom: 48px;
+    padding: 32px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+  }
+
+  .persona-avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    flex-shrink: 0;
+  }
+
+  .persona-info h2 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 28px;
+    color: var(--navy);
+    margin-bottom: 4px;
+  }
+
+  .persona-info .role {
+    font-size: 15px;
+    color: var(--text2);
+    margin-bottom: 12px;
+  }
+
+  .persona-info .jtbd {
+    font-size: 16px;
+    font-style: italic;
+    color: var(--text);
+    line-height: 1.5;
+    padding: 12px 16px;
+    background: var(--bg);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+  }
+
+  /* ── Flow lanes ── */
+  .flow-section {
+    margin-bottom: 48px;
+  }
+
+  .flow-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text3);
+    margin-bottom: 12px;
+  }
+
+  .flow-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 24px;
+    color: var(--navy);
+    margin-bottom: 6px;
+  }
+
+  .flow-desc {
+    font-size: 14px;
+    color: var(--text2);
+    margin-bottom: 24px;
+    max-width: 640px;
+    line-height: 1.5;
+  }
+
+  /* ── Step chain ── */
+  .step-chain {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    scroll-behavior: smooth;
+  }
+
+  .step-chain::-webkit-scrollbar { height: 4px; }
+  .step-chain::-webkit-scrollbar-track { background: var(--border); border-radius: 2px; }
+  .step-chain::-webkit-scrollbar-thumb { background: var(--text3); border-radius: 2px; }
+
+  .step-node {
+    flex-shrink: 0;
+    width: 200px;
+    position: relative;
+  }
+
+  .step-card {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    transition: all 0.2s ease;
+    cursor: default;
+    position: relative;
+  }
+
+  .step-card:hover {
+    border-color: var(--accent);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.08);
+    transform: translateY(-2px);
+  }
+
+  .step-card .step-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+
+  .step-card .step-title {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 6px;
+    line-height: 1.3;
+  }
+
+  .step-card .step-detail {
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.4;
+  }
+
+  .step-card .step-metric {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 3px 8px;
+    border-radius: 100px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+  }
+
+  .step-card .step-metric.click { background: var(--accent-bg); color: var(--accent); }
+  .step-card .step-metric.tap { background: var(--warning-bg); color: var(--warning); }
+  .step-card .step-metric.auto { background: var(--success-bg); color: var(--success); }
+  .step-card .step-metric.time { background: var(--info-bg); color: var(--info); }
+
+  /* Arrow connector */
+  .step-arrow {
+    flex-shrink: 0;
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 36px;
+  }
+
+  .step-arrow svg {
+    color: var(--border2);
+  }
+
+  /* ── Screen badge ── */
+  .screen-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    background: var(--bg);
+    color: var(--text3);
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+
+  /* ── Product zone labels ── */
+  .zone-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+  }
+
+  .zone-label.formfill { background: var(--accent-bg); color: var(--accent); }
+  .zone-label.platform { background: var(--success-bg); color: var(--success); }
+  .zone-label.public { background: var(--warning-bg); color: var(--warning); }
+  .zone-label.bridge { background: var(--info-bg); color: var(--info); }
+
+  /* ── Conversion arrow ── */
+  .conversion-bridge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 24px;
+    margin: 32px 0;
+    border: 2px dashed var(--border2);
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--accent-bg) 0%, var(--info-bg) 100%);
+  }
+
+  .conversion-bridge .bridge-text {
+    font-family: 'Instrument Serif', serif;
+    font-size: 18px;
+    color: var(--navy);
+  }
+
+  .conversion-bridge .bridge-sub {
+    font-size: 13px;
+    color: var(--text2);
+  }
+
+  /* ── All flows view ── */
+  .all-flows-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .flow-swim-lane {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .flow-swim-lane::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    border-radius: 16px 0 0 16px;
+  }
+
+  .flow-swim-lane.formfill::before { background: var(--accent); }
+  .flow-swim-lane.platform::before { background: var(--success); }
+  .flow-swim-lane.public::before { background: var(--warning); }
+  .flow-swim-lane.bridge::before { background: var(--info); }
+
+  .swim-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .swim-header h3 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 20px;
+    color: var(--navy);
+  }
+
+  .persona-pills {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .persona-pill {
+    padding: 3px 10px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--bg);
+    color: var(--text2);
+    border: 1px solid var(--border);
+  }
+
+  .mini-steps {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .mini-step {
+    padding: 8px 14px;
+    background: var(--bg);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--text);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+
+  .mini-arrow {
+    color: var(--text3);
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .header { padding: 24px 20px 20px; }
+    .main { padding: 24px 20px 80px; }
+    .persona-header { flex-direction: column; padding: 20px; }
+    .step-node { width: 170px; }
+    .logo { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="logo">Context<span>.</span>Architecture</div>
+    <div class="subtitle">User Flow Map &bull; v2.0</div>
+  </div>
+  <div class="persona-tabs">
+    <div class="persona-tab active" data-persona="all" onclick="showPersona('all')">
+      <div class="dot"></div>All Flows
+    </div>
+    <div class="persona-tab" data-persona="solo" onclick="showPersona('solo')">
+      <div class="dot"></div>Solo Professional
+    </div>
+    <div class="persona-tab" data-persona="paralegal" onclick="showPersona('paralegal')">
+      <div class="dot"></div>Paralegal (Jada)
+    </div>
+    <div class="persona-tab" data-persona="accountant" onclick="showPersona('accountant')">
+      <div class="dot"></div>Accountant (Justin)
+    </div>
+    <div class="persona-tab" data-persona="partner" onclick="showPersona('partner')">
+      <div class="dot"></div>Managing Partner
+    </div>
+    <div class="persona-tab" data-persona="client" onclick="showPersona('client')">
+      <div class="dot"></div>Client (Maria)
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ═══════ ALL FLOWS VIEW ═══════ -->
+  <div class="persona-card active" id="view-all">
+    <div class="persona-header" style="border-left: 4px solid var(--navy);">
+      <div class="persona-avatar" style="background: var(--navy);">
+        <span style="color: white;">◎</span>
+      </div>
+      <div class="persona-info">
+        <h2>Complete Flow Architecture</h2>
+        <div class="role">8 flows &bull; 7 screens &bull; 5 personas</div>
+        <div class="jtbd">"Upload source documents. Get completed outputs with provenance. Review only where it matters."</div>
+      </div>
+    </div>
+
+    <div class="all-flows-grid">
+      <!-- Flow 1 -->
+      <div class="flow-swim-lane formfill">
+        <div class="swim-header">
+          <div><span class="zone-label formfill">FormFill</span><h3>Flow 1: Form Fill (Mode 1)</h3></div>
+          <div class="persona-pills">
+            <span class="persona-pill">Solo Pro</span>
+            <span class="persona-pill">Paralegal</span>
+            <span class="persona-pill">Accountant</span>
+          </div>
+        </div>
+        <div class="mini-steps">
+          <div class="mini-step">📄 Upload Blank Form</div><span class="mini-arrow">→</span>
+          <div class="mini-step">📎 Upload Source Docs</div><span class="mini-arrow">→</span>
+          <div class="mini-step">⚡ Fill My Form</div><span class="mini-arrow">→</span>
+          <div class="mini-step">🔍 Review + Provenance</div><span class="mini-arrow">→</span>
+          <div class="mini-step">⬇️ Download Filled PDF</div>
+        </div>
+      </div>
+
+      <!-- Flow 2 -->
+      <div class="flow-swim-lane formfill">
+        <div class="swim-header">
+          <div><span class="zone-label formfill">FormFill</span><h3>Flow 2: Document Generate (Mode 2)</h3></div>
+          <div class="persona-pills">
+            <span class="persona-pill">Paralegal</span>
+            <span class="persona-pill">Attorney</span>
+          </div>
+        </div>
+        <div class="mini-steps">
+          <div class="mini-step">📝 Upload Template</div><span class="mini-arrow">→</span>
+          <div class="mini-step">📎 Upload Source Docs</div><span class="mini-arrow">→</span>
+          <div class="mini-step">⚡ Generate Document</div><span class="mini-arrow">→</span>
+          <div class="mini-step">🔍 Review Variables</div><span class="mini-arrow">→</span>
+          <div class="mini-step">⬇️ Download DOCX + Redline</div>
+        </div>
+      </div>
+
+      <!-- Flow 3 -->
+      <div class="flow-swim-lane platform">
+        <div class="swim-header">
+          <div><span class="zone-label platform">Platform</span><h3>Flow 3: New Client Matter</h3></div>
+          <div class="persona-pills">
+            <span class="persona-pill">Paralegal</span>
+            <span class="persona-pill">Accountant</span>
+          </div>
+        </div>
+        <div class="mini-steps">
+          <div class="mini-step">➕ New Matter</div><span class="mini-arrow">→</span>
+          <div class="mini-step">📋 Select Template</div><span class="mini-arrow">→</span>
+          <div class="mini-step">📎 Drop Files</div><span class="mini-arrow">→</span>
+          <div class="mini-step">⚡ Auto-Extract</div><span class="mini-arrow">→</span>
+          <div class="mini-step">✅ Bulk Approve</div><span class="mini-arrow">→</span>
+          <div class="mini-step">🔒 Verify Critical</div>
+        </div>
+      </div>
+
+      <!-- Flow 4 -->
+      <div class="flow-swim-lane platform">
+        <div class="swim-header">
+          <div><span class="zone-label platform">Platform</span><h3>Flow 4: Daily Triage</h3></div>
+          <div class="persona-pills">
+            <span class="persona-pill">Accountant</span>
+            <span class="persona-pill">Partner</span>
+            <span class="persona-pill">Paralegal</span>
+          </div>
+        </div>
+        <div class="mini-steps">
+          <div class="mini-step">📊 Dashboard Loads</div><span class="mini-arrow">→</span>
+          <div class="mini-step">🚨 Scan Blocking Tray</div><span class="mini-arrow">→</span>
+          <div class="mini-step">📲 Nudge Client</div><span class="mini-arrow">→</span>
+          <div class="mini-step">✅ Bulk Approve</div><span class="mini-arrow">→</span>
+          <div class="mini-step">📄 Generate Output</div>
+        </div>
+      </div>
+
+      <!-- Flow 5 -->
+      <div class="flow-swim-lane public">
+        <div class="swim-header">
+          <div><span class="zone-label public">Public</span><h3>Flow 5: Client Intake</h3></div>
+          <div class="persona-pills">
+            <span class="persona-pill">Client (Maria)</span>
+          </div>
+        </div>
+        <div class="mini-steps">
+          <div class="mini-step">📱 Tap SMS Link</div><span class="mini-arrow">→</span>
+          <div class="mini-step">🔀 Choose Channel</div><span class="mini-arrow">→</span>
+          <div class="mini-step">📝 Form or 💬 Chat</div><span class="mini-arrow">→</span>
+          <div class="mini-step">📷 Upload Docs</div><span class="mini-arrow">→</span>
+          <div class="mini-step">✅ Submit</div><span class="mini-arrow">→</span>
+          <div class="mini-step">📋 Receipt (80%)</div>
+        </div>
+      </div>
+
+      <!-- Flow 6 -->
+      <div class="flow-swim-lane platform">
+        <div class="swim-header">
+          <div><span class="zone-label platform">Platform</span><h3>Flow 6: Template Creation</h3></div>
+          <div class="persona-pills">
+            <span class="persona-pill">Partner</span>
+            <span class="persona-pill">Lead Attorney</span>
+          </div>
+        </div>
+        <div class="mini-steps">
+          <div class="mini-step">📄 Upload Form</div><span class="mini-arrow">→</span>
+          <div class="mini-step">🤖 AI Detects Fields</div><span class="mini-arrow">→</span>
+          <div class="mini-step">✏️ WYSIWYG Review</div><span class="mini-arrow">→</span>
+          <div class="mini-step">🎚️ Set Tiers</div><span class="mini-arrow">→</span>
+          <div class="mini-step">💾 Publish Template</div>
+        </div>
+      </div>
+
+      <!-- Flow 7 -->
+      <div class="flow-swim-lane platform">
+        <div class="swim-header">
+          <div><span class="zone-label platform">Platform</span><h3>Flow 7: Review & Verification</h3></div>
+          <div class="persona-pills">
+            <span class="persona-pill">Paralegal</span>
+            <span class="persona-pill">Accountant</span>
+          </div>
+        </div>
+        <div class="mini-steps">
+          <div class="mini-step">📋 Enter Review</div><span class="mini-arrow">→</span>
+          <div class="mini-step">✅ Bulk Approve (15)</div><span class="mini-arrow">→</span>
+          <div class="mini-step">🔒 Verify Critical (3)</div><span class="mini-arrow">→</span>
+          <div class="mini-step">⚠️ Resolve Conflicts</div><span class="mini-arrow">→</span>
+          <div class="mini-step">🟢 Filing Ready</div>
+        </div>
+      </div>
+
+      <!-- Flow 8 -->
+      <div class="flow-swim-lane bridge">
+        <div class="swim-header">
+          <div><span class="zone-label bridge">Conversion</span><h3>Flow 8: FormFill → Platform</h3></div>
+          <div class="persona-pills">
+            <span class="persona-pill">Any FormFill User</span>
+          </div>
+        </div>
+        <div class="mini-steps">
+          <div class="mini-step">⬇️ Download Results</div><span class="mini-arrow">→</span>
+          <div class="mini-step">⏱️ "Saved 124 min"</div><span class="mini-arrow">→</span>
+          <div class="mini-step">🏢 Save to My Firm</div><span class="mini-arrow">→</span>
+          <div class="mini-step">✉️ Quick Signup</div><span class="mini-arrow">→</span>
+          <div class="mini-step">📊 Dashboard (Pre-loaded)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ SOLO PROFESSIONAL ═══════ -->
+  <div class="persona-card" id="view-solo">
+    <div class="persona-header" style="border-left: 4px solid var(--accent);">
+      <div class="persona-avatar" style="background: var(--accent-bg);">
+        <span>👤</span>
+      </div>
+      <div class="persona-info">
+        <h2>Individual Professional</h2>
+        <div class="role">Solo practitioner &bull; Freelance accountant &bull; Individual attorney</div>
+        <div class="jtbd">"I have a form and a pile of documents. Fill it out for me. Fast."</div>
+      </div>
+    </div>
+
+    <!-- Flow 1 -->
+    <div class="flow-section">
+      <div class="zone-label formfill">FormFill</div>
+      <div class="flow-label">Flow 1 — Primary Path</div>
+      <div class="flow-title">Form Fill (Mode 1)</div>
+      <div class="flow-desc">Upload a blank IRS form or government form, plus source documents. Get the form filled with a provenance receipt for every value.</div>
+      <div class="step-chain">
+        <div class="step-node">
+          <div class="step-card">
+            <div class="screen-badge">F1 — FormFill</div>
+            <div class="step-num">Step 1</div>
+            <div class="step-title">Upload Blank Form</div>
+            <div class="step-detail">Drop PDF, DOCX, or image of the blank form. AI analyzes and detects fields.</div>
+            <span class="step-metric auto">auto-detect</span>
+          </div>
+        </div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node">
+          <div class="step-card">
+            <div class="screen-badge">F1 — FormFill</div>
+            <div class="step-num">Step 2</div>
+            <div class="step-title">Upload Source Docs</div>
+            <div class="step-detail">Drop contracts, letters, statements. Multi-file extraction runs automatically.</div>
+            <span class="step-metric auto">parallel extract</span>
+          </div>
+        </div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node">
+          <div class="step-card">
+            <div class="screen-badge">F1 — FormFill</div>
+            <div class="step-num">Step 3</div>
+            <div class="step-title">Fill My Form</div>
+            <div class="step-detail">Three-tier matching: direct field map → entity inference → AI-assisted.</div>
+            <span class="step-metric click">click 1</span>
+          </div>
+        </div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node">
+          <div class="step-card">
+            <div class="screen-badge">F1 — Results</div>
+            <div class="step-num">Step 4</div>
+            <div class="step-title">Review Results</div>
+            <div class="step-detail">Every matched field with value, confidence badge, and source citation. Edit any value.</div>
+            <span class="step-metric time">~10 sec review</span>
+          </div>
+        </div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node">
+          <div class="step-card">
+            <div class="screen-badge">F1 — Downloads</div>
+            <div class="step-num">Step 5</div>
+            <div class="step-title">Download</div>
+            <div class="step-detail">Filled PDF, CSV with provenance columns, or full provenance report.</div>
+            <span class="step-metric click">click 2</span>
+          </div>
+        </div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node">
+          <div class="step-card" style="border-color: var(--info); border-style: dashed;">
+            <div class="screen-badge">F1 — Conversion</div>
+            <div class="step-num">Flow 8</div>
+            <div class="step-title">Save to My Firm</div>
+            <div class="step-detail">Ghost account created with this matter pre-loaded. Template saved. No cold start.</div>
+            <span class="step-metric click">click 3 (optional)</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ PARALEGAL (JADA) ═══════ -->
+  <div class="persona-card" id="view-paralegal">
+    <div class="persona-header" style="border-left: 4px solid var(--warning);">
+      <div class="persona-avatar" style="background: var(--warning-bg);">
+        <span>⚖️</span>
+      </div>
+      <div class="persona-info">
+        <h2>Paralegal (Jada)</h2>
+        <div class="role">4+ hours/day on data entry &bull; 15-30 active cases &bull; Medical records, police reports, billing</div>
+        <div class="jtbd">"I need this demand letter generated from these records — and I need to verify every number before the attorney sees it."</div>
+      </div>
+    </div>
+
+    <!-- Flow 2 -->
+    <div class="flow-section">
+      <div class="zone-label formfill">FormFill</div>
+      <div class="flow-label">Flow 2 — Primary Path</div>
+      <div class="flow-title">Document Generate (Mode 2)</div>
+      <div class="flow-desc">Upload the demand letter template plus police report, medical records, and billing statements. Get a completed demand letter with every variable replaced and sourced.</div>
+      <div class="step-chain">
+        <div class="step-node"><div class="step-card"><div class="screen-badge">F1 — FormFill</div><div class="step-num">Step 1</div><div class="step-title">Upload Template</div><div class="step-detail">Drop demand letter DOCX. AI detects 35 variables across 6 categories.</div><span class="step-metric auto">35 vars detected</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="screen-badge">F1 — FormFill</div><div class="step-num">Step 2</div><div class="step-title">Upload Source Docs</div><div class="step-detail">Police report, medical records, billing. Specialized extraction for ICD-10 codes.</div><span class="step-metric auto">multi-source</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="screen-badge">F1 — FormFill</div><div class="step-num">Step 3</div><div class="step-title">Generate Document</div><div class="step-detail">Variables matched, lists rebuilt, travel/totals calculated, honorifics adjusted.</div><span class="step-metric click">click 1</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="screen-badge">F1 — Results</div><div class="step-num">Step 4</div><div class="step-title">Review Variables</div><div class="step-detail">Old → New for every variable. Expandable diagnosis lists, calculation previews.</div><span class="step-metric time">~5 min review</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="screen-badge">F1 — Downloads</div><div class="step-num">Step 5</div><div class="step-title">Download</div><div class="step-detail">DOCX, Redline (yellow highlights), PDF, or Provenance Report.</div><span class="step-metric click">click 2</span></div></div>
+      </div>
+    </div>
+
+    <!-- Flow 7 -->
+    <div class="flow-section">
+      <div class="zone-label platform">Platform</div>
+      <div class="flow-label">Flow 7 — Daily Path</div>
+      <div class="flow-title">Review & Verification</div>
+      <div class="flow-desc">AI extracted the data. Verify it before the attorney sees it. Bulk approve the easy stuff. Individual attention only where it matters.</div>
+      <div class="step-chain">
+        <div class="step-node"><div class="step-card"><div class="screen-badge">P2 — Matter</div><div class="step-num">Step 1</div><div class="step-title">Enter Review</div><div class="step-detail">Items sorted by priority: CRITICAL first, then BLOCKING, then lowest confidence.</div><span class="step-metric click">click 1</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="screen-badge">P2 — Matter</div><div class="step-num">Step 2</div><div class="step-title">Bulk Approve 15</div><div class="step-detail">Non-critical, high-confidence fields approved in one click.</div><span class="step-metric click">click 2</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="screen-badge">P2 — Provenance</div><div class="step-num">Step 3</div><div class="step-title">Verify 3 Critical</div><div class="step-detail">SSN, EIN, settlement amount. Check source snippet. Approve or correct.</div><span class="step-metric click">clicks 3-5</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="screen-badge">P2 — Matter</div><div class="step-num">Step 4</div><div class="step-title">Resolve Conflicts</div><div class="step-detail">Two sources disagree. Pick authoritative source or enter correct value.</div><span class="step-metric click">click 6</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card" style="border-color: var(--success);"><div class="screen-badge">P1 — Dashboard</div><div class="step-num">Done</div><div class="step-title">Filing Ready</div><div class="step-detail">All BLOCKING fields verified. Matter moves to green. Ready to file.</div><span class="step-metric auto">🟢 ready</span></div></div>
+      </div>
+    </div>
+
+    <!-- Flow 3 -->
+    <div class="flow-section">
+      <div class="zone-label platform">Platform</div>
+      <div class="flow-label">Flow 3 — Onboarding Path</div>
+      <div class="flow-title">New Client Matter</div>
+      <div class="flow-desc">New PI case comes in. Create the matter, drop the initial documents, share collection link with client.</div>
+      <div class="step-chain">
+        <div class="step-node"><div class="step-card"><div class="screen-badge">P1 — Dashboard</div><div class="step-num">Step 1</div><div class="step-title">+ New Matter</div><div class="step-detail">Click from Dashboard. Modal opens.</div><span class="step-metric click">click 1</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="screen-badge">Modal</div><div class="step-num">Step 2</div><div class="step-title">Select Template</div><div class="step-detail">Personal Injury template. Name the client. Drop police report.</div><span class="step-metric click">click 2</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="screen-badge">P2 — Matter</div><div class="step-num">Step 3</div><div class="step-title">Auto-Extract</div><div class="step-detail">Extraction runs on creation. Results populate in real-time.</div><span class="step-metric auto">auto</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="screen-badge">P2 — Matter</div><div class="step-num">Step 4</div><div class="step-title">Share with Client</div><div class="step-detail">Send collection link. Maria receives SMS with intake form.</div><span class="step-metric click">click 3</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ ACCOUNTANT (JUSTIN) ═══════ -->
+  <div class="persona-card" id="view-accountant">
+    <div class="persona-header" style="border-left: 4px solid var(--success);">
+      <div class="persona-avatar" style="background: var(--success-bg);">
+        <span>📊</span>
+      </div>
+      <div class="persona-info">
+        <h2>Tax Preparer (Justin)</h2>
+        <div class="role">20-50 clients per season &bull; W-2s, 1099s, K-1s &bull; Portfolio-level visibility</div>
+        <div class="jtbd">"Show me which clients are ready to file, which are missing documents, and which have data conflicts — across my entire portfolio."</div>
+      </div>
+    </div>
+
+    <!-- Flow 4 -->
+    <div class="flow-section">
+      <div class="zone-label platform">Platform</div>
+      <div class="flow-label">Flow 4 — Daily Path (The 100th Visit)</div>
+      <div class="flow-title">Daily Triage</div>
+      <div class="flow-desc">8:45 AM. 15 minutes before a hearing. Open the dashboard, clear the plate, move on. Three clients actioned in three clicks without leaving the screen.</div>
+      <div class="step-chain">
+        <div class="step-node"><div class="step-card"><div class="screen-badge">P1 — Dashboard</div><div class="step-num">Step 1</div><div class="step-title">Dashboard Loads</div><div class="step-detail">Hero: "4 Ready | 6 In Progress | 2 Blocked." Blocking Tray at top.</div><span class="step-metric auto">instant</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card" style="border-color: var(--danger);"><div class="screen-badge">P1 — Blocking Tray</div><div class="step-num">Step 2</div><div class="step-title">Scan Blockers</div><div class="step-detail">"Rodriguez: Missing W-2. Deadline: 6 days." Specific blocker + countdown.</div><span class="step-metric auto">visual scan</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="screen-badge">P1 — In-Line</div><div class="step-num">Step 3</div><div class="step-title">Nudge Client</div><div class="step-detail">One click sends: "Hi Maria, we need your W-2 by March 7th. Tap to upload."</div><span class="step-metric click">click 1</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="screen-badge">P1 — In-Line</div><div class="step-num">Step 4</div><div class="step-title">Bulk Approve</div><div class="step-detail">Next client: "Approve 12 fields." One click. No navigation needed.</div><span class="step-metric click">click 2</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card" style="border-color: var(--success);"><div class="screen-badge">P1 — In-Line</div><div class="step-num">Step 5</div><div class="step-title">Generate Return</div><div class="step-detail">Third client: complete + verified. "Generate Return." One click.</div><span class="step-metric click">click 3</span></div></div>
+      </div>
+    </div>
+
+    <!-- Flow 1 -->
+    <div class="flow-section">
+      <div class="zone-label formfill">FormFill</div>
+      <div class="flow-label">Flow 1 — Ad-Hoc Path</div>
+      <div class="flow-title">Quick Form Fill</div>
+      <div class="flow-desc">Got a one-off form to fill outside the platform? Drop it in FormFill. Same engine, no matter setup required.</div>
+      <div class="step-chain">
+        <div class="step-node"><div class="step-card"><div class="step-num">Step 1</div><div class="step-title">Upload Form</div><div class="step-detail">Blank IRS form (8594, 1040, etc.)</div><span class="step-metric auto">auto</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="step-num">Step 2</div><div class="step-title">Upload Source Docs</div><div class="step-detail">W-2, 1099, K-1, purchase agreement</div><span class="step-metric auto">auto</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="step-num">Step 3</div><div class="step-title">Fill + Download</div><div class="step-detail">Filled form with provenance. Under 90 seconds.</div><span class="step-metric click">2 clicks total</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ MANAGING PARTNER ═══════ -->
+  <div class="persona-card" id="view-partner">
+    <div class="persona-header" style="border-left: 4px solid var(--info);">
+      <div class="persona-avatar" style="background: var(--info-bg);">
+        <span>🏛️</span>
+      </div>
+      <div class="persona-info">
+        <h2>Managing Partner</h2>
+        <div class="role">Oversees the firm &bull; Defines completeness standards &bull; Portfolio-level risk visibility</div>
+        <div class="jtbd">"Which clients are most at risk right now? Where should I allocate resources before problems become malpractice?"</div>
+      </div>
+    </div>
+
+    <!-- Flow 6 -->
+    <div class="flow-section">
+      <div class="zone-label platform">Platform</div>
+      <div class="flow-label">Flow 6 — Setup Path (Once)</div>
+      <div class="flow-title">Template Creation</div>
+      <div class="flow-desc">Digitize the firm's intake forms. Upload the decade-old Word doc. AI detects the fields. Review like annotating a document, not configuring a database.</div>
+      <div class="step-chain">
+        <div class="step-node"><div class="step-card"><div class="screen-badge">P4 — Editor</div><div class="step-num">Step 1</div><div class="step-title">Upload Form</div><div class="step-detail">Drop the existing PDF/DOCX intake form.</div><span class="step-metric click">click 1</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="screen-badge">P4 — Editor</div><div class="step-num">Step 2</div><div class="step-title">AI Detects Fields</div><div class="step-detail">"Found 22 fields, 3 doc types." 10-second analysis.</div><span class="step-metric auto">10 sec</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="screen-badge">P4 — WYSIWYG</div><div class="step-num">Step 3</div><div class="step-title">Review Fields</div><div class="step-detail">Document left, field cards right. Click to correct. Highlight to add. Annotation, not configuration.</div><span class="step-metric click">clicks 2-4</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="screen-badge">P4 — Editor</div><div class="step-num">Step 4</div><div class="step-title">Set Necessity Tiers</div><div class="step-detail">Blocking / Expected / Enriching per field. Dropdowns on each card.</div><span class="step-metric click">click 5</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card" style="border-color: var(--success);"><div class="screen-badge">P4 → P1</div><div class="step-num">Step 5</div><div class="step-title">Publish</div><div class="step-detail">Template live. "Create your first matter?" routes to Flow 3.</div><span class="step-metric click">click 6</span></div></div>
+      </div>
+    </div>
+
+    <!-- Flow 4 -->
+    <div class="flow-section">
+      <div class="zone-label platform">Platform</div>
+      <div class="flow-label">Flow 4 — Daily Path</div>
+      <div class="flow-title">Portfolio Triage</div>
+      <div class="flow-desc">Morning scan. Which matters are at risk? Where to allocate resources? The dashboard tells you in 30 seconds.</div>
+      <div class="step-chain">
+        <div class="step-node"><div class="step-card"><div class="screen-badge">P1 — Dashboard</div><div class="step-num">Step 1</div><div class="step-title">Scan Hero Stats</div><div class="step-detail">"4 Ready | 6 In Progress | 2 Blocked." Completion is the hero number.</div><span class="step-metric auto">instant</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="screen-badge">P1 — Blocking Tray</div><div class="step-num">Step 2</div><div class="step-title">Review Blockers</div><div class="step-detail">Which clients need intervention? Specific blockers with deadlines.</div><span class="step-metric auto">visual scan</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="screen-badge">P1 — Dashboard</div><div class="step-num">Step 3</div><div class="step-title">Delegate or Act</div><div class="step-detail">Assign matters to associates, or nudge clients directly from dashboard.</div><span class="step-metric click">1-3 clicks</span></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ CLIENT (MARIA) ═══════ -->
+  <div class="persona-card" id="view-client">
+    <div class="persona-header" style="border-left: 4px solid var(--danger);">
+      <div class="persona-avatar" style="background: var(--danger-bg);">
+        <span>📱</span>
+      </div>
+      <div class="persona-info">
+        <h2>Client (Maria)</h2>
+        <div class="role">Non-technical &bull; On mobile &bull; Confused by legal terminology &bull; Wants to be done</div>
+        <div class="jtbd">"Tell me what you need, let me give it to you, and tell me when I'm done."</div>
+      </div>
+    </div>
+
+    <!-- Flow 5 -->
+    <div class="flow-section">
+      <div class="zone-label public">Public-Facing</div>
+      <div class="flow-label">Flow 5 — Only Path</div>
+      <div class="flow-title">Client Intake</div>
+      <div class="flow-desc">Maria gets a text from her attorney. Taps the link. No app download, no login, no legal jargon. 9 taps to done. Industry average is 15-25 taps + app install.</div>
+      <div class="step-chain">
+        <div class="step-node"><div class="step-card"><div class="screen-badge">SMS</div><div class="step-num">Tap 1</div><div class="step-title">Tap Link</div><div class="step-detail">Opens in mobile browser. No app. No login. Secure token link.</div><span class="step-metric tap">tap 1</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="screen-badge">P3 — Intake</div><div class="step-num">Tap 2</div><div class="step-title">Consent</div><div class="step-detail">"[Firm Name] needs some info for your case." Tap to agree.</div><span class="step-metric tap">tap 2</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="screen-badge">P3 — Form or Chat</div><div class="step-num">Taps 3-5</div><div class="step-title">Upload ID</div><div class="step-detail">Pre-framed: "We'll need your camera." Tap upload → camera → snap.</div><span class="step-metric tap">taps 3-5</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="screen-badge">P3 — Form</div><div class="step-num">Taps 6-7</div><div class="step-title">Upload Tax Doc</div><div class="step-detail">Second document. Same flow. File picker or camera.</div><span class="step-metric tap">taps 6-7</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card"><div class="screen-badge">P3 — Form</div><div class="step-num">Tap 8</div><div class="step-title">Fix a Field</div><div class="step-detail">AI pre-filled address wrong. Tap to correct. Keyboard opens.</div><span class="step-metric tap">tap 8</span></div></div>
+        <div class="step-arrow"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M12 5l7 7-7 7"/></svg></div>
+        <div class="step-node"><div class="step-card" style="border-color: var(--success);"><div class="screen-badge">P3 — Confirm</div><div class="step-num">Tap 9</div><div class="step-title">Submit + Receipt</div><div class="step-detail">"Your filing is now 80% complete. Your attorney will review." Done.</div><span class="step-metric tap">tap 9 ✓</span></div></div>
+      </div>
+    </div>
+
+    <div class="conversion-bridge">
+      <div>
+        <div class="bridge-text">⏸️ Session Persistence (Hard Requirement)</div>
+        <div class="bridge-sub">If Maria leaves mid-flow (phone call, distraction), the same link restores her session. "Welcome back, Maria. 2 of 5 completed."</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function showPersona(persona) {
+  // Update tabs
+  document.querySelectorAll('.persona-tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`.persona-tab[data-persona="${persona}"]`).classList.add('active');
+
+  // Update views
+  document.querySelectorAll('.persona-card').forEach(c => c.classList.remove('active'));
+  document.getElementById(`view-${persona}`).classList.add('active');
+}
+</script>
+</body>
+</html>

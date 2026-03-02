@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context Architecture — MECE Data Cards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAFAF9; --surface: #FFFFFF; --text: #1A1A1A; --text-sec: #6B7280;
+    --accent: #2563EB; --accent-light: #EFF6FF; --accent-hover: #1D4ED8;
+    --success: #059669; --success-light: #ECFDF5;
+    --warning: #D97706; --warning-light: #FFFBEB;
+    --danger: #DC2626; --danger-light: #FEF2F2;
+    --border: #E5E7EB; --border-light: #F3F4F6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg); color: var(--text);
+    height: 100vh; overflow: hidden; display: flex;
+  }
+
+  /* ═══ SIDEBAR ═══ */
+  .sidebar {
+    width: 248px; height: 100vh; background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto;
+  }
+  .sidebar-brand {
+    padding: 20px 20px 16px; display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .sidebar-brand-icon {
+    width: 32px; height: 32px; background: var(--accent); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 13px;
+  }
+  .sidebar-brand-text { font-family: 'Instrument Serif', serif; font-size: 16px; }
+  .sidebar-section { padding: 16px 12px 8px; }
+  .sidebar-section-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--text-sec); padding: 0 8px; margin-bottom: 4px;
+  }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    border-radius: 6px; font-size: 14px; color: var(--text-sec);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .sidebar-item:hover { background: var(--border-light); color: var(--text); }
+  .sidebar-item.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+  .sidebar-item-icon { width: 18px; font-size: 14px; opacity: 0.7; }
+  .sidebar-divider { height: 1px; background: var(--border-light); margin: 4px 12px; }
+  .sidebar-add { display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 13px; color: var(--accent); cursor: pointer; border-radius: 6px; }
+
+  /* ═══ MAIN ═══ */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+  /* ═══ HEADER ═══ */
+  .matter-header {
+    padding: 20px 32px 0; background: var(--surface); border-bottom: 1px solid var(--border);
+  }
+  .matter-header-top {
+    display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px;
+  }
+  .matter-back { font-size: 13px; color: var(--text-sec); cursor: pointer; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+  .matter-back:hover { color: var(--accent); }
+  .matter-name { font-family: 'Instrument Serif', serif; font-size: 28px; font-weight: 400; }
+  .matter-template { font-size: 13px; color: var(--text-sec); margin-top: 2px; }
+  .matter-actions { display: flex; gap: 8px; }
+  .action-btn {
+    padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 500;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    display: flex; align-items: center; gap: 5px; transition: all 0.15s;
+  }
+  .action-btn.outline { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+  .action-btn.outline:hover { border-color: var(--accent); color: var(--accent); }
+  .action-btn.primary { background: var(--success); border: 1px solid var(--success); color: white; }
+
+  .metrics-bar { display: flex; gap: 0; margin-top: 4px; }
+  .metric { flex: 1; padding: 12px 0; }
+  .metric-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--text-sec); font-weight: 600; margin-bottom: 6px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .metric-value { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 500; }
+  .metric-bar { height: 3px; background: var(--border-light); border-radius: 2px; margin-top: 6px; overflow: hidden; }
+  .metric-bar-fill { height: 100%; border-radius: 2px; }
+
+  /* ═══ BODY ═══ */
+  .matter-body { flex: 1; display: flex; overflow: hidden; }
+
+  /* Left: Doc cards */
+  .doc-panel {
+    width: 240px; min-width: 240px; background: var(--surface);
+    border-right: 1px solid var(--border); display: flex; flex-direction: column;
+  }
+  .doc-panel-header {
+    padding: 16px 16px 12px; display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border-light); flex-shrink: 0;
+  }
+  .doc-panel-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-sec); }
+  .doc-panel-upload { font-size: 12px; color: var(--accent); cursor: pointer; font-weight: 500; }
+  .doc-list { flex: 1; overflow-y: auto; }
+  .doc-card {
+    display: flex; align-items: center; gap: 10px; padding: 10px 16px;
+    border-bottom: 1px solid var(--border-light); cursor: pointer;
+    transition: all 0.15s; border-left: 3px solid transparent;
+  }
+  .doc-card:hover { background: var(--border-light); }
+  .doc-card.selected { background: var(--accent-light); border-left-color: var(--accent); }
+  .doc-card-icon { font-size: 16px; flex-shrink: 0; opacity: 0.6; }
+  .doc-card-info { flex: 1; min-width: 0; }
+  .doc-card-name { font-size: 13px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .doc-card-meta { font-size: 11px; color: var(--text-sec); margin-top: 1px; }
+  .doc-card-status { font-size: 14px; flex-shrink: 0; }
+
+  /* Center: Tabbed */
+  .center-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+  .tab-bar {
+    display: flex; border-bottom: 1px solid var(--border);
+    background: var(--surface); flex-shrink: 0; padding: 0 24px;
+  }
+  .tab {
+    padding: 14px 20px; font-size: 14px; color: var(--text-sec);
+    cursor: pointer; position: relative; display: flex; align-items: center; gap: 8px;
+    transition: color 0.15s; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--text); font-weight: 600; border-bottom-color: var(--accent); }
+  .tab-badge { font-size: 11px; padding: 1px 7px; border-radius: 10px; font-weight: 600; }
+  .tab-badge.neutral { background: var(--border-light); color: var(--text-sec); }
+  .tab-badge.danger { background: var(--danger); color: white; }
+
+  .tab-content { flex: 1; overflow-y: auto; padding: 24px; }
+  .tab-content.hidden { display: none; }
+
+  /* ═══ CARD GRID ═══ */
+  .card-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .data-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px;
+    cursor: pointer; transition: all 0.2s;
+    position: relative; overflow: hidden;
+  }
+  .data-card:hover {
+    border-color: var(--accent); box-shadow: 0 2px 12px rgba(37,99,235,0.08);
+    transform: translateY(-1px);
+  }
+  .data-card:active { transform: translateY(0); }
+
+  .data-card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .data-card-icon { font-size: 24px; }
+  .data-card-title { font-size: 15px; font-weight: 600; color: var(--text); }
+
+  .data-card-stats { display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px; }
+
+  .data-card-count {
+    font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-sec);
+  }
+
+  .data-card-metric {
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    font-weight: 600; margin-left: auto;
+  }
+
+  .data-card-bar {
+    height: 4px; background: var(--border-light); border-radius: 2px;
+    overflow: hidden; margin-top: 8px;
+  }
+  .data-card-bar-fill { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+
+  .data-card-alert {
+    position: absolute; top: 12px; right: 12px;
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    padding: 2px 8px; border-radius: 4px;
+  }
+
+  .data-card.empty {
+    opacity: 0.5; border-style: dashed;
+  }
+  .data-card.empty:hover { opacity: 0.7; transform: none; box-shadow: none; }
+
+  /* Card status colors */
+  .card-good .data-card-bar-fill { background: var(--success); }
+  .card-good .data-card-metric { color: var(--success); }
+
+  .card-mid .data-card-bar-fill { background: var(--warning); }
+  .card-mid .data-card-metric { color: var(--warning); }
+
+  .card-low .data-card-bar-fill { background: var(--danger); }
+  .card-low .data-card-metric { color: var(--danger); }
+
+  /* ═══ DRILL-DOWN VIEW ═══ */
+  .drill-down { display: none; }
+  .drill-down.active { display: block; }
+
+  .drill-back {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; color: var(--text-sec); cursor: pointer;
+    margin-bottom: 16px; padding: 4px 0;
+  }
+  .drill-back:hover { color: var(--accent); }
+
+  .drill-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+  }
+
+  .drill-title-row { display: flex; align-items: center; gap: 12px; }
+  .drill-icon { font-size: 28px; }
+  .drill-title { font-family: 'Instrument Serif', serif; font-size: 24px; font-weight: 400; }
+  .drill-count { font-family: 'JetBrains Mono', monospace; font-size: 14px; color: var(--text-sec); }
+
+  .drill-actions { display: flex; gap: 8px; }
+  .drill-btn {
+    padding: 7px 14px; border: 1px solid var(--border); background: var(--surface);
+    border-radius: 7px; font-size: 13px; font-weight: 500; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+    display: flex; align-items: center; gap: 5px;
+  }
+  .drill-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .drill-btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+  .drill-btn.primary:hover { background: var(--accent-hover); }
+
+  .sub-group { margin-bottom: 24px; }
+  .sub-group-label {
+    font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--text-sec); margin-bottom: 8px;
+    padding-bottom: 6px; border-bottom: 1px solid var(--border-light);
+  }
+
+  .field-row {
+    display: grid; grid-template-columns: 150px 1fr 72px 120px 56px;
+    align-items: center; padding: 9px 0; border-bottom: 1px solid var(--border-light);
+    font-size: 13px; gap: 10px;
+  }
+  .field-row:last-child { border-bottom: none; }
+
+  .field-label { color: var(--text-sec); font-weight: 500; }
+  .field-val { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text); }
+  .field-val.missing { color: var(--danger); font-family: 'DM Sans', sans-serif; font-style: italic; font-size: 13px; }
+
+  .confidence { display: flex; align-items: center; gap: 4px; font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-sec); }
+  .conf-dot { width: 7px; height: 7px; border-radius: 50%; }
+  .conf-dot.high { background: var(--success); }
+  .conf-dot.med { background: var(--warning); }
+  .conf-dot.miss { background: var(--danger); }
+
+  .source-link { font-size: 11px; color: var(--accent); cursor: pointer; }
+  .source-link:hover { text-decoration: underline; }
+
+  .field-btns { display: flex; gap: 3px; }
+  .fa-btn {
+    width: 24px; height: 24px; border: 1px solid var(--border); background: var(--surface);
+    border-radius: 5px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 12px; transition: all 0.15s;
+  }
+  .fa-btn.approve:hover { background: var(--success-light); border-color: var(--success); color: var(--success); }
+  .fa-btn.edit:hover { background: var(--warning-light); border-color: var(--warning); color: var(--warning); }
+  .fa-btn.approved { background: var(--success); border-color: var(--success); color: white; }
+
+  .missing-badge {
+    font-size: 10px; font-weight: 600; background: var(--danger); color: white;
+    padding: 2px 8px; border-radius: 4px; text-transform: uppercase;
+  }
+
+  /* ═══ TAB 2: NEEDS ═══ */
+  .need-section { margin-bottom: 24px; }
+  .need-section-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light);
+  }
+  .need-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .need-dot.blocking { background: var(--danger); }
+  .need-dot.expected { background: var(--warning); }
+  .need-section-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .need-section-count { font-size: 12px; color: var(--text-sec); }
+  .need-request-all { margin-left: auto; font-size: 12px; color: var(--accent); cursor: pointer; font-weight: 500; }
+  .need-item {
+    display: flex; align-items: center; padding: 10px 12px;
+    border-bottom: 1px solid var(--border-light); gap: 12px;
+  }
+  .need-item-info { flex: 1; }
+  .need-item-name { font-size: 14px; font-weight: 500; }
+  .need-item-cat { font-size: 12px; color: var(--text-sec); margin-top: 1px; }
+  .need-req-btn {
+    padding: 5px 12px; border: 1px solid var(--border); background: var(--surface);
+    border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer;
+    color: var(--text-sec); font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+  }
+  .need-req-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ═══ RIGHT PANEL: Doc Viewer ═══ */
+  .doc-viewer {
+    width: 384px; min-width: 384px; background: var(--surface);
+    border-left: 1px solid var(--border); display: flex; flex-direction: column;
+    overflow: hidden; transition: width 300ms ease-in-out, min-width 300ms ease-in-out, opacity 200ms ease;
+  }
+  .doc-viewer.hidden { width: 0; min-width: 0; opacity: 0; border: none; }
+  .doc-viewer-header {
+    padding: 16px 20px; border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0; display: flex; align-items: flex-start; justify-content: space-between;
+  }
+  .doc-viewer-title { font-size: 15px; font-weight: 600; }
+  .doc-viewer-meta { font-size: 12px; color: var(--text-sec); margin-top: 2px; }
+  .doc-viewer-close {
+    width: 28px; height: 28px; border: 1px solid var(--border); background: var(--surface);
+    border-radius: 6px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 14px; color: var(--text-sec); flex-shrink: 0;
+  }
+  .doc-viewer-close:hover { background: var(--border-light); color: var(--text); }
+  .doc-viewer-content { flex: 1; overflow-y: auto; padding: 16px 20px; }
+  .doc-text {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    line-height: 1.7; white-space: pre-wrap;
+  }
+  .doc-text .hl {
+    background: #FEF3C7; border-bottom: 2px solid var(--warning);
+    padding: 1px 2px; border-radius: 2px; cursor: pointer; position: relative;
+  }
+  .doc-text .hl:hover { background: #FDE68A; }
+  .doc-text .hl:hover::after {
+    content: attr(data-f); position: absolute; bottom: 100%; left: 0;
+    background: var(--text); color: white; font-size: 11px; padding: 3px 8px;
+    border-radius: 4px; white-space: nowrap; margin-bottom: 4px; font-family: 'DM Sans', sans-serif;
+  }
+  .ln { display: inline-block; width: 28px; color: #D1D5DB; user-select: none; font-size: 11px; text-align: right; margin-right: 12px; }
+  .doc-viewer-values { padding: 16px 20px; border-top: 1px solid var(--border-light); flex-shrink: 0; }
+  .doc-values-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-sec); margin-bottom: 10px; }
+  .dv-row { display: flex; align-items: center; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid var(--border-light); font-size: 12px; }
+  .dv-row:last-child { border-bottom: none; }
+  .dv-field { color: var(--text-sec); }
+  .dv-val { font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+  .dv-status { font-size: 11px; }
+  .dv-status.v { color: var(--success); }
+  .dv-status.u { color: var(--warning); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-brand-icon">CA</div>
+    <span class="sidebar-brand-text">Context Architecture</span>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Tools</div>
+    <div class="sidebar-item"><span class="sidebar-item-icon">⚡</span> FormFill</div>
+  </div>
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Clients</div>
+    <div class="sidebar-item active"><span class="sidebar-item-icon">🏢</span> Acme Consulting LLC</div>
+    <div class="sidebar-item"><span class="sidebar-item-icon">👤</span> Rodriguez, Maria</div>
+    <div class="sidebar-add"><span>＋</span> New Client</div>
+  </div>
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Templates</div>
+    <div class="sidebar-item"><span class="sidebar-item-icon">📄</span> Corporate Formation</div>
+    <div class="sidebar-item"><span class="sidebar-item-icon">📄</span> Business Tax Prep</div>
+    <div class="sidebar-add"><span>＋</span> New Template</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="matter-header">
+    <div class="matter-header-top">
+      <div>
+        <div class="matter-back">← Clients</div>
+        <div class="matter-name">Acme Consulting LLC</div>
+        <div class="matter-template">Business Tax Preparation</div>
+      </div>
+      <div class="matter-actions">
+        <button class="action-btn outline">↑ Upload</button>
+        <button class="action-btn outline">↗ Share</button>
+        <button class="action-btn primary">✦ Generate</button>
+        <button class="action-btn outline">↓ Export</button>
+      </div>
+    </div>
+    <div class="metrics-bar">
+      <div class="metric">
+        <div class="metric-label">Filing Readiness <span class="metric-value" style="color: var(--danger);">42%</span></div>
+        <div class="metric-bar"><div class="metric-bar-fill" style="width:42%; background:var(--danger);"></div></div>
+      </div>
+      <div class="metric" style="padding-left:24px;">
+        <div class="metric-label">Quality <span class="metric-value">0.89</span></div>
+        <div class="metric-bar"><div class="metric-bar-fill" style="width:89%; background:var(--success);"></div></div>
+      </div>
+      <div class="metric" style="padding-left:24px;">
+        <div class="metric-label">Completeness <span class="metric-value" style="color:var(--warning);">58%</span></div>
+        <div class="metric-bar"><div class="metric-bar-fill" style="width:58%; background:var(--warning);"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="matter-body">
+    <!-- LEFT: Docs -->
+    <div class="doc-panel">
+      <div class="doc-panel-header">
+        <span class="doc-panel-title">Documents (8)</span>
+        <span class="doc-panel-upload">+ Upload</span>
+      </div>
+      <div class="doc-list">
+        <div class="doc-card" onclick="selectDoc(this,'w9')"><span class="doc-card-icon">📄</span><div class="doc-card-info"><div class="doc-card-name">acme_w9_john_smith.txt</div><div class="doc-card-meta">W-9 · Feb 24</div></div><span class="doc-card-status" style="color:var(--success)">✓</span></div>
+        <div class="doc-card" onclick="selectDoc(this,'art')"><span class="doc-card-icon">📄</span><div class="doc-card-info"><div class="doc-card-name">acme_articles_of_incorp.txt</div><div class="doc-card-meta">Formation · Feb 24</div></div><span class="doc-card-status" style="color:var(--success)">✓</span></div>
+        <div class="doc-card" onclick="selectDoc(this,'ein')"><span class="doc-card-icon">📄</span><div class="doc-card-info"><div class="doc-card-name">acme_ein_letter.txt</div><div class="doc-card-meta">EIN · Feb 24</div></div><span class="doc-card-status" style="color:var(--success)">✓</span></div>
+        <div class="doc-card" onclick="selectDoc(this,'pl')"><span class="doc-card-icon">📄</span><div class="doc-card-info"><div class="doc-card-name">acme_profit_and_loss.txt</div><div class="doc-card-meta">P&L · Feb 24</div></div><span class="doc-card-status" style="color:var(--success)">✓</span></div>
+        <div class="doc-card" onclick="selectDoc(this,'bs')"><span class="doc-card-icon">📄</span><div class="doc-card-info"><div class="doc-card-name">acme_balance_sheet.txt</div><div class="doc-card-meta">Balance Sheet · Feb 24</div></div><span class="doc-card-status" style="color:var(--success)">✓</span></div>
+        <div class="doc-card" onclick="selectDoc(this,'1099')"><span class="doc-card-icon">📄</span><div class="doc-card-info"><div class="doc-card-name">acme_1099_contractor.txt</div><div class="doc-card-meta">1099-NEC · Feb 24</div></div><span class="doc-card-status" style="color:var(--success)">✓</span></div>
+        <div class="doc-card" onclick="selectDoc(this,'op')"><span class="doc-card-icon">📄</span><div class="doc-card-info"><div class="doc-card-name">acme_operating_agree.txt</div><div class="doc-card-meta">Operating · Feb 24</div></div><span class="doc-card-status" style="color:var(--success)">✓</span></div>
+        <div class="doc-card" onclick="selectDoc(this,'pay')"><span class="doc-card-icon">📄</span><div class="doc-card-info"><div class="doc-card-name">acme_payroll_q4.txt</div><div class="doc-card-meta">Payroll · Feb 24</div></div><span class="doc-card-status" style="color:var(--success)">✓</span></div>
+      </div>
+    </div>
+
+    <!-- CENTER -->
+    <div class="center-panel">
+      <div class="tab-bar">
+        <div class="tab active" id="tab-know" onclick="switchTab('know')">What We Know <span class="tab-badge neutral">6</span></div>
+        <div class="tab" id="tab-need" onclick="switchTab('need')">What We Still Need <span class="tab-badge danger">12</span></div>
+      </div>
+
+      <!-- TAB 1: CARD GRID -->
+      <div class="tab-content" id="content-know">
+        <div id="cardGrid" class="card-grid">
+          <div class="data-card card-mid" onclick="drillInto('identity')">
+            <div class="data-card-header">
+              <span class="data-card-icon">🪪</span>
+              <span class="data-card-title">Identity & Entity</span>
+            </div>
+            <div class="data-card-stats">
+              <span class="data-card-count">14 of 22 fields</span>
+              <span class="data-card-metric">64%</span>
+            </div>
+            <div class="data-card-bar"><div class="data-card-bar-fill" style="width:64%"></div></div>
+          </div>
+
+          <div class="data-card card-mid" onclick="drillInto('income')">
+            <div class="data-card-header">
+              <span class="data-card-icon">💰</span>
+              <span class="data-card-title">Income & Revenue</span>
+            </div>
+            <div class="data-card-stats">
+              <span class="data-card-count">8 of 12 fields</span>
+              <span class="data-card-metric">$247,500</span>
+            </div>
+            <div class="data-card-bar"><div class="data-card-bar-fill" style="width:67%"></div></div>
+          </div>
+
+          <div class="data-card card-low" onclick="drillInto('expenses')">
+            <div class="data-card-header">
+              <span class="data-card-icon">📉</span>
+              <span class="data-card-title">Expenses & Deductions</span>
+            </div>
+            <div class="data-card-stats">
+              <span class="data-card-count">6 of 15 fields</span>
+              <span class="data-card-metric">$89,200</span>
+            </div>
+            <div class="data-card-bar"><div class="data-card-bar-fill" style="width:40%"></div></div>
+            <span class="data-card-alert" style="background:var(--warning-light);color:var(--warning);">Receipts needed</span>
+          </div>
+
+          <div class="data-card card-low" onclick="drillInto('employment')">
+            <div class="data-card-header">
+              <span class="data-card-icon">👥</span>
+              <span class="data-card-title">Employment & Payroll</span>
+            </div>
+            <div class="data-card-stats">
+              <span class="data-card-count">4 of 10 fields</span>
+              <span class="data-card-metric">3 employees</span>
+            </div>
+            <div class="data-card-bar"><div class="data-card-bar-fill" style="width:40%"></div></div>
+          </div>
+
+          <div class="data-card card-low">
+            <div class="data-card-header">
+              <span class="data-card-icon">🏦</span>
+              <span class="data-card-title">Assets & Liabilities</span>
+            </div>
+            <div class="data-card-stats">
+              <span class="data-card-count">3 of 10 fields</span>
+              <span class="data-card-metric">$145K net</span>
+            </div>
+            <div class="data-card-bar"><div class="data-card-bar-fill" style="width:30%"></div></div>
+          </div>
+
+          <div class="data-card card-low">
+            <div class="data-card-header">
+              <span class="data-card-icon">📋</span>
+              <span class="data-card-title">Compliance & Filings</span>
+            </div>
+            <div class="data-card-stats">
+              <span class="data-card-count">2 of 10 items</span>
+              <span class="data-card-metric" style="color:var(--danger)">2 overdue</span>
+            </div>
+            <div class="data-card-bar"><div class="data-card-bar-fill" style="width:20%"></div></div>
+            <span class="data-card-alert" style="background:var(--danger-light);color:var(--danger);">2 overdue</span>
+          </div>
+        </div>
+
+        <!-- DRILL-DOWN: Identity -->
+        <div class="drill-down" id="drill-identity">
+          <div class="drill-back" onclick="backToGrid()">← Back to Overview</div>
+          <div class="drill-header">
+            <div>
+              <div class="drill-title-row">
+                <span class="drill-icon">🪪</span>
+                <span class="drill-title">Identity & Entity</span>
+              </div>
+              <span class="drill-count">14 of 22 fields extracted</span>
+            </div>
+            <div class="drill-actions">
+              <button class="drill-btn">↓ Export Category</button>
+              <button class="drill-btn primary">✓ Approve 8 Verified</button>
+            </div>
+          </div>
+
+          <div class="sub-group">
+            <div class="sub-group-label">Individual — John R. Smith</div>
+            <div class="field-row">
+              <span class="field-label">Full Name</span>
+              <div><span class="field-val">John R. Smith</span><br><span class="source-link" onclick="selectDoc(document.querySelector('[onclick*=w9]'),'w9')">← W-9 line 1</span></div>
+              <span class="confidence"><span class="conf-dot high"></span> 0.97</span>
+              <span></span>
+              <span class="field-btns"><button class="fa-btn approve approved">✓</button><button class="fa-btn edit">✎</button></span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">SSN</span>
+              <div><span class="field-val">***-**-4567</span><br><span class="source-link">← W-9 line 6</span></div>
+              <span class="confidence"><span class="conf-dot high"></span> 0.95</span>
+              <span></span>
+              <span class="field-btns"><button class="fa-btn approve">✓</button><button class="fa-btn edit">✎</button></span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Address</span>
+              <div><span class="field-val">123 Peachtree St NE, Atlanta GA 30309</span><br><span class="source-link">← W-9 line 2</span></div>
+              <span class="confidence"><span class="conf-dot high"></span> 0.93</span>
+              <span></span>
+              <span class="field-btns"><button class="fa-btn approve">✓</button><button class="fa-btn edit">✎</button></span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">DOB</span>
+              <div><span class="field-val missing">— Missing</span></div>
+              <span class="confidence"><span class="conf-dot miss"></span></span>
+              <span><span class="missing-badge">Missing</span></span>
+              <span></span>
+            </div>
+          </div>
+
+          <div class="sub-group">
+            <div class="sub-group-label">Business — Acme Consulting LLC</div>
+            <div class="field-row">
+              <span class="field-label">Legal Name</span>
+              <div><span class="field-val">Acme Consulting LLC</span><br><span class="source-link">← Articles of Incorp.</span></div>
+              <span class="confidence"><span class="conf-dot high"></span> 0.99</span>
+              <span></span>
+              <span class="field-btns"><button class="fa-btn approve approved">✓</button><button class="fa-btn edit">✎</button></span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">EIN</span>
+              <div><span class="field-val">47-1234567</span><br><span class="source-link">← EIN Letter</span></div>
+              <span class="confidence"><span class="conf-dot high"></span> 0.98</span>
+              <span></span>
+              <span class="field-btns"><button class="fa-btn approve">✓</button><button class="fa-btn edit">✎</button></span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">State of Formation</span>
+              <div><span class="field-val">Georgia</span><br><span class="source-link">← Articles of Incorp.</span></div>
+              <span class="confidence"><span class="conf-dot high"></span> 0.96</span>
+              <span></span>
+              <span class="field-btns"><button class="fa-btn approve">✓</button><button class="fa-btn edit">✎</button></span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Formation Date</span>
+              <div><span class="field-val">March 12, 2019</span><br><span class="source-link">← Articles of Incorp.</span></div>
+              <span class="confidence"><span class="conf-dot high"></span> 0.94</span>
+              <span></span>
+              <span class="field-btns"><button class="fa-btn approve">✓</button><button class="fa-btn edit">✎</button></span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Entity Type</span>
+              <div><span class="field-val">LLC (S-Corp election)</span><br><span class="source-link">← Operating Agreement + 2553</span></div>
+              <span class="confidence"><span class="conf-dot med"></span> 0.82</span>
+              <span></span>
+              <span class="field-btns"><button class="fa-btn approve">✓</button><button class="fa-btn edit">✎</button></span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Tax Classification</span>
+              <div><span class="field-val missing">— Missing</span></div>
+              <span class="confidence"><span class="conf-dot miss"></span></span>
+              <span><span class="missing-badge">Missing</span></span>
+              <span></span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Registered Agent</span>
+              <div><span class="field-val missing">— Missing</span></div>
+              <span class="confidence"><span class="conf-dot miss"></span></span>
+              <span><span class="missing-badge">Missing</span></span>
+              <span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- DRILL-DOWN: Income -->
+        <div class="drill-down" id="drill-income">
+          <div class="drill-back" onclick="backToGrid()">← Back to Overview</div>
+          <div class="drill-header">
+            <div>
+              <div class="drill-title-row">
+                <span class="drill-icon">💰</span>
+                <span class="drill-title">Income & Revenue</span>
+              </div>
+              <span class="drill-count">8 of 12 fields extracted · $247,500 gross</span>
+            </div>
+            <div class="drill-actions">
+              <button class="drill-btn">↓ Export Category</button>
+              <button class="drill-btn primary">✓ Approve 6 Verified</button>
+            </div>
+          </div>
+
+          <div class="sub-group">
+            <div class="sub-group-label">Gross Revenue</div>
+            <div class="field-row">
+              <span class="field-label">Total Revenue</span>
+              <div><span class="field-val">$247,500.00</span><br><span class="source-link">← P&L line 1</span></div>
+              <span class="confidence"><span class="conf-dot high"></span> 0.96</span>
+              <span></span>
+              <span class="field-btns"><button class="fa-btn approve approved">✓</button><button class="fa-btn edit">✎</button></span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Consulting Income</span>
+              <div><span class="field-val">$195,000.00</span><br><span class="source-link">← P&L line 3</span></div>
+              <span class="confidence"><span class="conf-dot high"></span> 0.94</span>
+              <span></span>
+              <span class="field-btns"><button class="fa-btn approve">✓</button><button class="fa-btn edit">✎</button></span>
+            </div>
+          </div>
+
+          <div class="sub-group">
+            <div class="sub-group-label">1099 Income</div>
+            <div class="field-row">
+              <span class="field-label">1099-NEC Total</span>
+              <div><span class="field-val">$45,000.00</span><br><span class="source-link">← 1099-NEC contractor</span></div>
+              <span class="confidence"><span class="conf-dot high"></span> 0.98</span>
+              <span></span>
+              <span class="field-btns"><button class="fa-btn approve">✓</button><button class="fa-btn edit">✎</button></span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">1099-INT</span>
+              <div><span class="field-val">$2,340.00</span><br><span class="source-link">← Bank statements</span></div>
+              <span class="confidence"><span class="conf-dot med"></span> 0.78</span>
+              <span></span>
+              <span class="field-btns"><button class="fa-btn approve">✓</button><button class="fa-btn edit">✎</button></span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">K-1 Income</span>
+              <div><span class="field-val missing">— Missing</span></div>
+              <span class="confidence"><span class="conf-dot miss"></span></span>
+              <span><span class="missing-badge">Missing</span></span>
+              <span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- DRILL-DOWN: Expenses -->
+        <div class="drill-down" id="drill-expenses">
+          <div class="drill-back" onclick="backToGrid()">← Back to Overview</div>
+          <div class="drill-header">
+            <div>
+              <div class="drill-title-row">
+                <span class="drill-icon">📉</span>
+                <span class="drill-title">Expenses & Deductions</span>
+              </div>
+              <span class="drill-count">6 of 15 fields · $89,200 claimed</span>
+            </div>
+            <div class="drill-actions">
+              <button class="drill-btn">↓ Export Category</button>
+              <button class="drill-btn primary">✓ Approve 4 Verified</button>
+            </div>
+          </div>
+          <div class="sub-group">
+            <div class="sub-group-label">Operating Expenses</div>
+            <div class="field-row">
+              <span class="field-label">Total COGS</span>
+              <div><span class="field-val">$32,100.00</span><br><span class="source-link">← P&L line 8</span></div>
+              <span class="confidence"><span class="conf-dot high"></span> 0.92</span>
+              <span></span>
+              <span class="field-btns"><button class="fa-btn approve">✓</button><button class="fa-btn edit">✎</button></span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Office Rent</span>
+              <div><span class="field-val">$24,000.00</span><br><span class="source-link">← P&L line 12</span></div>
+              <span class="confidence"><span class="conf-dot high"></span> 0.95</span>
+              <span></span>
+              <span class="field-btns"><button class="fa-btn approve">✓</button><button class="fa-btn edit">✎</button></span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Meals & Travel</span>
+              <div><span class="field-val missing">— Missing (receipts needed)</span></div>
+              <span class="confidence"><span class="conf-dot miss"></span></span>
+              <span><span class="missing-badge">Missing</span></span>
+              <span></span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Vehicle / Mileage</span>
+              <div><span class="field-val missing">— Missing (mileage log needed)</span></div>
+              <span class="confidence"><span class="conf-dot miss"></span></span>
+              <span><span class="missing-badge">Missing</span></span>
+              <span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- DRILL-DOWN: Employment -->
+        <div class="drill-down" id="drill-employment">
+          <div class="drill-back" onclick="backToGrid()">← Back to Overview</div>
+          <div class="drill-header">
+            <div>
+              <div class="drill-title-row">
+                <span class="drill-icon">👥</span>
+                <span class="drill-title">Employment & Payroll</span>
+              </div>
+              <span class="drill-count">4 of 10 fields · 3 employees</span>
+            </div>
+            <div class="drill-actions">
+              <button class="drill-btn">↓ Export Category</button>
+              <button class="drill-btn primary">✓ Approve 3 Verified</button>
+            </div>
+          </div>
+          <div class="sub-group">
+            <div class="sub-group-label">Payroll Summary — Q4 2025</div>
+            <div class="field-row">
+              <span class="field-label">Total Wages Paid</span>
+              <div><span class="field-val">$142,500.00</span><br><span class="source-link">← Payroll Q4</span></div>
+              <span class="confidence"><span class="conf-dot high"></span> 0.96</span>
+              <span></span>
+              <span class="field-btns"><button class="fa-btn approve">✓</button><button class="fa-btn edit">✎</button></span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Federal Tax Withheld</span>
+              <div><span class="field-val">$28,500.00</span><br><span class="source-link">← Payroll Q4</span></div>
+              <span class="confidence"><span class="conf-dot high"></span> 0.94</span>
+              <span></span>
+              <span class="field-btns"><button class="fa-btn approve">✓</button><button class="fa-btn edit">✎</button></span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Employee Count</span>
+              <div><span class="field-val">3</span><br><span class="source-link">← Payroll Q4</span></div>
+              <span class="confidence"><span class="conf-dot high"></span> 0.99</span>
+              <span></span>
+              <span class="field-btns"><button class="fa-btn approve approved">✓</button><button class="fa-btn edit">✎</button></span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Contractor Payments</span>
+              <div><span class="field-val">$45,000.00</span><br><span class="source-link">← 1099-NEC</span></div>
+              <span class="confidence"><span class="conf-dot high"></span> 0.98</span>
+              <span></span>
+              <span class="field-btns"><button class="fa-btn approve">✓</button><button class="fa-btn edit">✎</button></span>
+            </div>
+            <div class="field-row">
+              <span class="field-label">Health Insurance</span>
+              <div><span class="field-val missing">— Missing</span></div>
+              <span class="confidence"><span class="conf-dot miss"></span></span>
+              <span><span class="missing-badge">Missing</span></span>
+              <span></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: What We Still Need -->
+      <div class="tab-content hidden" id="content-need">
+        <div class="need-section">
+          <div class="need-section-header">
+            <span class="need-dot blocking"></span>
+            <span class="need-section-title">Blocking</span>
+            <span class="need-section-count">(5)</span>
+            <span class="need-request-all">Request All</span>
+          </div>
+          <div class="need-item"><div class="need-item-info"><div class="need-item-name">Government ID</div><div class="need-item-cat">Identity · Identification</div></div><button class="need-req-btn">Request</button></div>
+          <div class="need-item"><div class="need-item-info"><div class="need-item-name">SSN Card</div><div class="need-item-cat">Identity · Identification</div></div><button class="need-req-btn">Request</button></div>
+          <div class="need-item"><div class="need-item-info"><div class="need-item-name">Mileage Log</div><div class="need-item-cat">Expenses · Deductions</div></div><button class="need-req-btn">Request</button></div>
+          <div class="need-item"><div class="need-item-info"><div class="need-item-name">Receipts (Meals & Travel)</div><div class="need-item-cat">Expenses · Deductions</div></div><button class="need-req-btn">Request</button></div>
+          <div class="need-item"><div class="need-item-info"><div class="need-item-name">K-1 from Partnership</div><div class="need-item-cat">Income · Revenue</div></div><button class="need-req-btn">Request</button></div>
+        </div>
+        <div class="need-section">
+          <div class="need-section-header">
+            <span class="need-dot expected"></span>
+            <span class="need-section-title">Expected</span>
+            <span class="need-section-count">(7)</span>
+            <span class="need-request-all">Request All</span>
+          </div>
+          <div class="need-item"><div class="need-item-info"><div class="need-item-name">Health Insurance Premiums</div><div class="need-item-cat">Employment · Benefits</div></div><button class="need-req-btn">Request</button></div>
+          <div class="need-item"><div class="need-item-info"><div class="need-item-name">Retirement Contributions</div><div class="need-item-cat">Employment · Benefits</div></div><button class="need-req-btn">Request</button></div>
+          <div class="need-item"><div class="need-item-info"><div class="need-item-name">Business License</div><div class="need-item-cat">Compliance · Regulatory</div></div><button class="need-req-btn">Request</button></div>
+          <div class="need-item"><div class="need-item-info"><div class="need-item-name">Annual Report (State)</div><div class="need-item-cat">Compliance · Filing</div></div><button class="need-req-btn">Request</button></div>
+          <div class="need-item"><div class="need-item-info"><div class="need-item-name">Depreciation Schedule</div><div class="need-item-cat">Expenses · Assets</div></div><button class="need-req-btn">Request</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Doc Viewer -->
+    <div class="doc-viewer hidden" id="docViewer">
+      <div class="doc-viewer-header">
+        <div>
+          <div class="doc-viewer-title" id="vTitle">acme_w9_john_smith.txt</div>
+          <div class="doc-viewer-meta" id="vMeta">W-9 Form · Uploaded Feb 24</div>
+        </div>
+        <button class="doc-viewer-close" onclick="closeViewer()">✕</button>
+      </div>
+      <div class="doc-viewer-content">
+        <div class="doc-text" id="vText">
+<span class="ln"> 1</span>Form W-9 (Rev. October 2018)
+<span class="ln"> 2</span>Request for Taxpayer Identification Number
+<span class="ln"> 3</span>
+<span class="ln"> 4</span>Name: <span class="hl" data-f="→ Full Name">John R. Smith</span>
+<span class="ln"> 5</span>Business: <span class="hl" data-f="→ Business Name">Acme Consulting LLC</span>
+<span class="ln"> 6</span>
+<span class="ln"> 7</span>Check appropriate box:
+<span class="ln"> 8</span>  [X] Limited liability company - S
+<span class="ln"> 9</span>
+<span class="ln">10</span>Address: <span class="hl" data-f="→ Address">123 Peachtree St NE</span>
+<span class="ln">11</span>City: <span class="hl" data-f="→ City/State">Atlanta, GA 30309</span>
+<span class="ln">12</span>
+<span class="ln">13</span>TIN: <span class="hl" data-f="→ SSN">***-**-4567</span>
+<span class="ln">14</span>EIN: <span class="hl" data-f="→ EIN">47-1234567</span>
+<span class="ln">15</span>
+<span class="ln">16</span>Certification:
+<span class="ln">17</span>Signed: John R. Smith
+<span class="ln">18</span>Date: <span class="hl" data-f="→ Signature Date">February 24, 2024</span>
+        </div>
+      </div>
+      <div class="doc-viewer-values">
+        <div class="doc-values-title">Values from this document (6)</div>
+        <div class="dv-row"><span class="dv-field">Full Name</span><span class="dv-val">John R. Smith</span><span class="dv-status v">✓ Verified</span></div>
+        <div class="dv-row"><span class="dv-field">Business Name</span><span class="dv-val">Acme Consulting LLC</span><span class="dv-status v">✓ Verified</span></div>
+        <div class="dv-row"><span class="dv-field">Address</span><span class="dv-val">123 Peachtree St NE</span><span class="dv-status u">● Unreviewed</span></div>
+        <div class="dv-row"><span class="dv-field">SSN</span><span class="dv-val">***-**-4567</span><span class="dv-status u">● Unreviewed</span></div>
+        <div class="dv-row"><span class="dv-field">EIN</span><span class="dv-val">47-1234567</span><span class="dv-status u">● Unreviewed</span></div>
+        <div class="dv-row"><span class="dv-field">Signature Date</span><span class="dv-val">Feb 24, 2024</span><span class="dv-status u">● Unreviewed</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let selectedDocEl = null;
+
+  function selectDoc(el, id) {
+    const viewer = document.getElementById('docViewer');
+    if (selectedDocEl === el) { closeViewer(); return; }
+    if (selectedDocEl) selectedDocEl.classList.remove('selected');
+    selectedDocEl = el;
+    el.classList.add('selected');
+    viewer.classList.remove('hidden');
+  }
+
+  function closeViewer() {
+    if (selectedDocEl) selectedDocEl.classList.remove('selected');
+    selectedDocEl = null;
+    document.getElementById('docViewer').classList.add('hidden');
+  }
+
+  function switchTab(t) {
+    document.getElementById('tab-know').classList.toggle('active', t === 'know');
+    document.getElementById('tab-need').classList.toggle('active', t === 'need');
+    document.getElementById('content-know').classList.toggle('hidden', t !== 'know');
+    document.getElementById('content-need').classList.toggle('hidden', t !== 'need');
+  }
+
+  function drillInto(cat) {
+    document.getElementById('cardGrid').style.display = 'none';
+    document.querySelectorAll('.drill-down').forEach(d => d.classList.remove('active'));
+    const drill = document.getElementById('drill-' + cat);
+    if (drill) drill.classList.add('active');
+  }
+
+  function backToGrid() {
+    document.getElementById('cardGrid').style.display = 'grid';
+    document.querySelectorAll('.drill-down').forEach(d => d.classList.remove('active'));
+  }
+</script>
+
+</body>
+</html>

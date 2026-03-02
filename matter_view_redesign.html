@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context Architecture — Matter View Redesign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAFAF9;
+    --surface: #FFFFFF;
+    --text: #1A1A1A;
+    --text-secondary: #6B7280;
+    --accent: #2563EB;
+    --accent-light: #EFF6FF;
+    --accent-hover: #1D4ED8;
+    --success: #059669;
+    --success-light: #ECFDF5;
+    --warning: #D97706;
+    --warning-light: #FFFBEB;
+    --danger: #DC2626;
+    --danger-light: #FEF2F2;
+    --border: #E5E7EB;
+    --border-light: #F3F4F6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+  }
+
+  /* ═══ SIDEBAR ═══ */
+  .sidebar {
+    width: 248px;
+    height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+
+  .sidebar-brand {
+    padding: 20px 20px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .sidebar-brand-icon {
+    width: 32px; height: 32px;
+    background: var(--accent);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 13px;
+  }
+
+  .sidebar-brand-text {
+    font-family: 'Instrument Serif', serif;
+    font-size: 16px;
+  }
+
+  .sidebar-section { padding: 16px 12px 8px; }
+
+  .sidebar-section-label {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--text-secondary);
+    padding: 0 8px; margin-bottom: 4px;
+  }
+
+  .sidebar-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; border-radius: 6px;
+    font-size: 14px; color: var(--text-secondary);
+    cursor: pointer; transition: all 0.15s;
+  }
+
+  .sidebar-item:hover { background: var(--border-light); color: var(--text); }
+  .sidebar-item.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+
+  .sidebar-item-icon { width: 18px; font-size: 14px; opacity: 0.7; }
+
+  .sidebar-item-badges { margin-left: auto; display: flex; gap: 4px; align-items: center; }
+
+  .sidebar-badge {
+    font-size: 11px; padding: 1px 6px; border-radius: 4px;
+    font-weight: 600;
+  }
+
+  .sidebar-badge.count { background: var(--border-light); color: var(--text-secondary); }
+  .sidebar-badge.alert { background: var(--danger); color: white; width: 8px; height: 8px; padding: 0; border-radius: 50%; }
+
+  .sidebar-add {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 12px; font-size: 13px; color: var(--accent);
+    cursor: pointer; border-radius: 6px;
+  }
+  .sidebar-add:hover { background: var(--accent-light); }
+
+  .sidebar-divider { height: 1px; background: var(--border-light); margin: 4px 12px; }
+
+  /* ═══ MAIN ═══ */
+  .main {
+    flex: 1; display: flex; flex-direction: column;
+    overflow: hidden; min-width: 0;
+  }
+
+  /* ═══ MATTER HEADER ═══ */
+  .matter-header {
+    padding: 20px 32px 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .matter-header-top {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .matter-back {
+    font-size: 13px; color: var(--text-secondary); cursor: pointer;
+    margin-bottom: 4px; display: flex; align-items: center; gap: 4px;
+  }
+  .matter-back:hover { color: var(--accent); }
+
+  .matter-name {
+    font-family: 'Instrument Serif', serif;
+    font-size: 28px; font-weight: 400; line-height: 1.2;
+  }
+
+  .matter-template {
+    font-size: 13px; color: var(--text-secondary); margin-top: 2px;
+  }
+
+  .matter-actions { display: flex; gap: 8px; }
+
+  .matter-action-btn {
+    padding: 8px 14px; border-radius: 8px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    display: flex; align-items: center; gap: 5px;
+    transition: all 0.15s;
+  }
+
+  .matter-action-btn.outline {
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+  }
+  .matter-action-btn.outline:hover { border-color: var(--accent); color: var(--accent); }
+
+  .matter-action-btn.primary {
+    background: var(--success); border: 1px solid var(--success); color: white;
+  }
+  .matter-action-btn.primary:hover { background: #047857; }
+
+  /* Metrics bar */
+  .metrics-bar {
+    display: flex; gap: 0; margin-top: 4px;
+  }
+
+  .metric {
+    flex: 1; padding: 12px 0;
+  }
+
+  .metric-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--text-secondary); font-weight: 600; margin-bottom: 6px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .metric-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px; font-weight: 500;
+  }
+
+  .metric-bar {
+    height: 3px; background: var(--border-light); border-radius: 2px;
+    margin-top: 6px; overflow: hidden;
+  }
+
+  .metric-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+  .metric-bar-fill.danger { background: var(--danger); }
+  .metric-bar-fill.warning { background: var(--warning); }
+  .metric-bar-fill.success { background: var(--success); }
+
+  /* ═══ BODY: 2-3 PANEL LAYOUT ═══ */
+  .matter-body {
+    flex: 1; display: flex; overflow: hidden;
+  }
+
+  /* ═══ LEFT: DOCUMENT CARDS ═══ */
+  .doc-panel {
+    width: 240px; min-width: 240px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+
+  .doc-panel-header {
+    padding: 16px 16px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+
+  .doc-panel-title {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--text-secondary);
+  }
+
+  .doc-panel-upload {
+    font-size: 12px; color: var(--accent); cursor: pointer;
+    font-weight: 500;
+  }
+  .doc-panel-upload:hover { text-decoration: underline; }
+
+  .doc-list {
+    flex: 1; overflow-y: auto;
+  }
+
+  .doc-card {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-light);
+    cursor: pointer; transition: all 0.15s;
+    border-left: 3px solid transparent;
+    position: relative;
+  }
+
+  .doc-card:hover { background: var(--border-light); }
+
+  .doc-card.selected {
+    background: var(--accent-light);
+    border-left-color: var(--accent);
+  }
+
+  .doc-card-icon { font-size: 16px; flex-shrink: 0; opacity: 0.6; }
+
+  .doc-card-info { flex: 1; min-width: 0; }
+
+  .doc-card-name {
+    font-size: 13px; font-weight: 500; color: var(--text);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .doc-card-meta { font-size: 11px; color: var(--text-secondary); margin-top: 1px; }
+
+  .doc-card-status { font-size: 14px; flex-shrink: 0; }
+
+  .doc-card-new {
+    position: absolute; top: 6px; right: 12px;
+    font-size: 9px; font-weight: 700; text-transform: uppercase;
+    background: var(--accent); color: white;
+    padding: 1px 5px; border-radius: 3px; letter-spacing: 0.04em;
+  }
+
+  .doc-panel-footer {
+    padding: 12px 16px;
+    border-top: 1px dashed var(--border);
+    flex-shrink: 0;
+  }
+
+  .doc-upload-btn {
+    width: 100%; padding: 8px; text-align: center;
+    font-size: 13px; color: var(--accent);
+    cursor: pointer; border-radius: 6px;
+    transition: background 0.15s;
+  }
+  .doc-upload-btn:hover { background: var(--accent-light); }
+
+  /* ═══ CENTER: TABBED CONTENT ═══ */
+  .center-panel {
+    flex: 1; display: flex; flex-direction: column;
+    overflow: hidden; min-width: 0;
+  }
+
+  .tab-bar {
+    display: flex; border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+    padding: 0 24px;
+  }
+
+  .tab {
+    padding: 14px 20px;
+    font-size: 14px; color: var(--text-secondary);
+    cursor: pointer; position: relative;
+    display: flex; align-items: center; gap: 8px;
+    transition: color 0.15s;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+  }
+
+  .tab:hover { color: var(--text); }
+
+  .tab.active {
+    color: var(--text); font-weight: 600;
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-badge {
+    font-size: 11px; padding: 1px 7px; border-radius: 10px;
+    font-weight: 600;
+  }
+
+  .tab-badge.neutral { background: var(--border-light); color: var(--text-secondary); }
+  .tab-badge.danger { background: var(--danger); color: white; }
+
+  .tab-content {
+    flex: 1; overflow-y: auto; padding: 20px 24px;
+  }
+
+  .tab-content.hidden { display: none; }
+
+  /* Tab 1: Extracted Data */
+  .state-banner {
+    padding: 12px 16px; border-radius: 8px;
+    font-size: 14px; margin-bottom: 20px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .state-banner.in-progress {
+    background: var(--accent-light); color: var(--accent); border: 1px solid #BFDBFE;
+  }
+
+  .state-banner-actions { display: flex; gap: 8px; }
+
+  .state-banner-btn {
+    padding: 6px 14px; border-radius: 6px;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    font-family: 'DM Sans', sans-serif; border: none;
+  }
+
+  .state-banner-btn.primary { background: var(--accent); color: white; }
+  .state-banner-btn.secondary { background: white; color: var(--accent); border: 1px solid #BFDBFE; }
+
+  .entity-group { margin-bottom: 24px; }
+
+  .entity-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 10px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .entity-icon { font-size: 16px; }
+
+  .entity-name {
+    font-size: 15px; font-weight: 600; color: var(--text);
+  }
+
+  .entity-role {
+    font-size: 12px; color: var(--text-secondary);
+    background: var(--border-light); padding: 2px 8px; border-radius: 4px;
+  }
+
+  .field-row {
+    display: grid;
+    grid-template-columns: 160px 1fr 70px 52px;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 13px;
+    gap: 12px;
+  }
+
+  .field-row:last-child { border-bottom: none; }
+
+  .field-label { color: var(--text-secondary); font-weight: 500; }
+
+  .field-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; color: var(--text);
+  }
+
+  .field-val.missing { color: var(--danger); font-family: 'DM Sans', sans-serif; font-style: italic; }
+
+  .confidence {
+    display: flex; align-items: center; gap: 4px;
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .conf-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+  }
+  .conf-dot.high { background: var(--success); }
+  .conf-dot.med { background: var(--warning); }
+  .conf-dot.missing { background: var(--danger); }
+
+  .field-actions-inline { display: flex; gap: 3px; }
+
+  .fa-btn {
+    width: 24px; height: 24px;
+    border: 1px solid var(--border); background: var(--surface);
+    border-radius: 5px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 12px; transition: all 0.15s;
+  }
+
+  .fa-btn.approve:hover { background: var(--success-light); border-color: var(--success); color: var(--success); }
+  .fa-btn.edit:hover { background: var(--warning-light); border-color: var(--warning); color: var(--warning); }
+  .fa-btn.approved { background: var(--success); border-color: var(--success); color: white; }
+
+  .source-link {
+    font-size: 11px; color: var(--accent); cursor: pointer;
+    margin-top: 2px; display: inline-block;
+  }
+  .source-link:hover { text-decoration: underline; }
+
+  .missing-badge {
+    font-size: 10px; font-weight: 600;
+    background: var(--danger); color: white;
+    padding: 2px 8px; border-radius: 4px;
+    text-transform: uppercase;
+  }
+
+  /* Tab 2: What We Still Need */
+  .need-section { margin-bottom: 24px; }
+
+  .need-section-header {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 12px; padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .need-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+  .need-dot.blocking { background: var(--danger); }
+  .need-dot.expected { background: var(--warning); }
+  .need-dot.enriching { background: var(--text-secondary); }
+
+  .need-section-title {
+    font-size: 13px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .need-section-count {
+    font-size: 12px; color: var(--text-secondary);
+  }
+
+  .need-section-request-all {
+    margin-left: auto; font-size: 12px;
+    color: var(--accent); cursor: pointer; font-weight: 500;
+  }
+  .need-section-request-all:hover { text-decoration: underline; }
+
+  .need-item {
+    display: flex; align-items: center;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-light);
+    gap: 12px;
+  }
+
+  .need-item-info { flex: 1; }
+
+  .need-item-name { font-size: 14px; font-weight: 500; color: var(--text); }
+  .need-item-cat { font-size: 12px; color: var(--text-secondary); margin-top: 1px; }
+
+  .need-request-btn {
+    padding: 5px 12px; border: 1px solid var(--border);
+    background: var(--surface); border-radius: 6px;
+    font-size: 12px; font-weight: 500; cursor: pointer;
+    color: var(--text-secondary); font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .need-request-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .need-show-more {
+    padding: 8px 12px; font-size: 13px;
+    color: var(--accent); cursor: pointer; font-weight: 500;
+  }
+
+  /* ═══ RIGHT: DOCUMENT VIEWER (slide-out) ═══ */
+  .doc-viewer {
+    width: 384px; min-width: 384px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    transition: width 300ms ease-in-out, min-width 300ms ease-in-out, opacity 200ms ease;
+  }
+
+  .doc-viewer.hidden {
+    width: 0; min-width: 0; opacity: 0;
+    border: none;
+  }
+
+  .doc-viewer-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-light);
+    flex-shrink: 0;
+    display: flex; align-items: flex-start; justify-content: space-between;
+  }
+
+  .doc-viewer-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .doc-viewer-meta { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+  .doc-viewer-status {
+    font-size: 12px; margin-top: 4px;
+    display: flex; align-items: center; gap: 4px;
+  }
+
+  .doc-viewer-close {
+    width: 28px; height: 28px;
+    border: 1px solid var(--border); background: var(--surface);
+    border-radius: 6px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 14px; color: var(--text-secondary);
+    flex-shrink: 0; transition: all 0.15s;
+  }
+  .doc-viewer-close:hover { background: var(--border-light); color: var(--text); }
+
+  .doc-viewer-content {
+    flex: 1; overflow-y: auto; padding: 16px 20px;
+  }
+
+  .doc-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; line-height: 1.7;
+    color: var(--text); white-space: pre-wrap;
+  }
+
+  .doc-text .highlight {
+    background: #FEF3C7;
+    border-bottom: 2px solid var(--warning);
+    padding: 1px 2px;
+    border-radius: 2px;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .doc-text .highlight:hover { background: #FDE68A; }
+
+  .doc-text .highlight:hover::after {
+    content: attr(data-field);
+    position: absolute;
+    bottom: 100%; left: 0;
+    background: var(--text);
+    color: white;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    margin-bottom: 4px;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .doc-line-num {
+    display: inline-block;
+    width: 28px;
+    color: #D1D5DB;
+    user-select: none;
+    font-size: 11px;
+    text-align: right;
+    margin-right: 12px;
+  }
+
+  .doc-viewer-values {
+    padding: 16px 20px;
+    border-top: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+
+  .doc-values-title {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--text-secondary); margin-bottom: 10px;
+  }
+
+  .doc-value-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 0; border-bottom: 1px solid var(--border-light);
+    font-size: 12px;
+  }
+
+  .doc-value-row:last-child { border-bottom: none; }
+
+  .doc-value-field { color: var(--text-secondary); }
+  .doc-value-val { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text); }
+
+  .doc-value-status { font-size: 11px; }
+  .doc-value-status.verified { color: var(--success); }
+  .doc-value-status.unreviewed { color: var(--warning); }
+
+  /* ═══ UTILITY ═══ */
+  .line { display: block; }
+</style>
+</head>
+<body>
+
+<!-- ═══ SIDEBAR ═══ -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-brand-icon">CA</div>
+    <span class="sidebar-brand-text">Context Architecture</span>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Tools</div>
+    <div class="sidebar-item"><span class="sidebar-item-icon">⚡</span> FormFill</div>
+    <div class="sidebar-item"><span class="sidebar-item-icon">🔍</span> Search</div>
+    <div class="sidebar-item"><span class="sidebar-item-icon">📋</span> Review</div>
+  </div>
+  <div class="sidebar-divider"></div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Clients</div>
+    <div class="sidebar-item active">
+      <span class="sidebar-item-icon">🏢</span> Acme Consulting LLC
+      <span class="sidebar-item-badges">
+        <span class="sidebar-badge count">3</span>
+        <span class="sidebar-badge alert"></span>
+      </span>
+    </div>
+    <div class="sidebar-item">
+      <span class="sidebar-item-icon">👤</span> Rodriguez, Maria
+    </div>
+    <div class="sidebar-item">
+      <span class="sidebar-item-icon">👤</span> TEST CLIENT
+    </div>
+    <div class="sidebar-add"><span>＋</span> New Client</div>
+  </div>
+  <div class="sidebar-divider"></div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Templates</div>
+    <div class="sidebar-item"><span class="sidebar-item-icon">📄</span> Estate Planning</div>
+    <div class="sidebar-item"><span class="sidebar-item-icon">📄</span> Corporate Formation</div>
+    <div class="sidebar-item"><span class="sidebar-item-icon">📄</span> Business Tax Prep</div>
+    <div class="sidebar-item"><span class="sidebar-item-icon">📄</span> Personal Injury</div>
+    <div class="sidebar-add"><span>＋</span> New Template</div>
+  </div>
+</aside>
+
+<!-- ═══ MAIN ═══ -->
+<div class="main">
+
+  <!-- Matter Header -->
+  <div class="matter-header">
+    <div class="matter-header-top">
+      <div>
+        <div class="matter-back">← Clients</div>
+        <div class="matter-name">Acme Consulting LLC</div>
+        <div class="matter-template">Corporate Formation</div>
+      </div>
+      <div class="matter-actions">
+        <button class="matter-action-btn outline">↑ Upload</button>
+        <button class="matter-action-btn outline">↗ Share</button>
+        <button class="matter-action-btn primary">✦ Generate</button>
+        <button class="matter-action-btn outline">↓ Export</button>
+      </div>
+    </div>
+    <div class="metrics-bar">
+      <div class="metric">
+        <div class="metric-label">Filing Readiness <span class="metric-value" style="color: var(--danger);">36%</span></div>
+        <div class="metric-bar"><div class="metric-bar-fill danger" style="width: 36%;"></div></div>
+      </div>
+      <div class="metric" style="padding-left: 24px;">
+        <div class="metric-label">Quality <span class="metric-value">0.00</span></div>
+        <div class="metric-bar"><div class="metric-bar-fill warning" style="width: 0%;"></div></div>
+      </div>
+      <div class="metric" style="padding-left: 24px;">
+        <div class="metric-label">Completeness <span class="metric-value" style="color: var(--success);">25%</span></div>
+        <div class="metric-bar"><div class="metric-bar-fill success" style="width: 25%;"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Body: 2-3 panel -->
+  <div class="matter-body">
+
+    <!-- LEFT: Document Cards -->
+    <div class="doc-panel">
+      <div class="doc-panel-header">
+        <span class="doc-panel-title">Documents (8)</span>
+        <span class="doc-panel-upload">+ Upload</span>
+      </div>
+      <div class="doc-list">
+        <div class="doc-card" onclick="selectDoc(0, this)" data-doc="0">
+          <span class="doc-card-icon">📄</span>
+          <div class="doc-card-info">
+            <div class="doc-card-name">acme_1099_contractor.txt</div>
+            <div class="doc-card-meta">Feb 24</div>
+          </div>
+          <span class="doc-card-status" style="color: var(--success);">✓</span>
+        </div>
+        <div class="doc-card" onclick="selectDoc(1, this)" data-doc="1">
+          <span class="doc-card-icon">📄</span>
+          <div class="doc-card-info">
+            <div class="doc-card-name">acme_articles_of_incor...</div>
+            <div class="doc-card-meta">Feb 24</div>
+          </div>
+          <span class="doc-card-status" style="color: var(--success);">✓</span>
+        </div>
+        <div class="doc-card" onclick="selectDoc(2, this)" data-doc="2">
+          <span class="doc-card-icon">📄</span>
+          <div class="doc-card-info">
+            <div class="doc-card-name">acme_balance_sheet_2...</div>
+            <div class="doc-card-meta">Feb 24</div>
+          </div>
+          <span class="doc-card-status" style="color: var(--success);">✓</span>
+        </div>
+        <div class="doc-card" onclick="selectDoc(3, this)" data-doc="3">
+          <span class="doc-card-icon">📄</span>
+          <div class="doc-card-info">
+            <div class="doc-card-name">acme_ein_letter.txt</div>
+            <div class="doc-card-meta">Feb 24</div>
+          </div>
+          <span class="doc-card-status" style="color: var(--success);">✓</span>
+        </div>
+        <div class="doc-card" onclick="selectDoc(4, this)" data-doc="4">
+          <span class="doc-card-icon">📄</span>
+          <div class="doc-card-info">
+            <div class="doc-card-name">acme_operating_agreem...</div>
+            <div class="doc-card-meta">Feb 24</div>
+          </div>
+          <span class="doc-card-status" style="color: var(--success);">✓</span>
+        </div>
+        <div class="doc-card" onclick="selectDoc(5, this)" data-doc="5">
+          <span class="doc-card-icon">📄</span>
+          <div class="doc-card-info">
+            <div class="doc-card-name">acme_prior_year_return...</div>
+            <div class="doc-card-meta">Feb 24</div>
+          </div>
+          <span class="doc-card-status" style="color: var(--success);">✓</span>
+        </div>
+        <div class="doc-card" onclick="selectDoc(6, this)" data-doc="6">
+          <span class="doc-card-icon">📄</span>
+          <div class="doc-card-info">
+            <div class="doc-card-name">acme_profit_and_loss_2...</div>
+            <div class="doc-card-meta">Feb 24</div>
+          </div>
+          <span class="doc-card-status" style="color: var(--success);">✓</span>
+        </div>
+        <div class="doc-card" onclick="selectDoc(7, this)" data-doc="7">
+          <span class="doc-card-icon">📄</span>
+          <div class="doc-card-info">
+            <div class="doc-card-name">acme_w9_john_smith.txt</div>
+            <div class="doc-card-meta">Feb 24</div>
+          </div>
+          <span class="doc-card-status" style="color: var(--success);">✓</span>
+          <span class="doc-card-new">NEW</span>
+        </div>
+      </div>
+      <div class="doc-panel-footer">
+        <div class="doc-upload-btn">＋ Upload Documents</div>
+      </div>
+    </div>
+
+    <!-- CENTER: Tabbed Content -->
+    <div class="center-panel">
+      <div class="tab-bar">
+        <div class="tab active" id="tab-know" onclick="switchTab('know')">
+          What We Know
+          <span class="tab-badge neutral">14</span>
+        </div>
+        <div class="tab" id="tab-need" onclick="switchTab('need')">
+          What We Still Need
+          <span class="tab-badge danger">24</span>
+        </div>
+      </div>
+
+      <!-- Tab 1: What We Know -->
+      <div class="tab-content" id="content-know">
+        <div class="state-banner in-progress">
+          <span>14 fields extracted · 8 eligible for bulk approve</span>
+          <div class="state-banner-actions">
+            <button class="state-banner-btn primary">Approve 8</button>
+            <button class="state-banner-btn secondary">Review 6</button>
+          </div>
+        </div>
+
+        <!-- Entity: Primary Client -->
+        <div class="entity-group">
+          <div class="entity-header">
+            <span class="entity-icon">👤</span>
+            <span class="entity-name">John R. Smith</span>
+            <span class="entity-role">Primary Client</span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">Full Name</span>
+            <div>
+              <span class="field-val">John R. Smith</span>
+              <span class="source-link" onclick="selectDoc(7)">← W-9 line 1</span>
+            </div>
+            <span class="confidence"><span class="conf-dot high"></span> 0.97</span>
+            <span class="field-actions-inline">
+              <button class="fa-btn approve approved">✓</button>
+              <button class="fa-btn edit">✎</button>
+            </span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">SSN</span>
+            <div>
+              <span class="field-val">***-**-4567</span>
+              <span class="source-link" onclick="selectDoc(7)">← W-9 line 6</span>
+            </div>
+            <span class="confidence"><span class="conf-dot high"></span> 0.95</span>
+            <span class="field-actions-inline">
+              <button class="fa-btn approve">✓</button>
+              <button class="fa-btn edit">✎</button>
+            </span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">Address</span>
+            <div>
+              <span class="field-val">123 Peachtree St NE, Atlanta GA 30309</span>
+              <span class="source-link" onclick="selectDoc(7)">← W-9 line 2</span>
+            </div>
+            <span class="confidence"><span class="conf-dot high"></span> 0.93</span>
+            <span class="field-actions-inline">
+              <button class="fa-btn approve">✓</button>
+              <button class="fa-btn edit">✎</button>
+            </span>
+          </div>
+        </div>
+
+        <!-- Entity: Business -->
+        <div class="entity-group">
+          <div class="entity-header">
+            <span class="entity-icon">🏢</span>
+            <span class="entity-name">Acme Consulting LLC</span>
+            <span class="entity-role">Business Entity</span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">Full Name</span>
+            <div>
+              <span class="field-val">Acme Consulting LLC</span>
+              <span class="source-link" onclick="selectDoc(1)">← Articles of Incorp.</span>
+            </div>
+            <span class="confidence"><span class="conf-dot high"></span> 0.99</span>
+            <span class="field-actions-inline">
+              <button class="fa-btn approve approved">✓</button>
+              <button class="fa-btn edit">✎</button>
+            </span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">EIN</span>
+            <div>
+              <span class="field-val">47-1234567</span>
+              <span class="source-link" onclick="selectDoc(3)">← EIN Letter</span>
+            </div>
+            <span class="confidence"><span class="conf-dot high"></span> 0.98</span>
+            <span class="field-actions-inline">
+              <button class="fa-btn approve">✓</button>
+              <button class="fa-btn edit">✎</button>
+            </span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">Address</span>
+            <div>
+              <span class="field-val">456 Commerce Dr, Suite 200, Atlanta GA</span>
+              <span class="source-link" onclick="selectDoc(4)">← Operating Agreement</span>
+            </div>
+            <span class="confidence"><span class="conf-dot med"></span> 0.79</span>
+            <span class="field-actions-inline">
+              <button class="fa-btn approve">✓</button>
+              <button class="fa-btn edit">✎</button>
+            </span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">State of Formation</span>
+            <div>
+              <span class="field-val">Georgia</span>
+              <span class="source-link" onclick="selectDoc(1)">← Articles of Incorp.</span>
+            </div>
+            <span class="confidence"><span class="conf-dot high"></span> 0.96</span>
+            <span class="field-actions-inline">
+              <button class="fa-btn approve">✓</button>
+              <button class="fa-btn edit">✎</button>
+            </span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">Formation Date</span>
+            <div>
+              <span class="field-val">March 12, 2019</span>
+              <span class="source-link" onclick="selectDoc(1)">← Articles of Incorp.</span>
+            </div>
+            <span class="confidence"><span class="conf-dot high"></span> 0.94</span>
+            <span class="field-actions-inline">
+              <button class="fa-btn approve">✓</button>
+              <button class="fa-btn edit">✎</button>
+            </span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">Tax Classification</span>
+            <div><span class="field-val missing">— Missing</span></div>
+            <span class="confidence"><span class="conf-dot missing"></span></span>
+            <span><span class="missing-badge">Missing</span></span>
+          </div>
+        </div>
+
+        <!-- Entity: Officer -->
+        <div class="entity-group">
+          <div class="entity-header">
+            <span class="entity-icon">👔</span>
+            <span class="entity-name">(not found)</span>
+            <span class="entity-role">Officer</span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">Full Name</span>
+            <div><span class="field-val missing">— Missing</span></div>
+            <span class="confidence"><span class="conf-dot missing"></span></span>
+            <span><span class="missing-badge">Missing</span></span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">Relationship</span>
+            <div><span class="field-val missing">— Missing</span></div>
+            <span class="confidence"><span class="conf-dot missing"></span></span>
+            <span><span class="missing-badge">Missing</span></span>
+          </div>
+          <div class="field-row">
+            <span class="field-label">Contact Info</span>
+            <div><span class="field-val missing">— Missing</span></div>
+            <span class="confidence"><span class="conf-dot missing"></span></span>
+            <span><span class="missing-badge">Missing</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: What We Still Need -->
+      <div class="tab-content hidden" id="content-need">
+        <div class="need-section">
+          <div class="need-section-header">
+            <span class="need-dot blocking"></span>
+            <span class="need-section-title">Blocking</span>
+            <span class="need-section-count">(5)</span>
+            <span class="need-section-request-all">Request All</span>
+          </div>
+          <div class="need-item">
+            <div class="need-item-info">
+              <div class="need-item-name">Government ID</div>
+              <div class="need-item-cat">Identification</div>
+            </div>
+            <button class="need-request-btn">Request</button>
+          </div>
+          <div class="need-item">
+            <div class="need-item-info">
+              <div class="need-item-name">SSN Card</div>
+              <div class="need-item-cat">Identification</div>
+            </div>
+            <button class="need-request-btn">Request</button>
+          </div>
+          <div class="need-item">
+            <div class="need-item-info">
+              <div class="need-item-name">Initial Capital Contribution</div>
+              <div class="need-item-cat">Financial</div>
+            </div>
+            <button class="need-request-btn">Request</button>
+          </div>
+          <div class="need-item">
+            <div class="need-item-info">
+              <div class="need-item-name">Bank Account Setup</div>
+              <div class="need-item-cat">Financial</div>
+            </div>
+            <button class="need-request-btn">Request</button>
+          </div>
+          <div class="need-item">
+            <div class="need-item-info">
+              <div class="need-item-name">Funding Agreements</div>
+              <div class="need-item-cat">Financial</div>
+            </div>
+            <button class="need-request-btn">Request</button>
+          </div>
+        </div>
+
+        <div class="need-section">
+          <div class="need-section-header">
+            <span class="need-dot expected"></span>
+            <span class="need-section-title">Expected</span>
+            <span class="need-section-count">(18)</span>
+            <span class="need-section-request-all">Request All</span>
+          </div>
+          <div class="need-item">
+            <div class="need-item-info">
+              <div class="need-item-name">Articles of Incorporation</div>
+              <div class="need-item-cat">Formation</div>
+            </div>
+            <button class="need-request-btn">Request</button>
+          </div>
+          <div class="need-item">
+            <div class="need-item-info">
+              <div class="need-item-name">Operating Agreement</div>
+              <div class="need-item-cat">Formation</div>
+            </div>
+            <button class="need-request-btn">Request</button>
+          </div>
+          <div class="need-item">
+            <div class="need-item-info">
+              <div class="need-item-name">Bylaws</div>
+              <div class="need-item-cat">Formation</div>
+            </div>
+            <button class="need-request-btn">Request</button>
+          </div>
+          <div class="need-item">
+            <div class="need-item-info">
+              <div class="need-item-name">EIN Letter</div>
+              <div class="need-item-cat">Formation</div>
+            </div>
+            <button class="need-request-btn">Request</button>
+          </div>
+          <div class="need-item">
+            <div class="need-item-info">
+              <div class="need-item-name">Business License</div>
+              <div class="need-item-cat">Regulatory</div>
+            </div>
+            <button class="need-request-btn">Request</button>
+          </div>
+          <div class="need-show-more">+ 13 more expected items</div>
+        </div>
+
+        <div class="need-section">
+          <div class="need-section-header">
+            <span class="need-dot enriching"></span>
+            <span class="need-section-title">Enriching</span>
+            <span class="need-section-count">(1)</span>
+          </div>
+          <div class="need-show-more" style="color: var(--text-secondary);">Show 1 enriching item</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Document Viewer (hidden by default) -->
+    <div class="doc-viewer hidden" id="docViewer">
+      <div class="doc-viewer-header">
+        <div>
+          <div class="doc-viewer-title" id="viewerTitle">acme_w9_john_smith.txt</div>
+          <div class="doc-viewer-meta" id="viewerMeta">W-9 Form · Uploaded Feb 24</div>
+          <div class="doc-viewer-status">
+            <span style="color: var(--success);">✓</span>
+            <span style="color: var(--text-secondary);" id="viewerStatus">Processed · 6 values extracted</span>
+          </div>
+        </div>
+        <button class="doc-viewer-close" onclick="closeViewer()">✕</button>
+      </div>
+
+      <div class="doc-viewer-content">
+        <div class="doc-text" id="viewerText">
+<span class="line"><span class="doc-line-num"> 1</span>Form W-9 (Rev. October 2018)</span>
+<span class="line"><span class="doc-line-num"> 2</span>Request for Taxpayer Identification Number</span>
+<span class="line"><span class="doc-line-num"> 3</span></span>
+<span class="line"><span class="doc-line-num"> 4</span>Name: <span class="highlight" data-field="→ Full Name">John R. Smith</span></span>
+<span class="line"><span class="doc-line-num"> 5</span>Business: <span class="highlight" data-field="→ Business Name">Acme Consulting LLC</span></span>
+<span class="line"><span class="doc-line-num"> 6</span></span>
+<span class="line"><span class="doc-line-num"> 7</span>Check appropriate box:</span>
+<span class="line"><span class="doc-line-num"> 8</span>  [X] Limited liability company - S</span>
+<span class="line"><span class="doc-line-num"> 9</span></span>
+<span class="line"><span class="doc-line-num">10</span>Address: <span class="highlight" data-field="→ Address">123 Peachtree St NE</span></span>
+<span class="line"><span class="doc-line-num">11</span>City: <span class="highlight" data-field="→ City/State">Atlanta, GA 30309</span></span>
+<span class="line"><span class="doc-line-num">12</span></span>
+<span class="line"><span class="doc-line-num">13</span>TIN: <span class="highlight" data-field="→ SSN">***-**-4567</span></span>
+<span class="line"><span class="doc-line-num">14</span>EIN: <span class="highlight" data-field="→ EIN">47-1234567</span></span>
+<span class="line"><span class="doc-line-num">15</span></span>
+<span class="line"><span class="doc-line-num">16</span>Certification:</span>
+<span class="line"><span class="doc-line-num">17</span>Signed: John R. Smith</span>
+<span class="line"><span class="doc-line-num">18</span>Date: <span class="highlight" data-field="→ Signature Date">February 24, 2024</span></span>
+        </div>
+      </div>
+
+      <div class="doc-viewer-values">
+        <div class="doc-values-title">Values extracted from this document (6)</div>
+        <div class="doc-value-row">
+          <span class="doc-value-field">Full Name</span>
+          <span class="doc-value-val">John R. Smith</span>
+          <span class="doc-value-status verified">✓ Verified</span>
+        </div>
+        <div class="doc-value-row">
+          <span class="doc-value-field">Business Name</span>
+          <span class="doc-value-val">Acme Consulting LLC</span>
+          <span class="doc-value-status verified">✓ Verified</span>
+        </div>
+        <div class="doc-value-row">
+          <span class="doc-value-field">Address</span>
+          <span class="doc-value-val">123 Peachtree St NE</span>
+          <span class="doc-value-status unreviewed">● Unreviewed</span>
+        </div>
+        <div class="doc-value-row">
+          <span class="doc-value-field">SSN</span>
+          <span class="doc-value-val">***-**-4567</span>
+          <span class="doc-value-status unreviewed">● Unreviewed</span>
+        </div>
+        <div class="doc-value-row">
+          <span class="doc-value-field">EIN</span>
+          <span class="doc-value-val">47-1234567</span>
+          <span class="doc-value-status unreviewed">● Unreviewed</span>
+        </div>
+        <div class="doc-value-row">
+          <span class="doc-value-field">Signature Date</span>
+          <span class="doc-value-val">Feb 24, 2024</span>
+          <span class="doc-value-status unreviewed">● Unreviewed</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let selectedDocId = null;
+
+  const docData = {
+    0: { name: 'acme_1099_contractor.txt', type: '1099-NEC Form', status: '3 values extracted' },
+    1: { name: 'acme_articles_of_incor...', type: 'Articles of Incorporation', status: '4 values extracted' },
+    2: { name: 'acme_balance_sheet_2...', type: 'Balance Sheet', status: '2 values extracted' },
+    3: { name: 'acme_ein_letter.txt', type: 'EIN Confirmation Letter', status: '1 value extracted' },
+    4: { name: 'acme_operating_agreem...', type: 'Operating Agreement', status: '3 values extracted' },
+    5: { name: 'acme_prior_year_return...', type: 'Prior Year Tax Return', status: '5 values extracted' },
+    6: { name: 'acme_profit_and_loss_2...', type: 'P&L Statement', status: '2 values extracted' },
+    7: { name: 'acme_w9_john_smith.txt', type: 'W-9 Form', status: '6 values extracted' }
+  };
+
+  function selectDoc(id, el) {
+    const viewer = document.getElementById('docViewer');
+
+    if (selectedDocId === id) {
+      closeViewer();
+      return;
+    }
+
+    selectedDocId = id;
+
+    // Update card selection
+    document.querySelectorAll('.doc-card').forEach(c => c.classList.remove('selected'));
+    const card = document.querySelector(`.doc-card[data-doc="${id}"]`);
+    if (card) card.classList.add('selected');
+
+    // Update viewer header
+    const data = docData[id];
+    document.getElementById('viewerTitle').textContent = data.name;
+    document.getElementById('viewerMeta').textContent = `${data.type} · Uploaded Feb 24`;
+    document.getElementById('viewerStatus').textContent = `Processed · ${data.status}`;
+
+    // Show viewer
+    viewer.classList.remove('hidden');
+  }
+
+  function closeViewer() {
+    selectedDocId = null;
+    document.getElementById('docViewer').classList.add('hidden');
+    document.querySelectorAll('.doc-card').forEach(c => c.classList.remove('selected'));
+  }
+
+  function switchTab(tab) {
+    document.getElementById('tab-know').classList.toggle('active', tab === 'know');
+    document.getElementById('tab-need').classList.toggle('active', tab === 'need');
+    document.getElementById('content-know').classList.toggle('hidden', tab !== 'know');
+    document.getElementById('content-need').classList.toggle('hidden', tab !== 'need');
+  }
+</script>
+
+</body>
+</html>

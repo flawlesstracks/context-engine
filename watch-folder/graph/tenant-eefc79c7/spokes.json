@@ -382,5 +382,274 @@
         "timestamp": "2026-02-26T16:51:09.843Z"
       }
     ]
+  },
+  "spoke-cc3bb07b4671c838": {
+    "id": "spoke-cc3bb07b4671c838",
+    "name": "TEST CLIENT",
+    "description": "Auto-created from ingest",
+    "centered_entity_id": null,
+    "centered_entity_name": null,
+    "source": "manual",
+    "external_id": null,
+    "sync_status": null,
+    "created_at": "2026-03-01T19:06:50.689Z",
+    "updated_at": "2026-03-01T19:06:50.721Z",
+    "template_type": "corporate_formation",
+    "gap_analysis": {
+      "spoke_id": "spoke-cc3bb07b4671c838",
+      "spoke_name": "TEST CLIENT",
+      "template_type": "corporate_formation",
+      "template_name": "Corporate Formation",
+      "template_version": "0.1.0",
+      "overall_score": 0.5,
+      "document_score": 0,
+      "field_score": 1,
+      "entity_score": 0,
+      "relationship_score": 0,
+      "filing_readiness": 1,
+      "quality_score": 1,
+      "completeness": 1,
+      "tier_counts": {
+        "BLOCKING": {
+          "total": 0,
+          "extracted": 0
+        },
+        "EXPECTED": {
+          "total": 0,
+          "extracted": 0
+        },
+        "ENRICHING": {
+          "total": 0,
+          "extracted": 0
+        }
+      },
+      "missing_by_tier": {
+        "BLOCKING": [],
+        "EXPECTED": [],
+        "ENRICHING": []
+      },
+      "missing_documents": [
+        {
+          "type_id": "government_id",
+          "display_name": "Government Id",
+          "category": "Identification",
+          "priority": "HIGH"
+        },
+        {
+          "type_id": "ssn_card",
+          "display_name": "Ssn Card",
+          "category": "Identification",
+          "priority": "HIGH"
+        },
+        {
+          "type_id": "articles_of_incorporation",
+          "display_name": "Articles Of Incorporation",
+          "category": "Formation",
+          "priority": "MEDIUM"
+        },
+        {
+          "type_id": "operating_agreement",
+          "display_name": "Operating Agreement",
+          "category": "Formation",
+          "priority": "MEDIUM"
+        },
+        {
+          "type_id": "bylaws",
+          "display_name": "Bylaws",
+          "category": "Formation",
+          "priority": "MEDIUM"
+        },
+        {
+          "type_id": "ein_letter",
+          "display_name": "Ein Letter",
+          "category": "Formation",
+          "priority": "MEDIUM"
+        },
+        {
+          "type_id": "initial_capital_contribution",
+          "display_name": "Initial Capital Contribution",
+          "category": "Financial",
+          "priority": "HIGH"
+        },
+        {
+          "type_id": "bank_account_setup",
+          "display_name": "Bank Account Setup",
+          "category": "Financial",
+          "priority": "HIGH"
+        },
+        {
+          "type_id": "funding_agreements",
+          "display_name": "Funding Agreements",
+          "category": "Financial",
+          "priority": "HIGH"
+        },
+        {
+          "type_id": "business_license",
+          "display_name": "Business License",
+          "category": "Regulatory",
+          "priority": "MEDIUM"
+        },
+        {
+          "type_id": "state_registration",
+          "display_name": "State Registration",
+          "category": "Regulatory",
+          "priority": "MEDIUM"
+        },
+        {
+          "type_id": "registered_agent_designation",
+          "display_name": "Registered Agent Designation",
+          "category": "Regulatory",
+          "priority": "MEDIUM"
+        },
+        {
+          "type_id": "shareholder_agreement",
+          "display_name": "Shareholder Agreement",
+          "category": "Agreements",
+          "priority": "MEDIUM"
+        },
+        {
+          "type_id": "partnership_agreement",
+          "display_name": "Partnership Agreement",
+          "category": "Agreements",
+          "priority": "MEDIUM"
+        },
+        {
+          "type_id": "non_compete",
+          "display_name": "Non Compete",
+          "category": "Agreements",
+          "priority": "MEDIUM"
+        },
+        {
+          "type_id": "ip_assignment",
+          "display_name": "Ip Assignment",
+          "category": "Agreements",
+          "priority": "MEDIUM"
+        }
+      ],
+      "missing_fields": [],
+      "missing_entity_fields": [
+        {
+          "role": "primary_client",
+          "entity": null,
+          "missing": "full_name"
+        },
+        {
+          "role": "primary_client",
+          "entity": null,
+          "missing": "ssn"
+        },
+        {
+          "role": "primary_client",
+          "entity": null,
+          "missing": "address"
+        },
+        {
+          "role": "business_entity",
+          "entity": null,
+          "missing": "full_name"
+        },
+        {
+          "role": "business_entity",
+          "entity": null,
+          "missing": "ein"
+        },
+        {
+          "role": "business_entity",
+          "entity": null,
+          "missing": "address"
+        },
+        {
+          "role": "officer",
+          "entity": null,
+          "missing": "full_name"
+        },
+        {
+          "role": "officer",
+          "entity": null,
+          "missing": "relationship"
+        },
+        {
+          "role": "officer",
+          "entity": null,
+          "missing": "contact_info"
+        },
+        {
+          "role": "shareholder",
+          "entity": null,
+          "missing": "full_name"
+        },
+        {
+          "role": "shareholder",
+          "entity": null,
+          "missing": "ownership_percentage"
+        },
+        {
+          "role": "registered_agent",
+          "entity": null,
+          "missing": "full_name"
+        },
+        {
+          "role": "registered_agent",
+          "entity": null,
+          "missing": "address"
+        },
+        {
+          "role": "registered_agent",
+          "entity": null,
+          "missing": "contact_info"
+        }
+      ],
+      "missing_relationships": [
+        {
+          "from": "matter",
+          "expected": "primary client",
+          "to": "(not found)"
+        },
+        {
+          "from": "matter",
+          "expected": "business entity",
+          "to": "(not found)"
+        },
+        {
+          "from": "matter",
+          "expected": "officer",
+          "to": "(not found)"
+        },
+        {
+          "from": "matter",
+          "expected": "shareholder",
+          "to": "(not found)"
+        },
+        {
+          "from": "matter",
+          "expected": "registered agent",
+          "to": "(not found)"
+        }
+      ],
+      "cross_doc_violations": [],
+      "found_documents": [],
+      "suggestions": [
+        "Request Government Id from client",
+        "Request Ssn Card from client",
+        "Request Articles Of Incorporation from client",
+        "Request Operating Agreement from client",
+        "Request Bylaws from client",
+        "Obtain Full Name for primary client",
+        "Obtain Ssn for primary client",
+        "Obtain Address for primary client",
+        "Obtain Full Name for business entity",
+        "Obtain Ein for business entity",
+        "Identify and add primary client to the matter",
+        "Identify and add business entity to the matter",
+        "Identify and add officer to the matter"
+      ],
+      "source_documents": [],
+      "entity_count": 0,
+      "tier_adjustments_applied": 0,
+      "analyzed_at": "2026-03-01T19:06:50.721Z"
+    },
+    "document_classification": null,
+    "review_status": null,
+    "review_summary": null
   }
 }

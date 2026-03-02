@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context Architecture — Client Overview v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAFAF9; --surface: #FFFFFF; --text: #1A1A1A; --text-sec: #6B7280;
+    --accent: #2563EB; --accent-light: #EFF6FF; --accent-hover: #1D4ED8;
+    --success: #059669; --success-light: #ECFDF5;
+    --warning: #D97706; --warning-light: #FFFBEB;
+    --danger: #DC2626; --danger-light: #FEF2F2;
+    --border: #E5E7EB; --border-light: #F3F4F6;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', sans-serif; background: var(--bg);
+    color: var(--text); height: 100vh; overflow: hidden; display: flex;
+  }
+
+  /* ═══ SIDEBAR ═══ */
+  .sidebar {
+    width: 248px; height: 100vh; background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto;
+  }
+  .sidebar-brand {
+    padding: 20px 20px 16px; display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid var(--border-light);
+  }
+  .sidebar-brand-icon {
+    width: 32px; height: 32px; background: var(--accent); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 13px;
+  }
+  .sidebar-brand-text { font-family: 'Instrument Serif', serif; font-size: 16px; }
+  .sidebar-section { padding: 16px 12px 8px; }
+  .sidebar-section-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--text-sec); padding: 0 8px; margin-bottom: 4px;
+  }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 8px; padding: 8px 12px;
+    border-radius: 6px; font-size: 14px; color: var(--text-sec);
+    cursor: pointer; transition: all 0.15s;
+  }
+  .sidebar-item:hover { background: var(--border-light); color: var(--text); }
+  .sidebar-item.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+  .sidebar-icon { width: 18px; font-size: 14px; opacity: 0.7; }
+  .sidebar-badges { margin-left: auto; display: flex; gap: 4px; align-items: center; }
+  .sidebar-count { font-size: 11px; padding: 1px 6px; border-radius: 4px; font-weight: 600; background: var(--border-light); color: var(--text-sec); }
+  .sidebar-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); }
+  .sidebar-add { display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 13px; color: var(--accent); cursor: pointer; border-radius: 6px; }
+  .sidebar-add:hover { background: var(--accent-light); }
+  .sidebar-divider { height: 1px; background: var(--border-light); margin: 4px 12px; }
+
+  /* ═══ MAIN ═══ */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+  /* ═══ CLIENT HEADER ═══ */
+  .client-header {
+    padding: 32px 48px 0; background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .client-header-top {
+    display: flex; align-items: flex-start; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .client-back { font-size: 13px; color: var(--text-sec); cursor: pointer; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+  .client-back:hover { color: var(--accent); }
+  .client-name-row { display: flex; align-items: center; gap: 14px; }
+  .client-avatar {
+    width: 48px; height: 48px; background: var(--accent-light);
+    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+    font-size: 20px; color: var(--accent); font-weight: 700;
+  }
+  .client-name { font-family: 'Instrument Serif', serif; font-size: 32px; font-weight: 400; }
+  .client-meta { font-size: 13px; color: var(--text-sec); margin-top: 2px; }
+  .client-actions { display: flex; gap: 8px; align-items: flex-start; }
+  .c-btn {
+    padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    display: flex; align-items: center; gap: 6px; transition: all 0.15s;
+  }
+  .c-btn.outline { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+  .c-btn.outline:hover { border-color: var(--accent); color: var(--accent); }
+  .c-btn.primary { background: var(--accent); border: 1px solid var(--accent); color: white; }
+  .c-btn.primary:hover { background: var(--accent-hover); }
+
+  .client-tabs { display: flex; gap: 0; }
+  .client-tab {
+    padding: 12px 20px; font-size: 14px; color: var(--text-sec);
+    cursor: pointer; border-bottom: 2px solid transparent;
+    margin-bottom: -1px; display: flex; align-items: center; gap: 8px;
+    transition: color 0.15s;
+  }
+  .client-tab:hover { color: var(--text); }
+  .client-tab.active { color: var(--text); font-weight: 600; border-bottom-color: var(--accent); }
+  .tab-badge { font-size: 11px; padding: 1px 7px; border-radius: 10px; font-weight: 600; }
+  .tab-badge.neutral { background: var(--border-light); color: var(--text-sec); }
+
+  /* ═══ CONTENT ═══ */
+  .client-content { flex: 1; overflow-y: auto; padding: 24px 48px 48px; }
+  .client-content.hidden { display: none; }
+
+  /* ═══ SEARCH + FILTER BAR ═══ */
+  .filter-bar {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .search-box {
+    flex: 1; position: relative;
+  }
+  .search-box input {
+    width: 100%; padding: 10px 14px 10px 38px;
+    border: 1px solid var(--border); border-radius: 8px;
+    font-size: 14px; font-family: 'DM Sans', sans-serif;
+    background: var(--surface); outline: none;
+    transition: border-color 0.15s;
+  }
+  .search-box input:focus { border-color: var(--accent); }
+  .search-box input::placeholder { color: #C0C4CC; }
+  .search-icon {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    font-size: 15px; color: var(--text-sec); pointer-events: none;
+  }
+
+  .filter-pills { display: flex; gap: 4px; }
+  .filter-pill {
+    padding: 7px 14px; border-radius: 20px; font-size: 13px;
+    cursor: pointer; transition: all 0.15s; border: 1px solid transparent;
+    font-family: 'DM Sans', sans-serif; font-weight: 500;
+  }
+  .filter-pill.active { background: var(--text); color: white; }
+  .filter-pill:not(.active) { background: var(--surface); border-color: var(--border); color: var(--text-sec); }
+  .filter-pill:not(.active):hover { border-color: var(--text); color: var(--text); }
+
+  .sort-control {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 13px; color: var(--text-sec);
+    white-space: nowrap;
+  }
+  .sort-select {
+    padding: 7px 28px 7px 10px; border: 1px solid var(--border);
+    border-radius: 8px; font-size: 13px; font-family: 'DM Sans', sans-serif;
+    background: var(--surface); outline: none; cursor: pointer;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B7280' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+
+  /* ═══ PROJECTS GRID ═══ */
+  .projects-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .project-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px;
+    cursor: pointer; transition: all 0.2s;
+    display: flex; flex-direction: column; min-height: 168px;
+    position: relative;
+  }
+  .project-card:hover {
+    border-color: var(--accent); box-shadow: 0 2px 16px rgba(37,99,235,0.08);
+    transform: translateY(-1px);
+  }
+  .project-card.starred { border-left: 3px solid var(--warning); }
+
+  /* Three-dot menu */
+  .card-menu-trigger {
+    position: absolute; top: 16px; right: 16px;
+    width: 28px; height: 28px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 16px; color: var(--text-sec);
+    opacity: 0; transition: all 0.15s;
+    background: transparent; border: none;
+    z-index: 5;
+  }
+  .project-card:hover .card-menu-trigger { opacity: 1; }
+  .card-menu-trigger:hover { background: var(--border-light); color: var(--text); }
+  .card-menu-trigger.open { opacity: 1; background: var(--border-light); }
+
+  .card-menu {
+    position: absolute; top: 44px; right: 16px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; min-width: 160px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    z-index: 20; display: none;
+    overflow: hidden;
+    animation: menuFade 0.12s ease;
+  }
+  .card-menu.open { display: block; }
+  @keyframes menuFade { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .card-menu-item {
+    padding: 10px 14px; font-size: 13px;
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer; transition: background 0.1s;
+    color: var(--text);
+  }
+  .card-menu-item:hover { background: var(--border-light); }
+  .card-menu-item .menu-icon { font-size: 14px; width: 18px; text-align: center; color: var(--text-sec); }
+  .card-menu-divider { height: 1px; background: var(--border-light); margin: 4px 0; }
+  .card-menu-item.danger { color: var(--danger); }
+  .card-menu-item.danger .menu-icon { color: var(--danger); }
+
+  .project-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; padding-right: 32px; }
+  .project-card-name { font-size: 17px; font-weight: 600; color: var(--text); line-height: 1.3; }
+  .project-star { color: var(--warning); margin-right: 4px; font-size: 13px; }
+  .project-card-template { font-size: 12px; color: var(--text-sec); margin-top: 4px; }
+  .project-status-pill {
+    font-size: 11px; font-weight: 600; padding: 3px 10px;
+    border-radius: 20px; white-space: nowrap; flex-shrink: 0;
+  }
+  .status-active { background: var(--accent-light); color: var(--accent); }
+  .status-review { background: var(--warning-light); color: var(--warning); }
+  .status-complete { background: var(--success-light); color: var(--success); }
+  .status-blocked { background: var(--danger-light); color: var(--danger); }
+
+  .project-card-desc {
+    font-size: 13px; color: var(--text-sec); line-height: 1.4;
+    margin-bottom: 8px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+
+  .project-card-stats {
+    display: flex; gap: 16px; margin-top: auto; padding-top: 12px;
+    border-top: 1px solid var(--border-light);
+  }
+  .project-stat { display: flex; flex-direction: column; }
+  .project-stat-value { font-family: 'JetBrains Mono', monospace; font-size: 14px; font-weight: 600; }
+  .project-stat-label { font-size: 11px; color: var(--text-sec); }
+
+  .project-card-bar {
+    height: 3px; background: var(--border-light); border-radius: 2px;
+    margin-top: 10px; overflow: hidden;
+  }
+  .project-card-bar-fill { height: 100%; border-radius: 2px; }
+
+  .project-card-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 8px;
+  }
+  .project-card-updated { font-size: 11px; color: var(--text-sec); }
+  .project-card-docs {
+    font-size: 11px; color: var(--text-sec);
+    display: flex; align-items: center; gap: 3px;
+  }
+
+  /* New Project Card */
+  .new-project-card {
+    background: var(--bg); border: 2px dashed var(--border);
+    border-radius: 12px; padding: 24px;
+    cursor: pointer; transition: all 0.2s;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    min-height: 168px; text-align: center;
+  }
+  .new-project-card:hover { border-color: var(--accent); background: var(--accent-light); }
+  .new-project-icon {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--surface); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; color: var(--accent); margin-bottom: 12px;
+    transition: all 0.2s;
+  }
+  .new-project-card:hover .new-project-icon { background: var(--accent); color: white; border-color: var(--accent); }
+  .new-project-label { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .new-project-desc { font-size: 13px; color: var(--text-sec); max-width: 200px; }
+
+  /* ═══ DOCUMENTS TAB ═══ */
+  .docs-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .docs-header-left h3 { font-family: 'Instrument Serif', serif; font-size: 20px; font-weight: 400; }
+  .docs-header-left p { font-size: 13px; color: var(--text-sec); margin-top: 2px; }
+  .upload-btn {
+    padding: 8px 16px; background: var(--accent); color: white;
+    border: none; border-radius: 8px; font-size: 13px; font-weight: 500;
+    cursor: pointer; font-family: 'DM Sans', sans-serif;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .upload-btn:hover { background: var(--accent-hover); }
+  .docs-table { width: 100%; }
+  .docs-table-header {
+    display: grid; grid-template-columns: 1fr 140px 120px 100px 80px;
+    padding: 10px 16px; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--text-sec); border-bottom: 1px solid var(--border);
+  }
+  .doc-row {
+    display: grid; grid-template-columns: 1fr 140px 120px 100px 80px;
+    padding: 12px 16px; border-bottom: 1px solid var(--border-light);
+    align-items: center; font-size: 14px; transition: background 0.1s;
+  }
+  .doc-row:hover { background: var(--border-light); }
+  .doc-name-cell { display: flex; align-items: center; gap: 10px; }
+  .doc-icon { font-size: 16px; opacity: 0.6; }
+  .doc-name { font-weight: 500; }
+  .doc-type-badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; background: var(--border-light); color: var(--text-sec); font-weight: 500; }
+  .doc-date { font-size: 13px; color: var(--text-sec); }
+  .doc-used { display: flex; gap: 4px; flex-wrap: wrap; }
+  .doc-used-pill { font-size: 10px; padding: 1px 6px; border-radius: 3px; background: var(--accent-light); color: var(--accent); font-weight: 500; }
+  .doc-status { font-size: 13px; }
+  .doc-status.processed { color: var(--success); }
+  .doc-status.pending { color: var(--warning); }
+  .drop-zone {
+    border: 2px dashed var(--border); border-radius: 12px;
+    padding: 32px; text-align: center; margin-top: 16px;
+    transition: all 0.2s; cursor: pointer;
+  }
+  .drop-zone:hover { border-color: var(--accent); background: var(--accent-light); }
+  .drop-zone-text { font-size: 14px; color: var(--text-sec); }
+  .drop-zone-text strong { color: var(--accent); }
+
+  /* ═══ MODAL ═══ */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.3);
+    display: none; align-items: center; justify-content: center; z-index: 100;
+    backdrop-filter: blur(2px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface); border-radius: 16px;
+    width: 520px; max-height: 80vh; overflow-y: auto;
+    box-shadow: 0 24px 48px rgba(0,0,0,0.12);
+    animation: modalIn 0.2s ease;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .modal-header { padding: 24px 24px 0; display: flex; align-items: center; justify-content: space-between; }
+  .modal-title { font-family: 'Instrument Serif', serif; font-size: 22px; }
+  .modal-close {
+    width: 28px; height: 28px; border: 1px solid var(--border); background: var(--surface);
+    border-radius: 6px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 14px; color: var(--text-sec);
+  }
+  .modal-body { padding: 20px 24px; }
+  .form-group { margin-bottom: 16px; }
+  .form-label { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; display: block; }
+  .form-input {
+    width: 100%; padding: 10px 14px; border: 1px solid var(--border);
+    border-radius: 8px; font-size: 14px; font-family: 'DM Sans', sans-serif;
+    outline: none; transition: border-color 0.15s;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .template-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .template-opt {
+    padding: 12px; border: 1px solid var(--border); border-radius: 8px;
+    cursor: pointer; transition: all 0.15s; text-align: center;
+  }
+  .template-opt:hover { border-color: var(--accent); background: var(--accent-light); }
+  .template-opt.selected { border-color: var(--accent); background: var(--accent-light); box-shadow: 0 0 0 1px var(--accent); }
+  .template-opt-icon { font-size: 20px; margin-bottom: 4px; }
+  .template-opt-name { font-size: 13px; font-weight: 600; }
+  .template-opt-desc { font-size: 11px; color: var(--text-sec); margin-top: 2px; }
+  .modal-footer { padding: 16px 24px 24px; display: flex; gap: 8px; justify-content: flex-end; }
+  .modal-btn {
+    padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; transition: all 0.15s;
+  }
+  .modal-btn.cancel { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+  .modal-btn.create { background: var(--accent); border: 1px solid var(--accent); color: white; }
+  .modal-btn.create:hover { background: var(--accent-hover); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-brand-icon">CA</div>
+    <span class="sidebar-brand-text">Context Architecture</span>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Tools</div>
+    <div class="sidebar-item"><span class="sidebar-icon">⚡</span> FormFill</div>
+    <div class="sidebar-item"><span class="sidebar-icon">🔍</span> Search</div>
+  </div>
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Clients</div>
+    <div class="sidebar-item active">
+      <span class="sidebar-icon">🏢</span> Acme Consulting LLC
+      <span class="sidebar-badges"><span class="sidebar-count">4</span><span class="sidebar-dot"></span></span>
+    </div>
+    <div class="sidebar-item">
+      <span class="sidebar-icon">👤</span> Rodriguez, Maria
+      <span class="sidebar-badges"><span class="sidebar-count">2</span></span>
+    </div>
+    <div class="sidebar-item">
+      <span class="sidebar-icon">👤</span> Chen, David
+      <span class="sidebar-badges"><span class="sidebar-count">1</span></span>
+    </div>
+    <div class="sidebar-item">
+      <span class="sidebar-icon">🏢</span> Maple Street Bakery
+      <span class="sidebar-badges"><span class="sidebar-count">1</span></span>
+    </div>
+    <div class="sidebar-add"><span>＋</span> New Client</div>
+  </div>
+  <div class="sidebar-divider"></div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Templates</div>
+    <div class="sidebar-item"><span class="sidebar-icon">📄</span> Corporate Formation</div>
+    <div class="sidebar-item"><span class="sidebar-icon">📄</span> Business Tax Prep</div>
+    <div class="sidebar-item"><span class="sidebar-icon">📄</span> Personal Injury</div>
+    <div class="sidebar-add"><span>＋</span> New Template</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="client-header">
+    <div class="client-header-top">
+      <div>
+        <div class="client-back">← All Clients</div>
+        <div class="client-name-row">
+          <div class="client-avatar">AC</div>
+          <div>
+            <div class="client-name">Acme Consulting LLC</div>
+            <div class="client-meta">4 projects · 12 documents · Client since Feb 2024</div>
+          </div>
+        </div>
+      </div>
+      <div class="client-actions">
+        <button class="c-btn outline">↗ Share</button>
+        <button class="c-btn outline">↓ Export All</button>
+        <button class="c-btn primary" onclick="openModal()">＋ New Project</button>
+      </div>
+    </div>
+    <div class="client-tabs">
+      <div class="client-tab active" id="tab-projects" onclick="switchClientTab('projects')">Projects <span class="tab-badge neutral">4</span></div>
+      <div class="client-tab" id="tab-documents" onclick="switchClientTab('documents')">Documents <span class="tab-badge neutral">12</span></div>
+    </div>
+  </div>
+
+  <!-- TAB 1: Projects -->
+  <div class="client-content" id="content-projects">
+    <!-- Search + Filter + Sort -->
+    <div class="filter-bar">
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Search projects..." id="searchInput" oninput="filterProjects()">
+      </div>
+      <div class="filter-pills">
+        <div class="filter-pill active" onclick="setFilter(this, 'all')">All</div>
+        <div class="filter-pill" onclick="setFilter(this, 'active')">Active</div>
+        <div class="filter-pill" onclick="setFilter(this, 'archived')">Archived</div>
+      </div>
+      <div class="sort-control">
+        <span>Sort by</span>
+        <select class="sort-select" onchange="sortProjects(this.value)">
+          <option value="activity">Activity</option>
+          <option value="name">Name</option>
+          <option value="readiness">Readiness</option>
+          <option value="status">Status</option>
+          <option value="created">Date Created</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="projects-grid" id="projectsGrid">
+
+      <!-- Project 1: Tax Prep (starred) -->
+      <div class="project-card starred" data-name="2025 Business Tax Preparation" data-status="active" data-readiness="42" onclick="openProject(event, this)">
+        <button class="card-menu-trigger" onclick="toggleMenu(event, this)">⋯</button>
+        <div class="card-menu">
+          <div class="card-menu-item" onclick="menuAction(event, 'unstar')"><span class="menu-icon">★</span> Unstar</div>
+          <div class="card-menu-item" onclick="menuAction(event, 'edit')"><span class="menu-icon">✎</span> Edit Details</div>
+          <div class="card-menu-item" onclick="menuAction(event, 'duplicate')"><span class="menu-icon">⧉</span> Duplicate</div>
+          <div class="card-menu-divider"></div>
+          <div class="card-menu-item" onclick="menuAction(event, 'archive')"><span class="menu-icon">📦</span> Archive</div>
+          <div class="card-menu-item danger" onclick="menuAction(event, 'delete')"><span class="menu-icon">🗑</span> Delete</div>
+        </div>
+        <div class="project-card-header">
+          <div>
+            <div class="project-card-name"><span class="project-star">★</span>2025 Business Tax Preparation</div>
+            <div class="project-card-template">Template: Business Tax Prep</div>
+          </div>
+          <span class="project-status-pill status-active">Active</span>
+        </div>
+        <div class="project-card-desc">Annual business tax filing including 1120-S, K-1 distributions, and quarterly estimated payments.</div>
+        <div class="project-card-stats">
+          <div class="project-stat">
+            <span class="project-stat-value" style="color:var(--danger)">42%</span>
+            <span class="project-stat-label">Readiness</span>
+          </div>
+          <div class="project-stat">
+            <span class="project-stat-value">37/64</span>
+            <span class="project-stat-label">Fields</span>
+          </div>
+          <div class="project-stat">
+            <span class="project-stat-value" style="color:var(--danger)">5</span>
+            <span class="project-stat-label">Blocking</span>
+          </div>
+        </div>
+        <div class="project-card-bar"><div class="project-card-bar-fill" style="width:42%; background:var(--danger);"></div></div>
+        <div class="project-card-footer">
+          <span class="project-card-updated">Updated 2 hours ago</span>
+          <span class="project-card-docs">📄 8 docs</span>
+        </div>
+      </div>
+
+      <!-- Project 2: Corporate Formation -->
+      <div class="project-card" data-name="LLC Formation Registration" data-status="review" data-readiness="78" onclick="openProject(event, this)">
+        <button class="card-menu-trigger" onclick="toggleMenu(event, this)">⋯</button>
+        <div class="card-menu">
+          <div class="card-menu-item" onclick="menuAction(event, 'star')"><span class="menu-icon">☆</span> Star</div>
+          <div class="card-menu-item" onclick="menuAction(event, 'edit')"><span class="menu-icon">✎</span> Edit Details</div>
+          <div class="card-menu-item" onclick="menuAction(event, 'duplicate')"><span class="menu-icon">⧉</span> Duplicate</div>
+          <div class="card-menu-divider"></div>
+          <div class="card-menu-item" onclick="menuAction(event, 'archive')"><span class="menu-icon">📦</span> Archive</div>
+          <div class="card-menu-item danger" onclick="menuAction(event, 'delete')"><span class="menu-icon">🗑</span> Delete</div>
+        </div>
+        <div class="project-card-header">
+          <div>
+            <div class="project-card-name">LLC Formation & Registration</div>
+            <div class="project-card-template">Template: Corporate Formation</div>
+          </div>
+          <span class="project-status-pill status-review">In Review</span>
+        </div>
+        <div class="project-card-desc">Entity formation with Georgia Secretary of State including articles, operating agreement, and EIN registration.</div>
+        <div class="project-card-stats">
+          <div class="project-stat">
+            <span class="project-stat-value" style="color:var(--warning)">78%</span>
+            <span class="project-stat-label">Readiness</span>
+          </div>
+          <div class="project-stat">
+            <span class="project-stat-value">18/22</span>
+            <span class="project-stat-label">Fields</span>
+          </div>
+          <div class="project-stat">
+            <span class="project-stat-value" style="color:var(--warning)">2</span>
+            <span class="project-stat-label">Blocking</span>
+          </div>
+        </div>
+        <div class="project-card-bar"><div class="project-card-bar-fill" style="width:78%; background:var(--warning);"></div></div>
+        <div class="project-card-footer">
+          <span class="project-card-updated">Updated yesterday</span>
+          <span class="project-card-docs">📄 5 docs</span>
+        </div>
+      </div>
+
+      <!-- Project 3: BOI Filing -->
+      <div class="project-card" data-name="BOI Report Filing" data-status="complete" data-readiness="100" onclick="openProject(event, this)">
+        <button class="card-menu-trigger" onclick="toggleMenu(event, this)">⋯</button>
+        <div class="card-menu">
+          <div class="card-menu-item" onclick="menuAction(event, 'star')"><span class="menu-icon">☆</span> Star</div>
+          <div class="card-menu-item" onclick="menuAction(event, 'edit')"><span class="menu-icon">✎</span> Edit Details</div>
+          <div class="card-menu-item" onclick="menuAction(event, 'duplicate')"><span class="menu-icon">⧉</span> Duplicate</div>
+          <div class="card-menu-divider"></div>
+          <div class="card-menu-item" onclick="menuAction(event, 'archive')"><span class="menu-icon">📦</span> Archive</div>
+          <div class="card-menu-item danger" onclick="menuAction(event, 'delete')"><span class="menu-icon">🗑</span> Delete</div>
+        </div>
+        <div class="project-card-header">
+          <div>
+            <div class="project-card-name">BOI Report Filing</div>
+            <div class="project-card-template">Template: General Matter</div>
+          </div>
+          <span class="project-status-pill status-complete">Complete</span>
+        </div>
+        <div class="project-card-desc">Beneficial Ownership Information report filed with FinCEN as required under the Corporate Transparency Act.</div>
+        <div class="project-card-stats">
+          <div class="project-stat">
+            <span class="project-stat-value" style="color:var(--success)">100%</span>
+            <span class="project-stat-label">Readiness</span>
+          </div>
+          <div class="project-stat">
+            <span class="project-stat-value">8/8</span>
+            <span class="project-stat-label">Fields</span>
+          </div>
+          <div class="project-stat">
+            <span class="project-stat-value" style="color:var(--success)">0</span>
+            <span class="project-stat-label">Blocking</span>
+          </div>
+        </div>
+        <div class="project-card-bar"><div class="project-card-bar-fill" style="width:100%; background:var(--success);"></div></div>
+        <div class="project-card-footer">
+          <span class="project-card-updated">Completed Jan 15</span>
+          <span class="project-card-docs">📄 3 docs</span>
+        </div>
+      </div>
+
+      <!-- Project 4: Q1 Payroll -->
+      <div class="project-card" data-name="Q1 2026 Payroll Filing" data-status="blocked" data-readiness="12" onclick="openProject(event, this)">
+        <button class="card-menu-trigger" onclick="toggleMenu(event, this)">⋯</button>
+        <div class="card-menu">
+          <div class="card-menu-item" onclick="menuAction(event, 'star')"><span class="menu-icon">☆</span> Star</div>
+          <div class="card-menu-item" onclick="menuAction(event, 'edit')"><span class="menu-icon">✎</span> Edit Details</div>
+          <div class="card-menu-item" onclick="menuAction(event, 'duplicate')"><span class="menu-icon">⧉</span> Duplicate</div>
+          <div class="card-menu-divider"></div>
+          <div class="card-menu-item" onclick="menuAction(event, 'archive')"><span class="menu-icon">📦</span> Archive</div>
+          <div class="card-menu-item danger" onclick="menuAction(event, 'delete')"><span class="menu-icon">🗑</span> Delete</div>
+        </div>
+        <div class="project-card-header">
+          <div>
+            <div class="project-card-name">Q1 2026 Payroll Filing</div>
+            <div class="project-card-template">Template: Business Tax Prep</div>
+          </div>
+          <span class="project-status-pill status-blocked">Blocked</span>
+        </div>
+        <div class="project-card-desc">Quarterly 941 filing and W-2/1099 reconciliation. Waiting on updated payroll records from ADP.</div>
+        <div class="project-card-stats">
+          <div class="project-stat">
+            <span class="project-stat-value" style="color:var(--danger)">12%</span>
+            <span class="project-stat-label">Readiness</span>
+          </div>
+          <div class="project-stat">
+            <span class="project-stat-value">3/24</span>
+            <span class="project-stat-label">Fields</span>
+          </div>
+          <div class="project-stat">
+            <span class="project-stat-value" style="color:var(--danger)">8</span>
+            <span class="project-stat-label">Blocking</span>
+          </div>
+        </div>
+        <div class="project-card-bar"><div class="project-card-bar-fill" style="width:12%; background:var(--danger);"></div></div>
+        <div class="project-card-footer">
+          <span class="project-card-updated">Updated 3 days ago</span>
+          <span class="project-card-docs">📄 1 doc</span>
+        </div>
+      </div>
+
+      <!-- New Project Card -->
+      <div class="new-project-card" onclick="openModal()">
+        <div class="new-project-icon">＋</div>
+        <div class="new-project-label">New Project</div>
+        <div class="new-project-desc">Create a new project for this client</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: Documents -->
+  <div class="client-content hidden" id="content-documents">
+    <div class="docs-header">
+      <div class="docs-header-left">
+        <h3>Client Document Library</h3>
+        <p>12 documents shared across all projects for Acme Consulting LLC</p>
+      </div>
+      <button class="upload-btn">↑ Upload Documents</button>
+    </div>
+    <div class="docs-table">
+      <div class="docs-table-header">
+        <span>Document</span><span>Classification</span><span>Uploaded</span><span>Used In</span><span>Status</span>
+      </div>
+      <div class="doc-row">
+        <div class="doc-name-cell"><span class="doc-icon">📄</span><div><div class="doc-name">acme_w9_john_smith.txt</div></div></div>
+        <span class="doc-type-badge">W-9 Form</span>
+        <span class="doc-date">Feb 24</span>
+        <div class="doc-used"><span class="doc-used-pill">Tax Prep</span><span class="doc-used-pill">Formation</span><span class="doc-used-pill">BOI</span></div>
+        <span class="doc-status processed">✓ Processed</span>
+      </div>
+      <div class="doc-row">
+        <div class="doc-name-cell"><span class="doc-icon">📄</span><div><div class="doc-name">acme_articles_of_incorporation.txt</div></div></div>
+        <span class="doc-type-badge">Formation</span>
+        <span class="doc-date">Feb 24</span>
+        <div class="doc-used"><span class="doc-used-pill">Formation</span><span class="doc-used-pill">BOI</span></div>
+        <span class="doc-status processed">✓ Processed</span>
+      </div>
+      <div class="doc-row">
+        <div class="doc-name-cell"><span class="doc-icon">📄</span><div><div class="doc-name">acme_profit_and_loss_2025.txt</div></div></div>
+        <span class="doc-type-badge">P&L Statement</span>
+        <span class="doc-date">Feb 24</span>
+        <div class="doc-used"><span class="doc-used-pill">Tax Prep</span></div>
+        <span class="doc-status processed">✓ Processed</span>
+      </div>
+      <div class="doc-row">
+        <div class="doc-name-cell"><span class="doc-icon">📄</span><div><div class="doc-name">acme_bank_statements_jan_2026.pdf</div></div></div>
+        <span class="doc-type-badge">Bank Statement</span>
+        <span class="doc-date">Feb 28</span>
+        <div class="doc-used"><span class="doc-used-pill">Tax Prep</span></div>
+        <span class="doc-status pending">⟳ Processing</span>
+      </div>
+    </div>
+    <div class="drop-zone">
+      <div class="drop-zone-text">Drop files here or <strong>click to upload</strong><br><span style="font-size:12px; color: var(--text-sec);">Documents are shared across all projects for this client</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- New Project Modal -->
+<div class="modal-overlay" id="newProjectModal">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">New Project for Acme Consulting</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">Project Name</label>
+        <input class="form-input" placeholder="e.g., 2025 Business Tax Preparation">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Choose a Template</label>
+        <div class="template-options">
+          <div class="template-opt" onclick="selectTemplate(this)"><div class="template-opt-icon">📊</div><div class="template-opt-name">Business Tax Prep</div><div class="template-opt-desc">Income, expenses, payroll</div></div>
+          <div class="template-opt" onclick="selectTemplate(this)"><div class="template-opt-icon">🏢</div><div class="template-opt-name">Corporate Formation</div><div class="template-opt-desc">Entity setup, registration</div></div>
+          <div class="template-opt" onclick="selectTemplate(this)"><div class="template-opt-icon">⚖️</div><div class="template-opt-name">Personal Injury</div><div class="template-opt-desc">Medical, liability, demand</div></div>
+          <div class="template-opt" onclick="selectTemplate(this)"><div class="template-opt-icon">📁</div><div class="template-opt-name">General Matter</div><div class="template-opt-desc">Start blank, add as needed</div></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes <span style="font-weight:400; color:var(--text-sec)">(optional)</span></label>
+        <input class="form-input" placeholder="Any context for this project...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="modal-btn cancel" onclick="closeModal()">Cancel</button>
+      <button class="modal-btn create">Create Project</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Tab switching
+  function switchClientTab(tab) {
+    document.getElementById('tab-projects').classList.toggle('active', tab === 'projects');
+    document.getElementById('tab-documents').classList.toggle('active', tab === 'documents');
+    document.getElementById('content-projects').classList.toggle('hidden', tab !== 'projects');
+    document.getElementById('content-documents').classList.toggle('hidden', tab !== 'documents');
+  }
+
+  // Modal
+  function openModal() { document.getElementById('newProjectModal').classList.add('open'); }
+  function closeModal() { document.getElementById('newProjectModal').classList.remove('open'); }
+  function selectTemplate(el) {
+    document.querySelectorAll('.template-opt').forEach(t => t.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+  document.getElementById('newProjectModal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+
+  // Three-dot menu
+  let openMenuEl = null;
+
+  function toggleMenu(e, trigger) {
+    e.stopPropagation();
+    const menu = trigger.nextElementSibling;
+
+    // Close any other open menu
+    if (openMenuEl && openMenuEl !== menu) {
+      openMenuEl.classList.remove('open');
+      openMenuEl.previousElementSibling.classList.remove('open');
+    }
+
+    const isOpen = menu.classList.contains('open');
+    menu.classList.toggle('open');
+    trigger.classList.toggle('open');
+    openMenuEl = isOpen ? null : menu;
+  }
+
+  function menuAction(e, action) {
+    e.stopPropagation();
+    const card = e.target.closest('.project-card');
+    const name = card.querySelector('.project-card-name').textContent.replace('★', '').trim();
+
+    switch(action) {
+      case 'star':
+      case 'unstar':
+        card.classList.toggle('starred');
+        break;
+      case 'edit':
+        alert(`Edit: ${name}`);
+        break;
+      case 'duplicate':
+        alert(`Duplicate: ${name}`);
+        break;
+      case 'archive':
+        card.style.opacity = '0.4';
+        card.dataset.status = 'archived';
+        break;
+      case 'delete':
+        if (confirm(`Delete "${name}"? This cannot be undone.`)) {
+          card.style.transition = 'all 0.3s ease';
+          card.style.opacity = '0';
+          card.style.transform = 'scale(0.95)';
+          setTimeout(() => card.remove(), 300);
+        }
+        break;
+    }
+
+    // Close menu
+    if (openMenuEl) {
+      openMenuEl.classList.remove('open');
+      openMenuEl.previousElementSibling.classList.remove('open');
+      openMenuEl = null;
+    }
+  }
+
+  // Close menu on outside click
+  document.addEventListener('click', () => {
+    if (openMenuEl) {
+      openMenuEl.classList.remove('open');
+      openMenuEl.previousElementSibling.classList.remove('open');
+      openMenuEl = null;
+    }
+  });
+
+  // Search
+  function filterProjects() {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    document.querySelectorAll('.project-card').forEach(card => {
+      const name = card.dataset.name || '';
+      card.style.display = name.toLowerCase().includes(query) ? '' : 'none';
+    });
+  }
+
+  // Filter pills
+  function setFilter(el, filter) {
+    document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('.project-card').forEach(card => {
+      if (filter === 'all') { card.style.display = ''; return; }
+      if (filter === 'archived') {
+        card.style.display = card.dataset.status === 'archived' ? '' : 'none';
+      } else {
+        card.style.display = card.dataset.status !== 'archived' ? '' : 'none';
+      }
+    });
+  }
+
+  // Sort
+  function sortProjects(by) {
+    const grid = document.getElementById('projectsGrid');
+    const cards = Array.from(grid.querySelectorAll('.project-card'));
+    const newCard = grid.querySelector('.new-project-card');
+
+    cards.sort((a, b) => {
+      switch(by) {
+        case 'name':
+          return (a.dataset.name || '').localeCompare(b.dataset.name || '');
+        case 'readiness':
+          return parseInt(b.dataset.readiness || 0) - parseInt(a.dataset.readiness || 0);
+        case 'status':
+          const order = { blocked: 0, active: 1, review: 2, complete: 3 };
+          return (order[a.dataset.status] || 9) - (order[b.dataset.status] || 9);
+        default: // activity
+          return 0;
+      }
+    });
+
+    cards.forEach(c => grid.appendChild(c));
+    if (newCard) grid.appendChild(newCard);
+  }
+
+  // Open project detail
+  function openProject(e, card) {
+    if (e.target.closest('.card-menu-trigger') || e.target.closest('.card-menu')) return;
+    const name = card.querySelector('.project-card-name').textContent.replace('★', '').trim();
+    alert(`→ Opens Project Detail for "${name}"\n\nThis navigates to the MECE cards view:\n• What We Know (category cards)\n• What We Still Need\n• Document viewer (slide-out)`);
+  }
+</script>
+
+</body>
+</html>
