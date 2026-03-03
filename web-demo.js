@@ -11625,7 +11625,31 @@ const WIKI_HTML = `<!DOCTYPE html>
   }
   #sidebar * { white-space: nowrap; }
 
-  /* Collapsed = icon rail (56px) */
+  /* ── SIDEBAR TOGGLE BUTTON ── */
+  #sidebarToggle {
+    position: absolute;
+    top: 16px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--border-primary);
+    background: var(--bg-primary);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    font-size: 12px;
+    color: #6B7280;
+    transition: all 0.15s;
+    padding: 0;
+  }
+  #sidebarToggle:hover { background: #F3F4F6; color: #1A1A1A; border-color: #2563EB; }
+  #sidebarToggle svg { width: 14px; height: 14px; transition: transform 0.3s ease; }
+  #sidebar.collapsed #sidebarToggle svg { transform: rotate(180deg); }
+
+  /* ── COLLAPSED STATE ── */
   #sidebar.collapsed {
     width: 56px !important;
     min-width: 56px !important;
@@ -11633,123 +11657,67 @@ const WIKI_HTML = `<!DOCTYPE html>
     overflow: hidden !important;
   }
 
-  /* ── NUCLEAR TEXT HIDE: zero out font-size on all text containers ── */
-  #sidebar.collapsed .sb-nav-item,
-  #sidebar.collapsed .sb-client-item,
-  #sidebar.collapsed .sb-template-item,
-  #sidebar.collapsed .sb-add-btn,
-  #sidebar.collapsed .sb-see-more,
-  #sidebar.collapsed .sidebar-utility-link,
-  #sidebar.collapsed .sidebar-bottom {
-    font-size: 0 !important;
-    color: transparent !important;
-    gap: 0 !important;
-  }
+  /* Brand — completely hidden when collapsed */
+  #sidebar.collapsed .sidebar-brand { display: none; }
 
-  /* Restore icon sizes inside zeroed containers */
-  #sidebar.collapsed .sb-nav-item svg,
-  #sidebar.collapsed .sb-template-item svg,
-  #sidebar.collapsed .sb-add-btn svg,
-  #sidebar.collapsed .sidebar-utility-link svg {
-    width: 16px; height: 16px;
-  }
-  #sidebar.collapsed .sidebar-utility-link svg { width: 20px; height: 20px; }
-
-  /* Completely hide elements that are pure text or not needed */
-  #sidebar.collapsed .brand-text,
-  #sidebar.collapsed .sb-section-label,
-  #sidebar.collapsed .sb-client-name,
-  #sidebar.collapsed .sb-client-meta,
-  #sidebar.collapsed .sidebar-bottom-name,
-  #sidebar.collapsed .sidebar-bottom-actions,
-  #sidebar.collapsed #sidebarSearchPanel,
-  #sidebar.collapsed #spokeSelector,
-  #sidebar.collapsed #entityList,
-  #sidebar.collapsed .sb-see-more,
-  #sidebar.collapsed .review-queue-badge {
-    display: none !important;
-  }
-
-  /* Center brand icon in rail */
-  #sidebar.collapsed .sidebar-brand {
-    justify-content: center;
-    padding: 16px 0;
-  }
-
-  /* Center utility icons in rail */
+  /* Utility bar — vertical icon column */
   #sidebar.collapsed .sidebar-utility-bar {
     flex-direction: column;
     align-items: center;
-    padding: 8px 0;
-    gap: 2px;
+    padding: 8px 4px;
+    gap: 0;
   }
   #sidebar.collapsed .sidebar-utility-link {
     padding: 10px 0;
     width: 100%;
     justify-content: center;
   }
+  #sidebar.collapsed .sidebar-utility-link span { display: none; }
+  #sidebar.collapsed .sidebar-utility-link svg { width: 20px; height: 20px; }
 
-  /* Center nav items — icon only */
+  /* Section labels — hidden */
+  #sidebar.collapsed .sb-section-label { display: none; }
+
+  /* Nav items — icon only, centered */
   #sidebar.collapsed .sb-nav-item {
     justify-content: center;
-    padding: 10px 0;
+    padding: 8px 0;
+    gap: 0;
+    font-size: 0;
+    color: transparent;
     border-left-color: transparent !important;
   }
-  #sidebar.collapsed .sb-nav-item svg { margin: 0; }
+  #sidebar.collapsed .sb-nav-item svg { width: 16px; height: 16px; margin: 0; font-size: 16px; }
 
-  /* Hide client items entirely — no meaningful icon to show */
-  #sidebar.collapsed .sb-client-item {
-    display: none !important;
-  }
+  /* Client items — hidden (no meaningful icon) */
+  #sidebar.collapsed .sb-client-item { display: none !important; }
 
-  /* Hide template items entirely — no meaningful icon to show */
-  #sidebar.collapsed .sb-template-item {
-    display: none !important;
-  }
+  /* Template items — hidden */
+  #sidebar.collapsed .sb-template-item { display: none !important; }
 
-  /* Hide add buttons entirely */
-  #sidebar.collapsed .sb-add-btn {
-    display: none !important;
-  }
+  /* Add buttons — hidden */
+  #sidebar.collapsed .sb-add-btn { display: none !important; }
 
-  /* Center footer avatar */
+  /* See-more — hidden */
+  #sidebar.collapsed .sb-see-more { display: none !important; }
+
+  /* Search, spoke, entity panels — hidden */
+  #sidebar.collapsed #sidebarSearchPanel { display: none !important; }
+  #sidebar.collapsed #spokeSelector { display: none !important; }
+  #sidebar.collapsed #entityList { display: none !important; }
+  #sidebar.collapsed .review-queue-badge { display: none !important; }
+
+  /* Footer — avatar only, centered */
   #sidebar.collapsed .sidebar-bottom {
     justify-content: center;
     padding: 12px 0;
   }
+  #sidebar.collapsed .sidebar-bottom-name { display: none; }
+  #sidebar.collapsed .sidebar-bottom-actions { display: none; }
+  #sidebar.collapsed #logoutLink { display: none; }
   #sidebar.collapsed .sidebar-bottom-avatar {
     font-size: 0.55rem !important;
     color: white !important;
-  }
-
-  /* Expand button — hidden normally, shown when collapsed */
-  #sidebarExpandBtn {
-    display: none;
-    position: absolute;
-    top: 12px;
-    right: 4px;
-    width: 24px;
-    height: 24px;
-    border: 1px solid #E5E7EB;
-    background: #FFFFFF;
-    border-radius: 6px;
-    font-size: 14px;
-    color: #6B7280;
-    cursor: pointer;
-    z-index: 10;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.15s;
-    padding: 0;
-    line-height: 1;
-  }
-  #sidebarExpandBtn:hover {
-    background: #F3F4F6;
-    color: #1A1A1A;
-    border-color: #2563EB;
-  }
-  #sidebar.collapsed #sidebarExpandBtn {
-    display: flex;
   }
 
   /* --- Sidebar Brand --- */
@@ -15517,7 +15485,12 @@ const WIKI_HTML = `<!DOCTYPE html>
 <!-- App -->
 <div id="app">
   <div id="sidebar">
-    <button id="sidebarExpandBtn" onclick="document.getElementById('sidebar').classList.remove('collapsed')" title="Expand sidebar">&#x203A;</button>
+    <button id="sidebarToggle" onclick="toggleSidebarCollapse()" title="Collapse sidebar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="11 17 6 12 11 7"></polyline>
+        <polyline points="18 17 13 12 18 7"></polyline>
+      </svg>
+    </button>
     <!-- Brand -->
     <div class="sidebar-brand">
       <div class="brand-icon">CA</div>
@@ -15632,6 +15605,17 @@ document.addEventListener('click', function(e) {
     target = target.parentNode;
   }
 }, true);
+
+function toggleSidebarCollapse() {
+  var sb = document.getElementById('sidebar');
+  var btn = document.getElementById('sidebarToggle');
+  sb.classList.toggle('collapsed');
+  if (sb.classList.contains('collapsed')) {
+    btn.title = 'Expand sidebar';
+  } else {
+    btn.title = 'Collapse sidebar';
+  }
+}
 
 function toggleSidebarSearch() {
   var panel = document.getElementById('sidebarSearchPanel');
@@ -19171,6 +19155,8 @@ function showProjectDetail(spokeId, tab) {
   // Restore sidebar if collapsed from a previous panel open
   var sb = document.getElementById('sidebar');
   if (sb) sb.classList.remove('collapsed');
+  var _tb7 = document.getElementById('sidebarToggle');
+  if (_tb7) _tb7.title = 'Collapse sidebar';
 
   // Hide rightPanel in matter view — matter view has its own slide-out panel
   var rp = document.getElementById('rightPanel');
@@ -19965,6 +19951,8 @@ function mvSwitchTab(tab) {
   if (_mvSelectedDoc) mvCloseDocViewer();
   // Always ensure sidebar is restored when switching tabs
   document.getElementById('sidebar').classList.remove('collapsed');
+  var _tb3 = document.getElementById('sidebarToggle');
+  if (_tb3) _tb3.title = 'Collapse sidebar';
   var knowEl = document.getElementById('mvTabKnow');
   var needEl = document.getElementById('mvTabNeed');
   var docsEl = document.getElementById('mvTabDocuments');
@@ -20077,6 +20065,8 @@ function mvSelectDoc(fileId) {
 
   // Collapse sidebar when doc viewer opens
   document.getElementById('sidebar').classList.add('collapsed');
+  var _tb1 = document.getElementById('sidebarToggle');
+  if (_tb1) _tb1.title = 'Expand sidebar';
 
   // Update card selection highlighting
   var cards = document.querySelectorAll('.mv-doc-card');
@@ -20098,6 +20088,8 @@ function mvCloseDocViewer() {
   if (viewer) viewer.classList.add('hidden');
   // Restore sidebar when doc viewer closes
   document.getElementById('sidebar').classList.remove('collapsed');
+  var _tb2 = document.getElementById('sidebarToggle');
+  if (_tb2) _tb2.title = 'Collapse sidebar';
   var cards = document.querySelectorAll('.mv-doc-card');
   for (var i = 0; i < cards.length; i++) {
     cards[i].classList.remove('selected');
@@ -20440,9 +20432,8 @@ function mvOpenFieldPanel(fieldKey) {
   var sidebar = document.getElementById('sidebar');
   if (sidebar) {
     sidebar.classList.add('collapsed');
-    console.log('[mvOpenFieldPanel] sidebar.collapsed added, classList:', sidebar.className);
-  } else {
-    console.log('[mvOpenFieldPanel] WARNING: sidebar element not found');
+    var _tb4 = document.getElementById('sidebarToggle');
+    if (_tb4) _tb4.title = 'Expand sidebar';
   }
 
   // Also collapse rightPanel to free space for the review panel
@@ -20483,6 +20474,8 @@ function mvCloseFieldPanel() {
   // Restore sidebar
   var sidebar = document.getElementById('sidebar');
   if (sidebar) sidebar.classList.remove('collapsed');
+  var _tb5 = document.getElementById('sidebarToggle');
+  if (_tb5) _tb5.title = 'Collapse sidebar';
 
   // Restore rightPanel if we collapsed it
   var rp = document.getElementById('rightPanel');
@@ -21089,6 +21082,8 @@ function mvSelectDoc34(docId) {
 
   // Collapse sidebar when doc viewer opens
   document.getElementById('sidebar').classList.add('collapsed');
+  var _tb6 = document.getElementById('sidebarToggle');
+  if (_tb6) _tb6.title = 'Expand sidebar';
 
   // Update card selection
   var cards = document.querySelectorAll('.mv-doc-card');

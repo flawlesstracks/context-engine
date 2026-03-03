@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CA Sidebar — Expanded vs Collapsed Reference</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #FAFAF9; --surface: #FFFFFF; --text: #1A1A1A; --text-sec: #6B7280;
+    --accent: #2563EB; --accent-light: #EFF6FF;
+    --success: #059669; --warning: #D97706; --danger: #DC2626;
+    --border: #E5E7EB; --border-light: #F3F4F6;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; }
+
+  /* ══════════════════════════════════════ */
+  /*  SIDEBAR — THE FULL COMPONENT         */
+  /* ══════════════════════════════════════ */
+  .sidebar {
+    height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    transition: width 0.3s ease;
+    width: 248px;
+  }
+
+  /* ── COLLAPSED STATE ── */
+  .sidebar.collapsed { width: 56px; }
+
+  /* Expand/collapse toggle button */
+  .sidebar-toggle {
+    position: absolute;
+    top: 16px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 10;
+    font-size: 12px;
+    color: var(--text-sec);
+    transition: all 0.15s;
+    padding: 0;
+  }
+  .sidebar-toggle:hover { background: var(--border-light); color: var(--text); border-color: var(--accent); }
+  .sidebar-toggle svg { width: 14px; height: 14px; transition: transform 0.3s ease; }
+  .sidebar.collapsed .sidebar-toggle svg { transform: rotate(180deg); }
+
+  /* ── BRAND ── */
+  .sb-brand {
+    padding: 16px 16px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border-light);
+    min-height: 56px;
+  }
+  .sb-brand-icon {
+    width: 32px; height: 32px; min-width: 32px;
+    background: var(--accent); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 13px;
+  }
+  .sb-brand-text { font-size: 15px; font-weight: 600; white-space: nowrap; }
+  .sidebar.collapsed .sb-brand { display: none; }
+
+  /* ── UTILITY TOOLS ── */
+  .sb-tools { display: flex; gap: 2px; padding: 12px 8px 8px; }
+  .sb-tool {
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    padding: 8px 4px; border-radius: 8px; cursor: pointer;
+    flex: 1; transition: all 0.15s; min-width: 0;
+  }
+  .sb-tool:hover { background: var(--border-light); }
+  .sb-tool-icon { font-size: 18px; line-height: 1; }
+  .sb-tool-label { font-size: 10px; color: var(--text-sec); white-space: nowrap; }
+  .sidebar.collapsed .sb-tools { flex-direction: column; padding: 8px 4px; gap: 0; }
+  .sidebar.collapsed .sb-tool { padding: 10px 0; flex: none; }
+  .sidebar.collapsed .sb-tool-label { display: none; }
+
+  /* ── DIVIDER ── */
+  .sb-divider { height: 1px; background: var(--border-light); margin: 4px 12px; }
+  .sidebar.collapsed .sb-divider { margin: 4px 8px; }
+
+  /* ── SECTION ── */
+  .sb-section { padding: 8px 8px 4px; }
+  .sb-section-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--text-sec);
+    padding: 0 8px; margin-bottom: 2px; white-space: nowrap;
+  }
+  .sidebar.collapsed .sb-section { padding: 4px 0; }
+  .sidebar.collapsed .sb-section-label { display: none; }
+
+  /* ── ITEM ── */
+  .sb-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 12px; border-radius: 6px; font-size: 13px;
+    color: var(--text-sec); cursor: pointer; transition: all 0.15s;
+    white-space: nowrap; position: relative;
+  }
+  .sb-item:hover { background: var(--border-light); color: var(--text); }
+  .sb-item.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+  .sb-item-icon { width: 20px; min-width: 20px; font-size: 15px; text-align: center; line-height: 1; }
+  .sb-item-text { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+  .sb-item-meta { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+  .sb-item-count { font-size: 11px; font-family: monospace; color: var(--text-sec); }
+  .sb-item-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+  .sidebar.collapsed .sb-item { justify-content: center; padding: 8px 0; gap: 0; }
+  .sidebar.collapsed .sb-item-text { display: none; }
+  .sidebar.collapsed .sb-item-meta { display: none; }
+  .sidebar.collapsed .sb-item-icon { width: auto; min-width: auto; }
+  /* Show colored dot as overlay in collapsed mode */
+  .sidebar.collapsed .sb-item .sb-dot-indicator {
+    position: absolute; top: 4px; right: 8px;
+    width: 6px; height: 6px; border-radius: 50%;
+  }
+
+  /* ── ADD BUTTON ── */
+  .sb-add {
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 20px; font-size: 12px; color: var(--accent);
+    cursor: pointer; white-space: nowrap;
+  }
+  .sb-add:hover { text-decoration: underline; }
+  .sb-add-icon { font-size: 14px; }
+  .sidebar.collapsed .sb-add { justify-content: center; padding: 6px 0; }
+  .sidebar.collapsed .sb-add-text { display: none; }
+
+  /* ── FOOTER ── */
+  .sb-footer {
+    margin-top: auto;
+    padding: 12px 12px;
+    border-top: 1px solid var(--border-light);
+    display: flex; align-items: center; gap: 10px;
+    white-space: nowrap;
+  }
+  .sb-avatar {
+    width: 30px; height: 30px; min-width: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 11px; font-weight: 700;
+  }
+  .sb-user-name { font-size: 13px; font-weight: 500; flex: 1; }
+  .sb-logout { font-size: 12px; color: var(--text-sec); cursor: pointer; }
+  .sb-logout:hover { color: var(--danger); }
+
+  .sidebar.collapsed .sb-footer { justify-content: center; padding: 12px 0; }
+  .sidebar.collapsed .sb-user-name { display: none; }
+  .sidebar.collapsed .sb-logout { display: none; }
+
+  /* ══════════════════════════════════════ */
+  /*  DEMO LAYOUT                          */
+  /* ══════════════════════════════════════ */
+  .demo-main {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 40px; color: var(--text-sec);
+  }
+  .demo-label {
+    font-size: 14px; font-weight: 600; color: var(--text);
+    margin-bottom: 8px;
+  }
+  .demo-hint {
+    font-size: 13px; color: var(--text-sec);
+    background: var(--border-light); padding: 12px 20px;
+    border-radius: 8px; margin-top: 12px;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="sidebar" id="sidebar">
+  <!-- Toggle button -->
+  <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="Collapse sidebar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="11 17 6 12 11 7"></polyline>
+      <polyline points="18 17 13 12 18 7"></polyline>
+    </svg>
+  </button>
+
+  <!-- Brand -->
+  <div class="sb-brand">
+    <div class="sb-brand-icon">CA</div>
+    <span class="sb-brand-text">Context Architecture</span>
+  </div>
+
+  <!-- Utility tools -->
+  <div class="sb-tools">
+    <div class="sb-tool"><span class="sb-tool-icon">↑</span><span class="sb-tool-label">Upload</span></div>
+    <div class="sb-tool"><span class="sb-tool-icon">⌕</span><span class="sb-tool-label">Search</span></div>
+    <div class="sb-tool"><span class="sb-tool-icon">☑</span><span class="sb-tool-label">Review</span></div>
+    <div class="sb-tool"><span class="sb-tool-icon">✧</span><span class="sb-tool-label">Cleanup</span></div>
+  </div>
+
+  <div class="sb-divider"></div>
+
+  <!-- Personal Graph -->
+  <div class="sb-section">
+    <div class="sb-section-label">CJ [Personal Graph]</div>
+    <div class="sb-item"><span class="sb-item-icon">☆</span><span class="sb-item-text">About</span></div>
+    <div class="sb-item"><span class="sb-item-icon">💼</span><span class="sb-item-text">Career</span></div>
+    <div class="sb-item"><span class="sb-item-icon">👨‍👩‍👦</span><span class="sb-item-text">Family</span></div>
+    <div class="sb-item"><span class="sb-item-icon">♡</span><span class="sb-item-text">Friends</span></div>
+    <div class="sb-item"><span class="sb-item-icon">🏛</span><span class="sb-item-text">Affiliations</span></div>
+  </div>
+
+  <div class="sb-divider"></div>
+
+  <!-- Tools -->
+  <div class="sb-section">
+    <div class="sb-section-label">Tools</div>
+    <div class="sb-item"><span class="sb-item-icon">⚡</span><span class="sb-item-text">FormFill</span></div>
+  </div>
+
+  <div class="sb-divider"></div>
+
+  <!-- Clients -->
+  <div class="sb-section">
+    <div class="sb-section-label">Clients</div>
+    <div class="sb-item active">
+      <span class="sb-item-icon">🏢</span>
+      <span class="sb-item-text">Acme Consulting LLC</span>
+      <span class="sb-item-meta"><span class="sb-item-count">3</span><span class="sb-item-dot" style="background:var(--danger);"></span></span>
+      <span class="sb-dot-indicator" style="background:var(--danger); display:none;"></span>
+    </div>
+    <div class="sb-item">
+      <span class="sb-item-icon">👤</span>
+      <span class="sb-item-text">TEST CLIENT</span>
+      <span class="sb-item-meta"><span class="sb-item-count">0</span><span class="sb-item-dot" style="background:var(--warning);"></span></span>
+      <span class="sb-dot-indicator" style="background:var(--warning); display:none;"></span>
+    </div>
+    <div class="sb-add"><span class="sb-add-icon">＋</span><span class="sb-add-text">New Client</span></div>
+  </div>
+
+  <div class="sb-divider"></div>
+
+  <!-- Templates -->
+  <div class="sb-section">
+    <div class="sb-section-label">Templates</div>
+    <div class="sb-item"><span class="sb-item-icon">📄</span><span class="sb-item-text">Estate Planning</span></div>
+    <div class="sb-item"><span class="sb-item-icon">📄</span><span class="sb-item-text">Corporate Formation</span></div>
+    <div class="sb-item"><span class="sb-item-icon">📄</span><span class="sb-item-text">Business Tax Prep</span></div>
+    <div class="sb-item"><span class="sb-item-icon">📄</span><span class="sb-item-text">Personal Injury</span></div>
+    <div class="sb-item"><span class="sb-item-icon">📄</span><span class="sb-item-text">General Matter</span></div>
+    <div class="sb-item"><span class="sb-item-icon">📄</span><span class="sb-item-text">Financial Statement Review</span></div>
+    <div class="sb-add"><span class="sb-add-icon">＋</span><span class="sb-add-text">New Template</span></div>
+  </div>
+
+  <div class="sb-divider"></div>
+
+  <!-- Projects -->
+  <div class="sb-section">
+    <div class="sb-section-label">Projects</div>
+    <div class="sb-add"><span class="sb-add-icon">＋</span><span class="sb-add-text">New Project</span></div>
+  </div>
+
+  <!-- Footer -->
+  <div class="sb-footer">
+    <div class="sb-avatar">CM</div>
+    <span class="sb-user-name">Clarence Mitchell</span>
+    <span class="sb-logout">Logout</span>
+  </div>
+</div>
+
+<div class="demo-main">
+  <div class="demo-label">← Click the «» chevron to toggle</div>
+  <div style="font-size: 13px; color: var(--text-sec); margin-top: 4px;">Or imagine the doc viewer panel opens here and pushes the sidebar to collapse</div>
+  <div class="demo-hint">
+    <strong>Expanded:</strong> 248px — brand + icons + text + badges<br>
+    <strong>Collapsed:</strong> 56px — icons only, centered, no text<br>
+    <strong>Footer:</strong> Just the avatar circle, no name/logout<br>
+    <strong>Toggle:</strong> «» chevron rotates 180° when collapsed
+  </div>
+</div>
+
+<script>
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const btn = document.getElementById('sidebarToggle');
+  sb.classList.toggle('collapsed');
+
+  if (sb.classList.contains('collapsed')) {
+    btn.title = 'Expand sidebar';
+    // Show dot indicators in collapsed mode
+    document.querySelectorAll('.sb-dot-indicator').forEach(d => d.style.display = 'block');
+  } else {
+    btn.title = 'Collapse sidebar';
+    document.querySelectorAll('.sb-dot-indicator').forEach(d => d.style.display = 'none');
+  }
+}
+</script>
+</body>
+</html>
