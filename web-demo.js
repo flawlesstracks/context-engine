@@ -13609,8 +13609,8 @@ const WIKI_HTML = `<!DOCTYPE html>
   .b34-conf { display: inline-flex; align-items: center; gap: 4px; }
   .b34-conf-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .b34-conf-score { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 12px; }
-  .b34-source-link { display: inline-block; padding: 2px 8px; background: #f7f7f5; border: 1px solid #e5e5e3; border-radius: 4px; font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 11px; color: #6b6b6b; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
-  .b34-source-link:hover { background: #eff6ff; border-color: #2563eb; color: #2563eb; }
+  .b34-source-link { display: block; font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 11px; color: #2563eb; text-decoration: none; cursor: pointer; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .b34-source-link:hover { text-decoration: underline; color: #1d4ed8; }
   .b34-source-none { font-size: 11px; color: #999999; font-style: italic; }
   .b34-actions { display: flex; gap: 4px; }
   .b34-actions button { width: 28px; height: 28px; border-radius: 6px; border: 1px solid #E5E7EB; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; opacity: 0.4; transition: all 0.15s; padding: 0; }
@@ -13623,8 +13623,8 @@ const WIKI_HTML = `<!DOCTYPE html>
   .b34-status-pill.verified { background: #059669; color: #fff; }
   .b34-status-pill.needs-review { background: #FFFBEB; color: #D97706; border: 1px solid #FDE68A; }
   .b34-status-pill.missing-pill { background: #DC2626; color: #fff; }
-  .b34-entity-section { background: #fff; border: 1px solid #e5e5e3; border-radius: 8px; overflow: hidden; margin-bottom: 12px; }
-  .b34-entity-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f7f7f5; border-bottom: 1px solid #e5e5e3; cursor: pointer; }
+  .b34-entity-section { background: #fff; overflow: hidden; }
+  .b34-entity-header { display: flex; align-items: center; gap: 8px; padding: 14px 12px 8px; background: #f7f7f5; border-bottom: 1px solid #e5e5e3; cursor: pointer; }
   .b34-entity-header:hover { background: #f0f0ee; }
   .b34-entity-icon { width: 24px; height: 24px; border-radius: 50%; background: #e5e5e3; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #6b6b6b; }
   .b34-entity-name { font-size: 13px; font-weight: 600; color: #1A1A1A; }
@@ -13635,15 +13635,15 @@ const WIKI_HTML = `<!DOCTYPE html>
   .b34-inline-edit input:focus { outline: none; border-color: #2563EB; box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
   .b34-inline-edit .save-btn { width: 24px; height: 24px; border-radius: 4px; border: none; background: #059669; color: #fff; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
   .b34-inline-edit .cancel-btn { width: 24px; height: 24px; border-radius: 4px; border: 1px solid #E5E7EB; background: #fff; color: #6B7280; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
-  .b34-bulk-bar { background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 8px; padding: 10px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; transition: opacity 0.2s ease, max-height 0.3s ease, margin 0.3s ease, padding 0.3s ease; overflow: hidden; }
+  .b34-bulk-bar { background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 8px; padding: 12px 16px; margin-top: 12px; display: flex; align-items: center; justify-content: space-between; transition: opacity 0.2s ease, max-height 0.3s ease, margin 0.3s ease, padding 0.3s ease; overflow: hidden; }
   .b34-bulk-bar.dismissed { opacity: 0; max-height: 0; margin: 0; padding: 0; border: none; }
   .b34-bulk-bar span { font-size: 13px; color: #16a34a; font-weight: 500; }
   .b34-bulk-bar button { padding: 5px 14px; border: none; border-radius: 5px; background: #16a34a; color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font-body, 'DM Sans', sans-serif); }
   .b34-bulk-bar button:hover { background: #15803d; }
   .b34-bulk-bar button.b34-bulk-preview { background: transparent; border: 1px solid #16a34a; color: #16a34a; font-weight: 500; }
   .b34-bulk-bar button.b34-bulk-preview:hover { background: #dcfce7; }
-  .b34-banner { border-radius: 12px; padding: 14px 16px 14px 0; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; transition: opacity 0.2s ease, max-height 0.3s ease, margin 0.3s ease, padding 0.3s ease; overflow: hidden; }
-  .b34-banner.info { background: #EFF6FF; border: 1px solid #BFDBFE; }
+  .b34-banner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; transition: opacity 0.2s ease, max-height 0.3s ease; overflow: hidden; }
+  .b34-banner.info { background: transparent; border: none; }
   .b34-banner.dismissed { opacity: 0; max-height: 0; margin: 0; padding: 0; border: none; }
   .b34-banner-text { font-size: 14px; font-weight: 500; color: #1A1A1A; flex: 1; }
   .b34-banner-dismiss { background: none; border: none; font-size: 13px; color: #6B7280; cursor: pointer; padding: 2px 4px; line-height: 1; flex-shrink: 0; transition: color 0.15s; }
@@ -13746,7 +13746,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   .mv-doc-line.highlighted { background: #FEF3C7; border-left: 3px solid #D97706; padding-left: 5px; }
 
   /* ═══ Day 11: Confidence Legend ═══ */
-  .conf-legend { display: flex; gap: 0; margin-bottom: 20px; border: 1px solid #e5e5e3; border-radius: 8px; overflow: hidden; }
+  .conf-legend { display: flex; gap: 0; }
   .conf-legend-item { flex: 1; padding: 12px 16px; border-right: 1px solid #e5e5e3; }
   .conf-legend-item:last-child { border-right: none; }
   .conf-legend-top { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
@@ -13825,7 +13825,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   .sp-val-status.sp-u { color: #D97706; }
 
   /* --- Build 32: Matter View Redesign --- */
-  .matter-header { padding: 20px 32px 0; background: #fff; border-bottom: 1px solid #E5E7EB; }
+  .matter-header { background: #fff; border: 1px solid #e5e5e3; border-radius: 10px; padding: 20px 24px 0; flex-shrink: 0; margin-bottom: 16px; }
   .matter-header-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; }
   .matter-back { font-size: 13px; color: #6B7280; cursor: pointer; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
   .matter-back:hover { color: #2563EB; }
@@ -13849,7 +13849,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   .metric-bar-fill.danger { background: #DC2626; }
   .metric-bar-fill.warning { background: #D97706; }
   .metric-bar-fill.success { background: #16a34a; }
-  .matter-body { flex: 1; display: flex; overflow: hidden; }
+  .matter-body { flex: 1; display: flex; overflow: hidden; background: transparent; }
   .mv-doc-panel { width: 240px; min-width: 240px; background: #fff; border-right: 1px solid #E5E7EB; display: flex; flex-direction: column; overflow: hidden; }
   .mv-doc-panel-header { padding: 16px 16px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #F3F4F6; flex-shrink: 0; }
   .mv-doc-panel-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6B7280; }
@@ -13868,9 +13868,9 @@ const WIKI_HTML = `<!DOCTYPE html>
   .mv-doc-panel-footer { padding: 12px 16px; border-top: 1px dashed #E5E7EB; flex-shrink: 0; }
   .mv-doc-upload-btn { width: 100%; padding: 8px; text-align: center; font-size: 13px; color: #2563EB; cursor: pointer; border-radius: 6px; transition: background 0.15s; }
   .mv-doc-upload-btn:hover { background: #EFF6FF; }
-  .mv-center-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; padding: 0; margin: 0; width: 100%; }
-  .mv-tab-bar { display: flex; border-bottom: none; background: transparent; flex-shrink: 0; padding: 0; }
-  .mv-tab { padding: 10px 20px; font-size: 14px; font-weight: 500; color: #6B7280; cursor: pointer; position: relative; display: flex; align-items: center; gap: 6px; transition: color 0.15s; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .mv-center-panel { flex: 1; overflow-y: auto; min-width: 0; padding: 0; margin: 0; }
+  .mv-tab-bar { display: flex; gap: 0; background: transparent; flex-shrink: 0; padding: 0; }
+  .mv-tab { padding: 10px 20px; font-size: 14px; font-weight: 500; color: #6B7280; cursor: pointer; position: relative; display: flex; align-items: center; gap: 6px; transition: color 0.15s; border-bottom: 2px solid transparent; }
   .mv-tab:first-child { padding-left: 0; }
   .mv-tab:hover { color: #1A1A1A; }
   .mv-tab.active { color: #1A1A1A; font-weight: 600; border-bottom-color: #1a1a1a; }
@@ -13878,8 +13878,10 @@ const WIKI_HTML = `<!DOCTYPE html>
   .mv-tab.active .mv-tab-badge { background: #1a1a1a; color: #fff; }
   .mv-tab-badge.neutral { background: #F3F4F6; color: #6B7280; }
   .mv-tab-badge.danger { background: #DC2626; color: #fff; }
-  .mv-tab-content { flex: 1; overflow-y: auto; padding: 24px 32px 0; }
+  .mv-tab-content { padding: 0; }
   .mv-tab-content.hidden { display: none; }
+  .mv-card { background: #fff; border: 1px solid #e5e5e3; border-radius: 10px; margin-bottom: 16px; overflow: hidden; }
+  .mv-card-padded { padding: 20px 24px; }
   .mv-doc-viewer { width: 420px; min-width: 420px; background: #fff; border-left: 1px solid #E5E7EB; display: flex; flex-direction: column; overflow: hidden; transition: width 300ms ease-in-out, min-width 300ms ease-in-out, opacity 200ms ease; }
   .mv-doc-viewer.hidden { width: 0; min-width: 0; opacity: 0; border: none; overflow: hidden; }
   .mv-doc-viewer-header { padding: 16px 20px; border-bottom: 1px solid #F3F4F6; flex-shrink: 0; display: flex; align-items: flex-start; justify-content: space-between; }
@@ -19192,7 +19194,7 @@ function showProjectDetail(spokeId, tab) {
   renderBreadcrumbs();
 
   var mainEl = document.getElementById('main');
-  var h = '<div id="matterViewContainer" style="display:flex;flex-direction:column;height:calc(100vh - 50px);overflow:hidden;">';
+  var h = '<div id="matterViewContainer" style="display:flex;flex-direction:column;height:calc(100vh - 50px);overflow:hidden;background:#f7f7f5;padding:24px 32px 0;">';
 
   // Hidden file input
   h += '<input type="file" id="matterFileInput" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.json" style="display:none" onchange="handleMatterUpload(event)" />';
@@ -19222,7 +19224,7 @@ function showProjectDetail(spokeId, tab) {
   h += '<div class="matter-body">';
 
   // Center: tabbed content (full width, no left panel)
-  h += '<div class="mv-center-panel" style="flex:1;">';
+  h += '<div class="mv-center-panel">';
   h += '<div id="mvTabKnow" class="mv-tab-content"><div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading...</div></div>';
   h += '<div id="mvTabNeed" class="mv-tab-content hidden"><div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading...</div></div>';
   h += '<div id="mvTabDocuments" class="mv-tab-content hidden"><div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading...</div></div>';
@@ -19233,8 +19235,8 @@ function showProjectDetail(spokeId, tab) {
 
   h += '</div>'; // end matter-body
 
-  // Timeline below body
-  h += '<div id="matterTimeline" style="border-top:1px solid #E5E7EB;flex-shrink:0;"></div>';
+  // Timeline below body (card style)
+  h += '<div id="matterTimeline" style="flex-shrink:0;margin-top:16px;margin-bottom:24px;"></div>';
 
   h += '</div>'; // end matterViewContainer
   mainEl.innerHTML = h;
@@ -20212,10 +20214,13 @@ function _buildDataPanel34() {
     }
   }
 
-  // Confidence Legend — plain language
+  // CARD: Confidence Legend
+  h += '<div class="mv-card">';
   h += _buildConfidenceLegend();
+  h += '</div>';
 
-  // State banner (dismissable)
+  // CARD: Summary + Bulk Verify
+  h += '<div class="mv-card mv-card-padded">';
   h += '<div class="b34-banner info" id="b34SummaryBanner">';
   h += '<span class="b34-banner-text"><strong>' + (s.total - s.missing) + ' fields</strong> extracted. ';
   h += '<span style="color:#059669;">' + s.verified + ' verified</span>, ';
@@ -20224,7 +20229,7 @@ function _buildDataPanel34() {
   h += '<button class="b34-banner-dismiss" onclick="event.stopPropagation();this.parentElement.classList.add(\\'dismissed\\')" title="Dismiss">\u2715</button>';
   h += '</div>';
 
-  // Bulk verify bar (dismissable)
+  // Bulk verify bar (inside same card)
   if (bulkEligible > 0) {
     h += '<div class="b34-bulk-bar" id="b34BulkBanner">';
     h += '<span>\u2713 Bulk Verify: ' + bulkEligible + ' fields have high confidence (\u226580%)</span>';
@@ -20233,11 +20238,13 @@ function _buildDataPanel34() {
     h += '<button onclick="event.stopPropagation();b34BulkVerify()">Verify All ' + bulkEligible + '</button>';
     h += '</div></div>';
   }
+  h += '</div>'; // end summary card
 
-  // Heading
-  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
-  h += '<span style="font-size:13px;font-weight:600;color:#1A1A1A;text-transform:uppercase;letter-spacing:0.05em;">Extracted Data</span>';
-  h += '<span style="font-size:12px;color:#9CA3AF;">' + (s.total - s.missing) + ' of ' + totalFields + ' fields</span>';
+  // CARD: Extracted Data Table
+  h += '<div class="mv-card">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 24px 12px;">';
+  h += '<span style="font-size:12px;font-weight:700;color:#999999;text-transform:uppercase;letter-spacing:0.8px;">Extracted Data</span>';
+  h += '<span style="font-size:12px;color:#999999;font-family:var(--font-mono);">' + (s.total - s.missing) + ' of ' + totalFields + ' fields</span>';
   h += '</div>';
 
   // Column header row
@@ -20330,7 +20337,7 @@ function _buildDataPanel34() {
       h += '<div>';
       if (fSource && fSource.file) {
         var shortFile = fSource.file.length > 18 ? fSource.file.substring(0, 15) + '...' : fSource.file;
-        h += '<span class="b34-source-link" onclick="event.stopPropagation();b34OpenSource(\\'' + esc(fSource.file) + '\\',' + (fSource.line || 0) + ')">' + esc(shortFile) + '</span>';
+        h += '<a class="b34-source-link" href="#" onclick="event.preventDefault();event.stopPropagation();b34OpenSource(\\'' + esc(fSource.file) + '\\',' + (fSource.line || 0) + ')" title="' + esc(fSource.file) + '">' + esc(shortFile) + '</a>';
       } else if (fStatus !== 'missing') {
         h += '<span class="b34-source-none">No source</span>';
       }
@@ -20366,6 +20373,7 @@ function _buildDataPanel34() {
     h += '</div>'; // end entity section
   }
 
+  h += '</div>'; // end data table card
   return h;
 }
 
@@ -20894,16 +20902,15 @@ function _buildDocumentsTab35() {
   var docs = _demoData.documents;
   var h = '';
 
-  // Header
-  h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">';
+  // CARD: Document table
+  h += '<div class="mv-card">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 24px 12px;">';
   h += '<div>';
   h += '<div style="font-size:15px;font-weight:600;color:#1A1A1A;">Documents</div>';
-  h += '<div style="font-size:13px;color:#6B7280;">' + docs.length + ' documents uploaded for Acme Consulting LLC</div>';
+  h += '<div style="font-size:13px;color:#6B7280;">' + docs.length + ' documents uploaded</div>';
   h += '</div>';
   h += '<button onclick="document.getElementById(\\'matterFileInput\\').click()" style="padding:8px 16px;border:1px solid #2563EB;border-radius:8px;background:#fff;color:#2563EB;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;font-family:var(--font-sans);">\u2191 Upload</button>';
   h += '</div>';
-
-  // Document table
   h += '<table class="b35-doc-table">';
   h += '<thead><tr>';
   h += '<th class="col-doc">Document</th>';
@@ -20927,6 +20934,7 @@ function _buildDocumentsTab35() {
     h += '</tr>';
   }
   h += '</tbody></table>';
+  h += '</div>'; // end document table card
 
   // Upload zone
   h += '<div class="b35-upload-zone" id="b35UploadZone" onclick="document.getElementById(\\'matterFileInput\\').click()">';
@@ -21815,8 +21823,8 @@ function _buildTimelineCollapsible(eventsData) {
   var events = eventsData ? eventsData.events || [] : [];
   var h = '';
 
-  h += '<div style="border:1px solid #E5E7EB;border-radius:12px;overflow:hidden;">';
-  h += '<div onclick="toggleMatterTimeline()" style="display:flex;justify-content:space-between;align-items:center;padding:14px 20px;cursor:pointer;background:#F9FAFB;transition:background 0.15s;" onmouseover="this.style.background=\\'#F3F4F6\\'" onmouseout="this.style.background=\\'#F9FAFB\\'">';
+  h += '<div style="border:1px solid #e5e5e3;border-radius:10px;overflow:hidden;background:#fff;">';
+  h += '<div onclick="toggleMatterTimeline()" style="display:flex;justify-content:space-between;align-items:center;padding:10px 24px;cursor:pointer;background:#fff;transition:background 0.15s;" onmouseover="this.style.background=\\'#fafaf8\\'" onmouseout="this.style.background=\\'#fff\\'">';
   h += '<div style="display:flex;align-items:center;gap:8px;">';
   h += '<svg viewBox="0 0 24 24" fill="none" stroke="#6B7280" stroke-width="2" style="width:16px;height:16px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
   h += '<span style="font-size:13px;font-weight:600;color:#1A1A1A;text-transform:uppercase;letter-spacing:0.05em;">Timeline</span>';
