@@ -11620,6 +11620,7 @@ const WIKI_HTML = `<!DOCTYPE html>
     background: var(--bg-primary);
     border-right: 1px solid var(--border-primary);
     flex-shrink: 0;
+    position: relative;
     transition: width 0.3s ease, min-width 0.3s ease, max-width 0.3s ease;
   }
   #sidebar * { white-space: nowrap; }
@@ -11632,24 +11633,47 @@ const WIKI_HTML = `<!DOCTYPE html>
     overflow: hidden !important;
   }
 
-  /* Hide all text labels in collapsed state */
+  /* ── NUCLEAR TEXT HIDE: zero out font-size on all text containers ── */
+  #sidebar.collapsed .sb-nav-item,
+  #sidebar.collapsed .sb-client-item,
+  #sidebar.collapsed .sb-template-item,
+  #sidebar.collapsed .sb-add-btn,
+  #sidebar.collapsed .sb-see-more,
+  #sidebar.collapsed .sidebar-utility-link,
+  #sidebar.collapsed .sidebar-bottom {
+    font-size: 0 !important;
+    color: transparent !important;
+    gap: 0 !important;
+  }
+
+  /* Restore icon sizes inside zeroed containers */
+  #sidebar.collapsed .sb-nav-item svg,
+  #sidebar.collapsed .sb-template-item svg,
+  #sidebar.collapsed .sb-add-btn svg,
+  #sidebar.collapsed .sidebar-utility-link svg {
+    width: 16px; height: 16px;
+  }
+  #sidebar.collapsed .sidebar-utility-link svg { width: 20px; height: 20px; }
+
+  /* Completely hide elements that are pure text or not needed */
   #sidebar.collapsed .brand-text,
   #sidebar.collapsed .sb-section-label,
   #sidebar.collapsed .sb-client-name,
   #sidebar.collapsed .sb-client-meta,
-  #sidebar.collapsed .sb-add-btn span:not(svg),
-  #sidebar.collapsed .sidebar-utility-link span,
   #sidebar.collapsed .sidebar-bottom-name,
   #sidebar.collapsed .sidebar-bottom-actions,
   #sidebar.collapsed #sidebarSearchPanel,
-  #sidebar.collapsed #spokeSelector {
+  #sidebar.collapsed #spokeSelector,
+  #sidebar.collapsed #entityList,
+  #sidebar.collapsed .sb-see-more,
+  #sidebar.collapsed .review-queue-badge {
     display: none !important;
   }
 
   /* Center brand icon in rail */
   #sidebar.collapsed .sidebar-brand {
     justify-content: center;
-    padding: 20px 0 16px;
+    padding: 16px 0;
   }
 
   /* Center utility icons in rail */
@@ -11665,36 +11689,67 @@ const WIKI_HTML = `<!DOCTYPE html>
     justify-content: center;
   }
 
-  /* Center nav items (About, Career, etc.) */
+  /* Center nav items — icon only */
   #sidebar.collapsed .sb-nav-item {
     justify-content: center;
-    padding: 8px 0;
+    padding: 10px 0;
+    border-left-color: transparent !important;
   }
   #sidebar.collapsed .sb-nav-item svg { margin: 0; }
 
-  /* Center client items — show dot only */
+  /* Hide client items entirely — no meaningful icon to show */
   #sidebar.collapsed .sb-client-item {
-    justify-content: center;
-    padding: 8px 0;
+    display: none !important;
   }
 
-  /* Center template items */
+  /* Hide template items entirely — no meaningful icon to show */
   #sidebar.collapsed .sb-template-item {
-    justify-content: center;
-    padding: 8px 0;
+    display: none !important;
   }
-  #sidebar.collapsed .sb-template-item svg { margin: 0; }
 
-  /* Center add buttons — icon only */
+  /* Hide add buttons entirely */
   #sidebar.collapsed .sb-add-btn {
-    justify-content: center;
-    padding: 8px 0;
+    display: none !important;
   }
 
   /* Center footer avatar */
   #sidebar.collapsed .sidebar-bottom {
     justify-content: center;
     padding: 12px 0;
+  }
+  #sidebar.collapsed .sidebar-bottom-avatar {
+    font-size: 0.55rem !important;
+    color: white !important;
+  }
+
+  /* Expand button — hidden normally, shown when collapsed */
+  #sidebarExpandBtn {
+    display: none;
+    position: absolute;
+    top: 12px;
+    right: 4px;
+    width: 24px;
+    height: 24px;
+    border: 1px solid #E5E7EB;
+    background: #FFFFFF;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #6B7280;
+    cursor: pointer;
+    z-index: 10;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    padding: 0;
+    line-height: 1;
+  }
+  #sidebarExpandBtn:hover {
+    background: #F3F4F6;
+    color: #1A1A1A;
+    border-color: #2563EB;
+  }
+  #sidebar.collapsed #sidebarExpandBtn {
+    display: flex;
   }
 
   /* --- Sidebar Brand --- */
@@ -15462,6 +15517,7 @@ const WIKI_HTML = `<!DOCTYPE html>
 <!-- App -->
 <div id="app">
   <div id="sidebar">
+    <button id="sidebarExpandBtn" onclick="document.getElementById('sidebar').classList.remove('collapsed')" title="Expand sidebar">&#x203A;</button>
     <!-- Brand -->
     <div class="sidebar-brand">
       <div class="brand-icon">CA</div>
