@@ -11868,6 +11868,29 @@ const WIKI_HTML = `<!DOCTYPE html>
   .sb-add-btn:hover { background: rgba(10,102,194,0.06); }
   .sb-add-btn svg { width: 14px; height: 14px; }
 
+  /* --- Client Groups (Day 14: collapsible) --- */
+  .sb-client-group { margin-bottom: 2px; }
+  .sb-client-parent { position: relative; font-weight: 500; padding-right: 28px !important; }
+  .sb-chevron { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: #8a8983; transition: transform 0.2s; flex-shrink: 0; }
+  .sb-chevron.collapsed { transform: translateY(-50%) rotate(-90deg); }
+  .sb-client-children { overflow: hidden; max-height: 200px; transition: max-height 0.25s ease, opacity 0.2s; opacity: 1; }
+  .sb-client-children.collapsed { max-height: 0; opacity: 0; }
+  .sb-child { padding-left: 34px !important; font-size: 12px !important; color: #8a8983 !important; }
+  .sb-child:hover { color: #1a1917 !important; }
+  .sb-child .sb-child-count { margin-left: auto; font-size: 10px; font-family: var(--font-mono, 'JetBrains Mono', monospace); color: #8a8983; background: #f0f0ee; padding: 0 6px; border-radius: 3px; }
+  .sb-add-client { color: #2563EB !important; font-size: 12px !important; font-weight: 500; margin-top: 2px; }
+
+  /* --- "via Clio" Source Badge --- */
+  .sb-source-badge { font-size: 9px; font-weight: 600; text-transform: none; letter-spacing: 0.2px; color: #059669; background: #ecfdf5; padding: 1px 7px; border-radius: 3px; margin-left: 6px; display: inline-flex; align-items: center; gap: 4px; vertical-align: middle; }
+  .sb-connected-dot { width: 5px; height: 5px; border-radius: 50%; background: #059669; display: inline-block; animation: pulse-dot 2s ease-in-out infinite; }
+  @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  /* --- Connector Items --- */
+  .sb-connector { position: relative; padding-right: 28px !important; }
+  .sb-connector-status { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); width: 7px; height: 7px; border-radius: 50%; }
+  .sb-connector-status.connected { background: #059669; }
+  .sb-connector-status.disconnected { background: none; border: 1.5px solid #8a8983; }
+
   /* --- Context-Sensitive Right Panel (Build 8) --- */
   .rp-section-title {
     font-size: 13px; font-weight: 700; text-transform: uppercase;
@@ -15609,6 +15632,8 @@ document.addEventListener('click', function(e) {
     if (nav) {
       if (nav === 'formfill') {
         showFormFill();
+      } else if (nav === 'templates_hub') {
+        showTemplatesHub();
       } else if (nav === 'overview' || nav === 'career') {
         selectView(nav);
       } else if (nav === 'family' || nav === 'friends') {
@@ -15633,6 +15658,13 @@ function toggleSidebarCollapse() {
   } else {
     btn.title = 'Collapse sidebar';
   }
+}
+
+function toggleClientExpand(id) {
+  var children = document.getElementById('children-' + id);
+  var chev = document.getElementById('chev-' + id);
+  if (children) children.classList.toggle('collapsed');
+  if (chev) chev.classList.toggle('collapsed');
 }
 
 function toggleSidebarSearch() {
@@ -18567,89 +18599,75 @@ function renderSidebar() {
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>';
   html += 'Affiliations</div>';
 
-  // ── TOOLS section (Build 31) ──
+  // ── CLIENTS section (Day 14: collapsible with "via Clio" badge) ──
+  var clientSpokes = _spokesList.filter(function(s) { return s.id !== 'default'; });
+  html += '<div class="sb-section-label">Clients <span class="sb-source-badge">via Clio <span class="sb-connected-dot"></span></span></div>';
+  for (var ci = 0; ci < clientSpokes.length; ci++) {
+    var cs = clientSpokes[ci];
+    var isActive = (_selectedSpoke === cs.id);
+    var dotColor = '#d1d5db';
+    if (cs._hasTemplate) {
+      if (cs._completeness >= 0.8) dotColor = '#059669';
+      else if (cs._completeness >= 0.5) dotColor = '#CA8A04';
+      else dotColor = '#DC2626';
+    }
+    var cid = 'c' + ci;
+    html += '<div class="sb-client-group">';
+    html += '<div class="sb-client-item sb-client-parent' + (isActive ? ' active' : '') + '" onclick="selectClient(\\'' + esc(cs.id) + '\\')">';
+    html += '<span class="client-dot" style="background:' + dotColor + ';"></span>';
+    html += '<span class="sb-client-name">' + esc(cs.name) + '</span>';
+    html += '<svg class="sb-chevron" id="chev-' + cid + '" onclick="event.stopPropagation();toggleClientExpand(\\'' + cid + '\\')" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>';
+    html += '</div>';
+    // Child matters (placeholder — real matters from spoke data)
+    html += '<div class="sb-client-children" id="children-' + cid + '">';
+    if (cs._matters && cs._matters.length > 0) {
+      for (var mi = 0; mi < cs._matters.length; mi++) {
+        var m = cs._matters[mi];
+        html += '<div class="sb-client-item sb-child" onclick="event.stopPropagation();selectClient(\\'' + esc(cs.id) + '\\')">';
+        html += esc(m.name || 'Matter ' + (mi + 1));
+        html += '<span class="sb-child-count">' + (m.count || 0) + '</span>';
+        html += '</div>';
+      }
+    } else {
+      // Show entity count as single child
+      html += '<div class="sb-client-item sb-child" onclick="event.stopPropagation();selectClient(\\'' + esc(cs.id) + '\\')">';
+      html += 'All Fields';
+      html += '<span class="sb-child-count">' + (cs.entity_count || 0) + '</span>';
+      html += '</div>';
+    }
+    html += '</div>'; // end children
+    html += '</div>'; // end group
+  }
+  // + New Client button
+  html += '<div class="sb-add-btn sb-add-client" onclick="promptNewClient()">';
+  html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+  html += '+ New Client</div>';
+
+  // ── TOOLS section ──
   html += '<div class="sb-section-label">Tools</div>';
   var ffActive = (selectedView === 'formfill');
   html += '<div class="sb-nav-item' + (ffActive ? ' active' : '') + '" data-nav="formfill">';
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>';
   html += 'FormFill</div>';
+  var tplHubActive = (selectedView === 'templates_hub');
+  html += '<div class="sb-nav-item' + (tplHubActive ? ' active' : '') + '" data-nav="templates_hub">';
+  html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
+  html += 'Templates</div>';
 
-  // ── CLIENTS section ──
-  var clientSpokes = _spokesList.filter(function(s) { return s.id !== 'default'; });
-  if (clientSpokes.length > 0 || true) { // Always show CLIENTS header
-    html += '<div class="sb-section-label">Clients</div>';
-    for (var ci = 0; ci < clientSpokes.length; ci++) {
-      var cs = clientSpokes[ci];
-      var isActive = (_selectedSpoke === cs.id);
-      var dotClass = 'gray';
-      if (cs._hasTemplate) {
-        if (cs._completeness >= 0.8) dotClass = 'green';
-        else if (cs._completeness >= 0.5) dotClass = 'yellow';
-        else dotClass = 'red';
-      }
-      html += '<div class="sb-client-item' + (isActive ? ' active' : '') + '" onclick="selectClient(\\'' + esc(cs.id) + '\\')">';
-      html += '<span class="sb-client-name">' + esc(cs.name) + '</span>';
-      html += '<span class="sb-client-meta">';
-      html += '<span class="sb-client-count">' + (cs.entity_count || 0) + '</span>';
-      html += '<span class="sb-client-dot ' + dotClass + '" title="' + (cs._hasTemplate ? Math.round((cs._completeness || 0) * 100) + '% complete' : 'No template') + '"></span>';
-      html += '</span>';
-      html += '</div>';
-    }
-    // + New Client button
-    html += '<div class="sb-add-btn" onclick="promptNewClient()">';
-    html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
-    html += 'New Client</div>';
-  }
-
-  // ── TEMPLATES section ──
-  html += '<div class="sb-section-label">Templates</div>';
-  if (_templatesList && _templatesList.length > 0) {
-    for (var ti = 0; ti < _templatesList.length; ti++) {
-      var tpl = _templatesList[ti];
-      var tplActive = (selectedView === 'template_detail' && window._selectedTemplate === tpl.id);
-      html += '<div class="sb-template-item' + (tplActive ? ' active' : '') + '" onclick="showTemplateDetail(\\'' + esc(tpl.id) + '\\')">';
-      html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
-      html += esc(tpl.label) + '</div>';
-    }
-  }
-  html += '<div class="sb-add-btn" onclick="showNewTemplateModal()">';
-  html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
-  html += 'New Template</div>';
-
-  // ── PROJECTS section ──
-  var allProjects = [].concat(data.projects.active || [], data.projects.rnd || [], data.projects.archive || []);
-  html += '<div class="sb-section-label">Projects</div>';
-
-  // + New Project
-  html += '<div class="sb-nav-item add-item" onclick="toast(\\'Project creation coming soon\\');">';
-  html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
-  html += 'New Project</div>';
-
-  var showMax = _sbProjectsExpanded ? allProjects.length : 5;
-  for (var i = 0; i < Math.min(showMax, allProjects.length); i++) {
-    var p = allProjects[i];
-    var pActive = (p.entity_id === selectedId && selectedView === null);
-    html += '<div class="sb-nav-item' + (pActive ? ' active' : '') + '" onclick="selectEntity(\\'' + esc(p.entity_id) + '\\')">';
-    html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>';
-    html += esc(p.name) + '</div>';
-  }
-  if (!_sbProjectsExpanded && allProjects.length > 5) {
-    html += '<div class="sb-see-more" onclick="_sbProjectsExpanded=true;renderSidebar();">... see ' + (allProjects.length - 5) + ' more</div>';
-  }
-
-  // ── RECENT section ──
-  if (recentEntities.length > 0) {
-    html += '<div class="sb-section-label">Recent</div>';
-    var recentMax = Math.min(recentEntities.length, 8);
-    for (var i = 0; i < recentMax; i++) {
-      var r = recentEntities[i];
-      var initials = (r.name || '').split(/\s+/).map(function(w) { return w ? w[0] : ''; }).join('').toUpperCase().slice(0, 2);
-      html += '<div class="sb-recent-item" onclick="selectEntity(\\'' + esc(r.id) + '\\')">';
-      html += '<div class="sb-recent-avatar">' + esc(initials) + '</div>';
-      html += '<span>' + esc(r.name) + '</span>';
-      html += '</div>';
-    }
-  }
+  // ── CONNECTORS section (Day 14) ──
+  html += '<div class="sb-section-label">Connectors</div>';
+  html += '<div class="sb-nav-item sb-connector" onclick="toast(\\'Clio integration active\\')">';
+  html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>';
+  html += 'Clio<span class="sb-connector-status connected"></span></div>';
+  html += '<div class="sb-nav-item sb-connector" onclick="toast(\\'Google Drive connected\\')">';
+  html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>';
+  html += 'Google Drive<span class="sb-connector-status connected"></span></div>';
+  html += '<div class="sb-nav-item sb-connector" onclick="toast(\\'QuickBooks not connected\\')">';
+  html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>';
+  html += 'QuickBooks<span class="sb-connector-status disconnected"></span></div>';
+  html += '<div class="sb-add-btn" onclick="toast(\\'Add Connector coming soon\\')">';
+  html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+  html += '+ Add Connector</div>';
 
   document.getElementById('entityList').innerHTML = html || '<div style="padding:16px;color:#3a3a4a;font-size:0.82rem;">No entities found</div>';
 }
@@ -25841,6 +25859,424 @@ function ffRenderUpload() {
   document.getElementById('main').innerHTML = h;
   // Wire dropzones
   setTimeout(function() { ffSetupDropzones(); }, 50);
+}
+
+// ═══════════════════════════════════════════
+// TEMPLATES HUB (Day 14)
+// ═══════════════════════════════════════════
+var _thTemplates = [
+  {id:1,name:"Articles of Incorporation / Organization",cat:"identity",zone:"identity",icon:"\u{1F4DC}",fields:8,desc:"Entity name, state of formation, registered agent, incorporator, share structure."},
+  {id:2,name:"Operating Agreement / Corporate Bylaws",cat:"identity",zone:"identity",icon:"\u{1F4CB}",fields:12,desc:"Member roles, ownership percentages, distribution rules, governance provisions."},
+  {id:3,name:"SS-4 (EIN Application)",cat:"identity",zone:"identity",icon:"\u{1F4DD}",fields:6,desc:"Legal name, trade name, responsible party, entity type, reason for applying."},
+  {id:4,name:"CP 575 (IRS EIN Confirmation)",cat:"identity",zone:"identity",icon:"\u{1F3DB}",fields:5,desc:"Employer Identification Number, legal name, responsible party confirmation."},
+  {id:5,name:"Business Licenses / Professional Permits",cat:"identity",zone:"identity",icon:"\u{1FAAA}",fields:7,desc:"License type, issuing authority, expiration date, business activity codes."},
+  {id:6,name:"DBA (Doing Business As) Certificate",cat:"identity",zone:"identity",icon:"\u{1F4CE}",fields:4,desc:"Fictitious business name, owner information, county of registration."},
+  {id:7,name:"Certificate of Good Standing",cat:"identity",zone:"identity",icon:"\u2705",fields:4,desc:"Entity name, state confirmation, date of formation, status verification."},
+  {id:8,name:"Stock Ledger / Cap Table",cat:"identity",zone:"identity",icon:"\u{1F4CA}",fields:10,desc:"Shareholder names, share classes, ownership percentages, vesting schedules."},
+  {id:9,name:"Partnership Agreement",cat:"identity",zone:"identity",icon:"\u{1F91D}",fields:14,desc:"Partner names, capital contributions, profit/loss sharing, duties, dissolution terms."},
+  {id:10,name:"Buy-Sell Agreement",cat:"identity",zone:"identity",icon:"\u{1F504}",fields:11,desc:"Triggering events, valuation method, funding mechanism, transfer restrictions."},
+  {id:11,name:"S-Corp Election (Form 2553)",cat:"identity",zone:"identity",icon:"\u{1F4D1}",fields:8,desc:"Entity info, election effective date, shareholder consent, tax year selection."},
+  {id:12,name:"Previous Year Tax Returns",cat:"identity",zone:"identity",icon:"\u{1F4C1}",fields:20,desc:"Prior year 1120/1120-S/1065 returns for carry-forward data and comparatives."},
+  {id:13,name:"Owner ID (Driver License / Passport)",cat:"identity",zone:"identity",icon:"\u{1FAAA}",fields:6,desc:"Full legal name, DOB, ID number, issuing authority - KYC/AML compliance."},
+  {id:14,name:"Lease Agreements",cat:"identity",zone:"identity",icon:"\u{1F3E0}",fields:8,desc:"Property address, lease terms, monthly rent, landlord info - address verification."},
+  {id:15,name:"Franchise Agreement",cat:"identity",zone:"identity",icon:"\u{1F3EA}",fields:9,desc:"Franchisor/franchisee info, territory, fees, term length, renewal provisions."},
+  {id:16,name:"Profit & Loss (P&L) Statement",cat:"transactional",zone:"input",icon:"\u{1F4CA}",fields:15,desc:"Revenue, COGS, operating expenses, net income, period comparisons."},
+  {id:17,name:"Balance Sheet",cat:"transactional",zone:"input",icon:"\u{1F4C8}",fields:12,desc:"Total assets, liabilities, owner equity, current vs. long-term classification."},
+  {id:18,name:"General Ledger (GL)",cat:"transactional",zone:"input",icon:"\u{1F4D2}",fields:8,desc:"Account codes, journal entries, debits/credits, running balances."},
+  {id:19,name:"Bank Statements (12 months)",cat:"transactional",zone:"input",icon:"\u{1F3E6}",fields:6,desc:"Account number, transaction dates, amounts, running balance, bank name."},
+  {id:20,name:"Credit Card Statements (Business)",cat:"transactional",zone:"input",icon:"\u{1F4B3}",fields:6,desc:"Card details, merchant names, amounts, dates, payment history."},
+  {id:21,name:"Form W-2 (Wage & Tax Statement)",cat:"transactional",zone:"input",icon:"\u{1F4DD}",fields:16,desc:"Employee wages, federal/state tax withheld, Social Security, Medicare, benefits."},
+  {id:22,name:"Form 1099-NEC",cat:"transactional",zone:"input",icon:"\u{1F4C4}",fields:6,desc:"Payer info, recipient info, nonemployee compensation, federal tax withheld."},
+  {id:23,name:"Form 1099-MISC",cat:"transactional",zone:"input",icon:"\u{1F4C4}",fields:8,desc:"Rents, royalties, other income, fishing boat proceeds, attorney payments."},
+  {id:24,name:"Form 1099-K",cat:"transactional",zone:"input",icon:"\u{1F4B0}",fields:6,desc:"Payment card/third-party network transactions, gross amount."},
+  {id:25,name:"Form 1099-INT / DIV",cat:"transactional",zone:"input",icon:"\u{1F4B5}",fields:7,desc:"Interest income, dividends, capital gains distributions, foreign tax paid."},
+  {id:26,name:"Form 1098 (Mortgage Interest)",cat:"transactional",zone:"input",icon:"\u{1F3E1}",fields:6,desc:"Mortgage interest received, outstanding balance, points paid, property taxes."},
+  {id:27,name:"Payroll Summaries / ADP Reports",cat:"transactional",zone:"input",icon:"\u{1F465}",fields:10,desc:"Employee counts, gross wages, tax deposits, benefits deductions, net pay."},
+  {id:28,name:"Sales Tax Reports",cat:"transactional",zone:"input",icon:"\u{1F9FE}",fields:6,desc:"Taxable sales, exempt sales, tax collected, filing period, jurisdiction."},
+  {id:29,name:"Invoice Logs / AR Aging Reports",cat:"transactional",zone:"input",icon:"\u{1F4CB}",fields:7,desc:"Customer names, invoice amounts, dates, aging buckets (30/60/90), totals."},
+  {id:30,name:"Canceled Checks",cat:"transactional",zone:"input",icon:"\u2709",fields:4,desc:"Payee, amount, date, memo/purpose - payment verification."},
+  {id:31,name:"Receipts (Meals/Travel)",cat:"transactional",zone:"input",icon:"\u{1F9FE}",fields:5,desc:"Vendor, amount, date, business purpose, attendees for meals."},
+  {id:32,name:"Form 1098-E (Student Loan Interest)",cat:"transactional",zone:"input",icon:"\u{1F393}",fields:4,desc:"Lender info, interest paid, loan origination date."},
+  {id:33,name:"Grant Award Letters",cat:"transactional",zone:"input",icon:"\u{1F3C5}",fields:5,desc:"Granting organization, amount, purpose, restrictions, reporting requirements."},
+  {id:34,name:"Loan Agreements / Promissory Notes",cat:"transactional",zone:"input",icon:"\u{1F4C3}",fields:8,desc:"Lender/borrower, principal, interest rate, term, collateral, payment schedule."},
+  {id:35,name:"Schedule K-1 (From Other Partnerships)",cat:"transactional",zone:"input",icon:"\u{1F4CA}",fields:28,desc:"Partner share of income, deductions, credits from another entity."},
+  {id:36,name:"Closing Disclosure (HUD-1)",cat:"transactional",zone:"input",icon:"\u{1F3E0}",fields:12,desc:"Purchase price, loan terms, closing costs, prorations, settlement charges."},
+  {id:37,name:"Vehicle Mileage Logs",cat:"transactional",zone:"input",icon:"\u{1F697}",fields:5,desc:"Date, destination, business purpose, miles driven, odometer readings."},
+  {id:38,name:"Home Office Utility Bills",cat:"transactional",zone:"input",icon:"\u{1F4A1}",fields:4,desc:"Utility type, monthly amounts, service address, account holder."},
+  {id:39,name:"Inventory Valuation Reports",cat:"transactional",zone:"input",icon:"\u{1F4E6}",fields:6,desc:"SKU/item, quantity, unit cost, valuation method (FIFO/LIFO), total value."},
+  {id:40,name:"Depreciation Schedules (4562 Input)",cat:"transactional",zone:"input",icon:"\u{1F4C9}",fields:8,desc:"Asset description, date placed in service, cost basis, method, annual deduction."},
+  {id:41,name:"Health Insurance Premium Statements",cat:"transactional",zone:"input",icon:"\u{1F3E5}",fields:5,desc:"Plan type, monthly premium, employer contribution, coverage period."},
+  {id:42,name:"Retirement Plan Contributions (401k/SEP)",cat:"transactional",zone:"input",icon:"\u{1F3E6}",fields:5,desc:"Plan type, contribution amount, employer match, vesting schedule."},
+  {id:43,name:"Charitable Contribution Letters",cat:"transactional",zone:"input",icon:"\u2764",fields:5,desc:"Organization name, donation date, amount, goods/services received."},
+  {id:44,name:"Legal Settlement Agreements",cat:"transactional",zone:"input",icon:"\u2696",fields:7,desc:"Parties, settlement amount, allocation, tax treatment, release terms."},
+  {id:45,name:"Independent Contractor Agreements",cat:"transactional",zone:"input",icon:"\u{1F4CB}",fields:8,desc:"Contractor name, scope, compensation, term, IP ownership, termination."},
+  {id:46,name:"Foreign Bank Account Records (FBAR)",cat:"transactional",zone:"input",icon:"\u{1F30D}",fields:6,desc:"Bank name, country, account number, max value, account type."},
+  {id:47,name:"Worker Comp Insurance Audit Reports",cat:"transactional",zone:"input",icon:"\u{1F6E1}",fields:5,desc:"Payroll by class code, experience modification rate, premium audit."},
+  {id:48,name:"Sales Contracts / Purchase Orders",cat:"transactional",zone:"input",icon:"\u{1F4C4}",fields:7,desc:"Buyer/seller, item description, quantity, unit price, delivery terms."},
+  {id:49,name:"Property Tax Assessments",cat:"transactional",zone:"input",icon:"\u{1F3D8}",fields:5,desc:"Property ID, assessed value, tax rate, annual tax, jurisdiction."},
+  {id:50,name:"Fixed Asset Registry",cat:"transactional",zone:"input",icon:"\u{1F5C4}",fields:8,desc:"Asset tag, description, location, acquisition date/cost, useful life."},
+  {id:51,name:"Form 1040 (Schedule C)",cat:"income-tax",zone:"output",icon:"\u{1F4D1}",fields:38,desc:"Sole proprietor profit/loss - business income, expenses by category, vehicle use."},
+  {id:52,name:"Form 1065 - Partnership Return",cat:"income-tax",zone:"output",icon:"\u{1F4D1}",fields:45,desc:"Partnership income, deductions, K-1 allocations, partner capital accounts."},
+  {id:53,name:"Form 1120 - C-Corp Return",cat:"income-tax",zone:"output",icon:"\u{1F4D1}",fields:42,desc:"Corporate income, deductions, tax computation, Schedule M-1 reconciliation."},
+  {id:54,name:"Form 1120-S - S-Corp Return",cat:"income-tax",zone:"output",icon:"\u{1F4D1}",fields:42,desc:"S-Corp income, officer compensation, shareholder distributions, K-1 generation."},
+  {id:55,name:"Schedule K-1 (Generated)",cat:"income-tax",zone:"output",icon:"\u{1F4CA}",fields:28,desc:"Shareholder/partner allocations - ordinary income, rental, capital gains, distributions."},
+  {id:56,name:"Form 1040-ES - Estimated Tax",cat:"income-tax",zone:"output",icon:"\u{1F4DD}",fields:8,desc:"Estimated tax computation, quarterly payment vouchers, safe harbor calculations."},
+  {id:57,name:"Form 7004 - Extension Application",cat:"income-tax",zone:"output",icon:"\u{1F4C5}",fields:6,desc:"Entity info, form type, tentative tax, estimated payments, balance due."},
+  {id:58,name:"Form 1139 - NOL Carryback",cat:"income-tax",zone:"output",icon:"\u{1F4C9}",fields:10,desc:"Net operating loss computation, carryback years, refund calculation."},
+  {id:59,name:"Form 4506-T - Transcript Request",cat:"income-tax",zone:"output",icon:"\u{1F4CB}",fields:6,desc:"Taxpayer info, transcript type, tax periods, delivery address."},
+  {id:60,name:"Form 941 - Quarterly Payroll",cat:"payroll",zone:"output",icon:"\u{1F465}",fields:22,desc:"Wages paid, tips, federal income tax withheld, Social Security/Medicare."},
+  {id:61,name:"Form 940 - FUTA",cat:"payroll",zone:"output",icon:"\u{1F3E2}",fields:14,desc:"Federal unemployment tax, total payments, exempt payments, tax deposits."},
+  {id:62,name:"Form 944 - Annual Return (Small)",cat:"payroll",zone:"output",icon:"\u{1F4C4}",fields:12,desc:"Annual version of 941 for small employers under $1,000 annual liability."},
+  {id:63,name:"Form W-3 - W-2 Transmittal",cat:"payroll",zone:"output",icon:"\u{1F4E4}",fields:10,desc:"Summary of all W-2s: total wages, tax withheld, Social Security wages."},
+  {id:64,name:"Form 1096 - 1099 Transmittal",cat:"payroll",zone:"output",icon:"\u{1F4E4}",fields:8,desc:"Summary transmittal for all 1099 forms filed with IRS."},
+  {id:65,name:"Form SS-8 - Worker Status",cat:"payroll",zone:"output",icon:"\u{1F50D}",fields:20,desc:"Worker classification determination - behavioral, financial control, relationship."},
+  {id:66,name:"Form 2848 - Power of Attorney",cat:"compliance",zone:"output",icon:"\u{1F6E1}",fields:14,desc:"Taxpayer info, representative designation, tax matters, years, CAF number."},
+  {id:67,name:"Form 8821 - Tax Info Authorization",cat:"compliance",zone:"output",icon:"\u{1F513}",fields:8,desc:"Authorize IRS to release tax information to designated appointee."},
+  {id:68,name:"BOI Report (FinCEN)",cat:"compliance",zone:"output",icon:"\u{1F3DB}",fields:18,desc:"Beneficial owners, company applicants, reporting company info, ID docs."},
+  {id:69,name:"Annual Report (State Filing)",cat:"compliance",zone:"output",icon:"\u{1F4C5}",fields:9,desc:"Entity name confirmation, principal office, registered agent, officers/directors."},
+  {id:70,name:"Articles of Amendment",cat:"compliance",zone:"output",icon:"\u{1F4DC}",fields:6,desc:"Entity name change, registered agent update, purpose amendment."},
+  {id:71,name:"Form 8832 - Entity Classification",cat:"compliance",zone:"output",icon:"\u{1F4CB}",fields:7,desc:"Check-the-box election - choose entity tax classification."},
+  {id:72,name:"Form 1023 - 501(c)(3) Application",cat:"compliance",zone:"output",icon:"\u{1F3C5}",fields:25,desc:"Non-profit status application - organizational test, activities, financials."},
+  {id:73,name:"Form 990 - Non-Profit Return",cat:"compliance",zone:"output",icon:"\u{1F4CA}",fields:30,desc:"Exempt organization return - revenue, expenses, governance, compensation."},
+  {id:74,name:"Form W-9",cat:"info",zone:"input",icon:"\u{1F4DD}",fields:8,desc:"Name, business name, tax classification, TIN/SSN, address, exemptions."},
+  {id:75,name:"Form W-8BEN - Foreign Status",cat:"info",zone:"input",icon:"\u{1F30D}",fields:10,desc:"Foreign person ID, citizenship country, treaty claims, FTIN."},
+  {id:76,name:"Form 1095-C - Employer Health",cat:"info",zone:"output",icon:"\u{1F3E5}",fields:10,desc:"Health insurance offer/coverage, employee details, coverage months."},
+  {id:77,name:"Form 1094-C - Health Transmittal",cat:"info",zone:"output",icon:"\u{1F4E4}",fields:8,desc:"Aggregate employer-level data transmitting all 1095-C forms."},
+  {id:78,name:"FinCEN Form 114 (FBAR)",cat:"info",zone:"output",icon:"\u{1F310}",fields:12,desc:"Foreign bank account report - account details, max values, signatories."},
+  {id:79,name:"Form 8938 - Foreign Financial Assets",cat:"info",zone:"output",icon:"\u{1F48E}",fields:10,desc:"Specified foreign financial assets exceeding reporting threshold."},
+  {id:80,name:"Form 5471 - Foreign Corp Return",cat:"info",zone:"output",icon:"\u{1F30F}",fields:20,desc:"Information return for U.S. persons with interests in foreign corporations."},
+  {id:81,name:"Form 4562 - Depreciation",cat:"deductions",zone:"output",icon:"\u{1F4C9}",fields:18,desc:"Section 179 deduction, MACRS depreciation, listed property, amortization."},
+  {id:82,name:"Form 8829 - Home Office",cat:"deductions",zone:"output",icon:"\u{1F3E0}",fields:14,desc:"Business use percentage, home expenses, depreciation of home, carryover."},
+  {id:83,name:"Form 3800 - General Business Credit",cat:"deductions",zone:"output",icon:"\u{1F48E}",fields:15,desc:"Summary form for all general business credits - carryforward, carryback."},
+  {id:84,name:"Form 6765 - R&D Credit",cat:"deductions",zone:"output",icon:"\u{1F52C}",fields:16,desc:"Qualified research expenses, basic research, alternative simplified credit."},
+  {id:85,name:"Form 8846 - Tip Tax Credit",cat:"deductions",zone:"output",icon:"\u{1F37D}",fields:8,desc:"Credit for employer Social Security/Medicare taxes on employee tips."},
+  {id:86,name:"Form 5884 - Work Opportunity Credit",cat:"deductions",zone:"output",icon:"\u{1F4BC}",fields:8,desc:"Credit for hiring individuals from targeted groups."},
+  {id:87,name:"Form 8994 - Paid Leave Credit",cat:"deductions",zone:"output",icon:"\u{1F476}",fields:7,desc:"Employer credit for paid family and medical leave."},
+  {id:88,name:"Form 4797 - Business Property Sales",cat:"deductions",zone:"output",icon:"\u{1F3D7}",fields:12,desc:"Sales of business property - Section 1231/1245/1250 gains and losses."},
+  {id:89,name:"Form 6252 - Installment Sale",cat:"deductions",zone:"output",icon:"\u{1F4C5}",fields:10,desc:"Installment sale income - gross profit ratio, payments received, gain recognized."},
+  {id:90,name:"Form 8824 - 1031 Exchange",cat:"deductions",zone:"output",icon:"\u{1F504}",fields:12,desc:"Like-kind exchange - property given/received, boot, gain recognition, basis."},
+  {id:91,name:"State Income Tax Return",cat:"state",zone:"output",icon:"\u{1F5FA}",fields:15,desc:"State-specific income tax return (GA, NY, CA, etc.) - income, adjustments, credits."},
+  {id:92,name:"Sales & Use Tax Return",cat:"state",zone:"output",icon:"\u{1F9FE}",fields:8,desc:"Monthly/quarterly sales tax filing - taxable sales, exemptions, tax due."},
+  {id:93,name:"Franchise Tax Return",cat:"state",zone:"output",icon:"\u{1F3E2}",fields:8,desc:"State franchise/privilege tax based on net worth or capital."},
+  {id:94,name:"Business Personal Property Tax Return",cat:"state",zone:"output",icon:"\u{1F4E6}",fields:6,desc:"Annual declaration of tangible personal property - furniture, equipment, inventory."},
+  {id:95,name:"State Unemployment Tax Return",cat:"state",zone:"output",icon:"\u{1F465}",fields:8,desc:"State-level unemployment insurance tax - wages, rates, contributions."},
+  {id:96,name:"Secretary of State Dissolution Papers",cat:"state",zone:"output",icon:"\u{1F4DC}",fields:5,desc:"Articles of dissolution, final tax clearance, winding up certification."},
+  {id:97,name:"Form 8594 - Asset Acquisition",cat:"state",zone:"output",icon:"\u{1F3D7}",fields:10,desc:"Asset acquisition statement for buyer/seller of business assets."},
+  {id:98,name:"Form 8283 - Noncash Contributions",cat:"state",zone:"output",icon:"\u{1F381}",fields:8,desc:"Noncash charitable contributions exceeding $500 - description, FMV, basis."},
+  {id:99,name:"Form 1045 - Tentative Refund",cat:"state",zone:"output",icon:"\u{1F4B5}",fields:8,desc:"Application for quick refund from NOL carryback, credit carryback."},
+  {id:100,name:"Notice of Intent to Close Business",cat:"state",zone:"output",icon:"\u{1F6AA}",fields:4,desc:"Formal notification to state/local agencies of business closure."},
+  {id:101,name:"PI - Client Intake Form",cat:"pi",zone:"input",icon:"\u{1F4CB}",fields:25,desc:"Client demographics, accident details, injuries, treatment status, insurance."},
+  {id:102,name:"PI - Police / Incident Report",cat:"pi",zone:"input",icon:"\u{1F694}",fields:12,desc:"Report number, officers, scene description, witness statements, citations."},
+  {id:103,name:"PI - Medical Records Release (HIPAA)",cat:"pi",zone:"input",icon:"\u{1F3E5}",fields:8,desc:"Patient authorization for release of protected health information."},
+  {id:104,name:"PI - Medical Bills Summary",cat:"pi",zone:"input",icon:"\u{1F48A}",fields:10,desc:"Provider, service dates, diagnosis codes, charges, payments, balance."},
+  {id:105,name:"PI - Insurance Policy Declarations",cat:"pi",zone:"input",icon:"\u{1F4C4}",fields:9,desc:"Policy number, coverage limits, BI/PD, UM/UIM, MedPay, deductibles."},
+  {id:106,name:"PI - Lost Wages Documentation",cat:"pi",zone:"input",icon:"\u{1F4B0}",fields:6,desc:"Employer verification, pay rate, missed dates, total lost earnings."},
+  {id:107,name:"PI - Demand Letter",cat:"pi",zone:"output",icon:"\u{1F4E8}",fields:15,desc:"Liability summary, injury narrative, special damages, general damages, demand."},
+  {id:108,name:"PI - Settlement Breakdown",cat:"pi",zone:"output",icon:"\u2696",fields:10,desc:"Gross settlement, attorney fees, costs, liens, medical payments, net to client."},
+  {id:109,name:"PI - Lien Resolution Worksheet",cat:"pi",zone:"output",icon:"\u{1F517}",fields:8,desc:"Medicare/Medicaid liens, health insurance subrogation, ERISA, reductions."},
+  {id:110,name:"PI - Property Damage Claim",cat:"pi",zone:"input",icon:"\u{1F697}",fields:7,desc:"Vehicle info, damage description, repair estimates, diminished value."}
+];
+
+var _thPacks = [
+  {name:"Small Business Tax Pack",desc:"Everything a sole proprietor or single-member LLC needs for annual tax filing.",color:"#059669",bg:"#ecfdf5",forms:["Form 1040 (Schedule C)","Form W-9","Form 1099-NEC","Form 1099-K","P&L Statement","Balance Sheet","Form 1040-ES","Form 4562"],fields:142,persona:"Justin"},
+  {name:"Partnership / LLC Tax Pack",desc:"Full partnership return workflow from W-9 collection through K-1 generation.",color:"#059669",bg:"#ecfdf5",forms:["Form 1065","Schedule K-1","Form W-9","Form 1099-NEC","P&L Statement","Balance Sheet","Form 2848","Form 7004"],fields:168,persona:"Justin"},
+  {name:"S-Corp Tax Pack",desc:"S-Corporation annual return with officer compensation and payroll integration.",color:"#0d9488",bg:"#f0fdfa",forms:["Form 1120-S","Schedule K-1","Form 941","Form W-2","Form W-3","Form W-9","P&L Statement","Form 2848"],fields:195,persona:"Justin"},
+  {name:"Corporate Formation Pack",desc:"New entity formation from incorporation through EIN and initial compliance.",color:"#7c3aed",bg:"#f5f3ff",forms:["Articles of Incorporation","Operating Agreement","SS-4","CP 575","Form 2553","BOI Report (FinCEN)","Annual Report"],fields:67,persona:"Justin"},
+  {name:"Personal Injury Case Pack",desc:"Full PI case lifecycle - intake through demand letter and settlement.",color:"#be185d",bg:"#fdf2f8",forms:["PI - Client Intake","Police Report","HIPAA Release","Medical Bills","Insurance Declarations","Lost Wages","Demand Letter","Settlement Breakdown"],fields:110,persona:"Jada"},
+  {name:"Non-Profit Compliance Pack",desc:"501(c)(3) application through annual 990 filing with governance documentation.",color:"#4f46e5",bg:"#eef2ff",forms:["Form 1023","Form 990","Articles of Incorporation","Bylaws","Form 2848","Annual Report","BOI Report"],fields:121,persona:"General"},
+  {name:"International Compliance Pack",desc:"Foreign accounts, foreign entities, and treaty-based reporting.",color:"#0284c7",bg:"#f0f9ff",forms:["Form W-8BEN","FinCEN 114 (FBAR)","Form 8938","Form 5471","Foreign Bank Records","Form 1099-INT/DIV"],fields:71,persona:"General"}
+];
+
+var _thCatColors = {
+  identity:{stripe:"#7c3aed",iconBg:"#f5f3ff",iconColor:"#7c3aed"},
+  transactional:{stripe:"#d97706",iconBg:"#fffbeb",iconColor:"#d97706"},
+  "income-tax":{stripe:"#059669",iconBg:"#ecfdf5",iconColor:"#059669"},
+  payroll:{stripe:"#0d9488",iconBg:"#f0fdfa",iconColor:"#0d9488"},
+  compliance:{stripe:"#4f46e5",iconBg:"#eef2ff",iconColor:"#4f46e5"},
+  info:{stripe:"#0284c7",iconBg:"#f0f9ff",iconColor:"#0284c7"},
+  deductions:{stripe:"#16a34a",iconBg:"#f0fdf4",iconColor:"#16a34a"},
+  state:{stripe:"#dc2626",iconBg:"#fef2f2",iconColor:"#dc2626"},
+  pi:{stripe:"#be185d",iconBg:"#fdf2f8",iconColor:"#be185d"}
+};
+var _thZoneClass = {identity:"th-zone-identity",input:"th-zone-input",output:"th-zone-output"};
+var _thZoneLabel = {identity:"Identity",input:"Input",output:"Output"};
+
+var _thCatLabels = {
+  identity:{label:"Entity & Identity",count:15,dot:"#7c3aed"},
+  transactional:{label:"Transactional",count:35,dot:"#d97706"},
+  "income-tax":{label:"Income Tax",count:9,dot:"#059669"},
+  payroll:{label:"Payroll",count:6,dot:"#0d9488"},
+  compliance:{label:"Compliance",count:8,dot:"#4f46e5"},
+  info:{label:"Information",count:7,dot:"#0284c7"},
+  deductions:{label:"Deductions & Credits",count:10,dot:"#16a34a"},
+  state:{label:"State & Local",count:10,dot:"#dc2626"},
+  pi:{label:"Personal Injury",count:10,dot:"#be185d"}
+};
+
+var _thZoneSections = [
+  {zone:"identity",title:"Zone 1: Identity & Entity",badge:"15",badgeBg:"#f5f3ff",badgeColor:"#7c3aed",cats:["identity"]},
+  {zone:"input",title:"Zone 2: Transactional Input",badge:"35",badgeBg:"#fffbeb",badgeColor:"#d97706",cats:["transactional"]},
+  {zone:"output",title:"Zone 3: Output & Compliance",badge:"60",badgeBg:"#ecfdf5",badgeColor:"#059669",cats:["income-tax","payroll","compliance","info","deductions","state"]},
+  {zone:"pi",title:"Personal Injury",badge:"10",badgeBg:"#fdf2f8",badgeColor:"#be185d",cats:["pi"]}
+];
+
+function _thRenderCard(t) {
+  var c = _thCatColors[t.cat] || _thCatColors.identity;
+  var safeName = esc(t.name).replace(/'/g,"&#39;");
+  return '<div class="th-card" data-cat="' + t.cat + '" data-id="' + t.id + '" data-search="' + esc(t.name.toLowerCase() + ' ' + t.desc.toLowerCase()) + '" onclick="thOpenModal(\\'\\', \\'' + safeName + '\\')">' +
+    '<div class="th-stripe" style="background:' + c.stripe + '"></div>' +
+    '<button class="th-menu" onclick="event.stopPropagation(); thOpenModal(\\'\\', \\'' + safeName + '\\')">&#x22EF;</button>' +
+    '<div class="th-body">' +
+    '<div class="th-icon" style="background:' + c.iconBg + '; color:' + c.iconColor + ';">' + t.icon + '</div>' +
+    '<div class="th-name">' + esc(t.name) + '</div>' +
+    '<div class="th-desc">' + esc(t.desc) + '</div>' +
+    '<div class="th-meta"><span class="th-fields">' + t.fields + ' fields</span><span class="th-zone ' + (_thZoneClass[t.zone]||'') + '">' + (_thZoneLabel[t.zone]||'') + '</span></div>' +
+    '</div></div>';
+}
+
+function _thRenderPackCard(p) {
+  var safeName = esc(p.name).replace(/'/g,"&#39;");
+  var chips = p.forms.map(function(f){ return '<span class="th-pack-chip">' + esc(f) + '</span>'; }).join('');
+  return '<div class="th-pack" onclick="thOpenModal(\\'\\', \\'' + safeName + '\\')">' +
+    '<div style="position:absolute;top:0;left:0;right:0;height:4px;background:' + p.color + ';"></div>' +
+    '<div class="th-pack-eyebrow" style="color:' + p.color + ';">STARTER PACK &middot; ' + esc(p.persona).toUpperCase() + '</div>' +
+    '<div class="th-pack-name">' + esc(p.name) + '</div>' +
+    '<div class="th-pack-desc">' + esc(p.desc) + '</div>' +
+    '<div class="th-pack-forms">' + chips + '</div>' +
+    '<div class="th-pack-stat"><span><strong>' + p.forms.length + '</strong> templates</span><span>&middot;</span><span><strong>' + p.fields + '</strong> total fields</span>' +
+    '<span style="margin-left:auto;"><button class="th-btn th-btn-primary" style="padding:6px 14px;font-size:12px;" onclick="event.stopPropagation(); thOpenModal(\\'\\', \\'' + safeName + '\\')">Use Pack &rarr;</button></span></div></div>';
+}
+
+function showTemplatesHub() {
+  selectedView = 'templates_hub';
+  selectedData = null;
+  selectedId = null;
+  var empty = document.getElementById('emptyState');
+  if (empty) empty.style.display = 'none';
+  breadcrumbs = [{ label: 'Templates' }];
+  renderBreadcrumbs();
+  renderSidebar();
+  renderRightPanel(null);
+
+  var svgSearch = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>';
+  var svgLink = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
+
+  var h = '<div class="th-wrap">';
+
+  // Sticky top bar
+  h += '<div class="th-top-bar"><div class="th-top-inner">';
+  h += '<div class="th-top-search-wrap"><span class="th-top-search-icon">' + svgSearch + '</span>';
+  h += '<input type="text" class="th-top-search-input" id="thTopSearch" placeholder="Search 110 templates..." oninput="thHandleSearch(this.value)">';
+  h += '<span class="th-top-search-count" id="thTopCount"></span>';
+  h += '<span class="th-top-kbd">/</span></div>';
+  h += '<div class="th-top-actions"><button class="th-top-btn" onclick="thOpenModal(\\'New Template\\', \\'\\')">+ New Template</button></div>';
+  h += '</div></div>';
+
+  // Hero
+  h += '<div class="th-hero">';
+  h += '<div class="th-eyebrow">TEMPLATE LIBRARY</div>';
+  h += '<h1>Templates</h1>';
+  h += '<div class="th-hero-sub">110 forms across 3 zones. Search, filter, or start from a pack.</div>';
+  h += '<div class="th-tabs">';
+  h += '<button class="th-tab active" onclick="thSwitchTab(this,\\'browse\\')">Browse All</button>';
+  h += '<button class="th-tab" onclick="thSwitchTab(this,\\'yours\\')">Your Templates</button>';
+  h += '<button class="th-tab" onclick="thSwitchTab(this,\\'packs\\')">Starter Packs</button>';
+  h += '</div>';
+  h += '<div class="th-search-wrap"><span class="th-search-icon">' + svgSearch + '</span>';
+  h += '<input type="text" class="th-search-input" id="thHeroSearch" placeholder="Search templates... e.g. &quot;1099&quot; or &quot;partnership&quot;" oninput="thHandleSearch(this.value)">';
+  h += '<span class="th-search-count" id="thHeroCount"></span></div>';
+  h += '</div>';
+
+  // Category strip
+  h += '<div class="th-cat-strip" id="thCatStrip">';
+  h += '<span class="th-cat-chip active" onclick="thFilterCat(\\'all\\',this)">All</span>';
+  var cats = ["identity","transactional","income-tax","payroll","compliance","info","deductions","state","pi"];
+  cats.forEach(function(cat) {
+    var info = _thCatLabels[cat];
+    h += '<span class="th-cat-chip" onclick="thFilterCat(\\'' + cat + '\\',this)"><span class="th-dot" style="background:' + info.dot + '"></span>' + info.label + '</span>';
+  });
+  h += '</div>';
+
+  // Browse tab content
+  h += '<div class="th-content" id="thTabBrowse">';
+
+  // Zone sections
+  _thZoneSections.forEach(function(sec) {
+    h += '<div class="th-section-head" data-cat="' + sec.cats.join(',') + '"><div class="th-section-title">' + sec.title + ' <span class="th-section-badge" style="background:' + sec.badgeBg + ';color:' + sec.badgeColor + ';">' + sec.badge + '</span></div></div>';
+    sec.cats.forEach(function(cat) {
+      var items = _thTemplates.filter(function(t){ return t.cat === cat; });
+      h += '<div class="th-grid" data-cat="' + cat + '">';
+      h += items.map(_thRenderCard).join('');
+      h += '</div>';
+    });
+    h += '<div class="th-section-divider"></div>';
+  });
+
+  // Your Templates preview
+  h += '<div class="th-section-head" data-section="yours-preview"><div class="th-section-title">Your Templates</div><span class="th-section-link" onclick="thSwitchTab(document.querySelectorAll(\\'.th-tab\\')[1],\\'yours\\')">View all &rarr;</span></div>';
+  h += '<div class="th-grid">';
+  h += '<div class="th-create" onclick="thOpenModal(\\'New Template\\', \\'\\')"><div class="th-create-icon">+</div><div class="th-create-label">Create Template</div><div class="th-create-sub">From scratch or clone existing</div></div>';
+  h += '</div>';
+
+  h += '</div>'; // end browse tab
+
+  // Yours tab (hidden)
+  h += '<div class="th-content" id="thTabYours" style="display:none;">';
+  h += '<div class="th-section-head"><div class="th-section-title">Your Templates</div></div>';
+  h += '<div class="th-grid" id="thYoursFull">';
+  h += '<div class="th-create" onclick="thOpenModal(\\'New Template\\', \\'\\')"><div class="th-create-icon">+</div><div class="th-create-label">Create Template</div><div class="th-create-sub">From scratch or clone existing</div></div>';
+  h += '</div>';
+  h += '</div>';
+
+  // Packs tab (hidden)
+  h += '<div class="th-content" id="thTabPacks" style="display:none;">';
+  h += '<div class="th-section-head"><div class="th-section-title">Starter Packs</div></div>';
+  h += '<div class="th-pack-grid" id="thPackGrid">';
+  h += _thPacks.map(_thRenderPackCard).join('');
+  h += '</div>';
+  h += '</div>';
+
+  // Empty state
+  h += '<div class="th-empty" id="thEmpty"><div class="th-em-icon">\u{1F50D}</div><h3>No templates found</h3><p>Try a different search term or browse by category.</p></div>';
+
+  h += '</div>'; // end th-wrap
+
+  // Modal
+  h += '<div class="th-modal-overlay" id="thModal" onclick="if(event.target===this) thCloseModal()">';
+  h += '<div class="th-modal"><h3>Use This Template</h3><p class="th-modal-sub">Give it a name for your library. The original stays untouched.</p>';
+  h += '<label for="thRenameInput">Template Name</label>';
+  h += '<input type="text" id="thRenameInput" placeholder="e.g., Justin&#39;s Small Biz Tax Pack">';
+  h += '<div class="th-modal-base" id="thModalBase">' + svgLink + ' <span id="thModalBaseText">Based on: &mdash;</span></div>';
+  h += '<div class="th-modal-actions"><button class="th-btn th-btn-ghost" onclick="thCloseModal()">Cancel</button><button class="th-btn th-btn-primary" onclick="thConfirmUse()">Use Template &rarr;</button></div>';
+  h += '</div></div>';
+
+  // Toast
+  h += '<div class="th-toast" id="thToast"></div>';
+
+  document.getElementById('main').innerHTML = h;
+}
+
+function thSwitchTab(el, tab) {
+  document.querySelectorAll('.th-tab').forEach(function(t){ t.classList.remove('active'); });
+  el.classList.add('active');
+  ['browse','yours','packs'].forEach(function(t) {
+    var el2 = document.getElementById('thTab' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (el2) el2.style.display = (t === tab) ? '' : 'none';
+  });
+  var strip = document.getElementById('thCatStrip');
+  if (strip) strip.style.display = (tab === 'browse') ? '' : 'none';
+  var heroSearch = document.getElementById('thHeroSearch');
+  if (heroSearch) { heroSearch.value = ''; thHandleSearch(''); }
+}
+
+function thFilterCat(cat, el) {
+  document.querySelectorAll('.th-cat-chip').forEach(function(c){ c.classList.remove('active'); });
+  el.classList.add('active');
+  var browse = document.getElementById('thTabBrowse');
+  if (!browse) return;
+  var heads = browse.querySelectorAll('.th-section-head');
+  var grids = browse.querySelectorAll('.th-grid');
+  var dividers = browse.querySelectorAll('.th-section-divider');
+  if (cat === 'all') {
+    heads.forEach(function(h2){ h2.style.display = ''; });
+    grids.forEach(function(g){ g.style.display = ''; });
+    dividers.forEach(function(d){ d.style.display = ''; });
+    return;
+  }
+  heads.forEach(function(h2) {
+    var hCat = h2.getAttribute('data-cat');
+    if (!hCat) { h2.style.display = 'none'; return; }
+    h2.style.display = hCat.split(',').indexOf(cat) >= 0 ? '' : 'none';
+  });
+  grids.forEach(function(g) {
+    var gCat = g.getAttribute('data-cat');
+    if (!gCat) { g.style.display = 'none'; return; }
+    g.style.display = (gCat === cat) ? '' : 'none';
+  });
+  dividers.forEach(function(d){ d.style.display = 'none'; });
+  browse.querySelectorAll('[data-section="yours-preview"]').forEach(function(el2){ el2.style.display = 'none'; });
+}
+
+function thHandleSearch(query) {
+  var q = query.toLowerCase().trim();
+  var heroCount = document.getElementById('thHeroCount');
+  var topCount = document.getElementById('thTopCount');
+  var emptyEl = document.getElementById('thEmpty');
+  var heroInput = document.getElementById('thHeroSearch');
+  var topInput = document.getElementById('thTopSearch');
+  if (heroInput && heroInput !== document.activeElement && topInput) heroInput.value = topInput.value;
+  if (topInput && topInput !== document.activeElement && heroInput) topInput.value = heroInput.value;
+  if (!q) {
+    if (heroCount) heroCount.classList.remove('visible');
+    if (topCount) topCount.classList.remove('visible');
+    if (emptyEl) emptyEl.classList.remove('visible');
+    document.querySelectorAll('.th-card').forEach(function(c){ c.style.display = ''; });
+    document.querySelectorAll('.th-create').forEach(function(c){ c.style.display = ''; });
+    document.querySelectorAll('.th-section-head').forEach(function(h2){ h2.style.display = ''; });
+    document.querySelectorAll('.th-section-divider').forEach(function(d){ d.style.display = ''; });
+    document.querySelectorAll('.th-pack').forEach(function(c){ c.style.display = ''; });
+    return;
+  }
+  var count = 0;
+  document.querySelectorAll('.th-card').forEach(function(card) {
+    var searchText = (card.dataset.search || card.textContent).toLowerCase();
+    var match = searchText.indexOf(q) >= 0;
+    card.style.display = match ? '' : 'none';
+    if (match) count++;
+  });
+  document.querySelectorAll('.th-pack').forEach(function(card) {
+    card.style.display = card.textContent.toLowerCase().indexOf(q) >= 0 ? '' : 'none';
+  });
+  document.querySelectorAll('.th-create').forEach(function(c){ c.style.display = 'none'; });
+  var txt = count + ' found';
+  if (heroCount) { heroCount.textContent = txt; heroCount.classList.add('visible'); }
+  if (topCount) { topCount.textContent = txt; topCount.classList.add('visible'); }
+  if (emptyEl) emptyEl.classList.toggle('visible', count === 0);
+  // Hide empty section headers
+  document.querySelectorAll('.th-grid[data-cat]').forEach(function(grid) {
+    var cards = grid.querySelectorAll('.th-card');
+    var anyVisible = false;
+    cards.forEach(function(c){ if (c.style.display !== 'none') anyVisible = true; });
+    var prev = grid.previousElementSibling;
+    if (prev && prev.classList.contains('th-section-head')) prev.style.display = anyVisible ? '' : 'none';
+  });
+}
+
+function thOpenModal(existingName, baseName) {
+  var modal = document.getElementById('thModal');
+  var input = document.getElementById('thRenameInput');
+  var baseText = document.getElementById('thModalBaseText');
+  if (!modal || !input) return;
+  input.value = existingName || '';
+  input.placeholder = baseName ? 'e.g., My ' + baseName : 'e.g., Q1 Tax Prep Workflow';
+  if (baseText) baseText.textContent = baseName ? 'Based on: ' + baseName : 'Starting from blank template';
+  modal.classList.add('visible');
+  setTimeout(function(){ input.focus(); }, 120);
+}
+
+function thCloseModal() {
+  var modal = document.getElementById('thModal');
+  if (modal) modal.classList.remove('visible');
+}
+
+function thConfirmUse() {
+  var input = document.getElementById('thRenameInput');
+  var name = input ? input.value.trim() : '';
+  if (!name) {
+    if (input) { input.style.borderColor = '#dc2626'; input.placeholder = 'Give your template a name first'; }
+    setTimeout(function(){ if (input) input.style.borderColor = ''; }, 1500);
+    return;
+  }
+  thCloseModal();
+  thShowToast('Template "' + esc(name) + '" added to your library');
+}
+
+function thShowToast(msg) {
+  var t = document.getElementById('thToast');
+  if (!t) return;
+  t.innerHTML = msg;
+  t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); }, 2800);
 }
 
 // ── Dropzone Setup ──
@@ -33815,6 +34251,123 @@ const FORMFILL_HTML = `<!DOCTYPE html>
     .download-row .dl-btn-inline { justify-content: center; }
     .conversion-zone { padding: 24px 20px; }
   }
+
+/* ═══════════════════════════════════════════
+   TEMPLATES HUB (Day 14)
+   ═══════════════════════════════════════════ */
+.th-wrap { display: flex; flex-direction: column; height: calc(100vh - 50px); overflow-y: auto; background: #f5f5f0; }
+.th-hero { background: linear-gradient(145deg, #f8f7f2 0%, #f0efe8 100%); padding: 44px 52px 36px; border-bottom: 1px solid #e4e3de; position: relative; overflow: hidden; }
+.th-hero::before { content:''; position:absolute; top:-60px; right:-60px; width:300px; height:300px; background:radial-gradient(circle, rgba(37,99,235,0.04) 0%, transparent 70%); pointer-events:none; }
+.th-hero::after { content:''; position:absolute; bottom:-80px; left:30%; width:400px; height:400px; background:radial-gradient(circle, rgba(124,58,237,0.03) 0%, transparent 70%); pointer-events:none; }
+.th-eyebrow { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:#8a8983; margin-bottom:8px; }
+.th-hero h1 { font-family:'Instrument Serif',Georgia,serif; font-size:40px; font-weight:400; color:#1a1917; margin-bottom:6px; letter-spacing:-0.5px; }
+.th-hero-sub { font-size:15px; color:#5c5b56; margin-bottom:28px; max-width:480px; }
+.th-tabs { display:inline-flex; background:rgba(0,0,0,0.04); border-radius:10px; padding:3px; margin-bottom:24px; }
+.th-tab { padding:8px 18px; font-size:13px; font-weight:500; color:#5c5b56; cursor:pointer; border-radius:8px; border:none; background:none; font-family:'DM Sans',system-ui,sans-serif; transition:all 0.15s; white-space:nowrap; }
+.th-tab:hover { color:#1a1917; }
+.th-tab.active { background:white; color:#1a1917; font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+.th-search-wrap { max-width:560px; position:relative; }
+.th-search-input { width:100%; padding:13px 20px 13px 46px; border:1px solid #e4e3de; border-radius:12px; font-size:14px; font-family:'DM Sans',system-ui,sans-serif; background:white; color:#1a1917; box-shadow:0 2px 8px rgba(0,0,0,0.03); transition:all 0.2s; }
+.th-search-input:focus { outline:none; border-color:#2563eb; box-shadow:0 2px 12px rgba(37,99,235,0.1); }
+.th-search-input::placeholder { color:#8a8983; }
+.th-search-icon { position:absolute; left:16px; top:50%; transform:translateY(-50%); color:#8a8983; }
+.th-search-count { position:absolute; right:14px; top:50%; transform:translateY(-50%); font-size:12px; font-family:'JetBrains Mono',monospace; color:#8a8983; display:none; }
+.th-search-count.visible { display:block; }
+.th-cat-strip { display:flex; gap:8px; padding:24px 52px 0; flex-wrap:wrap; }
+.th-cat-chip { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; font-size:12px; font-weight:600; border-radius:20px; border:1px solid #e4e3de; background:white; color:#5c5b56; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
+.th-cat-chip:hover { border-color:#cccbc6; color:#1a1917; }
+.th-cat-chip.active { background:#1a1917; color:white; border-color:#1a1917; }
+.th-cat-chip .th-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.th-cat-chip.active .th-dot { background:white !important; opacity:0.5; }
+.th-content { padding:28px 52px 64px; }
+.th-section-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; padding-top:8px; }
+.th-section-title { font-family:'Instrument Serif',Georgia,serif; font-size:22px; font-weight:400; display:flex; align-items:center; gap:10px; }
+.th-section-badge { font-size:10px; font-family:'JetBrains Mono',monospace; font-weight:600; padding:2px 8px; border-radius:4px; vertical-align:middle; }
+.th-section-link { font-size:12px; font-weight:600; color:#2563eb; cursor:pointer; text-decoration:none; }
+.th-section-link:hover { text-decoration:underline; }
+.th-section-divider { height:1px; background:#eeeee9; margin:12px 0 24px; }
+.th-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:14px; margin-bottom:32px; }
+.th-card { background:#fff; border:1px solid #e4e3de; border-radius:10px; overflow:hidden; cursor:pointer; transition:all 0.2s; position:relative; box-shadow:0 1px 3px rgba(0,0,0,0.04); }
+.th-card:hover { border-color:#cccbc6; box-shadow:0 8px 24px rgba(0,0,0,0.08); transform:translateY(-2px); }
+.th-stripe { height:4px; }
+.th-body { padding:16px 16px 14px; }
+.th-icon { width:36px; height:36px; border-radius:9px; display:flex; align-items:center; justify-content:center; font-size:16px; margin-bottom:10px; }
+.th-name { font-size:13px; font-weight:600; color:#1a1917; line-height:1.35; margin-bottom:4px; }
+.th-desc { font-size:11.5px; color:#5c5b56; line-height:1.4; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; margin-bottom:10px; }
+.th-meta { display:flex; align-items:center; gap:8px; font-size:11px; color:#8a8983; }
+.th-meta .th-fields { font-family:'JetBrains Mono',monospace; font-weight:500; font-size:10.5px; }
+.th-zone { font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; padding:2px 7px; border-radius:3px; }
+.th-zone-identity { background:#f5f3ff; color:#7c3aed; }
+.th-zone-input { background:#fffbeb; color:#d97706; }
+.th-zone-output { background:#ecfdf5; color:#059669; }
+.th-menu { position:absolute; top:12px; right:10px; width:26px; height:26px; border-radius:6px; border:none; background:rgba(255,255,255,0.95); display:flex; align-items:center; justify-content:center; cursor:pointer; opacity:0; transition:opacity 0.15s; font-size:14px; color:#5c5b56; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+.th-card:hover .th-menu { opacity:1; }
+.th-menu:hover { background:#f5f5f0; }
+.th-create { border:2px dashed #e4e3de; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:28px 16px; cursor:pointer; transition:all 0.2s; min-height:190px; background:none; }
+.th-create:hover { border-color:#2563eb; background:#eff6ff; }
+.th-create-icon { width:44px; height:44px; border-radius:50%; background:#eeeee9; display:flex; align-items:center; justify-content:center; font-size:22px; color:#8a8983; margin-bottom:10px; transition:all 0.2s; }
+.th-create:hover .th-create-icon { background:#2563eb; color:white; }
+.th-create-label { font-size:13px; font-weight:600; color:#5c5b56; }
+.th-create:hover .th-create-label { color:#2563eb; }
+.th-create-sub { font-size:11px; color:#8a8983; margin-top:3px; }
+.th-pack-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px; margin-bottom:32px; }
+.th-pack { background:white; border:1px solid #e4e3de; border-radius:10px; padding:20px; cursor:pointer; transition:all 0.2s; position:relative; overflow:hidden; }
+.th-pack:hover { border-color:#cccbc6; box-shadow:0 8px 24px rgba(0,0,0,0.08); transform:translateY(-1px); }
+.th-pack-eyebrow { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:8px; }
+.th-pack-name { font-family:'Instrument Serif',Georgia,serif; font-size:19px; margin-bottom:6px; }
+.th-pack-desc { font-size:12px; color:#5c5b56; line-height:1.5; margin-bottom:14px; }
+.th-pack-forms { display:flex; flex-wrap:wrap; gap:4px; }
+.th-pack-chip { font-size:10px; font-family:'JetBrains Mono',monospace; font-weight:500; padding:3px 8px; border-radius:4px; background:#f5f5f0; color:#5c5b56; }
+.th-pack-stat { display:flex; align-items:center; gap:12px; margin-top:12px; padding-top:12px; border-top:1px solid #eeeee9; font-size:11px; color:#8a8983; }
+.th-pack-stat strong { color:#1a1917; font-weight:600; }
+.th-modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:1000; align-items:center; justify-content:center; backdrop-filter:blur(3px); }
+.th-modal-overlay.visible { display:flex; }
+.th-modal { background:white; border-radius:14px; padding:32px; width:440px; max-width:90vw; box-shadow:0 24px 64px rgba(0,0,0,0.18); }
+.th-modal h3 { font-family:'Instrument Serif',Georgia,serif; font-size:22px; margin-bottom:4px; }
+.th-modal .th-modal-sub { font-size:13px; color:#5c5b56; margin-bottom:24px; }
+.th-modal label { display:block; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:#8a8983; margin-bottom:6px; }
+.th-modal input[type="text"] { width:100%; padding:11px 14px; border:1px solid #e4e3de; border-radius:6px; font-size:14px; font-family:'DM Sans',system-ui,sans-serif; color:#1a1917; transition:border-color 0.15s; }
+.th-modal input[type="text"]:focus { outline:none; border-color:#2563eb; }
+.th-modal-base { font-size:12px; color:#8a8983; margin-top:6px; margin-bottom:24px; display:flex; align-items:center; gap:6px; }
+.th-modal-actions { display:flex; gap:8px; justify-content:flex-end; }
+.th-btn { padding:9px 22px; border-radius:8px; font-size:13px; font-weight:600; font-family:'DM Sans',system-ui,sans-serif; cursor:pointer; transition:all 0.12s; }
+.th-btn-ghost { border:1px solid #e4e3de; background:white; color:#1a1917; }
+.th-btn-ghost:hover { background:#f5f5f0; }
+.th-btn-primary { border:none; background:#1a1917; color:white; }
+.th-btn-primary:hover { background:#333; }
+.th-empty { text-align:center; padding:56px 20px; display:none; }
+.th-empty.visible { display:block; }
+.th-empty .th-em-icon { font-size:44px; opacity:0.3; margin-bottom:12px; }
+.th-empty h3 { font-size:16px; font-weight:600; color:#1a1917; margin-bottom:4px; }
+.th-empty p { font-size:13px; color:#8a8983; }
+.th-toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(80px); background:#1a1917; color:white; padding:12px 24px; border-radius:10px; font-size:13px; font-weight:500; box-shadow:0 8px 32px rgba(0,0,0,0.2); z-index:2000; transition:transform 0.3s cubic-bezier(0.34,1.56,0.64,1); pointer-events:none; }
+.th-toast.show { transform:translateX(-50%) translateY(0); }
+.th-top-bar { position:sticky; top:0; z-index:100; background:rgba(245,245,240,0.85); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-bottom:1px solid #e4e3de; padding:12px 52px; }
+.th-top-inner { display:flex; align-items:center; gap:12px; }
+.th-top-search-wrap { flex:1; position:relative; max-width:640px; }
+.th-top-search-icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#8a8983; pointer-events:none; }
+.th-top-search-input { width:100%; padding:10px 80px 10px 40px; border:1px solid #e4e3de; border-radius:10px; font-size:13.5px; font-family:'DM Sans',system-ui,sans-serif; background:white; color:#1a1917; transition:all 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.03); }
+.th-top-search-input:focus { outline:none; border-color:#2563eb; box-shadow:0 1px 8px rgba(37,99,235,0.1); }
+.th-top-search-input::placeholder { color:#8a8983; }
+.th-top-search-count { position:absolute; right:42px; top:50%; transform:translateY(-50%); font-size:11px; font-family:'JetBrains Mono',monospace; color:#8a8983; display:none; }
+.th-top-search-count.visible { display:block; }
+.th-top-kbd { position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:11px; font-family:'JetBrains Mono',monospace; color:#8a8983; background:#f5f5f0; border:1px solid #e4e3de; border-radius:4px; padding:1px 6px; line-height:1.4; }
+.th-top-btn { padding:9px 18px; border-radius:8px; font-size:13px; font-weight:600; font-family:'DM Sans',system-ui,sans-serif; border:none; background:#1a1917; color:white; cursor:pointer; transition:background 0.15s; white-space:nowrap; }
+.th-top-btn:hover { background:#333; }
+@media (max-width: 1100px) {
+  .th-hero { padding:32px 32px 28px; }
+  .th-cat-strip { padding:20px 32px 0; }
+  .th-content { padding:24px 32px 48px; }
+  .th-grid { grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); }
+  .th-top-bar { padding:10px 32px; }
+}
+@media (max-width: 768px) {
+  .th-hero { padding:24px 20px 24px; }
+  .th-cat-strip { padding:16px 20px 0; }
+  .th-content { padding:20px; }
+  .th-top-bar { padding:10px 16px; }
+  .th-top-btn { display:none; }
+}
 </style>
 </head>
 <body>
