@@ -13476,7 +13476,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   }
 
   /* --- Build 33: Client Overview --- */
-  .co-header { padding: 32px 48px 0; background: #fff; border-bottom: 1px solid #E5E7EB; }
+  .co-header { padding: 32px 32px 0; background: #fff; border-bottom: 1px solid #E5E7EB; }
   .co-header-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
   .co-back { font-size: 13px; color: #6B7280; cursor: pointer; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
   .co-back:hover { color: #2563EB; }
@@ -13492,10 +13492,11 @@ const WIKI_HTML = `<!DOCTYPE html>
   .co-btn.primary:hover { background: #1D4ED8; }
   .co-tabs { display: flex; gap: 0; }
   .co-tab { padding: 12px 20px; font-size: 14px; color: #6B7280; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; display: flex; align-items: center; gap: 8px; transition: color 0.15s; }
+  .co-tab:first-child { padding-left: 0; }
   .co-tab:hover { color: #1A1A1A; }
   .co-tab.active { color: #1A1A1A; font-weight: 600; border-bottom-color: #2563EB; }
   .co-tab-badge { font-size: 11px; padding: 1px 7px; border-radius: 10px; font-weight: 600; background: #F3F4F6; color: #6B7280; }
-  .co-content { flex: 1; overflow-y: auto; padding: 24px 48px 48px; }
+  .co-content { flex: 1; overflow-y: auto; padding: 24px 0 48px; }
   .co-content.hidden { display: none; }
   .co-filter-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
   .co-search-box { flex: 1; position: relative; }
@@ -13594,7 +13595,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   .co-modal-btn.create:hover { background: #1D4ED8; }
 
   /* --- Build 34: Project Detail Field Actions & Three-Tier --- */
-  .b34-field-row { display: grid; grid-template-columns: 160px 1fr 95px 80px 120px 80px 80px; align-items: center; gap: 8px; padding: 10px 16px 10px 13px; border-bottom: 1px solid #F3F4F6; transition: background 0.15s, border-left 0.15s; border-left: 3px solid transparent; cursor: pointer; }
+  .b34-field-row { display: grid; grid-template-columns: 22% 28% 10% 14% 12% 10% 4%; align-items: center; gap: 0; padding: 10px 12px; border-bottom: 1px solid #f0f0ee; transition: background 0.15s, border-left 0.15s; border-left: 3px solid transparent; margin-left: -3px; cursor: pointer; }
   .b34-field-row:hover { background: #FAFAF9; }
   .b34-field-row:hover .b34-actions button { opacity: 1; }
   .b34-field-row.verified { border-left-color: #059669; background: #fff; }
@@ -13608,9 +13609,9 @@ const WIKI_HTML = `<!DOCTYPE html>
   .b34-conf { display: inline-flex; align-items: center; gap: 4px; }
   .b34-conf-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
   .b34-conf-score { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 12px; }
-  .b34-source-link { font-size: 12px; color: #2563EB; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .b34-source-link:hover { text-decoration: underline; }
-  .b34-source-none { font-size: 12px; color: #9CA3AF; font-style: italic; }
+  .b34-source-link { display: inline-block; padding: 2px 8px; background: #f7f7f5; border: 1px solid #e5e5e3; border-radius: 4px; font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 11px; color: #6b6b6b; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+  .b34-source-link:hover { background: #eff6ff; border-color: #2563eb; color: #2563eb; }
+  .b34-source-none { font-size: 11px; color: #999999; font-style: italic; }
   .b34-actions { display: flex; gap: 4px; }
   .b34-actions button { width: 28px; height: 28px; border-radius: 6px; border: 1px solid #E5E7EB; background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; opacity: 0.4; transition: all 0.15s; padding: 0; }
   .b34-actions button:hover { opacity: 1 !important; }
@@ -13622,24 +13623,26 @@ const WIKI_HTML = `<!DOCTYPE html>
   .b34-status-pill.verified { background: #059669; color: #fff; }
   .b34-status-pill.needs-review { background: #FFFBEB; color: #D97706; border: 1px solid #FDE68A; }
   .b34-status-pill.missing-pill { background: #DC2626; color: #fff; }
-  .b34-entity-section { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; margin-bottom: 12px; }
-  .b34-entity-header { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #F9FAFB; border-bottom: 1px solid #E5E7EB; cursor: pointer; }
-  .b34-entity-header:hover { background: #F3F4F6; }
-  .b34-entity-icon { font-size: 18px; }
-  .b34-entity-name { font-size: 14px; font-weight: 600; color: #1A1A1A; }
-  .b34-entity-type { font-size: 11px; color: #9CA3AF; }
-  .b34-entity-count { margin-left: auto; font-size: 11px; color: #6B7280; }
+  .b34-entity-section { background: #fff; border: 1px solid #e5e5e3; border-radius: 8px; overflow: hidden; margin-bottom: 12px; }
+  .b34-entity-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f7f7f5; border-bottom: 1px solid #e5e5e3; cursor: pointer; }
+  .b34-entity-header:hover { background: #f0f0ee; }
+  .b34-entity-icon { width: 24px; height: 24px; border-radius: 50%; background: #e5e5e3; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #6b6b6b; }
+  .b34-entity-name { font-size: 13px; font-weight: 600; color: #1A1A1A; }
+  .b34-entity-type { font-size: 12px; color: #6b6b6b; font-weight: 400; margin-left: 4px; }
+  .b34-entity-count { margin-left: auto; font-size: 12px; color: #999999; font-weight: 400; }
   .b34-inline-edit { display: flex; gap: 6px; align-items: center; }
   .b34-inline-edit input { flex: 1; padding: 6px 10px; border: 1px solid #E5E7EB; border-radius: 6px; font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 13px; }
   .b34-inline-edit input:focus { outline: none; border-color: #2563EB; box-shadow: 0 0 0 2px rgba(37,99,235,0.15); }
   .b34-inline-edit .save-btn { width: 24px; height: 24px; border-radius: 4px; border: none; background: #059669; color: #fff; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
   .b34-inline-edit .cancel-btn { width: 24px; height: 24px; border-radius: 4px; border: 1px solid #E5E7EB; background: #fff; color: #6B7280; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; }
-  .b34-bulk-bar { background: #fff; border: 1px solid #BFDBFE; border-radius: 10px; padding: 10px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,0.04); transition: opacity 0.2s ease, max-height 0.3s ease, margin 0.3s ease, padding 0.3s ease; overflow: hidden; }
+  .b34-bulk-bar { background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 8px; padding: 10px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 10; transition: opacity 0.2s ease, max-height 0.3s ease, margin 0.3s ease, padding 0.3s ease; overflow: hidden; }
   .b34-bulk-bar.dismissed { opacity: 0; max-height: 0; margin: 0; padding: 0; border: none; }
-  .b34-bulk-bar span { font-size: 12px; color: #1D4ED8; font-weight: 500; }
-  .b34-bulk-bar button { padding: 5px 14px; border: none; border-radius: 6px; background: #2563EB; color: #fff; font-size: 11px; font-weight: 600; cursor: pointer; }
-  .b34-bulk-bar button:hover { background: #1D4ED8; }
-  .b34-banner { border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; transition: opacity 0.2s ease, max-height 0.3s ease, margin 0.3s ease, padding 0.3s ease; overflow: hidden; }
+  .b34-bulk-bar span { font-size: 13px; color: #16a34a; font-weight: 500; }
+  .b34-bulk-bar button { padding: 5px 14px; border: none; border-radius: 5px; background: #16a34a; color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--font-body, 'DM Sans', sans-serif); }
+  .b34-bulk-bar button:hover { background: #15803d; }
+  .b34-bulk-bar button.b34-bulk-preview { background: transparent; border: 1px solid #16a34a; color: #16a34a; font-weight: 500; }
+  .b34-bulk-bar button.b34-bulk-preview:hover { background: #dcfce7; }
+  .b34-banner { border-radius: 12px; padding: 14px 16px 14px 0; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; transition: opacity 0.2s ease, max-height 0.3s ease, margin 0.3s ease, padding 0.3s ease; overflow: hidden; }
   .b34-banner.info { background: #EFF6FF; border: 1px solid #BFDBFE; }
   .b34-banner.dismissed { opacity: 0; max-height: 0; margin: 0; padding: 0; border: none; }
   .b34-banner-text { font-size: 14px; font-weight: 500; color: #1A1A1A; flex: 1; }
@@ -13647,15 +13650,15 @@ const WIKI_HTML = `<!DOCTYPE html>
   .b34-banner-dismiss:hover { color: #1A1A1A; }
 
   /* Three-tier missing */
-  .b34-tier-section { border-radius: 10px; padding: 16px; margin-bottom: 16px; }
-  .b34-tier-section.required { background: #FEF2F2; border: 1px solid #FCA5A5; }
-  .b34-tier-section.recommended { background: #FFFBEB; border: 1px solid #FDE68A; }
-  .b34-tier-section.optional { background: #F9FAFB; border: 1px solid #E5E7EB; }
-  .b34-tier-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-  .b34-tier-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
-  .b34-tier-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
-  .b34-tier-count { font-size: 12px; font-weight: 700; }
-  .b34-tier-sub { font-size: 12px; font-style: italic; margin-bottom: 12px; }
+  .b34-tier-section { border-radius: 8px; padding: 0; margin-bottom: 24px; background: transparent; border: none; }
+  .b34-tier-section.required { }
+  .b34-tier-section.recommended { }
+  .b34-tier-section.optional { }
+  .b34-tier-header { display: flex; align-items: center; gap: 6px; padding: 8px 0; margin-bottom: 8px; }
+  .b34-tier-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .b34-tier-label { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+  .b34-tier-count { font-size: 12px; color: #999999; font-weight: 400; }
+  .b34-tier-sub { font-size: 12px; font-style: italic; color: #999999; margin-bottom: 8px; }
   .b34-need-item { background: #fff; border: 1px solid #E5E7EB; border-radius: 8px; padding: 14px 16px; margin-bottom: 8px; }
   .b34-need-item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px; }
   .b34-need-item-name { font-size: 14px; font-weight: 600; color: #1A1A1A; }
@@ -13677,23 +13680,30 @@ const WIKI_HTML = `<!DOCTYPE html>
 
   /* Build 35: Documents tab table */
   .b35-doc-table { width: 100%; border-collapse: collapse; }
-  .b35-doc-table th { font-size: 11px; font-weight: 600; color: #6B7280; text-transform: uppercase; letter-spacing: 0.05em; padding: 10px 12px; text-align: left; border-bottom: 1px solid #E5E7EB; background: #FAFAF9; }
-  .b35-doc-table td { padding: 12px; font-size: 13px; color: #1A1A1A; border-bottom: 1px solid #F3F4F6; }
-  .b35-doc-table tr:hover td { background: #F3F4F6; cursor: pointer; }
+  .b35-doc-table th { font-size: 11px; font-weight: 600; color: #999999; text-transform: uppercase; letter-spacing: 0.5px; padding: 10px 16px; text-align: left; border-bottom: 1px solid #e5e5e3; }
+  .b35-doc-table th.col-doc { width: 35%; }
+  .b35-doc-table th.col-class { width: 25%; }
+  .b35-doc-table th.col-uploaded { width: 15%; }
+  .b35-doc-table th.col-fields { width: 10%; text-align: center; }
+  .b35-doc-table th.col-status { width: 15%; }
+  .b35-doc-table td { padding: 12px 16px; font-size: 13px; color: #1A1A1A; border-bottom: 1px solid #f0f0ee; vertical-align: middle; }
+  .b35-doc-table tr:hover td { background: #fafafa; cursor: pointer; }
   .b35-doc-name { display: flex; align-items: center; gap: 8px; font-weight: 500; }
-  .b35-doc-badge { font-size: 12px; padding: 2px 8px; border-radius: 9999px; background: #F3F4F6; color: #6B7280; }
-  .b35-doc-fields { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 12px; }
-  .b35-upload-zone { border: 2px dashed #D1D5DB; border-radius: 12px; padding: 32px; text-align: center; margin-top: 20px; cursor: pointer; transition: all 0.2s; }
-  .b35-upload-zone:hover { border-color: #2563EB; background: #EFF6FF; }
+  .b35-doc-name .doc-icon { font-size: 16px; opacity: 0.5; }
+  .b35-doc-badge { display: inline-block; font-size: 12px; font-weight: 500; padding: 2px 8px; border-radius: 4px; background: #eff6ff; color: #2563eb; }
+  .b35-doc-fields { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-weight: 600; font-size: 13px; text-align: center; }
+  .b35-upload-zone { border: 2px dashed #e5e5e3; border-radius: 8px; padding: 32px; text-align: center; margin-top: 20px; cursor: pointer; transition: border-color 0.2s, background 0.2s; color: #999999; font-size: 13px; }
+  .b35-upload-zone:hover { border-color: #2563eb; background: #eff6ff; }
 
   /* Build 35: Field-centric What We Need */
-  .b35-field-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 8px; padding: 14px 16px; margin-bottom: 8px; transition: all 0.3s; }
+  .b35-field-card { background: #fff; border: 1px solid #e5e5e3; border-radius: 8px; padding: 16px 20px; margin-bottom: 10px; transition: all 0.3s; }
+  .b35-field-card:hover { border-color: #2563eb; }
   .b35-field-card.saving { background: #F0FDF4; border-color: #BBF7D0; }
   .b35-field-card .field-name { font-size: 14px; font-weight: 600; color: #1A1A1A; display: flex; align-items: center; gap: 6px; }
-  .b35-field-card .field-parent { font-size: 13px; color: #6B7280; margin-top: 2px; }
+  .b35-field-card .field-parent { font-size: 12px; color: #6b6b6b; margin-top: 2px; }
   .b35-field-card .field-input-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
-  .b35-field-card .field-input-row input { flex: 1; border: 1px solid #E5E7EB; border-radius: 8px; padding: 8px 12px; font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 13px; outline: none; transition: border 0.15s, background 0.15s; }
-  .b35-field-card .field-input-row input:focus { border-color: #2563EB; background: #F8FAFF; }
+  .b35-field-card .field-input-row input { flex: 1; border: 1px solid #e5e5e3; border-radius: 6px; padding: 8px 12px; font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 13px; background: #f7f7f5; outline: none; transition: border 0.15s, background 0.15s; }
+  .b35-field-card .field-input-row input:focus { border-color: #2563EB; background: #fff; }
   .b35-field-card .field-input-row .save-btn { padding: 8px 14px; border: none; border-radius: 6px; background: #2563EB; color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; opacity: 0.4; transition: opacity 0.15s; }
   .b35-field-card .field-input-row .save-btn.enabled { opacity: 1; }
   .b35-field-card .field-input-row .save-btn.enabled:hover { background: #1D4ED8; }
@@ -13736,32 +13746,34 @@ const WIKI_HTML = `<!DOCTYPE html>
   .mv-doc-line.highlighted { background: #FEF3C7; border-left: 3px solid #D97706; padding-left: 5px; }
 
   /* ═══ Day 11: Confidence Legend ═══ */
-  .conf-legend { display: flex; gap: 12px; margin-bottom: 24px; }
-  .conf-legend-item { flex: 1; background: #fff; border: 1px solid #E5E7EB; border-radius: 10px; padding: 14px 16px; }
-  .conf-legend-top { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-  .conf-legend-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
-  .conf-legend-label { font-size: 13px; font-weight: 700; }
-  .conf-legend-range { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 11px; margin-left: auto; }
-  .conf-legend-desc { font-size: 12px; color: #6B7280; line-height: 1.5; }
+  .conf-legend { display: flex; gap: 0; margin-bottom: 20px; border: 1px solid #e5e5e3; border-radius: 8px; overflow: hidden; }
+  .conf-legend-item { flex: 1; padding: 12px 16px; border-right: 1px solid #e5e5e3; }
+  .conf-legend-item:last-child { border-right: none; }
+  .conf-legend-top { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .conf-legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .conf-legend-label { font-size: 13px; font-weight: 600; }
+  .conf-legend-range { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 12px; color: #999999; margin-left: auto; }
+  .conf-legend-desc { font-size: 12px; color: #6b6b6b; line-height: 1.4; }
 
   /* ═══ Day 11: Field Table Enhancements ═══ */
   .b34-field-row { cursor: pointer; }
   .b34-field-row.selected { background: #EFF6FF !important; }
-  .b34-field-header { display: grid; grid-template-columns: 160px 1fr 95px 80px 120px 80px 80px; gap: 8px; padding: 8px 16px; border-bottom: 1px solid #E5E7EB; background: #FAFAF9; border-left: 1px solid transparent; }
-  .b34-field-header span { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: #6B7280; }
-  .b34-conf-wrap { display: flex; align-items: center; gap: 6px; }
-  .b34-conf-bar { flex: 1; height: 4px; background: #F3F4F6; border-radius: 2px; overflow: hidden; max-width: 46px; }
-  .b34-conf-fill { height: 100%; border-radius: 2px; }
-  .b34-conf-num { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 11px; font-weight: 500; min-width: 28px; }
+  .b34-field-header { display: grid; grid-template-columns: 22% 28% 10% 14% 12% 10% 4%; gap: 0; padding: 8px 12px; border-bottom: 1px solid #e5e5e3; background: #FAFAF9; }
+  .b34-field-header span { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #999999; white-space: nowrap; }
+  .b34-field-header span:last-child { text-align: center; }
+  .b34-conf-wrap { display: flex; align-items: center; gap: 8px; }
+  .b34-conf-bar { width: 48px; height: 6px; background: #f0f0ee; border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+  .b34-conf-fill { height: 100%; border-radius: 3px; }
+  .b34-conf-num { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 12px; font-weight: 500; min-width: 30px; }
   .b34-priority-select { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; padding: 3px 20px 3px 8px; border-radius: 5px; border: 1px solid transparent; cursor: pointer; font-family: var(--font-sans, 'DM Sans', sans-serif); appearance: none; -webkit-appearance: none; background-repeat: no-repeat; background-position: right 5px center; background-size: 8px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%236B7280'/%3E%3C/svg%3E"); transition: all 0.15s; }
   .b34-priority-select:hover { border-color: #E5E7EB; }
-  .b34-priority-select.p-required { background-color: #FEF2F2; color: #DC2626; }
-  .b34-priority-select.p-recommended { background-color: #FFFBEB; color: #D97706; }
-  .b34-priority-select.p-optional { background-color: #EFF6FF; color: #2563EB; }
-  .b34-status-badge { font-size: 10px; font-weight: 600; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; white-space: nowrap; }
-  .b34-status-badge.s-verified { background: #ECFDF5; color: #059669; }
-  .b34-status-badge.s-review { background: #FFFBEB; color: #D97706; }
-  .b34-status-badge.s-missing { background: #FEF2F2; color: #DC2626; }
+  .b34-priority-select.p-required { background-color: #fef2f2; color: #dc2626; }
+  .b34-priority-select.p-recommended { background-color: #fffbeb; color: #d97706; }
+  .b34-priority-select.p-optional { background-color: #f7f7f5; color: #999999; }
+  .b34-status-badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; padding: 3px 8px; border-radius: 4px; white-space: nowrap; }
+  .b34-status-badge.s-verified { background: #dcfce7; color: #16a34a; }
+  .b34-status-badge.s-review { background: #fef3c7; color: #d97706; }
+  .b34-status-badge.s-missing { background: #fee2e2; color: #dc2626; }
 
   /* ═══ Day 11: Slide-Out Review Panel ═══ */
   .sp-header { padding: 16px 20px; border-bottom: 1px solid #E5E7EB; flex-shrink: 0; display: flex; align-items: flex-start; justify-content: space-between; }
@@ -13825,16 +13837,18 @@ const WIKI_HTML = `<!DOCTYPE html>
   .matter-action-btn.outline:hover { border-color: #2563EB; color: #2563EB; }
   .matter-action-btn.primary { background: #059669; border: 1px solid #059669; color: #fff; }
   .matter-action-btn.primary:hover { background: #047857; }
-  .metrics-bar { display: flex; gap: 0; margin-top: 4px; }
-  .metric { flex: 1; padding: 12px 0; }
-  .metric + .metric { padding-left: 24px; }
-  .metric-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: #6B7280; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; }
-  .metric-value { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 14px; font-weight: 500; }
-  .metric-bar { height: 3px; background: #F3F4F6; border-radius: 2px; margin-top: 6px; overflow: hidden; }
-  .metric-bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+  .metrics-bar { display: flex; gap: 48px; margin-top: 4px; margin-bottom: 16px; }
+  .metric { display: flex; flex-direction: column; gap: 4px; }
+  .metric-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #999999; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+  .metric-value { font-family: var(--font-mono, 'JetBrains Mono', monospace); font-size: 20px; font-weight: 600; }
+  .metric-value.green { color: #16a34a; }
+  .metric-value.yellow { color: #d97706; }
+  .metric-value.red { color: #dc2626; }
+  .metric-bar { width: 160px; height: 4px; background: #f0f0ee; border-radius: 2px; margin-top: 2px; overflow: hidden; }
+  .metric-bar-fill { height: 100%; border-radius: 2px; transition: width 0.4s ease; }
   .metric-bar-fill.danger { background: #DC2626; }
   .metric-bar-fill.warning { background: #D97706; }
-  .metric-bar-fill.success { background: #059669; }
+  .metric-bar-fill.success { background: #16a34a; }
   .matter-body { flex: 1; display: flex; overflow: hidden; }
   .mv-doc-panel { width: 240px; min-width: 240px; background: #fff; border-right: 1px solid #E5E7EB; display: flex; flex-direction: column; overflow: hidden; }
   .mv-doc-panel-header { padding: 16px 16px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #F3F4F6; flex-shrink: 0; }
@@ -13854,15 +13868,17 @@ const WIKI_HTML = `<!DOCTYPE html>
   .mv-doc-panel-footer { padding: 12px 16px; border-top: 1px dashed #E5E7EB; flex-shrink: 0; }
   .mv-doc-upload-btn { width: 100%; padding: 8px; text-align: center; font-size: 13px; color: #2563EB; cursor: pointer; border-radius: 6px; transition: background 0.15s; }
   .mv-doc-upload-btn:hover { background: #EFF6FF; }
-  .mv-center-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
-  .mv-tab-bar { display: flex; border-bottom: 1px solid #E5E7EB; background: #fff; flex-shrink: 0; padding: 0 32px; }
-  .mv-tab { padding: 14px 20px; font-size: 14px; color: #6B7280; cursor: pointer; position: relative; display: flex; align-items: center; gap: 8px; transition: color 0.15s; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .mv-center-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; padding-left: 32px; padding-right: 32px; }
+  .mv-tab-bar { display: flex; border-bottom: 1px solid #E5E7EB; background: #fff; flex-shrink: 0; padding: 0; }
+  .mv-tab { padding: 10px 20px; font-size: 14px; font-weight: 500; color: #6B7280; cursor: pointer; position: relative; display: flex; align-items: center; gap: 6px; transition: color 0.15s; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .mv-tab:first-child { padding-left: 0; }
   .mv-tab:hover { color: #1A1A1A; }
-  .mv-tab.active { color: #1A1A1A; font-weight: 600; border-bottom-color: #2563EB; }
+  .mv-tab.active { color: #1A1A1A; font-weight: 600; border-bottom-color: #1a1a1a; }
   .mv-tab-badge { font-size: 11px; padding: 1px 7px; border-radius: 10px; font-weight: 600; }
+  .mv-tab.active .mv-tab-badge { background: #1a1a1a; color: #fff; }
   .mv-tab-badge.neutral { background: #F3F4F6; color: #6B7280; }
   .mv-tab-badge.danger { background: #DC2626; color: #fff; }
-  .mv-tab-content { flex: 1; overflow-y: auto; padding: 24px 32px; }
+  .mv-tab-content { flex: 1; overflow-y: auto; padding: 24px 0; }
   .mv-tab-content.hidden { display: none; }
   .mv-doc-viewer { width: 420px; min-width: 420px; background: #fff; border-left: 1px solid #E5E7EB; display: flex; flex-direction: column; overflow: hidden; transition: width 300ms ease-in-out, min-width 300ms ease-in-out, opacity 200ms ease; }
   .mv-doc-viewer.hidden { width: 0; min-width: 0; opacity: 0; border: none; overflow: hidden; }
@@ -20106,23 +20122,22 @@ function _buildMatterMetrics34() {
 
   // Bar color logic: <50% red, 50-79% amber, 80-99% blue, 100% green
   function barColor(pct) {
-    if (pct >= 100) return '#059669';
-    if (pct >= 80) return '#2563EB';
-    if (pct >= 50) return '#D97706';
-    return '#DC2626';
+    if (pct >= 80) return '#16a34a';
+    if (pct >= 50) return '#d97706';
+    return '#dc2626';
   }
 
   var h = '';
   // 1. Completeness
-  h += '<div class="metric"><div class="metric-label">Completeness <span style="font-size:13px;cursor:help;color:#9CA3AF;" title="How much of the available data has been captured. 100% means every known field has a value \\u2014 even if some still need review.">?</span></div>';
+  h += '<div class="metric"><div class="metric-label">Completeness</div>';
   h += '<div class="metric-value" style="color:' + barColor(completePct) + ';">' + completePct + '%</div>';
   h += '<div class="metric-bar"><div class="metric-bar-fill" style="width:' + completePct + '%;background:' + barColor(completePct) + ';"></div></div></div>';
-  // 2. Readiness (was Filing Readiness)
-  h += '<div class="metric" style="padding-left:24px;"><div class="metric-label">Readiness <span style="font-size:13px;cursor:help;color:#9CA3AF;" title="Whether all required fields are filled and verified. This must reach 100% before you can generate or export.">?</span></div>';
+  // 2. Readiness
+  h += '<div class="metric"><div class="metric-label">Readiness</div>';
   h += '<div class="metric-value" style="color:' + barColor(readyPct) + ';">' + readyPct + '%</div>';
   h += '<div class="metric-bar"><div class="metric-bar-fill" style="width:' + readyPct + '%;background:' + barColor(readyPct) + ';"></div></div></div>';
   // 3. Verified
-  h += '<div class="metric" style="padding-left:24px;"><div class="metric-label">Verified <span style="font-size:13px;cursor:help;color:#9CA3AF;" title="How many fields have been confirmed as accurate. Higher is better, but only Required fields block readiness.">?</span></div>';
+  h += '<div class="metric"><div class="metric-label">Verified</div>';
   h += '<div class="metric-value" style="color:' + barColor(verifiedPct) + ';">' + verifiedPct + '%</div>';
   h += '<div class="metric-bar"><div class="metric-bar-fill" style="width:' + verifiedPct + '%;background:' + barColor(verifiedPct) + ';"></div></div></div>';
   return h;
@@ -20213,9 +20228,8 @@ function _buildDataPanel34() {
     h += '<div class="b34-bulk-bar" id="b34BulkBanner">';
     h += '<span>\u2713 Bulk Verify: ' + bulkEligible + ' fields have high confidence (\u226580%)</span>';
     h += '<div style="display:flex;gap:8px;align-items:center;">';
-    h += '<button onclick="event.stopPropagation();b34BulkPreview()" style="background:#fff;color:#2563EB;border:1px solid #BFDBFE;">Preview</button>';
+    h += '<button class="b34-bulk-preview" onclick="event.stopPropagation();b34BulkPreview()">Preview</button>';
     h += '<button onclick="event.stopPropagation();b34BulkVerify()">Verify All ' + bulkEligible + '</button>';
-    h += '<button class="b34-banner-dismiss" onclick="event.stopPropagation();this.closest(\\'.b34-bulk-bar\\').classList.add(\\'dismissed\\')" title="Dismiss">\u2715</button>';
     h += '</div></div>';
   }
 
@@ -20272,25 +20286,25 @@ function _buildDataPanel34() {
       else rowClass += ' unreviewed';
       if (_mvSelectedField === fieldKey) rowClass += ' selected';
 
-      var confColor = !fConf ? '#9CA3AF' : (fConf >= 0.80 ? '#059669' : (fConf >= 0.50 ? '#D97706' : '#DC2626'));
+      var confColor = !fConf ? '#999999' : (fConf >= 0.80 ? '#16a34a' : (fConf >= 0.50 ? '#d97706' : '#dc2626'));
       var confPct = fConf ? Math.round(fConf * 100) : 0;
 
       h += '<div class="' + rowClass + '" id="b34row_' + fieldKey + '" onclick="mvOpenFieldPanel(\\'' + fieldKey + '\\')">';
 
-      // Col 1: Field name + entity
+      // Col 1: Field name + context
       h += '<div><div class="b34-field-name">' + esc(field.name) + '</div>';
-      h += '<div style="font-size:11px;color:#6B7280;margin-top:1px;">' + esc(entity.type) + ': ' + esc(entity.name) + '</div></div>';
+      h += '<div style="font-size:11px;color:#999999;margin-top:1px;">' + esc(entity.type) + ': ' + esc(entity.name) + '</div></div>';
 
       // Col 2: Value
       h += '<div id="b34val_' + fieldKey + '">';
       if (fStatus === 'missing' || fVal === null) {
-        h += '<span class="b34-field-value empty">\u2014</span>';
+        h += '<span class="b34-field-value empty" style="color:#999999;font-family:var(--font-body);font-style:italic;">\u2014</span>';
       } else {
         h += '<span class="b34-field-value">' + esc(String(fVal)) + '</span>';
       }
       h += '</div>';
 
-      // Col 3: Priority dropdown
+      // Col 3: Priority badge
       h += '<div>';
       h += '<select class="b34-priority-select p-' + fPriority + '" onclick="event.stopPropagation()" onchange="event.stopPropagation();b34UpdatePriority(\\'' + fieldKey + '\\',this)">';
       h += '<option value="required"' + (fPriority === 'required' ? ' selected' : '') + '>Required</option>';
@@ -20307,7 +20321,7 @@ function _buildDataPanel34() {
         h += '<span class="b34-conf-num" style="color:' + confColor + ';">' + fConf.toFixed(2) + '</span>';
         h += '</div>';
       } else {
-        h += '<span style="font-size:11px;color:#9CA3AF;">\u2014</span>';
+        h += '<span style="font-size:14px;color:#999999;">\u2726</span>';
       }
       h += '</div>';
 
@@ -20328,7 +20342,7 @@ function _buildDataPanel34() {
       } else if (fStatus === 'missing') {
         h += '<span class="b34-status-badge s-missing">Missing</span>';
       } else {
-        h += '<span class="b34-status-badge s-review">\u2696 Review</span>';
+        h += '<span class="b34-status-badge s-review">\u2299 Review</span>';
       }
       h += '</div>';
 
@@ -20362,7 +20376,7 @@ function _buildConfidenceLegend() {
   h += '<div class="conf-legend-top">';
   h += '<div class="conf-legend-dot" style="background:#DC2626;"></div>';
   h += '<span class="conf-legend-label" style="color:#DC2626;">Low Confidence</span>';
-  h += '<span class="conf-legend-range" style="color:#DC2626;">.00 \u2013 .49</span>';
+  h += '<span class="conf-legend-range">.00 \u2013 .49</span>';
   h += '</div>';
   h += '<div class="conf-legend-desc">Only one weak source, or the data is outdated. Needs verification before you use it.</div>';
   h += '</div>';
@@ -20371,16 +20385,16 @@ function _buildConfidenceLegend() {
   h += '<div class="conf-legend-top">';
   h += '<div class="conf-legend-dot" style="background:#D97706;"></div>';
   h += '<span class="conf-legend-label" style="color:#D97706;">Medium Confidence</span>';
-  h += '<span class="conf-legend-range" style="color:#D97706;">.50 \u2013 .79</span>';
+  h += '<span class="conf-legend-range">.50 \u2013 .79</span>';
   h += '</div>';
   h += '<div class="conf-legend-desc">Came from one good source, or the info is a bit old. Worth a quick check before relying on it.</div>';
   h += '</div>';
   // High Confidence
   h += '<div class="conf-legend-item">';
   h += '<div class="conf-legend-top">';
-  h += '<div class="conf-legend-dot" style="background:#059669;"></div>';
-  h += '<span class="conf-legend-label" style="color:#059669;">High Confidence</span>';
-  h += '<span class="conf-legend-range" style="color:#059669;">.80 \u2013 1.0</span>';
+  h += '<div class="conf-legend-dot" style="background:#16a34a;"></div>';
+  h += '<span class="conf-legend-label" style="color:#16a34a;">High Confidence</span>';
+  h += '<span class="conf-legend-range">.80 \u2013 1.0</span>';
   h += '</div>';
   h += '<div class="conf-legend-desc">Multiple sources agree, the data is recent, and it checks out. You can trust this.</div>';
   h += '</div>';
@@ -20891,24 +20905,24 @@ function _buildDocumentsTab35() {
   // Document table
   h += '<table class="b35-doc-table">';
   h += '<thead><tr>';
-  h += '<th>Document</th>';
-  h += '<th>Classification</th>';
-  h += '<th>Uploaded</th>';
-  h += '<th>Fields</th>';
-  h += '<th>Status</th>';
+  h += '<th class="col-doc">Document</th>';
+  h += '<th class="col-class">Classification</th>';
+  h += '<th class="col-uploaded">Uploaded</th>';
+  h += '<th class="col-fields">Fields</th>';
+  h += '<th class="col-status">Status</th>';
   h += '</tr></thead>';
   h += '<tbody>';
   for (var i = 0; i < docs.length; i++) {
     var doc = docs[i];
     var statusHtml = doc.status === 'processed'
-      ? '<span style="color:#059669;">\u2713 Processed</span>'
-      : '<span style="color:#D97706;">\u27f3 Processing</span>';
+      ? '<span style="color:#16a34a;font-size:12px;font-weight:500;display:flex;align-items:center;gap:4px;">\u2713 Processed</span>'
+      : '<span style="color:#d97706;font-size:12px;font-weight:500;display:flex;align-items:center;gap:4px;">\u27f3 Processing</span>';
     h += '<tr onclick="mvSelectDoc34(\\'' + doc.id + '\\')">';
-    h += '<td><div class="b35-doc-name">\ud83d\udcc4 ' + esc(doc.filename) + '</div></td>';
+    h += '<td><div class="b35-doc-name"><span class="doc-icon">\ud83d\udcc4</span> ' + esc(doc.filename) + '</div></td>';
     h += '<td><span class="b35-doc-badge">' + esc(doc.classification) + '</span></td>';
-    h += '<td style="font-size:12px;color:#6B7280;">' + esc(doc.uploaded) + '</td>';
-    h += '<td><span class="b35-doc-fields">' + doc.extractedCount + '</span></td>';
-    h += '<td style="font-size:12px;">' + statusHtml + '</td>';
+    h += '<td style="font-size:12px;color:#6b6b6b;">' + esc(doc.uploaded) + '</td>';
+    h += '<td style="text-align:center;"><span class="b35-doc-fields">' + doc.extractedCount + '</span></td>';
+    h += '<td>' + statusHtml + '</td>';
     h += '</tr>';
   }
   h += '</tbody></table>';
