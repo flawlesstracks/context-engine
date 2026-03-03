@@ -13869,7 +13869,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   .mv-doc-upload-btn { width: 100%; padding: 8px; text-align: center; font-size: 13px; color: #2563EB; cursor: pointer; border-radius: 6px; transition: background 0.15s; }
   .mv-doc-upload-btn:hover { background: #EFF6FF; }
   .mv-center-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; padding: 0; margin: 0; width: 100%; }
-  .mv-tab-bar { display: flex; border-bottom: 1px solid #E5E7EB; background: #fff; flex-shrink: 0; padding: 0 32px; }
+  .mv-tab-bar { display: flex; border-bottom: none; background: transparent; flex-shrink: 0; padding: 0; }
   .mv-tab { padding: 10px 20px; font-size: 14px; font-weight: 500; color: #6B7280; cursor: pointer; position: relative; display: flex; align-items: center; gap: 6px; transition: color 0.15s; border-bottom: 2px solid transparent; margin-bottom: -1px; }
   .mv-tab:first-child { padding-left: 0; }
   .mv-tab:hover { color: #1A1A1A; }
@@ -19214,6 +19214,8 @@ function showProjectDetail(spokeId, tab) {
   h += '</div>';
   // Metrics bar
   h += '<div class="metrics-bar" id="matterMetrics"><div style="color:#9CA3AF;font-size:13px;">Loading metrics...</div></div>';
+  // Tab bar inside header (matches reference structure)
+  h += '<div class="mv-tab-bar" id="mvTabBar"></div>';
   h += '</div>'; // end matter-header
 
   // Body: full-width tabbed layout + slide-out viewer (Build 35: removed left doc panel)
@@ -19221,7 +19223,6 @@ function showProjectDetail(spokeId, tab) {
 
   // Center: tabbed content (full width, no left panel)
   h += '<div class="mv-center-panel" style="flex:1;">';
-  h += '<div class="mv-tab-bar" id="mvTabBar"></div>';
   h += '<div id="mvTabKnow" class="mv-tab-content"><div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading...</div></div>';
   h += '<div id="mvTabNeed" class="mv-tab-content hidden"><div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading...</div></div>';
   h += '<div id="mvTabDocuments" class="mv-tab-content hidden"><div style="text-align:center;padding:40px;color:#9CA3AF;font-size:13px;">Loading...</div></div>';
