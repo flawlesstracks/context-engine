@@ -13878,7 +13878,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   .mv-tab.active .mv-tab-badge { background: #1a1a1a; color: #fff; }
   .mv-tab-badge.neutral { background: #F3F4F6; color: #6B7280; }
   .mv-tab-badge.danger { background: #DC2626; color: #fff; }
-  .mv-tab-content { flex: 1; overflow-y: auto; padding: 24px 32px; }
+  .mv-tab-content { flex: 1; overflow-y: auto; padding: 24px 32px 0; }
   .mv-tab-content.hidden { display: none; }
   .mv-doc-viewer { width: 420px; min-width: 420px; background: #fff; border-left: 1px solid #E5E7EB; display: flex; flex-direction: column; overflow: hidden; transition: width 300ms ease-in-out, min-width 300ms ease-in-out, opacity 200ms ease; }
   .mv-doc-viewer.hidden { width: 0; min-width: 0; opacity: 0; border: none; overflow: hidden; }
