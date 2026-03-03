@@ -26013,19 +26013,24 @@ var _thCatLabels = {
   pi:{label:"Personal Injury",count:10,dot:"#be185d"}
 };
 
-var _thZoneSections = [
-  {zone:"identity",title:"Zone 1: Identity & Entity",badge:"15",badgeBg:"#f5f3ff",badgeColor:"#7c3aed",cats:["identity"]},
-  {zone:"input",title:"Zone 2: Transactional Input",badge:"35",badgeBg:"#fffbeb",badgeColor:"#d97706",cats:["transactional"]},
-  {zone:"output",title:"Zone 3: Output & Compliance",badge:"60",badgeBg:"#ecfdf5",badgeColor:"#059669",cats:["income-tax","payroll","compliance","info","deductions","state"]},
-  {zone:"pi",title:"Personal Injury",badge:"10",badgeBg:"#fdf2f8",badgeColor:"#be185d",cats:["pi"]}
+var _thSections = [
+  {cat:"identity",title:"Identity &amp; Entity",badge:"ZONE 1 &middot; INPUT",badgeBg:"#f5f3ff",badgeColor:"#7c3aed"},
+  {cat:"transactional",title:"Financial &amp; Transactional",badge:"ZONE 2 &middot; INPUT",badgeBg:"#fffbeb",badgeColor:"#d97706"},
+  {cat:"income-tax",title:"Income Tax Forms",badge:"ZONE 3 &middot; OUTPUT",badgeBg:"#ecfdf5",badgeColor:"#059669"},
+  {cat:"payroll",title:"Employment &amp; Payroll",badge:"ZONE 3 &middot; OUTPUT",badgeBg:"#f0fdfa",badgeColor:"#0d9488"},
+  {cat:"compliance",title:"Entity &amp; Compliance Filings",badge:"ZONE 3 &middot; OUTPUT",badgeBg:"#eef2ff",badgeColor:"#4f46e5"},
+  {cat:"info",title:"Information &amp; Disclosure",badge:"ZONE 3 &middot; OUTPUT",badgeBg:"#f0f9ff",badgeColor:"#0284c7"},
+  {cat:"deductions",title:"Deductions &amp; Credits",badge:"ZONE 3 &middot; OUTPUT",badgeBg:"#f0fdf4",badgeColor:"#16a34a"},
+  {cat:"state",title:"State &amp; Local",badge:"ZONE 3 &middot; OUTPUT",badgeBg:"#fef2f2",badgeColor:"#dc2626"},
+  {cat:"pi",title:"Personal Injury",badge:"JADA&#39;S LANE",badgeBg:"#fdf2f8",badgeColor:"#be185d"}
 ];
 
 function _thRenderCard(t) {
   var c = _thCatColors[t.cat] || _thCatColors.identity;
   var safeName = esc(t.name).replace(/'/g,"&#39;");
-  return '<div class="th-card" data-cat="' + t.cat + '" data-id="' + t.id + '" data-search="' + esc(t.name.toLowerCase() + ' ' + t.desc.toLowerCase()) + '" onclick="thOpenModal(\\'\\', \\'' + safeName + '\\')">' +
+  return '<div class="th-card" data-cat="' + t.cat + '" data-id="' + t.id + '" data-search="' + esc(t.name.toLowerCase() + ' ' + t.desc.toLowerCase()) + '" onclick="thOpenModal(&#39;&#39;, &#39;' + safeName + '&#39;)">' +
     '<div class="th-stripe" style="background:' + c.stripe + '"></div>' +
-    '<button class="th-menu" onclick="event.stopPropagation(); thOpenModal(\\'\\', \\'' + safeName + '\\')">&#x22EF;</button>' +
+    '<button class="th-menu" onclick="event.stopPropagation(); thOpenModal(&#39;&#39;, &#39;' + safeName + '&#39;)">&#x22EF;</button>' +
     '<div class="th-body">' +
     '<div class="th-icon" style="background:' + c.iconBg + '; color:' + c.iconColor + ';">' + t.icon + '</div>' +
     '<div class="th-name">' + esc(t.name) + '</div>' +
@@ -26037,14 +26042,30 @@ function _thRenderCard(t) {
 function _thRenderPackCard(p) {
   var safeName = esc(p.name).replace(/'/g,"&#39;");
   var chips = p.forms.map(function(f){ return '<span class="th-pack-chip">' + esc(f) + '</span>'; }).join('');
-  return '<div class="th-pack" onclick="thOpenModal(\\'\\', \\'' + safeName + '\\')">' +
+  return '<div class="th-pack" onclick="thOpenModal(&#39;&#39;, &#39;' + safeName + '&#39;)">' +
     '<div style="position:absolute;top:0;left:0;right:0;height:4px;background:' + p.color + ';"></div>' +
     '<div class="th-pack-eyebrow" style="color:' + p.color + ';">STARTER PACK &middot; ' + esc(p.persona).toUpperCase() + '</div>' +
     '<div class="th-pack-name">' + esc(p.name) + '</div>' +
     '<div class="th-pack-desc">' + esc(p.desc) + '</div>' +
     '<div class="th-pack-forms">' + chips + '</div>' +
     '<div class="th-pack-stat"><span><strong>' + p.forms.length + '</strong> templates</span><span>&middot;</span><span><strong>' + p.fields + '</strong> total fields</span>' +
-    '<span style="margin-left:auto;"><button class="th-btn th-btn-primary" style="padding:6px 14px;font-size:12px;" onclick="event.stopPropagation(); thOpenModal(\\'\\', \\'' + safeName + '\\')">Use Pack &rarr;</button></span></div></div>';
+    '<span style="margin-left:auto;"><button class="th-btn th-btn-primary" style="padding:6px 14px;font-size:12px;" onclick="event.stopPropagation(); thOpenModal(&#39;&#39;, &#39;' + safeName + '&#39;)">Use Pack &rarr;</button></span></div></div>';
+}
+
+function _thRenderYoursCard(name, basedOn, color, bg, icon, fields, docs, zoneName, zoneClass) {
+  var safeName = esc(name).replace(/'/g,"&#39;");
+  var safeBase = esc(basedOn).replace(/'/g,"&#39;");
+  return '<div class="th-card" data-cat="yours" onclick="thOpenModal(&#39;' + safeName + '&#39;, &#39;' + safeBase + '&#39;)">' +
+    '<div class="th-stripe" style="background:' + color + '"></div>' +
+    '<div class="th-your-badge" style="background:' + color + '">CUSTOM</div>' +
+    '<button class="th-menu" onclick="event.stopPropagation(); thOpenModal(&#39;' + safeName + '&#39;, &#39;' + safeBase + '&#39;)">&#x22EF;</button>' +
+    '<div class="th-body">' +
+    '<div class="th-icon" style="background:' + bg + '; color:' + color + ';">' + icon + '</div>' +
+    '<div class="th-rename-from">Based on: ' + esc(basedOn) + '</div>' +
+    '<div class="th-name">' + esc(name) + '</div>' +
+    '<div class="th-desc">Full workflow template — customized from the ' + esc(basedOn) + ' base template.</div>' +
+    '<div class="th-meta"><span class="th-fields">' + fields + ' fields</span><span>&middot;</span><span>' + docs + ' docs</span><span class="th-zone ' + zoneClass + '">' + zoneName + '</span></div>' +
+    '</div></div>';
 }
 
 function showTemplatesHub() {
@@ -26058,109 +26079,155 @@ function showTemplatesHub() {
   renderSidebar();
   renderRightPanel(null);
 
-  var svgSearch = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>';
+  var svgSearchLg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
+  var svgSearchSm = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
   var svgLink = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
 
   var h = '<div class="th-wrap">';
 
-  // Sticky top bar
+  // ── STICKY TOP BAR ──
   h += '<div class="th-top-bar"><div class="th-top-inner">';
-  h += '<div class="th-top-search-wrap"><span class="th-top-search-icon">' + svgSearch + '</span>';
-  h += '<input type="text" class="th-top-search-input" id="thTopSearch" placeholder="Search 110 templates..." oninput="thHandleSearch(this.value)">';
+  h += '<div class="th-top-search-wrap">';
+  h += '<span class="th-top-search-icon">' + svgSearchSm + '</span>';
+  h += '<input class="th-top-search-input" type="text" id="thTopSearch" placeholder="Search templates\u2026  e.g. W-9, 1065, depreciation, PI intake" oninput="thHandleSearch(this.value)">';
   h += '<span class="th-top-search-count" id="thTopCount"></span>';
-  h += '<span class="th-top-kbd">/</span></div>';
-  h += '<div class="th-top-actions"><button class="th-top-btn" onclick="thOpenModal(\\'New Template\\', \\'\\')">+ New Template</button></div>';
+  h += '<kbd class="th-top-kbd">/</kbd>';
+  h += '</div>';
+  h += '<div class="th-top-actions"><button class="th-top-btn" onclick="thOpenModal(&#39;New Template&#39;,&#39;&#39;)">+ New Template</button></div>';
   h += '</div></div>';
 
-  // Hero
+  // ── HERO ──
   h += '<div class="th-hero">';
-  h += '<div class="th-eyebrow">TEMPLATE LIBRARY</div>';
+  h += '<div class="th-eyebrow">Context Architecture \u2014 The intelligence layer for professional services</div>';
   h += '<h1>Templates</h1>';
-  h += '<div class="th-hero-sub">110 forms across 3 zones. Search, filter, or start from a pack.</div>';
+  h += '<p class="th-hero-sub">Start from a proven structure, rename it, make it yours. 100+ professional forms organized by workflow.</p>';
   h += '<div class="th-tabs">';
-  h += '<button class="th-tab active" onclick="thSwitchTab(this,\\'browse\\')">Browse All</button>';
-  h += '<button class="th-tab" onclick="thSwitchTab(this,\\'yours\\')">Your Templates</button>';
-  h += '<button class="th-tab" onclick="thSwitchTab(this,\\'packs\\')">Starter Packs</button>';
+  h += '<button class="th-tab active" onclick="thSwitchTab(this,&#39;browse&#39;)">Browse All</button>';
+  h += '<button class="th-tab" onclick="thSwitchTab(this,&#39;yours&#39;)">Your Templates</button>';
+  h += '<button class="th-tab" onclick="thSwitchTab(this,&#39;packs&#39;)">Starter Packs</button>';
   h += '</div>';
-  h += '<div class="th-search-wrap"><span class="th-search-icon">' + svgSearch + '</span>';
-  h += '<input type="text" class="th-search-input" id="thHeroSearch" placeholder="Search templates... e.g. &quot;1099&quot; or &quot;partnership&quot;" oninput="thHandleSearch(this.value)">';
-  h += '<span class="th-search-count" id="thHeroCount"></span></div>';
+  h += '<div class="th-search-wrap">';
+  h += '<span class="th-search-icon">' + svgSearchLg + '</span>';
+  h += '<input class="th-search-input" type="text" id="thHeroSearch" placeholder="Search 100 templates\u2026 e.g. \u2018W-9\u2019, \u20181065\u2019, \u2018depreciation\u2019, \u2018PI intake\u2019" oninput="thHandleSearch(this.value)">';
+  h += '<span class="th-search-count" id="thHeroCount"></span>';
+  h += '</div>';
   h += '</div>';
 
-  // Category strip
+  // ── CATEGORY CHIPS ──
   h += '<div class="th-cat-strip" id="thCatStrip">';
-  h += '<span class="th-cat-chip active" onclick="thFilterCat(\\'all\\',this)">All</span>';
-  var cats = ["identity","transactional","income-tax","payroll","compliance","info","deductions","state","pi"];
-  cats.forEach(function(cat) {
-    var info = _thCatLabels[cat];
-    h += '<span class="th-cat-chip" onclick="thFilterCat(\\'' + cat + '\\',this)"><span class="th-dot" style="background:' + info.dot + '"></span>' + info.label + '</span>';
-  });
+  h += '<div class="th-cat-chip active" onclick="thFilterCat(&#39;all&#39;,this)"><span class="th-dot" style="background:#1a1917;"></span> All Templates</div>';
+  h += '<div class="th-cat-chip" onclick="thFilterCat(&#39;identity&#39;,this)"><span class="th-dot" style="background:#7c3aed;"></span> Identity &amp; Entity</div>';
+  h += '<div class="th-cat-chip" onclick="thFilterCat(&#39;transactional&#39;,this)"><span class="th-dot" style="background:#d97706;"></span> Transactional</div>';
+  h += '<div class="th-cat-chip" onclick="thFilterCat(&#39;income-tax&#39;,this)"><span class="th-dot" style="background:#059669;"></span> Income Tax</div>';
+  h += '<div class="th-cat-chip" onclick="thFilterCat(&#39;payroll&#39;,this)"><span class="th-dot" style="background:#0d9488;"></span> Employment</div>';
+  h += '<div class="th-cat-chip" onclick="thFilterCat(&#39;compliance&#39;,this)"><span class="th-dot" style="background:#4f46e5;"></span> Compliance</div>';
+  h += '<div class="th-cat-chip" onclick="thFilterCat(&#39;info&#39;,this)"><span class="th-dot" style="background:#0284c7;"></span> Information</div>';
+  h += '<div class="th-cat-chip" onclick="thFilterCat(&#39;deductions&#39;,this)"><span class="th-dot" style="background:#16a34a;"></span> Deductions</div>';
+  h += '<div class="th-cat-chip" onclick="thFilterCat(&#39;state&#39;,this)"><span class="th-dot" style="background:#dc2626;"></span> State &amp; Local</div>';
+  h += '<div class="th-cat-chip" onclick="thFilterCat(&#39;pi&#39;,this)"><span class="th-dot" style="background:#be185d;"></span> Personal Injury</div>';
   h += '</div>';
 
-  // Browse tab content
-  h += '<div class="th-content" id="thTabBrowse">';
+  // ── CONTENT AREA ──
+  h += '<div class="th-content" id="thContentArea">';
 
-  // Zone sections
-  _thZoneSections.forEach(function(sec) {
-    h += '<div class="th-section-head" data-cat="' + sec.cats.join(',') + '"><div class="th-section-title">' + sec.title + ' <span class="th-section-badge" style="background:' + sec.badgeBg + ';color:' + sec.badgeColor + ';">' + sec.badge + '</span></div></div>';
-    sec.cats.forEach(function(cat) {
-      var items = _thTemplates.filter(function(t){ return t.cat === cat; });
-      h += '<div class="th-grid" data-cat="' + cat + '">';
-      h += items.map(_thRenderCard).join('');
-      h += '</div>';
-    });
-    h += '<div class="th-section-divider"></div>';
+  // ═══ BROWSE TAB ═══
+  h += '<div id="thTabBrowse">';
+
+  // Your Templates preview (top of Browse, like reference)
+  h += '<div class="th-section-head" data-section="yours-preview">';
+  h += '<div class="th-section-title">Your Templates <span class="th-section-badge" style="background:#eff6ff;color:#2563eb;">3 SAVED</span></div>';
+  h += '<a class="th-section-link" onclick="thSwitchTab(document.querySelectorAll(&#39;.th-tab&#39;)[1],&#39;yours&#39;)">View all \u2192</a>';
+  h += '</div>';
+  h += '<div class="th-grid" data-section="yours-preview">';
+  h += '<div class="th-create" onclick="thOpenModal(&#39;New Template&#39;,&#39;&#39;)"><div class="th-create-icon">+</div><div class="th-create-label">Create Template</div><div class="th-create-sub">From scratch or clone existing</div></div>';
+  h += _thRenderYoursCard('Corporate Management', 'Corporate Formation', '#2563eb', '#eff6ff', '\u{1F3E2}', 23, 6, 'Identity', 'th-zone-identity');
+  h += _thRenderYoursCard("Justin's Tax Prep Pack", 'Business Tax Preparation', '#059669', '#ecfdf5', '\u{1F4D1}', 35, 12, 'Output', 'th-zone-output');
+  h += _thRenderYoursCard("Jada's PI Intake", 'Personal Injury Case', '#be185d', '#fdf2f8', '\u2696', 42, 8, 'Input', 'th-zone-input');
+  h += '</div>';
+  h += '<div class="th-section-divider"></div>';
+
+  // Each category section (matching reference exactly)
+  _thSections.forEach(function(sec) {
+    h += '<div class="th-section-head" data-cat="' + sec.cat + '"><div class="th-section-title">' + sec.title + ' <span class="th-section-badge" style="background:' + sec.badgeBg + ';color:' + sec.badgeColor + ';">' + sec.badge + '</span></div></div>';
+    h += '<div class="th-grid" data-cat="' + sec.cat + '" id="thGrid-' + sec.cat + '"></div>';
   });
 
-  // Your Templates preview
-  h += '<div class="th-section-head" data-section="yours-preview"><div class="th-section-title">Your Templates</div><span class="th-section-link" onclick="thSwitchTab(document.querySelectorAll(\\'.th-tab\\')[1],\\'yours\\')">View all &rarr;</span></div>';
-  h += '<div class="th-grid">';
-  h += '<div class="th-create" onclick="thOpenModal(\\'New Template\\', \\'\\')"><div class="th-create-icon">+</div><div class="th-create-label">Create Template</div><div class="th-create-sub">From scratch or clone existing</div></div>';
-  h += '</div>';
+  h += '</div>'; // end tab-browse
 
-  h += '</div>'; // end browse tab
-
-  // Yours tab (hidden)
-  h += '<div class="th-content" id="thTabYours" style="display:none;">';
+  // ═══ YOUR TEMPLATES TAB ═══
+  h += '<div id="thTabYours" style="display:none;">';
   h += '<div class="th-section-head"><div class="th-section-title">Your Templates</div></div>';
+  h += '<p style="font-size:13px;color:#5c5b56;margin-bottom:20px;">Templates you&#39;ve created or customized. Click any Browse template&#39;s \u22EF menu to clone and rename it.</p>';
   h += '<div class="th-grid" id="thYoursFull">';
-  h += '<div class="th-create" onclick="thOpenModal(\\'New Template\\', \\'\\')"><div class="th-create-icon">+</div><div class="th-create-label">Create Template</div><div class="th-create-sub">From scratch or clone existing</div></div>';
+  h += '<div class="th-create" onclick="thOpenModal(&#39;New Template&#39;,&#39;&#39;)"><div class="th-create-icon">+</div><div class="th-create-label">Create Template</div><div class="th-create-sub">From scratch or clone existing</div></div>';
   h += '</div>';
   h += '</div>';
 
-  // Packs tab (hidden)
-  h += '<div class="th-content" id="thTabPacks" style="display:none;">';
+  // ═══ STARTER PACKS TAB ═══
+  h += '<div id="thTabPacks" style="display:none;">';
   h += '<div class="th-section-head"><div class="th-section-title">Starter Packs</div></div>';
-  h += '<div class="th-pack-grid" id="thPackGrid">';
-  h += _thPacks.map(_thRenderPackCard).join('');
-  h += '</div>';
+  h += '<p style="font-size:13px;color:#5c5b56;margin-bottom:20px;">Pre-bundled template collections for common workflows. One click to add all forms.</p>';
+  h += '<div class="th-pack-grid" id="thPackGrid"></div>';
   h += '</div>';
 
-  // Empty state
+  // Empty search state
   h += '<div class="th-empty" id="thEmpty"><div class="th-em-icon">\u{1F50D}</div><h3>No templates found</h3><p>Try a different search term or browse by category.</p></div>';
 
+  h += '</div>'; // end content area
   h += '</div>'; // end th-wrap
 
-  // Modal
+  // ═══ RENAME MODAL ═══
   h += '<div class="th-modal-overlay" id="thModal" onclick="if(event.target===this) thCloseModal()">';
-  h += '<div class="th-modal"><h3>Use This Template</h3><p class="th-modal-sub">Give it a name for your library. The original stays untouched.</p>';
+  h += '<div class="th-modal">';
+  h += '<h3>Use This Template</h3>';
+  h += '<p class="th-modal-sub">Give it a name for your library. The original stays untouched.</p>';
   h += '<label for="thRenameInput">Template Name</label>';
   h += '<input type="text" id="thRenameInput" placeholder="e.g., Justin&#39;s Small Biz Tax Pack">';
-  h += '<div class="th-modal-base" id="thModalBase">' + svgLink + ' <span id="thModalBaseText">Based on: &mdash;</span></div>';
-  h += '<div class="th-modal-actions"><button class="th-btn th-btn-ghost" onclick="thCloseModal()">Cancel</button><button class="th-btn th-btn-primary" onclick="thConfirmUse()">Use Template &rarr;</button></div>';
-  h += '</div></div>';
+  h += '<div class="th-modal-base" id="thModalBase">' + svgLink + ' <span id="thModalBaseText">Based on: \u2014</span></div>';
+  h += '<div class="th-modal-actions">';
+  h += '<button class="th-btn th-btn-ghost" onclick="thCloseModal()">Cancel</button>';
+  h += '<button class="th-btn th-btn-primary" onclick="thConfirmUse()">Use Template \u2192</button>';
+  h += '</div></div></div>';
 
   // Toast
   h += '<div class="th-toast" id="thToast"></div>';
 
   document.getElementById('main').innerHTML = h;
+
+  // Populate grids (like init() in reference)
+  thInitGrids();
+}
+
+function thInitGrids() {
+  var cats = ['identity','transactional','income-tax','payroll','compliance','info','deductions','state','pi'];
+  cats.forEach(function(cat) {
+    var grid = document.getElementById('thGrid-' + cat);
+    if (grid) {
+      grid.innerHTML = _thTemplates.filter(function(t){ return t.cat === cat; }).map(_thRenderCard).join('');
+    }
+  });
+  // Packs
+  var packGrid = document.getElementById('thPackGrid');
+  if (packGrid) {
+    packGrid.innerHTML = _thPacks.map(_thRenderPackCard).join('');
+  }
+  // Your Templates full tab — reuse preview cards
+  var yoursFull = document.getElementById('thYoursFull');
+  if (yoursFull) {
+    var createCard = '<div class="th-create" onclick="thOpenModal(&#39;New Template&#39;,&#39;&#39;)"><div class="th-create-icon">+</div><div class="th-create-label">Create Template</div><div class="th-create-sub">From scratch or clone existing</div></div>';
+    yoursFull.innerHTML = createCard +
+      _thRenderYoursCard('Corporate Management', 'Corporate Formation', '#2563eb', '#eff6ff', '\u{1F3E2}', 23, 6, 'Identity', 'th-zone-identity') +
+      _thRenderYoursCard("Justin's Tax Prep Pack", 'Business Tax Preparation', '#059669', '#ecfdf5', '\u{1F4D1}', 35, 12, 'Output', 'th-zone-output') +
+      _thRenderYoursCard("Jada's PI Intake", 'Personal Injury Case', '#be185d', '#fdf2f8', '\u2696', 42, 8, 'Input', 'th-zone-input');
+  }
 }
 
 function thSwitchTab(el, tab) {
   document.querySelectorAll('.th-tab').forEach(function(t){ t.classList.remove('active'); });
   el.classList.add('active');
-  ['browse','yours','packs'].forEach(function(t) {
-    var el2 = document.getElementById('thTab' + t.charAt(0).toUpperCase() + t.slice(1));
+  var tabs = {browse:'thTabBrowse', yours:'thTabYours', packs:'thTabPacks'};
+  Object.keys(tabs).forEach(function(t) {
+    var el2 = document.getElementById(tabs[t]);
     if (el2) el2.style.display = (t === tab) ? '' : 'none';
   });
   var strip = document.getElementById('thCatStrip');
@@ -26185,16 +26252,19 @@ function thFilterCat(cat, el) {
   }
   heads.forEach(function(h2) {
     var hCat = h2.getAttribute('data-cat');
+    var hSec = h2.getAttribute('data-section');
+    if (hSec) { h2.style.display = 'none'; return; }
     if (!hCat) { h2.style.display = 'none'; return; }
-    h2.style.display = hCat.split(',').indexOf(cat) >= 0 ? '' : 'none';
+    h2.style.display = (hCat === cat) ? '' : 'none';
   });
   grids.forEach(function(g) {
     var gCat = g.getAttribute('data-cat');
+    var gSec = g.getAttribute('data-section');
+    if (gSec) { g.style.display = 'none'; return; }
     if (!gCat) { g.style.display = 'none'; return; }
     g.style.display = (gCat === cat) ? '' : 'none';
   });
   dividers.forEach(function(d){ d.style.display = 'none'; });
-  browse.querySelectorAll('[data-section="yours-preview"]').forEach(function(el2){ el2.style.display = 'none'; });
 }
 
 function thHandleSearch(query) {
@@ -26232,7 +26302,6 @@ function thHandleSearch(query) {
   if (heroCount) { heroCount.textContent = txt; heroCount.classList.add('visible'); }
   if (topCount) { topCount.textContent = txt; topCount.classList.add('visible'); }
   if (emptyEl) emptyEl.classList.toggle('visible', count === 0);
-  // Hide empty section headers
   document.querySelectorAll('.th-grid[data-cat]').forEach(function(grid) {
     var cards = grid.querySelectorAll('.th-card');
     var anyVisible = false;
@@ -34310,6 +34379,8 @@ const FORMFILL_HTML = `<!DOCTYPE html>
 .th-create-label { font-size:13px; font-weight:600; color:#5c5b56; }
 .th-create:hover .th-create-label { color:#2563eb; }
 .th-create-sub { font-size:11px; color:#8a8983; margin-top:3px; }
+.th-your-badge { position:absolute; top:12px; left:12px; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; padding:2px 8px; border-radius:4px; color:white; z-index:1; }
+.th-rename-from { font-size:10px; color:#8a8983; font-style:italic; margin-bottom:2px; }
 .th-pack-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:16px; margin-bottom:32px; }
 .th-pack { background:white; border:1px solid #e4e3de; border-radius:10px; padding:20px; cursor:pointer; transition:all 0.2s; position:relative; overflow:hidden; }
 .th-pack:hover { border-color:#cccbc6; box-shadow:0 8px 24px rgba(0,0,0,0.08); transform:translateY(-1px); }
