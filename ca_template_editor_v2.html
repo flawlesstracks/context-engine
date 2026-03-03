@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CA — Template Editor</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#FAFAF9;--surface:#FFF;--text:#1A1A1A;--text-sec:#6B7280;--accent:#2563EB;--accent-light:#EFF6FF;--accent-hover:#1D4ED8;--warning:#D97706;--warning-light:#FFFBEB;--danger:#DC2626;--danger-light:#FEF2F2;--border:#E5E7EB;--border-light:#F3F4F6;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;display:flex;}
+.sidebar{width:248px;height:100vh;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;}
+.sb-brand{padding:16px 16px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border-light);}
+.sb-brand-icon{width:32px;height:32px;min-width:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px;}
+.sb-brand-text{font-size:15px;font-weight:600;}
+.sb-tools{display:flex;gap:2px;padding:12px 8px 8px;}
+.sb-tool{display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px;border-radius:8px;cursor:pointer;flex:1;}
+.sb-tool:hover{background:var(--border-light);}
+.sb-tool-icon{font-size:18px;}
+.sb-tool-label{font-size:10px;color:var(--text-sec);}
+.sb-div{height:1px;background:var(--border-light);margin:4px 12px;}
+.sb-sec{padding:8px 8px 4px;}
+.sb-sec-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-sec);padding:0 8px;margin-bottom:2px;}
+.sb-item{display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:6px;font-size:13px;color:var(--text-sec);cursor:pointer;white-space:nowrap;}
+.sb-item:hover{background:var(--border-light);color:var(--text);}
+.sb-item.active{background:var(--accent-light);color:var(--accent);font-weight:500;}
+.sb-item-icon{width:20px;font-size:15px;text-align:center;}
+.sb-item-meta{margin-left:auto;display:flex;gap:4px;align-items:center;}
+.sb-item-count{font-size:11px;font-family:monospace;}
+.sb-item-dot{width:7px;height:7px;border-radius:50%;}
+.sb-add{display:flex;align-items:center;gap:6px;padding:6px 20px;font-size:12px;color:var(--accent);cursor:pointer;}
+.sb-footer{margin-top:auto;padding:12px;border-top:1px solid var(--border-light);display:flex;align-items:center;gap:10px;}
+.sb-avatar{width:30px;height:30px;min-width:30px;border-radius:50%;background:linear-gradient(135deg,#667eea,#764ba2);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700;}
+.sb-user{font-size:13px;font-weight:500;}
+.sb-logout{margin-left:auto;font-size:12px;color:var(--text-sec);cursor:pointer;}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.th{padding:20px 32px 0;background:var(--surface);border-bottom:1px solid var(--border);}
+.th-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;}
+.th-back{font-size:13px;color:var(--text-sec);cursor:pointer;margin-bottom:4px;}
+.th-back:hover{color:var(--accent);}
+.th-name{font-family:'Instrument Serif',serif;font-size:28px;}
+.th-meta{font-size:13px;color:var(--text-sec);margin-top:2px;}
+.th-actions{display:flex;gap:8px;}
+.btn{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;}
+.btn-o{background:var(--surface);border:1px solid var(--border);color:var(--text);}
+.btn-o:hover{border-color:var(--accent);color:var(--accent);}
+.btn-d{background:var(--surface);border:1px solid var(--border);color:var(--danger);}
+.btn-d:hover{border-color:var(--danger);background:var(--danger-light);}
+.btn-p{background:var(--accent);border:1px solid var(--accent);color:#fff;}
+.btn-p:hover{background:var(--accent-hover);}
+.stats{display:flex;gap:0;margin-top:8px;padding-bottom:16px;}
+.stat{flex:1;text-align:center;padding:16px 0;background:var(--surface);border:1px solid var(--border);}
+.stat:first-child{border-radius:10px 0 0 10px;}
+.stat:last-child{border-radius:0 10px 10px 0;}
+.stat:not(:first-child){border-left:none;}
+.stat-num{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:600;}
+.stat-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-sec);margin-top:2px;}
+.tb{flex:1;overflow-y:auto;padding:24px 32px;}
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:20px;}
+.tb-btn{padding:7px 14px;border:1px solid var(--border);background:var(--surface);border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;color:var(--text-sec);font-family:'DM Sans',sans-serif;transition:all .15s;}
+.tb-btn:hover{border-color:var(--accent);color:var(--accent);}
+.tb-btn.accent{border-color:var(--accent);color:var(--accent);}
+.tb-btn.accent:hover{background:var(--accent-light);}
+.tb-btn.upload{border-color:var(--accent);background:var(--accent-light);color:var(--accent);}
+.tb-btn.upload:hover{background:var(--accent);color:#fff;}
+.tb-search{margin-left:auto;padding:7px 14px;border:1px solid var(--border);background:var(--surface);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;color:var(--text);outline:none;width:200px;}
+.tb-search:focus{border-color:var(--accent);}
+.tb-search::placeholder{color:#D1D5DB;}
+.dz{margin-bottom:20px;animation:fadeIn .2s ease;}
+.dz-box{border:2px dashed var(--border);border-radius:12px;padding:28px 32px;text-align:center;transition:all .15s;cursor:pointer;position:relative;background:var(--surface);}
+.dz-box:hover{border-color:var(--accent);background:var(--accent-light);}
+.dz-x{position:absolute;top:10px;right:14px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:6px;cursor:pointer;color:var(--text-sec);font-size:14px;border:none;background:none;}
+.dz-x:hover{background:var(--border-light);color:var(--text);}
+.dz-icon{font-size:28px;margin-bottom:8px;}
+.dz-title{font-weight:600;color:var(--text);font-size:15px;margin-bottom:6px;}
+.dz-desc{font-size:13px;color:var(--text-sec);line-height:1.5;max-width:460px;margin:0 auto 10px;}
+.dz-fmt{font-size:12px;color:#9CA3AF;}
+.rg{margin-bottom:28px;}
+.rg-hd{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border-light);}
+.rg-name{font-size:15px;font-weight:700;}
+.rg-cnt{font-size:12px;color:var(--text-sec);}
+.rg-acts{margin-left:auto;display:flex;gap:4px;}
+.rg-btn{font-size:12px;color:var(--text-sec);cursor:pointer;padding:4px 8px;border-radius:4px;border:none;background:none;font-family:'DM Sans',sans-serif;}
+.rg-btn:hover{background:var(--border-light);color:var(--text);}
+.rg-btn.danger:hover{background:var(--danger-light);color:var(--danger);}
+.ft{width:100%;border-collapse:separate;border-spacing:0;}
+.ft thead th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--text-sec);text-align:left;padding:8px 12px;background:var(--bg);border-bottom:1px solid var(--border);}
+.ft tbody tr{transition:background .1s;}
+.ft tbody tr:hover{background:var(--accent-light);}
+.ft td{padding:10px 12px;font-size:13px;border-bottom:1px solid var(--border-light);vertical-align:middle;}
+.fn{font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;border:none;background:transparent;outline:none;color:var(--text);width:100%;}
+.fn:focus{border-bottom:2px solid var(--accent);background:var(--accent-light);border-radius:2px;padding:2px 4px;margin:-2px -4px;}
+.st{font-size:12px;padding:4px 24px 4px 8px;border-radius:5px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-family:'JetBrains Mono',monospace;color:var(--text-sec);appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%236B7280'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;}
+.sp{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;padding:3px 20px 3px 8px;border-radius:5px;border:1px solid transparent;cursor:pointer;font-family:'DM Sans',sans-serif;appearance:none;-webkit-appearance:none;background-repeat:no-repeat;background-position:right 5px center;background-size:8px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%236B7280'/%3E%3C/svg%3E");}
+.sp:hover{border-color:var(--border);}
+.sp.required{background-color:var(--danger-light);color:var(--danger);}
+.sp.recommended{background-color:var(--warning-light);color:var(--warning);}
+.sp.optional{background-color:var(--accent-light);color:var(--accent);}
+.ss{font-size:12px;padding:4px 24px 4px 8px;border-radius:5px;border:1px solid var(--border);background:var(--surface);cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--text-sec);appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%236B7280'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;}
+.fa{width:26px;height:26px;border:1px solid var(--border);background:var(--surface);border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:var(--text-sec);transition:all .15s;}
+.fa.drag{cursor:grab;border:none;background:none;}
+.fa.del:hover{background:var(--danger-light);border-color:var(--danger);color:var(--danger);}
+.add-row{padding:8px 12px;cursor:pointer;color:var(--accent);font-size:13px;font-weight:500;border-bottom:1px solid var(--border-light);transition:background .1s;}
+.add-row:hover{background:var(--accent-light);}
+.adv{margin-top:32px;border-top:1px solid var(--border);padding-top:20px;}
+.adv-tog{font-size:13px;font-weight:600;color:var(--text-sec);cursor:pointer;display:flex;align-items:center;gap:6px;}
+.adv-tog:hover{color:var(--text);}
+.adv-body{margin-top:16px;display:none;}
+.adv-body.open{display:block;}
+.adv-f{margin-bottom:16px;}
+.adv-l{font-size:12px;font-weight:600;color:var(--text-sec);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+.adv-i{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;}
+.adv-i:focus{border-color:var(--accent);}
+.adv-t{width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;min-height:80px;resize:vertical;}
+.adv-t:focus{border-color:var(--accent);}
+::-webkit-scrollbar{width:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:#D1D5DB;border-radius:3px;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+</style>
+</head>
+<body>
+<div class="sidebar">
+  <div class="sb-brand"><div class="sb-brand-icon">CA</div><span class="sb-brand-text">Context Architecture</span></div>
+  <div class="sb-tools"><div class="sb-tool"><span class="sb-tool-icon">↑</span><span class="sb-tool-label">Upload</span></div><div class="sb-tool"><span class="sb-tool-icon">⌕</span><span class="sb-tool-label">Search</span></div><div class="sb-tool"><span class="sb-tool-icon">☑</span><span class="sb-tool-label">Review</span></div><div class="sb-tool"><span class="sb-tool-icon">✧</span><span class="sb-tool-label">Cleanup</span></div></div>
+  <div class="sb-div"></div>
+  <div class="sb-sec"><div class="sb-sec-label">CJ [Personal Graph]</div><div class="sb-item"><span class="sb-item-icon">☆</span>About</div><div class="sb-item"><span class="sb-item-icon">💼</span>Career</div><div class="sb-item"><span class="sb-item-icon">👨‍👩‍👦</span>Family</div><div class="sb-item"><span class="sb-item-icon">♡</span>Friends</div><div class="sb-item"><span class="sb-item-icon">🏛</span>Affiliations</div></div>
+  <div class="sb-div"></div>
+  <div class="sb-sec"><div class="sb-sec-label">Tools</div><div class="sb-item"><span class="sb-item-icon">⚡</span>FormFill</div></div>
+  <div class="sb-div"></div>
+  <div class="sb-sec"><div class="sb-sec-label">Clients</div><div class="sb-item"><span class="sb-item-icon">🏢</span>Acme Consulting LLC<span class="sb-item-meta"><span class="sb-item-count">3</span><span class="sb-item-dot" style="background:var(--danger);"></span></span></div><div class="sb-item"><span class="sb-item-icon">👤</span>TEST CLIENT<span class="sb-item-meta"><span class="sb-item-count">0</span><span class="sb-item-dot" style="background:var(--warning);"></span></span></div><div class="sb-add">＋ New Client</div></div>
+  <div class="sb-div"></div>
+  <div class="sb-sec"><div class="sb-sec-label">Templates</div><div class="sb-item active"><span class="sb-item-icon">📄</span>Estate Planning</div><div class="sb-item"><span class="sb-item-icon">📄</span>Corporate Formation</div><div class="sb-item"><span class="sb-item-icon">📄</span>Business Tax Prep</div><div class="sb-item"><span class="sb-item-icon">📄</span>Personal Injury</div><div class="sb-item"><span class="sb-item-icon">📄</span>General Matter</div><div class="sb-item"><span class="sb-item-icon">📄</span>Financial Statement Review</div><div class="sb-add">＋ New Template</div></div>
+  <div class="sb-div"></div>
+  <div class="sb-sec"><div class="sb-sec-label">Projects</div><div class="sb-add">＋ New Project</div></div>
+  <div class="sb-footer"><div class="sb-avatar">CM</div><span class="sb-user">Clarence Mitchell</span><span class="sb-logout">Logout</span></div>
+</div>
+<div class="main">
+  <div class="th">
+    <div class="th-top">
+      <div><div class="th-back">← Templates</div><div class="th-name">Estate Planning</div><div class="th-meta">11 fields across 4 entity roles · Last edited 2 days ago</div></div>
+      <div class="th-actions"><button class="btn btn-o">↗ Preview</button><button class="btn btn-d">🗑 Delete</button><button class="btn btn-p">💾 Save Template</button></div>
+    </div>
+    <div class="stats"><div class="stat"><div class="stat-num" style="color:var(--danger);">5</div><div class="stat-label">Required</div></div><div class="stat"><div class="stat-num" style="color:var(--warning);">4</div><div class="stat-label">Recommended</div></div><div class="stat"><div class="stat-num" style="color:var(--accent);">2</div><div class="stat-label">Optional</div></div></div>
+  </div>
+  <div class="tb">
+    <div class="toolbar">
+      <button class="tb-btn accent">＋ Add Entity Role</button>
+      <button class="tb-btn">＋ Add Field</button>
+      <button class="tb-btn upload" onclick="toggleDZ()">↑ Upload</button>
+      <input class="tb-search" placeholder="Search fields..." />
+    </div>
+    <div class="dz" id="dz" style="display:none;">
+      <div class="dz-box" onclick="document.getElementById('dzF').click()">
+        <button class="dz-x" onclick="event.stopPropagation();hideDZ()">✕</button>
+        <div class="dz-icon">📄</div>
+        <div class="dz-title">Upload a document to map field locations</div>
+        <div class="dz-desc">We'll scan your document and automatically match fields to their locations, so generated forms know exactly where to place each value.</div>
+        <div class="dz-fmt">Drop a PDF, DOCX, or image — or click to browse</div>
+        <input type="file" id="dzF" accept=".pdf,.docx,.doc,.png,.jpg,.jpeg" style="display:none" />
+      </div>
+    </div>
+    <div class="rg"><div class="rg-hd"><span style="font-size:16px;">📋</span><span class="rg-name">Primary Client</span><span class="rg-cnt">(4 fields)</span><div class="rg-acts"><button class="rg-btn">✎ Rename</button><button class="rg-btn danger">🗑 Delete Role</button></div></div><table class="ft"><thead><tr><th style="width:30px;"></th><th>Field Name</th><th>Type</th><th>Priority</th><th>Sensitivity</th><th style="width:50px;"></th></tr></thead><tbody>
+      <tr><td><span class="fa drag">⠿</span></td><td><input class="fn" value="Full Name"/></td><td><select class="st"><option selected>text</option><option>date</option><option>number</option><option>ssn</option><option>phone</option><option>email</option><option>address</option><option>currency</option></select></td><td><select class="sp required" onchange="upP(this)"><option selected>Required</option><option>Recommended</option><option>Optional</option></select></td><td><select class="ss"><option selected>Standard</option><option>Sensitive</option><option>PII</option></select></td><td><span class="fa del">✕</span></td></tr>
+      <tr><td><span class="fa drag">⠿</span></td><td><input class="fn" value="Date of Birth"/></td><td><select class="st"><option>text</option><option selected>date</option><option>number</option><option>ssn</option><option>phone</option><option>email</option><option>address</option><option>currency</option></select></td><td><select class="sp required" onchange="upP(this)"><option selected>Required</option><option>Recommended</option><option>Optional</option></select></td><td><select class="ss"><option>Standard</option><option>Sensitive</option><option selected>PII</option></select></td><td><span class="fa del">✕</span></td></tr>
+      <tr><td><span class="fa drag">⠿</span></td><td><input class="fn" value="SSN"/></td><td><select class="st"><option>text</option><option>date</option><option>number</option><option selected>ssn</option><option>phone</option><option>email</option><option>address</option><option>currency</option></select></td><td><select class="sp required" onchange="upP(this)"><option selected>Required</option><option>Recommended</option><option>Optional</option></select></td><td><select class="ss"><option>Standard</option><option>Sensitive</option><option selected>PII</option></select></td><td><span class="fa del">✕</span></td></tr>
+      <tr><td><span class="fa drag">⠿</span></td><td><input class="fn" value="Address"/></td><td><select class="st"><option>text</option><option>date</option><option>number</option><option>ssn</option><option>phone</option><option>email</option><option selected>address</option><option>currency</option></select></td><td><select class="sp recommended" onchange="upP(this)"><option>Required</option><option selected>Recommended</option><option>Optional</option></select></td><td><select class="ss"><option selected>Standard</option><option>Sensitive</option><option>PII</option></select></td><td><span class="fa del">✕</span></td></tr>
+    </tbody></table><div class="add-row">＋ Add field to Primary Client</div></div>
+    <div class="rg"><div class="rg-hd"><span style="font-size:16px;">📋</span><span class="rg-name">Spouse</span><span class="rg-cnt">(2 fields)</span><div class="rg-acts"><button class="rg-btn">✎ Rename</button><button class="rg-btn danger">🗑 Delete Role</button></div></div><table class="ft"><thead><tr><th style="width:30px;"></th><th>Field Name</th><th>Type</th><th>Priority</th><th>Sensitivity</th><th style="width:50px;"></th></tr></thead><tbody>
+      <tr><td><span class="fa drag">⠿</span></td><td><input class="fn" value="Full Name"/></td><td><select class="st"><option selected>text</option><option>date</option><option>number</option><option>ssn</option><option>phone</option><option>email</option><option>address</option><option>currency</option></select></td><td><select class="sp recommended" onchange="upP(this)"><option>Required</option><option selected>Recommended</option><option>Optional</option></select></td><td><select class="ss"><option selected>Standard</option><option>Sensitive</option><option>PII</option></select></td><td><span class="fa del">✕</span></td></tr>
+      <tr><td><span class="fa drag">⠿</span></td><td><input class="fn" value="Date of Birth"/></td><td><select class="st"><option>text</option><option selected>date</option><option>number</option><option>ssn</option><option>phone</option><option>email</option><option>address</option><option>currency</option></select></td><td><select class="sp optional" onchange="upP(this)"><option>Required</option><option>Recommended</option><option selected>Optional</option></select></td><td><select class="ss"><option>Standard</option><option>Sensitive</option><option selected>PII</option></select></td><td><span class="fa del">✕</span></td></tr>
+    </tbody></table><div class="add-row">＋ Add field to Spouse</div></div>
+    <div class="rg"><div class="rg-hd"><span style="font-size:16px;">📋</span><span class="rg-name">Beneficiary</span><span class="rg-cnt">(2 fields)</span><div class="rg-acts"><button class="rg-btn">✎ Rename</button><button class="rg-btn danger">🗑 Delete Role</button></div></div><table class="ft"><thead><tr><th style="width:30px;"></th><th>Field Name</th><th>Type</th><th>Priority</th><th>Sensitivity</th><th style="width:50px;"></th></tr></thead><tbody>
+      <tr><td><span class="fa drag">⠿</span></td><td><input class="fn" value="Full Name"/></td><td><select class="st"><option selected>text</option><option>date</option><option>number</option><option>ssn</option><option>phone</option><option>email</option><option>address</option><option>currency</option></select></td><td><select class="sp recommended" onchange="upP(this)"><option>Required</option><option selected>Recommended</option><option>Optional</option></select></td><td><select class="ss"><option selected>Standard</option><option>Sensitive</option><option>PII</option></select></td><td><span class="fa del">✕</span></td></tr>
+      <tr><td><span class="fa drag">⠿</span></td><td><input class="fn" value="Relationship"/></td><td><select class="st"><option selected>text</option><option>date</option><option>number</option><option>ssn</option><option>phone</option><option>email</option><option>address</option><option>currency</option></select></td><td><select class="sp optional" onchange="upP(this)"><option>Required</option><option>Recommended</option><option selected>Optional</option></select></td><td><select class="ss"><option selected>Standard</option><option>Sensitive</option><option>PII</option></select></td><td><span class="fa del">✕</span></td></tr>
+    </tbody></table><div class="add-row">＋ Add field to Beneficiary</div></div>
+    <div class="rg"><div class="rg-hd"><span style="font-size:16px;">📋</span><span class="rg-name">Executor</span><span class="rg-cnt">(3 fields)</span><div class="rg-acts"><button class="rg-btn">✎ Rename</button><button class="rg-btn danger">🗑 Delete Role</button></div></div><table class="ft"><thead><tr><th style="width:30px;"></th><th>Field Name</th><th>Type</th><th>Priority</th><th>Sensitivity</th><th style="width:50px;"></th></tr></thead><tbody>
+      <tr><td><span class="fa drag">⠿</span></td><td><input class="fn" value="Full Name"/></td><td><select class="st"><option selected>text</option><option>date</option><option>number</option><option>ssn</option><option>phone</option><option>email</option><option>address</option><option>currency</option></select></td><td><select class="sp required" onchange="upP(this)"><option selected>Required</option><option>Recommended</option><option>Optional</option></select></td><td><select class="ss"><option selected>Standard</option><option>Sensitive</option><option>PII</option></select></td><td><span class="fa del">✕</span></td></tr>
+      <tr><td><span class="fa drag">⠿</span></td><td><input class="fn" value="Relationship"/></td><td><select class="st"><option selected>text</option><option>date</option><option>number</option><option>ssn</option><option>phone</option><option>email</option><option>address</option><option>currency</option></select></td><td><select class="sp recommended" onchange="upP(this)"><option>Required</option><option selected>Recommended</option><option>Optional</option></select></td><td><select class="ss"><option selected>Standard</option><option>Sensitive</option><option>PII</option></select></td><td><span class="fa del">✕</span></td></tr>
+      <tr><td><span class="fa drag">⠿</span></td><td><input class="fn" value="Contact Info"/></td><td><select class="st"><option selected>text</option><option>date</option><option>number</option><option>ssn</option><option>phone</option><option>email</option><option>address</option><option>currency</option></select></td><td><select class="sp required" onchange="upP(this)"><option selected>Required</option><option>Recommended</option><option>Optional</option></select></td><td><select class="ss"><option selected>Standard</option><option>Sensitive</option><option>PII</option></select></td><td><span class="fa del">✕</span></td></tr>
+    </tbody></table><div class="add-row">＋ Add field to Executor</div></div>
+    <div class="adv">
+      <div class="adv-tog" onclick="toggleAdv()"><span id="advA">▶</span> Show Advanced Settings</div>
+      <div class="adv-body" id="advB">
+        <div class="adv-f"><div class="adv-l">Template Description</div><textarea class="adv-t">Standard template for estate planning matters. Covers primary client info, spouse, beneficiaries, and executor details.</textarea></div>
+        <div class="adv-f"><div class="adv-l">Default Document Types</div><input class="adv-i" value="Will, Trust Agreement, Power of Attorney, Healthcare Directive"/></div>
+        <div class="adv-f"><div class="adv-l">Validation Rules</div><textarea class="adv-t">SSN must match XXX-XX-XXXX format
+Date of Birth must be a past date
+At least one beneficiary required</textarea></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function upP(s){s.className='sp '+s.value.toLowerCase();}
+function toggleAdv(){const b=document.getElementById('advB'),a=document.getElementById('advA');b.classList.toggle('open');a.textContent=b.classList.contains('open')?'▼':'▶';}
+function toggleDZ(){const d=document.getElementById('dz');d.style.display=d.style.display==='none'?'block':'none';}
+function hideDZ(){document.getElementById('dz').style.display='none';}
+</script>
+</body>
+</html>

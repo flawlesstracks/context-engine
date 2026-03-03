@@ -22624,7 +22624,7 @@ function buildFieldCardsFromTemplate(t) {
         name: f.display_name || f.field_id || '',
         fieldId: f.field_id || '',
         type: f.type || f.field_type || 'text',
-        tier: f.necessity_tier || 'EXPECTED',
+        tier: f.necessity_tier || 'RECOMMENDED',
         sensitivity: f.sensitivity || 'Standard',
         sourceHint: f.source_hint || f.extraction_notes || '',
         aiGenerated: f.ai_generated || false,
@@ -22647,7 +22647,7 @@ function buildFieldCardsFromTemplate(t) {
         name: rf.display_name || rf.field_id || '',
         fieldId: rf.field_id || '',
         type: rf.field_type || rf.type || 'text',
-        tier: rf.necessity_tier || 'EXPECTED',
+        tier: rf.necessity_tier || 'RECOMMENDED',
         sensitivity: rf.sensitivity || 'Standard',
         sourceHint: '',
         aiGenerated: rf.ai_generated || false,
@@ -22706,242 +22706,267 @@ function renderWysiwygEditor() {
   var t = window._tplEdit;
   if (!t) return;
   var mainEl = document.getElementById('main');
-  var cards = window._tplFieldCards || [];
-  var totalFields = cards.length;
 
-  // Count tiers
-  var blockingCount = 0, expectedCount = 0, enrichingCount = 0;
-  for (var ci = 0; ci < cards.length; ci++) {
-    if (cards[ci].tier === 'BLOCKING') blockingCount++;
-    else if (cards[ci].tier === 'EXPECTED') expectedCount++;
-    else enrichingCount++;
+  // Count fields across entity roles
+  var totalFields = 0, requiredCount = 0, recommendedCount = 0, optionalCount = 0;
+  var roles = t.entity_roles || [];
+  for (var ri = 0; ri < roles.length; ri++) {
+    var rfs = roles[ri].required_fields || [];
+    for (var fi = 0; fi < rfs.length; fi++) {
+      var rf = typeof rfs[fi] === 'string' ? {} : rfs[fi];
+      var tier = rf.necessity_tier || 'RECOMMENDED';
+      totalFields++;
+      if (tier === 'REQUIRED') requiredCount++;
+      else if (tier === 'RECOMMENDED') recommendedCount++;
+      else optionalCount++;
+    }
   }
 
-  var h = '<div style="display:flex;flex-direction:column;height:100%;background:#FAFAF9;">';
+  // CSS classes for the template editor
+  var css = '<style>';
+  css += '.te-hd{padding:20px 32px 0;background:#fff;border-bottom:1px solid #E5E7EB;}';
+  css += '.te-hd-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;}';
+  css += '.te-back{font-size:13px;color:#6B7280;cursor:pointer;margin-bottom:4px;text-decoration:none;display:inline-block;}';
+  css += '.te-back:hover{color:#2563EB;}';
+  css += '.te-name{font-family:var(--font-display);font-size:28px;color:#1A1A1A;}';
+  css += '.te-meta{font-size:13px;color:#6B7280;margin-top:2px;}';
+  css += '.te-actions{display:flex;gap:8px;}';
+  css += '.te-btn{padding:8px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;font-family:var(--font-sans);transition:all .15s;}';
+  css += '.te-btn-o{background:#fff;border:1px solid #E5E7EB;color:#1A1A1A;}';
+  css += '.te-btn-o:hover{border-color:#2563EB;color:#2563EB;}';
+  css += '.te-btn-d{background:#fff;border:1px solid #E5E7EB;color:#DC2626;}';
+  css += '.te-btn-d:hover{border-color:#DC2626;background:#FEF2F2;}';
+  css += '.te-btn-p{background:#2563EB;border:1px solid #2563EB;color:#fff;}';
+  css += '.te-btn-p:hover{background:#1D4ED8;}';
+  css += '.te-stats{display:flex;gap:0;margin-top:8px;padding-bottom:16px;}';
+  css += '.te-stat{flex:1;text-align:center;padding:16px 0;background:#fff;border:1px solid #E5E7EB;}';
+  css += '.te-stat:first-child{border-radius:10px 0 0 10px;}';
+  css += '.te-stat:last-child{border-radius:0 10px 10px 0;}';
+  css += '.te-stat:not(:first-child){border-left:none;}';
+  css += '.te-stat-num{font-family:var(--font-mono);font-size:28px;font-weight:600;}';
+  css += '.te-stat-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6B7280;margin-top:2px;}';
+  css += '.te-body{flex:1;overflow-y:auto;padding:24px 32px;}';
+  css += '.te-desc-label{font-size:12px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}';
+  css += '.te-desc-ta{width:100%;padding:8px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:var(--font-sans);outline:none;min-height:56px;resize:vertical;}';
+  css += '.te-desc-ta:focus{border-color:#2563EB;}';
+  css += '.te-toolbar{display:flex;align-items:center;gap:8px;margin-bottom:20px;}';
+  css += '.te-tb-btn{padding:7px 14px;border:1px solid #E5E7EB;background:#fff;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;color:#6B7280;font-family:var(--font-sans);transition:all .15s;}';
+  css += '.te-tb-btn:hover{border-color:#2563EB;color:#2563EB;}';
+  css += '.te-tb-btn.accent{border-color:#2563EB;color:#2563EB;}';
+  css += '.te-tb-btn.accent:hover{background:#EFF6FF;}';
+  css += '.te-tb-btn.upload{border-color:#2563EB;background:#EFF6FF;color:#2563EB;}';
+  css += '.te-tb-btn.upload:hover{background:#2563EB;color:#fff;}';
+  css += '.te-tb-search{margin-left:auto;padding:7px 14px;border:1px solid #E5E7EB;background:#fff;border-radius:8px;font-size:13px;font-family:var(--font-sans);color:#1A1A1A;outline:none;width:200px;}';
+  css += '.te-tb-search:focus{border-color:#2563EB;}';
+  css += '.te-tb-search::placeholder{color:#D1D5DB;}';
+  css += '.te-dz{margin-bottom:20px;animation:teIn .2s ease;}';
+  css += '@keyframes teIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}';
+  css += '.te-dz-box{border:2px dashed #E5E7EB;border-radius:12px;padding:28px 32px;text-align:center;transition:all .15s;cursor:pointer;position:relative;background:#fff;}';
+  css += '.te-dz-box:hover{border-color:#2563EB;background:#EFF6FF;}';
+  css += '.te-dz-x{position:absolute;top:10px;right:14px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:6px;cursor:pointer;color:#6B7280;font-size:14px;border:none;background:none;}';
+  css += '.te-dz-x:hover{background:#F3F4F6;color:#1A1A1A;}';
+  css += '.te-rg{margin-bottom:28px;}';
+  css += '.te-rg-hd{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid #F3F4F6;}';
+  css += '.te-rg-name{font-size:15px;font-weight:700;}';
+  css += '.te-rg-cnt{font-size:12px;color:#6B7280;}';
+  css += '.te-rg-acts{margin-left:auto;display:flex;gap:4px;}';
+  css += '.te-rg-btn{font-size:12px;color:#6B7280;cursor:pointer;padding:4px 8px;border-radius:4px;border:none;background:none;font-family:var(--font-sans);}';
+  css += '.te-rg-btn:hover{background:#F3F4F6;color:#1A1A1A;}';
+  css += '.te-rg-btn.danger:hover{background:#FEF2F2;color:#DC2626;}';
+  css += '.te-ft{width:100%;border-collapse:separate;border-spacing:0;}';
+  css += '.te-ft thead th{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#6B7280;text-align:left;padding:8px 12px;background:#FAFAF9;border-bottom:1px solid #E5E7EB;}';
+  css += '.te-ft tbody tr{transition:background .1s;}';
+  css += '.te-ft tbody tr:hover{background:#EFF6FF;}';
+  css += '.te-ft td{padding:10px 12px;font-size:13px;border-bottom:1px solid #F3F4F6;vertical-align:middle;}';
+  css += '.te-fn{font-size:13px;font-weight:600;font-family:var(--font-sans);border:none;background:transparent;outline:none;color:#1A1A1A;width:100%;}';
+  css += '.te-fn:focus{border-bottom:2px solid #2563EB;background:#EFF6FF;border-radius:2px;padding:2px 4px;margin:-2px -4px;}';
+  css += '.te-sel{font-size:12px;padding:4px 24px 4px 8px;border-radius:5px;border:1px solid #E5E7EB;background:#fff;cursor:pointer;font-family:var(--font-mono);color:#6B7280;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'8\' height=\'5\'%3E%3Cpath d=\'M0 0l4 5 4-5z\' fill=\'%236B7280\'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;}';
+  css += '.te-pri{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;padding:3px 20px 3px 8px;border-radius:5px;border:1px solid transparent;cursor:pointer;font-family:var(--font-sans);appearance:none;-webkit-appearance:none;background-repeat:no-repeat;background-position:right 5px center;background-size:8px;background-image:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'8\' height=\'5\'%3E%3Cpath d=\'M0 0l4 5 4-5z\' fill=\'%236B7280\'/%3E%3C/svg%3E");}';
+  css += '.te-pri:hover{border-color:#E5E7EB;}';
+  css += '.te-pri.required{background-color:#FEF2F2;color:#DC2626;}';
+  css += '.te-pri.recommended{background-color:#FFFBEB;color:#D97706;}';
+  css += '.te-pri.optional{background-color:#EFF6FF;color:#2563EB;}';
+  css += '.te-sns{font-size:12px;padding:4px 24px 4px 8px;border-radius:5px;border:1px solid #E5E7EB;background:#fff;cursor:pointer;font-family:var(--font-sans);color:#6B7280;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'8\' height=\'5\'%3E%3Cpath d=\'M0 0l4 5 4-5z\' fill=\'%236B7280\'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 6px center;}';
+  css += '.te-fa{width:26px;height:26px;border:1px solid #E5E7EB;background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;color:#6B7280;transition:all .15s;}';
+  css += '.te-fa.drag{cursor:grab;border:none;background:none;}';
+  css += '.te-fa.del:hover{background:#FEF2F2;border-color:#DC2626;color:#DC2626;}';
+  css += '.te-add-row{padding:8px 12px;cursor:pointer;color:#2563EB;font-size:13px;font-weight:500;border-bottom:1px solid #F3F4F6;transition:background .1s;}';
+  css += '.te-add-row:hover{background:#EFF6FF;}';
+  css += '.te-adv{margin-top:32px;border-top:1px solid #E5E7EB;padding-top:20px;}';
+  css += '.te-adv-tog{font-size:13px;font-weight:600;color:#6B7280;cursor:pointer;display:flex;align-items:center;gap:6px;}';
+  css += '.te-adv-tog:hover{color:#1A1A1A;}';
+  css += '.te-adv-body{margin-top:16px;display:none;}';
+  css += '.te-adv-body.open{display:block;}';
+  css += '.te-adv-f{margin-bottom:16px;}';
+  css += '.te-adv-l{font-size:12px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}';
+  css += '.te-adv-i{width:100%;padding:8px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:var(--font-sans);outline:none;}';
+  css += '.te-adv-i:focus{border-color:#2563EB;}';
+  css += '.te-adv-t{width:100%;padding:8px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:var(--font-sans);outline:none;min-height:80px;resize:vertical;}';
+  css += '.te-adv-t:focus{border-color:#2563EB;}';
+  css += '</style>';
 
-  // ── Header / Action Bar ──
-  h += '<div style="padding:16px 24px;background:#fff;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">';
-  h += '<div style="display:flex;align-items:center;gap:16px;">';
-  h += '<a onclick="showClientDashboard()" style="cursor:pointer;color:#6B7280;font-size:13px;font-weight:500;text-decoration:none;display:flex;align-items:center;gap:4px;" onmouseover="this.style.color=\\'#2563EB\\'" onmouseout="this.style.color=\\'#6B7280\\'">';
-  h += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><polyline points="15 18 9 12 15 6"/></svg> Templates</a>';
-  // Editable template name
-  h += '<input id="tpl-name-wysiwyg" value="' + esc(t.display_name || '') + '" placeholder="Untitled Template" style="font-family:var(--font-display);font-size:24px;font-weight:400;color:#1A1A1A;border:none;outline:none;background:transparent;min-width:200px;padding:4px 0;" onchange="window._tplEdit.display_name=this.value"/>';
+  var h = css;
+  h += '<div style="display:flex;flex-direction:column;height:100%;background:#FAFAF9;">';
+
+  // ── HEADER ──
+  h += '<div class="te-hd">';
+  h += '<div class="te-hd-top">';
+  h += '<div>';
+  h += '<a class="te-back" onclick="showClientDashboard()">&larr; Templates</a>';
+  h += '<div class="te-name">' + esc(t.display_name || 'Untitled Template') + '</div>';
+  h += '<div class="te-meta">' + totalFields + ' fields across ' + roles.length + ' entity roles' + (t.version ? ' &middot; v' + esc(t.version) : '') + '</div>';
   h += '</div>';
-  h += '<div style="display:flex;align-items:center;gap:8px;">';
+  h += '<div class="te-actions">';
+  h += '<button class="te-btn te-btn-o" onclick="previewTemplateAsForm()">&nearr; Preview</button>';
   if (!window._tplIsNew) {
-    h += '<button onclick="deleteCurrentTemplate()" style="padding:8px 16px;border:1px solid #FCA5A5;border-radius:8px;background:#fff;color:#DC2626;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);">Delete</button>';
+    h += '<button class="te-btn te-btn-d" onclick="deleteCurrentTemplate()">&loz; Delete</button>';
   }
-  h += '<button onclick="previewTemplateAsForm()" style="padding:8px 16px;border:1px solid #E5E7EB;border-radius:8px;background:#fff;color:#1A1A1A;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);">Preview</button>';
-  h += '<button onclick="saveWysiwygTemplate()" style="padding:8px 20px;border:none;border-radius:8px;background:#2563EB;color:#fff;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);">Save Template</button>';
-  h += '</div></div>';
+  h += '<button class="te-btn te-btn-p" onclick="saveWysiwygTemplate()">&check; Save Template</button>';
+  h += '</div>';
+  h += '</div>';
+
+  // Stats bar
+  h += '<div class="te-stats">';
+  h += '<div class="te-stat"><div class="te-stat-num" style="color:#DC2626;">' + requiredCount + '</div><div class="te-stat-label">Required</div></div>';
+  h += '<div class="te-stat"><div class="te-stat-num" style="color:#D97706;">' + recommendedCount + '</div><div class="te-stat-label">Recommended</div></div>';
+  h += '<div class="te-stat"><div class="te-stat-num" style="color:#2563EB;">' + optionalCount + '</div><div class="te-stat-label">Optional</div></div>';
+  h += '</div>';
+  h += '</div>'; // end header
 
   // ── AI Preview Banner ──
   if (t._ai_preview) {
-    h += '<div style="padding:12px 24px;background:linear-gradient(135deg,#EFF6FF,#F0F9FF);border-bottom:1px solid #BFDBFE;display:flex;align-items:center;gap:10px;flex-shrink:0;">';
+    h += '<div style="padding:12px 32px;background:linear-gradient(135deg,#EFF6FF,#F0F9FF);border-bottom:1px solid #BFDBFE;display:flex;align-items:center;gap:10px;">';
     h += '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>';
     h += '<span style="font-size:13px;color:#1E40AF;font-weight:500;">AI-generated from <strong>' + esc(t._ai_source || 'uploaded document') + '</strong> &mdash; review fields and save when ready</span>';
     h += '</div>';
   }
 
-  // ── Split-Screen Body ──
-  h += '<div style="display:flex;flex:1;overflow:hidden;">';
+  // ── SCROLLABLE BODY ──
+  h += '<div class="te-body">';
 
-  // ── LEFT PANEL: Document Preview (55%) ──
-  h += '<div style="width:55%;border-right:1px solid #E5E7EB;overflow-y:auto;padding:24px;" id="tplDocPreview">';
-  if (window._tplUploadedDoc) {
-    // Show uploaded doc content
-    h += '<div style="margin-bottom:16px;display:flex;align-items:center;gap:10px;">';
-    h += '<svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.5" style="width:20px;height:20px;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
-    h += '<span style="font-size:14px;font-weight:600;color:#1A1A1A;">' + esc(window._tplUploadedDoc.name || 'Uploaded Document') + '</span>';
-    h += '</div>';
-    if (window._tplUploadedDoc.textContent) {
-      // Render text content with field highlights
-      h += _renderDocPreviewWithHighlights(window._tplUploadedDoc.textContent, cards);
-    } else {
-      h += '<div style="padding:20px;border:1px solid #E5E7EB;border-radius:12px;background:#fff;text-align:center;color:#6B7280;font-size:13px;">Document uploaded. Field locations shown below.</div>';
-    }
-    // Show detected field locations
-    if (cards.length > 0) {
-      h += '<div style="margin-top:20px;">';
-      h += '<div style="font-size:13px;font-weight:600;color:#1A1A1A;margin-bottom:10px;">Detected Field Locations</div>';
-      for (var fli = 0; fli < cards.length; fli++) {
-        var flc = cards[fli];
-        var flColor = flc.tier === 'BLOCKING' ? '#DC2626' : (flc.tier === 'EXPECTED' ? '#D97706' : '#6B7280');
-        var flBg = flc.tier === 'BLOCKING' ? '#FEF2F2' : (flc.tier === 'EXPECTED' ? '#FFFBEB' : '#F9FAFB');
-        h += '<div style="padding:8px 12px;margin-bottom:4px;border-radius:6px;background:' + flBg + ';border-left:3px solid ' + flColor + ';font-size:12px;display:flex;align-items:center;gap:8px;">';
-        h += '<span style="font-weight:600;color:#1A1A1A;min-width:140px;">' + esc(flc.name) + '</span>';
-        if (flc.sourceHint) {
-          h += '<span style="font-family:var(--font-mono);font-size:11px;color:#6B7280;">' + esc(flc.sourceHint) + '</span>';
-        }
-        h += '</div>';
-      }
-      h += '</div>';
-    }
-  } else if (totalFields > 0) {
-    // Existing template — show structured field overview
-    h += '<div style="margin-bottom:20px;">';
-    h += '<div style="font-family:var(--font-display);font-size:20px;color:#1A1A1A;margin-bottom:4px;">Field Overview</div>';
-    h += '<div style="font-size:13px;color:#6B7280;margin-bottom:16px;">' + totalFields + ' fields across ' + (t.document_types || []).length + ' document types and ' + (t.entity_roles || []).length + ' entity roles</div>';
-    h += '</div>';
-
-    // Tier summary bars
-    h += '<div style="display:flex;gap:12px;margin-bottom:24px;">';
-    h += '<div style="flex:1;padding:16px;border-radius:12px;background:#FEF2F2;border:1px solid #FECACA;text-align:center;">';
-    h += '<div style="font-size:28px;font-weight:700;color:#DC2626;font-family:var(--font-display);">' + blockingCount + '</div>';
-    h += '<div style="font-size:11px;font-weight:600;color:#991B1B;text-transform:uppercase;letter-spacing:0.5px;">Blocking</div></div>';
-    h += '<div style="flex:1;padding:16px;border-radius:12px;background:#FFFBEB;border:1px solid #FDE68A;text-align:center;">';
-    h += '<div style="font-size:28px;font-weight:700;color:#D97706;font-family:var(--font-display);">' + expectedCount + '</div>';
-    h += '<div style="font-size:11px;font-weight:600;color:#92400E;text-transform:uppercase;letter-spacing:0.5px;">Expected</div></div>';
-    h += '<div style="flex:1;padding:16px;border-radius:12px;background:#F9FAFB;border:1px solid #E5E7EB;text-align:center;">';
-    h += '<div style="font-size:28px;font-weight:700;color:#6B7280;font-family:var(--font-display);">' + enrichingCount + '</div>';
-    h += '<div style="font-size:11px;font-weight:600;color:#6B7280;text-transform:uppercase;letter-spacing:0.5px;">Enriching</div></div>';
-    h += '</div>';
-
-    // Group fields by document type
-    var groups = {};
-    for (var gi = 0; gi < cards.length; gi++) {
-      var grpKey = cards[gi].docType || 'General';
-      if (!groups[grpKey]) groups[grpKey] = [];
-      groups[grpKey].push(cards[gi]);
-    }
-    var groupKeys = Object.keys(groups);
-    for (var gki = 0; gki < groupKeys.length; gki++) {
-      var gk = groupKeys[gki];
-      var grpCards = groups[gk];
-      h += '<div style="margin-bottom:20px;">';
-      h += '<div style="font-size:14px;font-weight:600;color:#1A1A1A;margin-bottom:8px;display:flex;align-items:center;gap:8px;">';
-      h += '<svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.5" style="width:16px;height:16px;"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>';
-      h += esc(gk) + ' <span style="font-weight:400;color:#6B7280;">(' + grpCards.length + ')</span></div>';
-      for (var gfi = 0; gfi < grpCards.length; gfi++) {
-        var gfc = grpCards[gfi];
-        var gfColor = gfc.tier === 'BLOCKING' ? '#DC2626' : (gfc.tier === 'EXPECTED' ? '#D97706' : '#6B7280');
-        var gfBg = gfc.tier === 'BLOCKING' ? '#FEF2F2' : (gfc.tier === 'EXPECTED' ? '#FFFBEB' : '#F9FAFB');
-        h += '<div style="padding:8px 12px;margin-bottom:3px;border-radius:6px;background:' + gfBg + ';border-left:3px solid ' + gfColor + ';font-size:12px;display:flex;align-items:center;justify-content:space-between;">';
-        h += '<span style="font-weight:500;color:#1A1A1A;">' + esc(gfc.name || gfc.fieldId) + '</span>';
-        h += '<span style="font-size:11px;color:#6B7280;font-family:var(--font-mono);">' + esc(gfc.type) + '</span>';
-        h += '</div>';
-      }
-      h += '</div>';
-    }
-
-    // Upload zone at bottom
-    h += '<div style="margin-top:24px;border-top:1px solid #E5E7EB;padding-top:24px;">';
-    h += '<div onclick="document.getElementById(\\'tplFormFileInput\\').click()" style="cursor:pointer;padding:32px 16px;border:2px dashed #E5E7EB;border-radius:12px;text-align:center;transition:border-color 0.2s;" onmouseover="this.style.borderColor=\\'#2563EB\\'" onmouseout="this.style.borderColor=\\'#E5E7EB\\'">';
-    h += '<div style="font-size:13px;font-weight:600;color:#6B7280;">Upload a document to see field locations</div>';
-    h += '<div style="font-size:12px;color:#9CA3AF;margin-top:4px;">Drop a PDF, DOCX, or image</div>';
-    h += '</div>';
-    h += '<input type="file" id="tplFormFileInput" accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.jpg,.jpeg,.png,.webp" style="display:none" onchange="tplWysiwygFileSelected(event)" />';
-    h += '</div>';
-  } else {
-    // Empty state — no fields, no doc
-    h += '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;">';
-    h += '<div id="tplUploadDropzone" onclick="document.getElementById(\\'tplFormFileInput\\').click()" style="cursor:pointer;padding:48px 32px;border:2px dashed #E5E7EB;border-radius:16px;width:80%;max-width:400px;transition:all 0.2s;" onmouseover="this.style.borderColor=\\'#2563EB\\';this.style.background=\\'#FAFBFF\\'" onmouseout="this.style.borderColor=\\'#E5E7EB\\';this.style.background=\\'transparent\\'">';
-    h += '<svg viewBox="0 0 24 24" fill="none" stroke="#2563EB" stroke-width="1.5" style="width:48px;height:48px;margin:0 auto 16px;display:block;"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>';
-    h += '<div style="font-size:16px;font-weight:600;color:#1A1A1A;margin-bottom:6px;">Upload a form to get started</div>';
-    h += '<div style="font-size:13px;color:#6B7280;">Drop a PDF, DOCX, or image &mdash; AI will detect fields automatically</div>';
-    h += '<div style="margin-top:16px;font-size:12px;color:#2563EB;font-weight:600;">Or add fields manually using the panel on the right</div>';
-    h += '</div>';
-    h += '<input type="file" id="tplFormFileInput" accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.jpg,.jpeg,.png,.webp" style="display:none" onchange="tplWysiwygFileSelected(event)" />';
-    h += '</div>';
-  }
-  h += '</div>'; // end left panel
-
-  // ── RIGHT PANEL: Field Cards (45%) ──
-  h += '<div style="width:45%;overflow-y:auto;background:#F9FAFB;" id="tplFieldPanel">';
-  h += '<div style="padding:16px 20px;border-bottom:1px solid #E5E7EB;background:#fff;position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;">';
-  h += '<div style="font-size:14px;font-weight:700;color:#1A1A1A;text-transform:uppercase;letter-spacing:0.5px;">Field Cards <span style="font-weight:400;color:#6B7280;">(' + totalFields + (t._ai_preview ? ' detected' : '') + ')</span></div>';
-  if (totalFields > 0) {
-    var unreviewedCount = 0;
-    for (var uc = 0; uc < cards.length; uc++) { if (cards[uc].aiGenerated && !cards[uc].userReviewed) unreviewedCount++; }
-    if (unreviewedCount > 0) {
-      h += '<span style="padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#EFF6FF;color:#2563EB;">' + unreviewedCount + ' to review</span>';
-    }
-  }
+  // ── Template Description (always visible, above toolbar) ──
+  h += '<div style="margin-bottom:20px;">';
+  h += '<div class="te-desc-label">Template Description</div>';
+  h += '<textarea class="te-desc-ta" id="tpl-desc" placeholder="What this template is for...">' + esc(t.description || '') + '</textarea>';
   h += '</div>';
 
-  h += '<div style="padding:16px 20px;">';
-
-  // Field cards
-  for (var fci = 0; fci < cards.length; fci++) {
-    var fc = cards[fci];
-    var tierDot = fc.tier === 'BLOCKING' ? '#DC2626' : (fc.tier === 'EXPECTED' ? '#D97706' : '#9CA3AF');
-    var isAI = fc.aiGenerated && !fc.userReviewed;
-
-    h += '<div id="fc_card_' + fci + '" style="background:#fff;border:1px solid #E5E7EB;border-radius:12px;padding:16px;margin-bottom:10px;transition:all 0.2s;position:relative;" onmouseover="this.style.boxShadow=\\'0 4px 12px rgba(0,0,0,0.06)\\';this.style.borderColor=\\'#D1D5DB\\'" onmouseout="this.style.boxShadow=\\'none\\';this.style.borderColor=\\'#E5E7EB\\'">';
-
-    // Top row: name + AI badge + delete
-    h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">';
-    h += '<input value="' + esc(fc.name) + '" onchange="tplUpdateCardName(' + fci + ',this.value)" placeholder="Field name" style="font-size:14px;font-weight:600;color:#1A1A1A;border:none;outline:none;background:transparent;flex:1;padding:2px 0;font-family:var(--font-sans);"/>';
-    if (isAI) {
-      h += '<span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:#EFF6FF;color:#2563EB;margin-left:8px;white-space:nowrap;">AI</span>';
-    }
-    h += '<button onclick="tplRemoveCard(' + fci + ')" style="border:none;background:none;cursor:pointer;color:#D1D5DB;font-size:18px;padding:0 0 0 8px;line-height:1;" onmouseover="this.style.color=\\'#DC2626\\'" onmouseout="this.style.color=\\'#D1D5DB\\'" title="Remove field">&times;</button>';
-    h += '</div>';
-
-    // Dropdowns row
-    h += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px;">';
-
-    // Type dropdown
-    h += '<div><div style="font-size:10px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Type</div>';
-    h += '<select onchange="tplUpdateCardField(' + fci + ',\\'type\\',this.value)" style="width:100%;padding:6px 8px;border:1px solid #E5E7EB;border-radius:6px;font-size:12px;color:#1A1A1A;background:#fff;font-family:var(--font-sans);cursor:pointer;outline:none;">';
-    var cardTypes = ['text','date','currency','number','percentage','phone','email','address','ssn','ein','list','calculated'];
-    for (var cti = 0; cti < cardTypes.length; cti++) {
-      h += '<option value="' + cardTypes[cti] + '"' + (fc.type === cardTypes[cti] ? ' selected' : '') + '>' + cardTypes[cti] + '</option>';
-    }
-    h += '</select></div>';
-
-    // Tier dropdown
-    h += '<div><div style="font-size:10px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Tier</div>';
-    h += '<select onchange="tplUpdateCardField(' + fci + ',\\'tier\\',this.value)" style="width:100%;padding:6px 8px;border:1px solid #E5E7EB;border-radius:6px;font-size:12px;font-weight:600;background:#fff;font-family:var(--font-sans);cursor:pointer;outline:none;color:' + tierDot + ';">';
-    h += '<option value="BLOCKING"' + (fc.tier === 'BLOCKING' ? ' selected' : '') + ' style="color:#DC2626;">&#x1F534; BLOCKING</option>';
-    h += '<option value="EXPECTED"' + (fc.tier === 'EXPECTED' ? ' selected' : '') + ' style="color:#D97706;">&#x1F7E1; EXPECTED</option>';
-    h += '<option value="ENRICHING"' + (fc.tier === 'ENRICHING' ? ' selected' : '') + ' style="color:#9CA3AF;">&#x26AA; ENRICHING</option>';
-    h += '</select></div>';
-
-    // Sensitivity dropdown
-    h += '<div><div style="font-size:10px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Sensitivity</div>';
-    h += '<select onchange="tplUpdateCardField(' + fci + ',\\'sensitivity\\',this.value)" style="width:100%;padding:6px 8px;border:1px solid #E5E7EB;border-radius:6px;font-size:12px;color:#1A1A1A;background:#fff;font-family:var(--font-sans);cursor:pointer;outline:none;">';
-    var sensOpts = ['Standard','Sensitive','Critical'];
-    for (var si = 0; si < sensOpts.length; si++) {
-      h += '<option value="' + sensOpts[si] + '"' + (fc.sensitivity === sensOpts[si] ? ' selected' : '') + '>' + sensOpts[si] + '</option>';
-    }
-    h += '</select></div>';
-
-    h += '</div>'; // end dropdowns row
-
-    // Source hint
-    if (fc.sourceHint) {
-      h += '<div style="font-family:var(--font-mono);font-size:11px;color:#9CA3AF;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + esc(fc.sourceHint) + '">' + esc(fc.sourceHint) + '</div>';
-    }
-
-    // Doc type label
-    if (fc.docType) {
-      h += '<div style="margin-top:6px;"><span style="font-size:10px;padding:2px 6px;border-radius:4px;background:#F3F4F6;color:#6B7280;font-weight:500;">' + esc(fc.docType) + '</span></div>';
-    }
-
-    h += '</div>'; // end card
-  }
-
-  // + Add Field Manually button
-  h += '<button onclick="tplAddCardManually()" style="width:100%;padding:14px;border:2px dashed #E5E7EB;border-radius:12px;background:transparent;color:#2563EB;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font-sans);transition:all 0.15s;" onmouseover="this.style.borderColor=\\'#2563EB\\';this.style.background=\\'#FAFBFF\\'" onmouseout="this.style.borderColor=\\'#E5E7EB\\';this.style.background=\\'transparent\\'">+ Add Field Manually</button>';
-
-  h += '</div>'; // end padding
-  h += '</div>'; // end right panel
-
-  h += '</div>'; // end split-screen body
-
-  // ── Advanced Settings Toggle ──
-  h += '<div style="border-top:1px solid #E5E7EB;background:#fff;flex-shrink:0;">';
-  h += '<div onclick="toggleTplAdvanced()" style="cursor:pointer;padding:14px 24px;display:flex;align-items:center;gap:8px;color:#6B7280;font-size:13px;font-weight:600;transition:color 0.15s;" onmouseover="this.style.color=\\'#1A1A1A\\'" onmouseout="this.style.color=\\'#6B7280\\'">';
-  h += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;transform:rotate(' + (window._tplAdvancedOpen ? '90' : '0') + 'deg);transition:transform 0.2s;"><polyline points="9 18 15 12 9 6"/></svg>';
-  h += (window._tplAdvancedOpen ? 'Hide' : 'Show') + ' Advanced Settings</div>';
-  if (window._tplAdvancedOpen) {
-    h += '<div style="padding:0 24px 24px;background:#F9FAFB;border-top:1px solid #E5E7EB;">';
-    h += _renderAdvancedSettings(t);
-    h += '</div>';
-  }
+  // ── Toolbar ──
+  h += '<div class="te-toolbar">';
+  h += '<button class="te-tb-btn accent" onclick="tplAddRole()">&#xFF0B; Add Entity Role</button>';
+  h += '<button class="te-tb-btn" onclick="tplAddFieldToFirstRole()">&#xFF0B; Add Field</button>';
+  h += '<button class="te-tb-btn upload" onclick="teToggleDropZone()">&uarr; Upload</button>';
+  h += '<input class="te-tb-search" id="teSearchInput" placeholder="Search fields..." oninput="teFilterFields(this.value)" />';
   h += '</div>';
 
+  // ── Drop Zone (hidden by default) ──
+  h += '<div class="te-dz" id="teDropZone" style="display:none;">';
+  h += '<div class="te-dz-box" onclick="document.getElementById(\\'tplFormFileInput\\').click()">';
+  h += '<button class="te-dz-x" onclick="event.stopPropagation();teHideDropZone()">&times;</button>';
+  h += '<div style="font-size:28px;margin-bottom:8px;">&#x1F4C4;</div>';
+  h += '<div style="font-weight:600;color:#1A1A1A;font-size:15px;margin-bottom:6px;">Upload a document to map field locations</div>';
+  h += '<div style="font-size:13px;color:#6B7280;line-height:1.5;max-width:460px;margin:0 auto 10px;">We\\\'ll scan your document and automatically match fields to their locations, so generated forms know exactly where to place each value.</div>';
+  h += '<div style="font-size:12px;color:#9CA3AF;">Drop a PDF, DOCX, or image &mdash; or click to browse</div>';
+  h += '<input type="file" id="tplFormFileInput" accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.jpg,.jpeg,.png,.webp" style="display:none" onchange="tplWysiwygFileSelected(event)" />';
+  h += '</div></div>';
+
+  // ── Entity Role Groups ──
+  for (var ri = 0; ri < roles.length; ri++) {
+    var role = roles[ri];
+    var roleFields = role.required_fields || [];
+    var roleName = role.display_name || role.role_id || 'Unnamed Role';
+
+    h += '<div class="te-rg" id="teRoleGroup_' + ri + '">';
+
+    // Role header
+    h += '<div class="te-rg-hd">';
+    h += '<span style="font-size:16px;">&#x1F4CB;</span>';
+    h += '<span class="te-rg-name">' + esc(roleName) + '</span>';
+    h += '<span class="te-rg-cnt">(' + roleFields.length + ' fields)</span>';
+    h += '<div class="te-rg-acts">';
+    h += '<button class="te-rg-btn" onclick="teRenameRole(' + ri + ')">&#x270E; Rename</button>';
+    h += '<button class="te-rg-btn danger" onclick="tplRemoveRole(' + ri + ')">&#x1F5D1; Delete Role</button>';
+    h += '</div>';
+    h += '</div>';
+
+    // Field table
+    h += '<table class="te-ft"><thead><tr>';
+    h += '<th style="width:30px;"></th>';
+    h += '<th>Field Name</th>';
+    h += '<th>Type</th>';
+    h += '<th>Priority</th>';
+    h += '<th>Sensitivity</th>';
+    h += '<th style="width:50px;"></th>';
+    h += '</tr></thead><tbody>';
+
+    for (var fi = 0; fi < roleFields.length; fi++) {
+      var rf = roleFields[fi];
+      var rfObj = typeof rf === 'string' ? { field_id: role.role_id + '.' + rf, display_name: rf.replace(/_/g, ' '), field_type: 'text', necessity_tier: 'RECOMMENDED' } : rf;
+      var tier = rfObj.necessity_tier || 'RECOMMENDED';
+      var priClass = tier === 'REQUIRED' ? 'required' : (tier === 'RECOMMENDED' ? 'recommended' : 'optional');
+
+      h += '<tr class="te-field-row" data-role="' + ri + '" data-field="' + fi + '">';
+      // Drag handle
+      h += '<td><span class="te-fa drag">&#x2817;</span></td>';
+      // Field name (inline editable)
+      h += '<td><input class="te-fn" value="' + esc(rfObj.display_name || rfObj.field_id || '') + '" onchange="tplUpdateRoleField(' + ri + ',' + fi + ',\\'display_name\\',this.value)" /></td>';
+      // Type select
+      h += '<td><select class="te-sel" onchange="tplUpdateRoleField(' + ri + ',' + fi + ',\\'field_type\\',this.value)">';
+      var ftypes = ['text','date','number','ssn','phone','email','address','currency'];
+      for (var ft = 0; ft < ftypes.length; ft++) {
+        h += '<option value="' + ftypes[ft] + '"' + ((rfObj.field_type || 'text') === ftypes[ft] ? ' selected' : '') + '>' + ftypes[ft] + '</option>';
+      }
+      h += '</select></td>';
+      // Priority select
+      h += '<td><select class="te-pri ' + priClass + '" onchange="teUpdatePriority(this,' + ri + ',' + fi + ')">';
+      h += '<option value="REQUIRED"' + (tier === 'REQUIRED' ? ' selected' : '') + '>Required</option>';
+      h += '<option value="RECOMMENDED"' + (tier === 'RECOMMENDED' ? ' selected' : '') + '>Recommended</option>';
+      h += '<option value="OPTIONAL"' + (tier === 'OPTIONAL' ? ' selected' : '') + '>Optional</option>';
+      h += '</select></td>';
+      // Sensitivity select
+      h += '<td><select class="te-sns" onchange="tplUpdateRoleField(' + ri + ',' + fi + ',\\'sensitivity\\',this.value)">';
+      var sensOpts = ['Standard','Sensitive','PII'];
+      for (var si = 0; si < sensOpts.length; si++) {
+        h += '<option value="' + sensOpts[si] + '"' + ((rfObj.sensitivity || 'Standard') === sensOpts[si] ? ' selected' : '') + '>' + sensOpts[si] + '</option>';
+      }
+      h += '</select></td>';
+      // Delete button
+      h += '<td><span class="te-fa del" onclick="tplRemoveRoleField(' + ri + ',' + fi + ')">&times;</span></td>';
+      h += '</tr>';
+    }
+
+    h += '</tbody></table>';
+    h += '<div class="te-add-row" onclick="tplAddRoleField(' + ri + ')">&#xFF0B; Add field to ' + esc(roleName) + '</div>';
+    h += '</div>'; // end role group
+  }
+
+  // Empty state if no roles
+  if (roles.length === 0) {
+    h += '<div style="padding:48px 32px;text-align:center;border:2px dashed #E5E7EB;border-radius:12px;color:#6B7280;">';
+    h += '<div style="font-size:15px;font-weight:600;margin-bottom:6px;">No entity roles defined yet</div>';
+    h += '<div style="font-size:13px;margin-bottom:16px;">Entity roles represent the people and organizations involved in this matter type.</div>';
+    h += '<button class="te-tb-btn accent" onclick="tplAddRole()" style="display:inline-flex;">&#xFF0B; Add Entity Role</button>';
+    h += '</div>';
+  }
+
+  // ── Advanced Settings (collapsible) ──
+  h += '<div class="te-adv">';
+  h += '<div class="te-adv-tog" onclick="teToggleAdvanced()"><span id="teAdvArrow">&#x25B6;</span> Show Advanced Settings</div>';
+  h += '<div class="te-adv-body" id="teAdvBody">';
+  // Template ID (only editable for new templates)
+  h += '<div class="te-adv-f"><div class="te-adv-l">Template ID</div>';
+  h += '<input class="te-adv-i" id="tpl-id" value="' + esc(t.template_id || '') + '" placeholder="e.g. estate_planning"' + (window._tplIsNew ? '' : ' disabled style="background:#F3F4F6;color:#9CA3AF;width:100%;padding:8px 12px;border:1px solid #E5E7EB;border-radius:8px;font-size:13px;font-family:var(--font-sans);outline:none;"') + ' /></div>';
+  // Default Document Types
+  h += '<div class="te-adv-f"><div class="te-adv-l">Default Document Types</div>';
+  var dtNames = (t.document_types || []).map(function(dt) { return dt.display_name || dt.type_id; }).join(', ');
+  h += '<input class="te-adv-i" id="tpl-doc-types" value="' + esc(dtNames) + '" placeholder="Will, Trust Agreement, Power of Attorney" /></div>';
+  // Validation Rules
+  h += '<div class="te-adv-f"><div class="te-adv-l">Validation Rules</div>';
+  var existingRules = (t.cross_doc_rules || []).map(function(r) { return r.description || r.rule_id; }).join('\\n');
+  h += '<textarea class="te-adv-t" id="tpl-rules">' + esc(existingRules) + '</textarea></div>';
+  h += '</div>'; // end adv-body
+  h += '</div>'; // end adv
+
+  h += '</div>'; // end te-body
   h += '</div>'; // end outer container
 
   mainEl.innerHTML = h;
@@ -23018,6 +23043,52 @@ function toggleTplAdvanced() {
   syncFieldCardsToTemplate();
   window._tplAdvancedOpen = !window._tplAdvancedOpen;
   renderWysiwygEditor();
+}
+
+// ── Template Editor v2 helper functions ──
+function teToggleDropZone() {
+  var dz = document.getElementById('teDropZone');
+  if (dz) dz.style.display = dz.style.display === 'none' ? 'block' : 'none';
+}
+function teHideDropZone() {
+  var dz = document.getElementById('teDropZone');
+  if (dz) dz.style.display = 'none';
+}
+function teToggleAdvanced() {
+  var body = document.getElementById('teAdvBody');
+  var arrow = document.getElementById('teAdvArrow');
+  if (!body) return;
+  body.classList.toggle('open');
+  if (arrow) arrow.textContent = body.classList.contains('open') ? '\u25BC' : '\u25B6';
+}
+function teUpdatePriority(sel, roleIdx, fieldIdx) {
+  sel.className = 'te-pri ' + sel.value.toLowerCase();
+  tplUpdateRoleField(roleIdx, fieldIdx, 'necessity_tier', sel.value);
+}
+function teRenameRole(roleIdx) {
+  var role = window._tplEdit.entity_roles[roleIdx];
+  var newName = prompt('Rename role:', role.display_name || role.role_id || '');
+  if (newName !== null && newName.trim()) {
+    role.display_name = newName.trim();
+    renderWysiwygEditor();
+  }
+}
+function tplAddFieldToFirstRole() {
+  var roles = window._tplEdit.entity_roles || [];
+  if (roles.length === 0) {
+    toast('Add an entity role first');
+    return;
+  }
+  tplAddRoleField(0);
+}
+function teFilterFields(query) {
+  var q = query.toLowerCase().trim();
+  var rows = document.querySelectorAll('.te-field-row');
+  for (var i = 0; i < rows.length; i++) {
+    var input = rows[i].querySelector('.te-fn');
+    var text = input ? input.value.toLowerCase() : '';
+    rows[i].style.display = (!q || text.indexOf(q) >= 0) ? '' : 'none';
+  }
 }
 
 // ── Set up drag-and-drop on upload zones ──
@@ -23179,14 +23250,14 @@ function tplMoveCard(idx, dir) {
 function saveWysiwygTemplate() {
   var t = window._tplEdit;
 
-  // Read name from WYSIWYG header
+  // Read name from WYSIWYG header input (old) or use existing display_name (new layout)
   var nameEl = document.getElementById('tpl-name-wysiwyg');
   if (nameEl) t.display_name = nameEl.value.trim();
 
-  // Read metadata from advanced settings if open
+  // Read metadata from the new layout
   var idEl = document.getElementById('tpl-id');
   var descEl = document.getElementById('tpl-desc');
-  if (idEl) t.template_id = idEl.value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
+  if (idEl && !idEl.disabled) t.template_id = idEl.value.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
   if (descEl) t.description = descEl.value.trim();
 
   // Auto-generate template_id from name if missing
@@ -23197,7 +23268,7 @@ function saveWysiwygTemplate() {
   if (!t.template_id) { toast('Template ID is required. Open Advanced Settings to set it, or enter a name.'); return; }
   if (!t.display_name) { toast('Template name is required'); return; }
 
-  // Sync field cards back to template data model
+  // Sync field cards back to template data model (if using old card-based mode)
   syncFieldCardsToTemplate();
 
   // Clean up UI-only flags
@@ -23347,8 +23418,8 @@ function _renderDocTypesSection(t) {
         h += '<tbody>';
         for (var fi = 0; fi < specCount; fi++) {
           var field = dt.extraction_spec[fi];
-          var tierBg = field.necessity_tier === 'BLOCKING' ? '#FEF2F2' : (field.necessity_tier === 'EXPECTED' ? '#FFFBEB' : '#F0FDF4');
-          var tierColor = field.necessity_tier === 'BLOCKING' ? '#991B1B' : (field.necessity_tier === 'EXPECTED' ? '#92400E' : '#065F46');
+          var tierBg = field.necessity_tier === 'REQUIRED' ? '#FEF2F2' : (field.necessity_tier === 'RECOMMENDED' ? '#FFFBEB' : '#EFF6FF');
+          var tierColor = field.necessity_tier === 'REQUIRED' ? '#DC2626' : (field.necessity_tier === 'RECOMMENDED' ? '#D97706' : '#2563EB');
           h += '<tr style="border-top:1px solid #f0f0f0;">';
           h += '<td style="padding:6px 10px;"><input value="' + esc(field.field_id || '') + '" onchange="tplUpdateField(' + i + ',' + fi + ',\\'field_id\\',this.value)" style="width:100%;padding:4px 6px;border:1px solid #E5E7EB;border-radius:4px;font-size:12px;font-family:monospace;"/></td>';
           h += '<td style="padding:6px 10px;"><input value="' + esc(field.display_name || '') + '" onchange="tplUpdateField(' + i + ',' + fi + ',\\'display_name\\',this.value)" style="width:100%;padding:4px 6px;border:1px solid #E5E7EB;border-radius:4px;font-size:12px;"/></td>';
@@ -23359,9 +23430,9 @@ function _renderDocTypesSection(t) {
           }
           h += '</select></td>';
           h += '<td style="padding:6px 10px;"><select onchange="tplUpdateField(' + i + ',' + fi + ',\\'necessity_tier\\',this.value)" style="padding:4px 6px;border:1px solid #E5E7EB;border-radius:4px;font-size:12px;background:' + tierBg + ';color:' + tierColor + ';font-weight:600;">';
-          var tiers = ['BLOCKING', 'EXPECTED', 'ENRICHING'];
+          var tiers = ['REQUIRED', 'RECOMMENDED', 'OPTIONAL'];
           for (var tt = 0; tt < tiers.length; tt++) {
-            h += '<option value="' + tiers[tt] + '"' + ((field.necessity_tier || 'EXPECTED') === tiers[tt] ? ' selected' : '') + '>' + tiers[tt].charAt(0) + '</option>';
+            h += '<option value="' + tiers[tt] + '"' + ((field.necessity_tier || 'RECOMMENDED') === tiers[tt] ? ' selected' : '') + '>' + tiers[tt].charAt(0) + '</option>';
           }
           h += '</select></td>';
           h += '<td style="padding:6px 10px;text-align:center;"><button onclick="tplRemoveField(' + i + ',' + fi + ')" style="border:none;background:none;cursor:pointer;color:#d1d5db;font-size:14px;" title="Remove">&times;</button></td>';
@@ -23389,7 +23460,7 @@ function _renderRolesSection(t) {
   var cardStyle = 'border:1px solid #E5E7EB;border-radius:10px;margin-bottom:10px;overflow:hidden;background:#fff;';
   var cardHdr = 'padding:14px 16px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:background 0.15s;';
   var addBtn = 'display:inline-flex;align-items:center;gap:4px;padding:6px 14px;border:1px dashed #d1d5db;border-radius:8px;font-size:12px;color:#2563EB;cursor:pointer;background:transparent;font-weight:600;';
-  var tiers = ['BLOCKING', 'EXPECTED', 'ENRICHING'];
+  var tiers = ['REQUIRED', 'RECOMMENDED', 'OPTIONAL'];
 
   var h = '<div style="margin-bottom:32px;">';
   h += '<div style="' + sectionHdr + '"><span>Entity Roles (' + (t.entity_roles || []).length + ')</span>';
@@ -23435,8 +23506,8 @@ function _renderRolesSection(t) {
         for (var ri = 0; ri < rfCount; ri++) {
           var rf = role.required_fields[ri];
           var rfObj = typeof rf === 'string' ? { field_id: role.role_id + '.' + rf, display_name: rf.replace(/_/g, ' '), field_type: 'text' } : rf;
-          var rtierBg = (rfObj.necessity_tier || 'EXPECTED') === 'BLOCKING' ? '#FEF2F2' : ((rfObj.necessity_tier || 'EXPECTED') === 'EXPECTED' ? '#FFFBEB' : '#F0FDF4');
-          var rtierColor = (rfObj.necessity_tier || 'EXPECTED') === 'BLOCKING' ? '#991B1B' : ((rfObj.necessity_tier || 'EXPECTED') === 'EXPECTED' ? '#92400E' : '#065F46');
+          var rtierBg = (rfObj.necessity_tier || 'RECOMMENDED') === 'REQUIRED' ? '#FEF2F2' : ((rfObj.necessity_tier || 'RECOMMENDED') === 'RECOMMENDED' ? '#FFFBEB' : '#EFF6FF');
+          var rtierColor = (rfObj.necessity_tier || 'RECOMMENDED') === 'REQUIRED' ? '#DC2626' : ((rfObj.necessity_tier || 'RECOMMENDED') === 'RECOMMENDED' ? '#D97706' : '#2563EB');
           h += '<tr style="border-top:1px solid #f0f0f0;">';
           h += '<td style="padding:6px 10px;"><input value="' + esc(rfObj.field_id || '') + '" onchange="tplUpdateRoleField(' + i + ',' + ri + ',\\'field_id\\',this.value)" style="width:100%;padding:4px 6px;border:1px solid #E5E7EB;border-radius:4px;font-size:12px;font-family:monospace;"/></td>';
           h += '<td style="padding:6px 10px;"><input value="' + esc(rfObj.display_name || '') + '" onchange="tplUpdateRoleField(' + i + ',' + ri + ',\\'display_name\\',this.value)" style="width:100%;padding:4px 6px;border:1px solid #E5E7EB;border-radius:4px;font-size:12px;"/></td>';
@@ -23448,7 +23519,7 @@ function _renderRolesSection(t) {
           h += '</select></td>';
           h += '<td style="padding:6px 10px;"><select onchange="tplUpdateRoleField(' + i + ',' + ri + ',\\'necessity_tier\\',this.value)" style="padding:4px 6px;border:1px solid #E5E7EB;border-radius:4px;font-size:12px;background:' + rtierBg + ';color:' + rtierColor + ';font-weight:600;">';
           for (var rtt = 0; rtt < tiers.length; rtt++) {
-            h += '<option value="' + tiers[rtt] + '"' + ((rfObj.necessity_tier || 'EXPECTED') === tiers[rtt] ? ' selected' : '') + '>' + tiers[rtt].charAt(0) + '</option>';
+            h += '<option value="' + tiers[rtt] + '"' + ((rfObj.necessity_tier || 'RECOMMENDED') === tiers[rtt] ? ' selected' : '') + '>' + tiers[rtt].charAt(0) + '</option>';
           }
           h += '</select></td>';
           h += '<td style="padding:6px 10px;text-align:center;"><button onclick="tplRemoveRoleField(' + i + ',' + ri + ')" style="border:none;background:none;cursor:pointer;color:#d1d5db;font-size:14px;" title="Remove">&times;</button></td>';
@@ -23552,7 +23623,7 @@ function tplUpdateDtSignals(i, val) { window._tplEdit.document_types[i].classifi
 
 function tplAddField(dtIdx) {
   var spec = window._tplEdit.document_types[dtIdx].extraction_spec;
-  spec.push({ field_id: '', display_name: '', type: 'string', necessity_tier: 'EXPECTED' });
+  spec.push({ field_id: '', display_name: '', type: 'string', necessity_tier: 'RECOMMENDED' });
   if (window._tplEditorMode === 'wysiwyg') { window._tplFieldCards = buildFieldCardsFromTemplate(window._tplEdit); renderWysiwygEditor(); } else renderTemplateEditor();
 }
 function tplRemoveField(dtIdx, fIdx) { window._tplEdit.document_types[dtIdx].extraction_spec.splice(fIdx, 1); if (window._tplEditorMode === 'wysiwyg') { window._tplFieldCards = buildFieldCardsFromTemplate(window._tplEdit); renderWysiwygEditor(); } else renderTemplateEditor(); }
@@ -23571,20 +23642,20 @@ function tplAddRoleField(roleIdx) {
   var role = window._tplEdit.entity_roles[roleIdx];
   if (!role.required_fields) role.required_fields = [];
   var prefix = role.role_id ? role.role_id + '.' : '';
-  role.required_fields.push({ field_id: prefix, display_name: '', field_type: 'text', necessity_tier: 'EXPECTED' });
+  role.required_fields.push({ field_id: prefix, display_name: '', field_type: 'text', necessity_tier: 'RECOMMENDED' });
   if (window._tplEditorMode === 'wysiwyg') { window._tplFieldCards = buildFieldCardsFromTemplate(window._tplEdit); renderWysiwygEditor(); } else renderTemplateEditor();
 }
 function tplRemoveRoleField(roleIdx, fIdx) { window._tplEdit.entity_roles[roleIdx].required_fields.splice(fIdx, 1); if (window._tplEditorMode === 'wysiwyg') { window._tplFieldCards = buildFieldCardsFromTemplate(window._tplEdit); renderWysiwygEditor(); } else renderTemplateEditor(); }
 function tplUpdateRoleField(roleIdx, fIdx, key, val) {
   var rf = window._tplEdit.entity_roles[roleIdx].required_fields[fIdx];
   if (typeof rf === 'string') {
-    window._tplEdit.entity_roles[roleIdx].required_fields[fIdx] = { field_id: rf, display_name: rf.replace(/_/g, ' '), field_type: 'text', necessity_tier: 'EXPECTED' };
+    window._tplEdit.entity_roles[roleIdx].required_fields[fIdx] = { field_id: rf, display_name: rf.replace(/_/g, ' '), field_type: 'text', necessity_tier: 'RECOMMENDED' };
     rf = window._tplEdit.entity_roles[roleIdx].required_fields[fIdx];
   }
   rf[key] = val;
   if (key === 'field_type' && ['ssn', 'ein'].indexOf(val) >= 0) {
-    rf.necessity_tier = 'BLOCKING';
-    rf.sensitivity = 'CRITICAL';
+    rf.necessity_tier = 'REQUIRED';
+    rf.sensitivity = 'PII';
     if (window._tplEditorMode === 'wysiwyg') renderWysiwygEditor(); else renderTemplateEditor();
   }
 }
