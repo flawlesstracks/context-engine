@@ -15497,19 +15497,20 @@ const WIKI_HTML = `<!DOCTYPE html>
      ═══════════════════════════════════════════ */
   .th-wrap { display: flex; flex-direction: column; height: calc(100vh - 50px); overflow-y: auto; background: #f5f5f0; }
   .th-hero { background: linear-gradient(145deg, #f8f7f2 0%, #f0efe8 100%); padding: 44px 52px 36px; border-bottom: 1px solid #e4e3de; position: relative; overflow: hidden; text-align: center; }
-  .th-hero::before { content:''; position:absolute; top:-60px; right:-60px; width:300px; height:300px; background:radial-gradient(circle, rgba(37,99,235,0.04) 0%, transparent 70%); pointer-events:none; }
-  .th-hero::after { content:''; position:absolute; bottom:-80px; left:30%; width:400px; height:400px; background:radial-gradient(circle, rgba(124,58,237,0.03) 0%, transparent 70%); pointer-events:none; }
+  .th-hero::before { content:''; position:absolute; top:-60px; right:-60px; width:300px; height:300px; background:radial-gradient(circle, rgba(37,99,235,0.04) 0%, transparent 70%); pointer-events:none; z-index:0; }
+  .th-hero::after { content:''; position:absolute; bottom:-80px; left:30%; width:400px; height:400px; background:radial-gradient(circle, rgba(124,58,237,0.03) 0%, transparent 70%); pointer-events:none; z-index:0; }
+  .th-hero > * { position: relative; z-index: 1; }
   .th-new-btn { position:absolute; top:16px; right:20px; background:#059669; color:white; border:none; border-radius:8px; padding:10px 20px; font-weight:600; font-size:13px; cursor:pointer; z-index:50; transition:background 0.15s; }
   .th-new-btn:hover { background:#047857; }
   .th-hero-eyebrow { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #999; margin-bottom: 8px; }
-  .th-hero-title { font-size: 40px; font-weight: 400; color: #1a1a1a; margin: 0 0 6px 0; letter-spacing: -0.5px; }
+  .th-hero-title { font-family:'Instrument Serif',Georgia,serif; font-size: 40px; font-weight: 400; color: #1a1a1a; margin: 0 0 6px 0; letter-spacing: -0.5px; }
   .th-hero-sub { font-size: 15px; color: #5c5b56; margin: 0 auto 28px auto; max-width: 480px; }
   .th-hero-tabs { display: inline-flex; background: rgba(0,0,0,0.04); border-radius: 10px; padding: 3px; margin-bottom: 24px; }
-  .th-hero-tab { padding: 8px 18px; font-size: 13px; font-weight: 500; color: #5c5b56; cursor: pointer; border-radius: 8px; border: none; background: none; transition: all 0.15s; white-space: nowrap; }
+  .th-hero-tab { padding: 8px 18px; font-size: 13px; font-weight: 500; color: #5c5b56; cursor: pointer; border-radius: 8px; border: none; background: none; font-family:'DM Sans',system-ui,sans-serif; transition: all 0.15s; white-space: nowrap; }
   .th-hero-tab:hover { color: #1a1a1a; }
   .th-hero-tab.active { background: white; color: #1a1a1a; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
   .th-search-wrap { max-width: 560px; margin: 0 auto; position: relative; }
-  .th-search-input { width: 100%; padding: 13px 20px 13px 46px; border: 1px solid #e4e3de; border-radius: 12px; font-size: 14px; background: white; color: #1a1a1a; box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: all 0.2s; box-sizing: border-box; }
+  .th-search-input { width: 100%; padding: 13px 20px 13px 46px; border: 1px solid #e4e3de; border-radius: 12px; font-size: 14px; font-family:'DM Sans',system-ui,sans-serif; background: white; color: #1a1a1a; box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: all 0.2s; box-sizing: border-box; }
   .th-search-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 2px 12px rgba(37,99,235,0.1); }
   .th-search-input::placeholder { color: #999; }
   .th-search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #999; }
