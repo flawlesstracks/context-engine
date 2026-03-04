@@ -13543,6 +13543,8 @@ const WIKI_HTML = `<!DOCTYPE html>
   .co-btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: var(--font-sans, 'DM Sans', sans-serif); display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
   .co-btn.outline { background: #fff; border: 1px solid #E5E7EB; color: #1A1A1A; }
   .co-btn.outline:hover { border-color: #2563EB; color: #2563EB; }
+  .co-btn-danger { color: #DC2626 !important; border-color: #FECACA !important; }
+  .co-btn-danger:hover { background: #FEF2F2 !important; border-color: #DC2626 !important; color: #DC2626 !important; }
   .co-btn.primary { background: #2563EB; border: 1px solid #2563EB; color: #fff; }
   .co-btn.primary:hover { background: #1D4ED8; }
   .co-tabs { display: flex; gap: 0; }
@@ -19241,9 +19243,11 @@ function showClientWorkspace(spokeId, tab) {
   h += '</div></div>';
   h += '</div>';
   h += '<div class="co-actions">';
+  h += '<button class="co-btn outline" onclick="coRenameClient(\\'' + esc(spokeId) + '\\',\\'' + esc(spokeName).replace(/'/g, "\\\\'") + '\\')">\\u270E Rename</button>';
   h += '<button class="co-btn outline" onclick="showShareModal()">\\u2197 Share</button>';
   h += '<button class="co-btn outline" onclick="downloadExportCsv()">\\u2193 Export All</button>';
   h += '<button class="co-btn primary" onclick="coOpenNewProjectModal()">\\uFF0B New Project</button>';
+  h += '<button class="co-btn outline co-btn-danger" onclick="coDeleteClient(\\'' + esc(spokeId) + '\\',\\'' + esc(spokeName).replace(/'/g, "\\\\'") + '\\')">\\uD83D\\uDDD1</button>';
   h += '</div>';
   h += '</div>';
 
@@ -19687,6 +19691,32 @@ function coSortProjects(by) {
   });
   for (var i = 0; i < cards.length; i++) grid.appendChild(cards[i]);
   if (newCard) grid.appendChild(newCard);
+}
+
+function coRenameClient(spokeId, currentName) {
+  var newName = prompt('Rename client:', currentName);
+  if (!newName || !newName.trim() || newName.trim() === currentName) return;
+  api('PUT', '/api/spoke/' + spokeId, { name: newName.trim() }).then(function() {
+    toast('Client renamed to: ' + newName.trim());
+    api('GET', '/api/spokes').then(function(sData) {
+      _spokesList = sData.spokes || [];
+      renderSidebar();
+      showClientWorkspace(spokeId);
+    });
+  }).catch(function(err) { toast('Error: ' + (err.message || err)); });
+}
+
+function coDeleteClient(spokeId, spokeName) {
+  if (!confirm('Delete client "' + spokeName + '" and all its projects?\\n\\nThis cannot be undone.')) return;
+  api('DELETE', '/api/spoke/' + spokeId + '?force=true').then(function() {
+    toast('Client deleted: ' + spokeName);
+    api('GET', '/api/spokes').then(function(sData) {
+      _spokesList = sData.spokes || [];
+      _selectedSpoke = null;
+      renderSidebar();
+      showClientDashboard();
+    });
+  }).catch(function(err) { toast('Error: ' + (err.message || err)); });
 }
 
 function coOpenNewProjectModal() {
