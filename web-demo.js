@@ -18781,23 +18781,25 @@ function renderSidebar() {
     html += '<span class="sb-client-name">' + esc(cs.name) + '</span>';
     html += '<svg class="sb-chevron" id="chev-' + cid + '" onclick="event.stopPropagation();toggleClientExpand(\\'' + cid + '\\')" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>';
     html += '</div>';
-    // Child matters (placeholder — real matters from spoke data)
+    // Child projects from spoke.projects[]
     html += '<div class="sb-client-children" id="children-' + cid + '">';
-    if (cs._matters && cs._matters.length > 0) {
-      for (var mi = 0; mi < cs._matters.length; mi++) {
-        var m = cs._matters[mi];
+    var cProjects = cs.projects || [];
+    if (cProjects.length > 0) {
+      for (var mi = 0; mi < cProjects.length; mi++) {
+        var cp = cProjects[mi];
         html += '<div class="sb-client-item sb-child" onclick="event.stopPropagation();selectClient(\\'' + esc(cs.id) + '\\')">';
-        html += esc(m.name || 'Matter ' + (mi + 1));
-        html += '<span class="sb-child-count">' + (m.count || 0) + '</span>';
+        html += esc(cp.name || 'Project ' + (mi + 1));
         html += '</div>';
       }
     } else {
-      // Show project/template name as child
-      var projectName = cs._templateName || 'Project';
-      html += '<div class="sb-client-item sb-child" onclick="event.stopPropagation();selectClient(\\'' + esc(cs.id) + '\\')">';
-      html += '<span class="sb-child-project-name" title="' + esc(projectName) + '">' + esc(projectName) + '</span>';
-      html += '<span class="sb-child-count">' + (cs.entity_count || 0) + '</span>';
-      html += '</div>';
+      // Show template name as fallback if no projects yet
+      var projectName = cs._templateName || cs.template_type || '';
+      if (projectName) {
+        html += '<div class="sb-client-item sb-child" onclick="event.stopPropagation();selectClient(\\'' + esc(cs.id) + '\\')">';
+        html += esc(projectName);
+        html += '<span class="sb-child-count">' + (cs.entity_count || 0) + '</span>';
+        html += '</div>';
+      }
     }
     html += '</div>'; // end children
     html += '</div>'; // end group

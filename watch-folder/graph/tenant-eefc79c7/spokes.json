@@ -131,7 +131,7 @@
     "external_id": null,
     "sync_status": null,
     "created_at": "2026-02-24T22:31:47.824Z",
-    "updated_at": "2026-02-26T16:55:32.832Z",
+    "updated_at": "2026-03-04T16:32:42.352Z",
     "template_type": "corporate_formation",
     "gap_analysis": {
       "spoke_id": "spoke-e4156bc9d18b12b2",
@@ -381,6 +381,26 @@
         "description": "Event created: ER Visit Test (medical_visit)",
         "timestamp": "2026-02-26T16:51:09.843Z"
       }
+    ],
+    "projects": [
+      {
+        "id": "proj-aec967fffb85",
+        "name": "dopeboy",
+        "template_type": "estate_planning",
+        "notes": "",
+        "status": "active",
+        "created_at": "2026-03-04T16:27:12.741Z",
+        "updated_at": "2026-03-04T16:27:31.516Z"
+      },
+      {
+        "id": "proj-24b2ebbc9845",
+        "name": "Corporate Formation",
+        "template_type": "corporate_formation",
+        "notes": "Full workflow template for Acme Consulting LLC corporate formation",
+        "status": "active",
+        "created_at": "2026-03-04T16:32:42.352Z",
+        "updated_at": "2026-03-04T16:32:42.352Z"
+      }
     ]
   },
   "spoke-cc3bb07b4671c838": {
@@ -393,7 +413,7 @@
     "external_id": null,
     "sync_status": null,
     "created_at": "2026-03-01T19:06:50.689Z",
-    "updated_at": "2026-03-01T19:06:50.721Z",
+    "updated_at": "2026-03-04T16:32:57.967Z",
     "template_type": "corporate_formation",
     "gap_analysis": {
       "spoke_id": "spoke-cc3bb07b4671c838",
@@ -647,6 +667,287 @@
       "entity_count": 0,
       "tier_adjustments_applied": 0,
       "analyzed_at": "2026-03-01T19:06:50.721Z"
+    },
+    "document_classification": null,
+    "review_status": null,
+    "review_summary": null,
+    "projects": [
+      {
+        "id": "proj-c673829ec37c",
+        "name": "Corporate Formation",
+        "template_type": "corporate_formation",
+        "notes": "Corporate formation workflow for TEST CLIENT",
+        "status": "active",
+        "created_at": "2026-03-04T16:32:57.967Z",
+        "updated_at": "2026-03-04T16:32:57.967Z"
+      }
+    ]
+  },
+  "spoke-c6575da0660c35e9": {
+    "id": "spoke-c6575da0660c35e9",
+    "name": "Test Project",
+    "description": "",
+    "centered_entity_id": null,
+    "centered_entity_name": null,
+    "source": "manual",
+    "external_id": null,
+    "sync_status": null,
+    "created_at": "2026-03-04T16:10:44.838Z",
+    "updated_at": "2026-03-04T16:10:44.838Z"
+  },
+  "spoke-4433f657b55ffc84": {
+    "id": "spoke-4433f657b55ffc84",
+    "name": "Tax Love",
+    "description": "",
+    "centered_entity_id": null,
+    "centered_entity_name": null,
+    "source": "manual",
+    "external_id": null,
+    "sync_status": null,
+    "created_at": "2026-03-04T16:11:25.738Z",
+    "updated_at": "2026-03-04T16:11:25.738Z"
+  },
+  "spoke-05b4e918b86a774b": {
+    "id": "spoke-05b4e918b86a774b",
+    "name": "Estate Planning",
+    "description": "",
+    "centered_entity_id": null,
+    "centered_entity_name": null,
+    "source": "manual",
+    "external_id": null,
+    "sync_status": null,
+    "created_at": "2026-03-04T16:17:32.682Z",
+    "updated_at": "2026-03-04T16:17:32.711Z",
+    "template_type": "estate_planning",
+    "gap_analysis": {
+      "spoke_id": "spoke-05b4e918b86a774b",
+      "spoke_name": "Estate Planning",
+      "template_type": "estate_planning",
+      "template_name": "Estate Planning",
+      "template_version": "0.1.0",
+      "overall_score": 0.5,
+      "document_score": 0,
+      "field_score": 1,
+      "entity_score": 0,
+      "relationship_score": 0,
+      "filing_readiness": 1,
+      "quality_score": 1,
+      "completeness": 1,
+      "tier_counts": {
+        "BLOCKING": {
+          "total": 0,
+          "extracted": 0
+        },
+        "EXPECTED": {
+          "total": 0,
+          "extracted": 0
+        },
+        "ENRICHING": {
+          "total": 0,
+          "extracted": 0
+        }
+      },
+      "missing_by_tier": {
+        "BLOCKING": [],
+        "EXPECTED": [],
+        "ENRICHING": []
+      },
+      "missing_documents": [
+        {
+          "type_id": "government_id",
+          "display_name": "Government Id",
+          "category": "Identification",
+          "priority": "HIGH"
+        },
+        {
+          "type_id": "ssn_card",
+          "display_name": "Ssn Card",
+          "category": "Identification",
+          "priority": "HIGH"
+        },
+        {
+          "type_id": "birth_certificate",
+          "display_name": "Birth Certificate",
+          "category": "Identification",
+          "priority": "HIGH"
+        },
+        {
+          "type_id": "deed",
+          "display_name": "Deed",
+          "category": "Property",
+          "priority": "MEDIUM"
+        },
+        {
+          "type_id": "mortgage_statement",
+          "display_name": "Mortgage Statement",
+          "category": "Property",
+          "priority": "MEDIUM"
+        },
+        {
+          "type_id": "property_tax_record",
+          "display_name": "Property Tax Record",
+          "category": "Property",
+          "priority": "MEDIUM"
+        },
+        {
+          "type_id": "homeowners_insurance",
+          "display_name": "Homeowners Insurance",
+          "category": "Property",
+          "priority": "MEDIUM"
+        },
+        {
+          "type_id": "bank_statements",
+          "display_name": "Bank Statements",
+          "category": "Financial",
+          "priority": "HIGH"
+        },
+        {
+          "type_id": "investment_accounts",
+          "display_name": "Investment Accounts",
+          "category": "Financial",
+          "priority": "HIGH"
+        },
+        {
+          "type_id": "retirement_accounts",
+          "display_name": "Retirement Accounts",
+          "category": "Financial",
+          "priority": "HIGH"
+        },
+        {
+          "type_id": "life_insurance_policy",
+          "display_name": "Life Insurance Policy",
+          "category": "Financial",
+          "priority": "HIGH"
+        },
+        {
+          "type_id": "existing_will",
+          "display_name": "Existing Will",
+          "category": "Legal",
+          "priority": "HIGH"
+        },
+        {
+          "type_id": "existing_trust",
+          "display_name": "Existing Trust",
+          "category": "Legal",
+          "priority": "HIGH"
+        },
+        {
+          "type_id": "power_of_attorney",
+          "display_name": "Power Of Attorney",
+          "category": "Legal",
+          "priority": "HIGH"
+        },
+        {
+          "type_id": "healthcare_directive",
+          "display_name": "Healthcare Directive",
+          "category": "Legal",
+          "priority": "HIGH"
+        },
+        {
+          "type_id": "marriage_certificate",
+          "display_name": "Marriage Certificate",
+          "category": "Family",
+          "priority": "MEDIUM"
+        },
+        {
+          "type_id": "divorce_decree",
+          "display_name": "Divorce Decree",
+          "category": "Family",
+          "priority": "MEDIUM"
+        },
+        {
+          "type_id": "beneficiary_designations",
+          "display_name": "Beneficiary Designations",
+          "category": "Family",
+          "priority": "MEDIUM"
+        }
+      ],
+      "missing_fields": [],
+      "missing_entity_fields": [
+        {
+          "role": "primary_client",
+          "entity": null,
+          "missing": "full_name"
+        },
+        {
+          "role": "primary_client",
+          "entity": null,
+          "missing": "date_of_birth"
+        },
+        {
+          "role": "primary_client",
+          "entity": null,
+          "missing": "ssn"
+        },
+        {
+          "role": "primary_client",
+          "entity": null,
+          "missing": "address"
+        },
+        {
+          "role": "beneficiary",
+          "entity": null,
+          "missing": "full_name"
+        },
+        {
+          "role": "beneficiary",
+          "entity": null,
+          "missing": "relationship"
+        },
+        {
+          "role": "executor",
+          "entity": null,
+          "missing": "full_name"
+        },
+        {
+          "role": "executor",
+          "entity": null,
+          "missing": "relationship"
+        },
+        {
+          "role": "executor",
+          "entity": null,
+          "missing": "contact_info"
+        }
+      ],
+      "missing_relationships": [
+        {
+          "from": "matter",
+          "expected": "primary client",
+          "to": "(not found)"
+        },
+        {
+          "from": "matter",
+          "expected": "beneficiary",
+          "to": "(not found)"
+        },
+        {
+          "from": "matter",
+          "expected": "executor",
+          "to": "(not found)"
+        }
+      ],
+      "cross_doc_violations": [],
+      "found_documents": [],
+      "suggestions": [
+        "Request Government Id from client",
+        "Request Ssn Card from client",
+        "Request Birth Certificate from client",
+        "Request Deed from client",
+        "Request Mortgage Statement from client",
+        "Obtain Full Name for primary client",
+        "Obtain Date Of Birth for primary client",
+        "Obtain Ssn for primary client",
+        "Obtain Address for primary client",
+        "Obtain Full Name for beneficiary",
+        "Identify and add primary client to the matter",
+        "Identify and add beneficiary to the matter",
+        "Identify and add executor to the matter"
+      ],
+      "source_documents": [],
+      "entity_count": 0,
+      "tier_adjustments_applied": 0,
+      "analyzed_at": "2026-03-04T16:17:32.711Z"
     },
     "document_classification": null,
     "review_status": null,
