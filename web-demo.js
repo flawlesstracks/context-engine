@@ -15496,7 +15496,11 @@ const WIKI_HTML = `<!DOCTYPE html>
      TEMPLATES HUB
      ═══════════════════════════════════════════ */
   .th-wrap { display: flex; flex-direction: column; height: calc(100vh - 50px); overflow-y: auto; background: #f5f5f0; }
-  .th-hero { text-align: center; padding: 0 0 24px 0; }
+  .th-hero { background: linear-gradient(145deg, #f8f7f2 0%, #f0efe8 100%); padding: 44px 52px 36px; border-bottom: 1px solid #e4e3de; position: relative; overflow: hidden; text-align: center; }
+  .th-hero::before { content:''; position:absolute; top:-60px; right:-60px; width:300px; height:300px; background:radial-gradient(circle, rgba(37,99,235,0.04) 0%, transparent 70%); pointer-events:none; }
+  .th-hero::after { content:''; position:absolute; bottom:-80px; left:30%; width:400px; height:400px; background:radial-gradient(circle, rgba(124,58,237,0.03) 0%, transparent 70%); pointer-events:none; }
+  .th-new-btn { position:absolute; top:16px; right:20px; background:#059669; color:white; border:none; border-radius:8px; padding:10px 20px; font-weight:600; font-size:13px; cursor:pointer; z-index:50; transition:background 0.15s; }
+  .th-new-btn:hover { background:#047857; }
   .th-hero-eyebrow { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #999; margin-bottom: 8px; }
   .th-hero-title { font-size: 40px; font-weight: 400; color: #1a1a1a; margin: 0 0 6px 0; letter-spacing: -0.5px; }
   .th-hero-sub { font-size: 15px; color: #5c5b56; margin: 0 auto 28px auto; max-width: 480px; }
@@ -15594,14 +15598,14 @@ const WIKI_HTML = `<!DOCTYPE html>
   .th-top-btn { padding:9px 18px; border-radius:8px; font-size:13px; font-weight:600; font-family:'DM Sans',system-ui,sans-serif; border:none; background:#059669; color:white; cursor:pointer; transition:background 0.15s; white-space:nowrap; }
   .th-top-btn:hover { background:#047857; }
   @media (max-width: 1100px) {
-    .th-hero { padding:0 32px 24px; }
+    .th-hero { padding:32px 32px 28px; }
     .th-cat-strip { padding:20px 32px 0; }
     .th-content { padding:24px 32px 48px; }
     .th-grid { grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); }
     .th-top-bar { padding:10px 32px; }
   }
   @media (max-width: 768px) {
-    .th-hero { padding:0 20px 24px; }
+    .th-hero { padding:24px 20px 24px; }
     .th-cat-strip { padding:16px 20px 0; }
     .th-content { padding:20px; }
     .th-top-bar { padding:10px 16px; }
@@ -26207,6 +26211,7 @@ function showTemplatesHub() {
 
   // ── HERO with + New Template button ──
   h += '<div class="th-hero">';
+  h += '<button class="th-new-btn" onclick="thOpenModal(&#39;New Template&#39;,&#39;&#39;)">+ New Template</button>';
   h += '<div class="th-hero-eyebrow">Context Architecture \u2014 The intelligence layer for professional services</div>';
   h += '<h1 class="th-hero-title">Templates</h1>';
   h += '<p class="th-hero-sub">Start from a proven structure, rename it, make it yours. 100+ professional forms organized by workflow.</p>';
@@ -34435,7 +34440,11 @@ const FORMFILL_HTML = `<!DOCTYPE html>
    TEMPLATES HUB (Day 14)
    ═══════════════════════════════════════════ */
 .th-wrap { display: flex; flex-direction: column; height: calc(100vh - 50px); overflow-y: auto; background: #f5f5f0; }
-.th-hero { text-align: center; padding: 0 0 24px 0; }
+.th-hero { background: linear-gradient(145deg, #f8f7f2 0%, #f0efe8 100%); padding: 44px 52px 36px; border-bottom: 1px solid #e4e3de; position: relative; overflow: hidden; text-align: center; }
+.th-hero::before { content:''; position:absolute; top:-60px; right:-60px; width:300px; height:300px; background:radial-gradient(circle, rgba(37,99,235,0.04) 0%, transparent 70%); pointer-events:none; }
+.th-hero::after { content:''; position:absolute; bottom:-80px; left:30%; width:400px; height:400px; background:radial-gradient(circle, rgba(124,58,237,0.03) 0%, transparent 70%); pointer-events:none; }
+.th-new-btn { position:absolute; top:16px; right:20px; background:#059669; color:white; border:none; border-radius:8px; padding:10px 20px; font-weight:600; font-size:13px; cursor:pointer; z-index:50; transition:background 0.15s; }
+.th-new-btn:hover { background:#047857; }
 .th-hero-eyebrow { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #999; margin-bottom: 8px; }
 .th-hero-title { font-size: 40px; font-weight: 400; color: #1a1a1a; margin: 0 0 6px 0; letter-spacing: -0.5px; }
 .th-hero-sub { font-size: 15px; color: #5c5b56; margin: 0 auto 28px auto; max-width: 480px; }
@@ -34533,14 +34542,14 @@ const FORMFILL_HTML = `<!DOCTYPE html>
 .th-top-btn { padding:9px 18px; border-radius:8px; font-size:13px; font-weight:600; font-family:'DM Sans',system-ui,sans-serif; border:none; background:#1a1917; color:white; cursor:pointer; transition:background 0.15s; white-space:nowrap; }
 .th-top-btn:hover { background:#333; }
 @media (max-width: 1100px) {
-  .th-hero { padding:0 32px 24px; }
+  .th-hero { padding:32px 32px 28px; }
   .th-cat-strip { padding:20px 32px 0; }
   .th-content { padding:24px 32px 48px; }
   .th-grid { grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); }
   .th-top-bar { padding:10px 32px; }
 }
 @media (max-width: 768px) {
-  .th-hero { padding:0 20px 24px; }
+  .th-hero { padding:24px 20px 24px; }
   .th-cat-strip { padding:16px 20px 0; }
   .th-content { padding:20px; }
   .th-top-bar { padding:10px 16px; }
