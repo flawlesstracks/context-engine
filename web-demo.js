@@ -4250,6 +4250,7 @@ app.get('/api/clients', apiAuth, (req, res) => {
       entityType: s.entity_type || null,
       notes: s.notes || null,
       packId: s.pack_id || null,
+      favorited: s.favorited || false,
     };
   });
   res.json({ clients, total: clients.length });
@@ -14149,6 +14150,30 @@ const WIKI_HTML = `<!DOCTYPE html>
   .cl-empty-title { font-size: 18px; font-weight: 600; color: #5c5b56; margin-bottom: 8px; }
   .cl-empty-desc { font-size: 13px; line-height: 1.6; max-width: 360px; margin: 0 auto 20px; }
 
+  /* Card action buttons */
+  .cl-card-actions { position: absolute; top: 12px; right: 12px; display: flex; gap: 4px; opacity: 0; transition: opacity 0.15s; z-index: 2; }
+  .cl-client-card:hover .cl-card-actions { opacity: 1; }
+  .cl-card-action-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid #e4e3de; background: white; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.12s; font-size: 13px; color: #5c5b56; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .cl-card-action-btn:hover { background: #f5f5f0; border-color: #cccbc6; }
+  .cl-card-action-btn.fav { color: #8a8983; }
+  .cl-card-action-btn.fav.active { color: #f59e0b; background: #fffbeb; border-color: #f59e0b; }
+  .cl-card-action-btn.fav:hover { color: #f59e0b; }
+  .cl-card-action-btn.del:hover { color: #dc2626; border-color: #dc2626; background: #fef2f2; }
+  .cl-client-card.favorited .cl-card-action-btn.fav { opacity: 1; color: #f59e0b; }
+  .cl-client-card.favorited .cl-card-actions { opacity: 1; }
+  /* Show fav button always if favorited */
+  .cl-client-card.favorited .cl-card-action-btn:not(.fav) { opacity: 0; }
+  .cl-client-card.favorited:hover .cl-card-action-btn:not(.fav) { opacity: 1; }
+
+  /* Edit Client Modal */
+  .cl-edit-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(3px); z-index: 210; display: none; align-items: center; justify-content: center; }
+  .cl-edit-overlay.open { display: flex; }
+  .cl-edit-modal { background: white; border-radius: 14px; width: 440px; max-width: 95vw; box-shadow: 0 24px 64px rgba(0,0,0,0.18); overflow: hidden; animation: clModalIn 0.2s ease; }
+  .cl-edit-modal-header { padding: 20px 24px 16px; border-bottom: 1px solid #e4e3de; display: flex; align-items: center; justify-content: space-between; }
+  .cl-edit-modal-title { font-family: var(--font-display, 'Instrument Serif', serif); font-size: 20px; }
+  .cl-edit-modal-body { padding: 24px; }
+  .cl-edit-modal-footer { padding: 16px 24px; border-top: 1px solid #e4e3de; background: #f5f5f0; display: flex; justify-content: flex-end; gap: 8px; }
+
   .metrics-bar { display: flex; gap: 48px; margin-top: 4px; margin-bottom: 16px; }
   .metric { display: flex; flex-direction: column; gap: 4px; }
   .metric-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #999999; font-weight: 600; display: flex; align-items: center; gap: 4px; }
@@ -19607,15 +19632,48 @@ function _clRenderPage(clients) {
   // ── Wizard Modal (always present in DOM) ──
   h += _clRenderWizardModal();
 
+  // Edit Client Modal
+  h += '<div class="cl-edit-overlay" id="clEditOverlay" onclick="if(event.target===this)clCloseEdit()">';
+  h += '<div class="cl-edit-modal">';
+  h += '<div class="cl-edit-modal-header">';
+  h += '<div class="cl-edit-modal-title">Edit Client</div>';
+  h += '<button class="cl-modal-close" onclick="clCloseEdit()">\\u2715</button>';
+  h += '</div>';
+  h += '<div class="cl-edit-modal-body">';
+  h += '<div class="cl-form-grid">';
+  h += '<div class="cl-form-group full"><label class="cl-form-label">Client Name <span class="req">*</span></label><input class="cl-form-input" type="text" id="clEditName" /></div>';
+  h += '<div class="cl-form-group full"><label class="cl-form-label">Client Type</label>';
+  h += '<select class="cl-form-select" id="clEditType">';
+  h += '<option value="person">\\u{1F464} Person</option>';
+  h += '<option value="business">\\u{1F3E2} Business</option>';
+  h += '<option value="org">\\u{1F3DB} Organization</option>';
+  h += '</select></div>';
+  h += '</div>';
+  h += '</div>';
+  h += '<div class="cl-edit-modal-footer">';
+  h += '<button class="cl-btn cl-btn-secondary" onclick="clCloseEdit()">Cancel</button>';
+  h += '<button class="cl-btn cl-btn-primary" onclick="clSaveEdit()">Save Changes</button>';
+  h += '</div>';
+  h += '</div></div>';
+  h += '<input type="hidden" id="clEditSpokeId" value="" />';
+
   main.innerHTML = h;
 }
 
 function _clRenderCard(client) {
   var tc = _CL_TYPE_COLORS[client.type] || _CL_TYPE_COLORS.person;
   var initials = (client.name || '').split(' ').map(function(w) { return w.charAt(0); }).join('').slice(0,2).toUpperCase() || '??';
+  var isFav = client.favorited ? true : false;
   var h = '';
-  h += '<div class="cl-client-card" data-cl-type="' + client.type + '" data-cl-name="' + esc(client.name.toLowerCase()) + '" onclick="selectClient(\\'' + esc(client.id) + '\\')">';
+  h += '<div class="cl-client-card' + (isFav ? ' favorited' : '') + '" data-cl-type="' + client.type + '" data-cl-name="' + esc(client.name.toLowerCase()) + '" data-cl-id="' + esc(client.id) + '" onclick="selectClient(\\'' + esc(client.id) + '\\')">';
   h += '<div class="cl-client-card-stripe" style="background:' + tc.color + ';"></div>';
+
+  // Action buttons (hover-reveal: favorite, edit, delete)
+  h += '<div class="cl-card-actions">';
+  h += '<button class="cl-card-action-btn fav' + (isFav ? ' active' : '') + '" onclick="event.stopPropagation();clToggleFav(\\'' + esc(client.id) + '\\',this)" title="Favorite"><svg width="14" height="14" viewBox="0 0 24 24" fill="' + (isFav ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg></button>';
+  h += '<button class="cl-card-action-btn" onclick="event.stopPropagation();clOpenEdit(\\'' + esc(client.id) + '\\',\\'' + esc(client.name).replace(/'/g, "\\\\'") + '\\',\\'' + esc(client.type) + '\\')" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>';
+  h += '<button class="cl-card-action-btn del" onclick="event.stopPropagation();clDeleteClient(\\'' + esc(client.id) + '\\',\\'' + esc(client.name).replace(/'/g, "\\\\'") + '\\')" title="Delete"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>';
+  h += '</div>';
 
   // Flag indicator
   if (client.flags && client.flags.length > 0) {
@@ -20064,6 +20122,67 @@ function _clCreateClient() {
   }).catch(function(err) {
     toast('Error: ' + (err.message || err));
   });
+}
+
+// ── Card Actions: Edit, Favorite, Delete ──
+
+function clOpenEdit(spokeId, currentName, currentType) {
+  var nameEl = document.getElementById('clEditName');
+  var typeEl = document.getElementById('clEditType');
+  var idEl = document.getElementById('clEditSpokeId');
+  if (nameEl) nameEl.value = currentName || '';
+  if (typeEl) typeEl.value = currentType || 'person';
+  if (idEl) idEl.value = spokeId || '';
+  var overlay = document.getElementById('clEditOverlay');
+  if (overlay) overlay.classList.add('open');
+  if (nameEl) nameEl.focus();
+}
+
+function clCloseEdit() {
+  var overlay = document.getElementById('clEditOverlay');
+  if (overlay) overlay.classList.remove('open');
+}
+
+function clSaveEdit() {
+  var spokeId = (document.getElementById('clEditSpokeId') || {}).value;
+  var newName = (document.getElementById('clEditName') || {}).value;
+  var newType = (document.getElementById('clEditType') || {}).value;
+  if (!spokeId || !newName || !newName.trim()) { toast('Client name is required'); return; }
+
+  api('PUT', '/api/spoke/' + spokeId, { name: newName.trim(), client_type: newType }).then(function() {
+    clCloseEdit();
+    toast('Client updated: ' + newName.trim());
+    api('GET', '/api/spokes').then(function(sData) {
+      _spokesList = sData.spokes || [];
+      _clFetchAndRender();
+    });
+  }).catch(function(err) { toast('Error: ' + (err.message || err)); });
+}
+
+function clToggleFav(spokeId, btn) {
+  var card = btn.closest('.cl-client-card');
+  var isFav = card && card.classList.contains('favorited');
+  var newVal = !isFav;
+  api('PUT', '/api/spoke/' + spokeId, { favorited: newVal }).then(function() {
+    if (card) {
+      card.classList.toggle('favorited', newVal);
+      var star = btn.querySelector('svg');
+      if (star) star.setAttribute('fill', newVal ? 'currentColor' : 'none');
+      btn.classList.toggle('active', newVal);
+    }
+    toast(newVal ? 'Client favorited' : 'Favorite removed');
+  }).catch(function(err) { toast('Error: ' + (err.message || err)); });
+}
+
+function clDeleteClient(spokeId, spokeName) {
+  if (!confirm('Delete client "' + spokeName + '"?\\n\\nThis cannot be undone.')) return;
+  api('DELETE', '/api/spoke/' + spokeId + '?force=true').then(function() {
+    toast('Client deleted: ' + spokeName);
+    api('GET', '/api/spokes').then(function(sData) {
+      _spokesList = sData.spokes || [];
+      _clFetchAndRender();
+    });
+  }).catch(function(err) { toast('Error: ' + (err.message || err)); });
 }
 
 // Build 33: Client Overview — shows all projects for a client
