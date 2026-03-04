@@ -375,6 +375,68 @@ function findSpokeByShareToken(graphDir, token) {
   return null;
 }
 
+/**
+ * Add a project to a spoke.
+ */
+function addProject(graphDir, spokeId, opts) {
+  const spokes = loadSpokes(graphDir);
+  if (!spokes[spokeId]) throw new Error('Spoke not found');
+  if (!opts.name || !opts.name.trim()) throw new Error('Project name is required');
+
+  if (!spokes[spokeId].projects) spokes[spokeId].projects = [];
+
+  const pid = 'proj-' + crypto.randomBytes(6).toString('hex');
+  const now = new Date().toISOString();
+  const project = {
+    id: pid,
+    name: opts.name.trim(),
+    template_type: opts.template_type || 'general',
+    notes: opts.notes || '',
+    status: 'active',
+    created_at: now,
+    updated_at: now,
+  };
+  spokes[spokeId].projects.push(project);
+  spokes[spokeId].updated_at = now;
+  saveSpokes(graphDir, spokes);
+  return project;
+}
+
+/**
+ * Update a project within a spoke.
+ */
+function updateProject(graphDir, spokeId, projectId, updates) {
+  const spokes = loadSpokes(graphDir);
+  if (!spokes[spokeId]) throw new Error('Spoke not found');
+  const projects = spokes[spokeId].projects || [];
+  const proj = projects.find(p => p.id === projectId);
+  if (!proj) throw new Error('Project not found');
+
+  const allowed = ['name', 'template_type', 'notes', 'status'];
+  for (const key of allowed) {
+    if (updates[key] !== undefined) proj[key] = updates[key];
+  }
+  proj.updated_at = new Date().toISOString();
+  spokes[spokeId].updated_at = proj.updated_at;
+  saveSpokes(graphDir, spokes);
+  return proj;
+}
+
+/**
+ * Delete a project from a spoke.
+ */
+function deleteProject(graphDir, spokeId, projectId) {
+  const spokes = loadSpokes(graphDir);
+  if (!spokes[spokeId]) throw new Error('Spoke not found');
+  const projects = spokes[spokeId].projects || [];
+  const idx = projects.findIndex(p => p.id === projectId);
+  if (idx === -1) throw new Error('Project not found');
+  const removed = projects.splice(idx, 1)[0];
+  spokes[spokeId].updated_at = new Date().toISOString();
+  saveSpokes(graphDir, spokes);
+  return removed;
+}
+
 module.exports = {
   loadSpokes,
   saveSpokes,
@@ -388,5 +450,8 @@ module.exports = {
   listSpokesWithCounts,
   migrateEntitiesToSpokes,
   findSpokeByShareToken,
+  addProject,
+  updateProject,
+  deleteProject,
   SPOKES_FILENAME,
 };

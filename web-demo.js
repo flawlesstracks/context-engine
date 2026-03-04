@@ -18,7 +18,7 @@ const { scrapeLinkedInProfile, transformScrapingDogProfile } = require('./src/sc
 const { analyzeEntityHealth, getRelationshipTier, getTierInfo } = require('./src/health-analyzer');
 const { parse: universalParse } = require('./universal-parser');
 const { query: queryEngine, getSelfEntity, clearSelfEntityCache } = require('./query-engine');
-const { loadSpokes, createSpoke, getSpoke, updateSpoke, setCenteredEntity, deleteSpoke, listSpokesWithCounts, migrateEntitiesToSpokes, findSpokeByShareToken } = require('./src/spoke-ops');
+const { loadSpokes, createSpoke, getSpoke, updateSpoke, setCenteredEntity, deleteSpoke, listSpokesWithCounts, migrateEntitiesToSpokes, findSpokeByShareToken, addProject, updateProject, deleteProject } = require('./src/spoke-ops');
 const { loadTemplates, getTemplate, saveTemplates, saveTemplate, deleteTemplate, bumpVersion, buildDisplayNameMap, generateRequestEmail, analyzeGaps, FIELD_ALIASES, TYPE_ALIASES } = require('./src/gap-analysis');
 const { createConnection, getConnection, getConnectionDecrypted, updateConnection, deleteConnection: deleteConn, listConnections } = require('./src/connector-ops');
 const { getRegisteredProviders, getConnectorClass } = require('./src/connectors/base-connector');
@@ -4179,6 +4179,37 @@ app.delete('/api/spoke/:id', apiAuth, (req, res) => {
       return res.status(403).json({ error: err.message });
     }
     res.status(409).json({ error: err.message });
+  }
+});
+
+// POST /api/spoke/:id/project — Add a project to a spoke
+app.post('/api/spoke/:id/project', apiAuth, (req, res) => {
+  try {
+    const { name, template_type, notes } = req.body || {};
+    const project = addProject(req.graphDir, req.params.id, { name, template_type, notes });
+    res.status(201).json({ status: 'created', project });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// PUT /api/spoke/:id/project/:pid — Update a project
+app.put('/api/spoke/:id/project/:pid', apiAuth, (req, res) => {
+  try {
+    const project = updateProject(req.graphDir, req.params.id, req.params.pid, req.body || {});
+    res.json({ status: 'updated', project });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// DELETE /api/spoke/:id/project/:pid — Delete a project
+app.delete('/api/spoke/:id/project/:pid', apiAuth, (req, res) => {
+  try {
+    const project = deleteProject(req.graphDir, req.params.id, req.params.pid);
+    res.json({ status: 'deleted', project });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 });
 
@@ -19437,63 +19468,44 @@ function _coRenderProjectsTab(spokeId, spokeName, gapData, exportData, files) {
   // Projects grid
   h += '<div class="co-projects-grid" id="coProjectsGrid">';
 
-  // Build card data from spoke
-  var readinessPct = gapData ? Math.round((gapData.overall_score || 0) * 100) : 0;
-  var totalFields = 0;
-  var extractedFields = 0;
-  var blockingCount = gapData ? (gapData.missing_documents || []).filter(function(d) { return (d.priority || '').toLowerCase() === 'high' || (d.priority || '').toLowerCase() === 'blocking'; }).length : 0;
-
-  if (exportData && exportData.roles) {
-    for (var ri = 0; ri < exportData.roles.length; ri++) {
-      for (var ei = 0; ei < (exportData.roles[ri].entities || []).length; ei++) {
-        for (var fi = 0; fi < (exportData.roles[ri].entities[ei].fields || []).length; fi++) {
-          totalFields++;
-          if (exportData.roles[ri].entities[ei].fields[fi].value) extractedFields++;
-        }
-      }
-    }
+  // Get projects from the spoke data
+  var spoke = null;
+  for (var si = 0; si < _spokesList.length; si++) {
+    if (_spokesList[si].id === spokeId) { spoke = _spokesList[si]; break; }
   }
+  var projects = (spoke && spoke.projects) || [];
 
-  var templateName = gapData && gapData.template_name ? gapData.template_name : 'General Matter';
-  var readinessColor = readinessPct >= 80 ? '#059669' : (readinessPct >= 40 ? '#D97706' : '#DC2626');
-  var barColor = readinessPct >= 80 ? 'var(--success,#059669)' : (readinessPct >= 40 ? 'var(--warning,#D97706)' : 'var(--danger,#DC2626)');
-  var statusLabel = blockingCount > 0 ? 'Blocked' : (readinessPct >= 90 ? 'Complete' : 'Active');
-  var statusClass = blockingCount > 0 ? 'co-status-blocked' : (readinessPct >= 90 ? 'co-status-complete' : 'co-status-active');
-  var updatedLabel = files.length > 0 && files[0].uploaded_at ? _coTimeAgo(files[0].uploaded_at) : 'No activity';
-  var desc = 'Client project using ' + templateName + ' template. ' + extractedFields + ' of ' + totalFields + ' fields extracted.';
+  // Render each project card
+  for (var pi = 0; pi < projects.length; pi++) {
+    var proj = projects[pi];
+    var templateName = proj.template_type ? proj.template_type.replace(/_/g, ' ').replace(/\\b\\w/g, function(c) { return c.toUpperCase(); }) : 'General';
+    var statusLabel = proj.status === 'archived' ? 'Archived' : 'Active';
+    var statusClass = proj.status === 'archived' ? 'co-status-archived' : 'co-status-active';
+    var updatedLabel = proj.updated_at ? _coTimeAgo(proj.updated_at) : 'Just created';
 
-  h += '<div class="co-project-card" data-spokeid="' + esc(spokeId) + '" data-name="' + esc(spokeName) + '" data-status="' + (statusLabel.toLowerCase()) + '" data-readiness="' + readinessPct + '" onclick="coOpenProject(event,\\'' + esc(spokeId) + '\\')">';
-  h += '<button class="co-card-menu-trigger" onclick="coToggleMenu(event,this)">\\u22EF</button>';
-  h += '<div class="co-card-menu">';
-  h += '<div class="co-card-menu-item" onclick="coMenuAction(event,\\'favorite\\',\\'' + esc(spokeId) + '\\')"><span class="co-menu-icon">\\u2606</span> Favorite</div>';
-  h += '<div class="co-card-menu-item" onclick="coMenuAction(event,\\'edit\\',\\'' + esc(spokeId) + '\\')"><span class="co-menu-icon">\\u270E</span> Edit Details</div>';
-  h += '<div class="co-card-menu-item" onclick="coMenuAction(event,\\'duplicate\\',\\'' + esc(spokeId) + '\\')"><span class="co-menu-icon">\\u29C9</span> Duplicate</div>';
-  h += '<div class="co-card-menu-divider"></div>';
-  h += '<div class="co-card-menu-item" onclick="coMenuAction(event,\\'archive\\',\\'' + esc(spokeId) + '\\')"><span class="co-menu-icon">\\uD83D\\uDCE6</span> Archive</div>';
-  h += '<div class="co-card-menu-item danger" onclick="coMenuAction(event,\\'delete\\',\\'' + esc(spokeId) + '\\')"><span class="co-menu-icon">\\uD83D\\uDDD1</span> Delete</div>';
-  h += '</div>';
+    h += '<div class="co-project-card" data-projectid="' + esc(proj.id) + '" data-spokeid="' + esc(spokeId) + '" data-name="' + esc(proj.name) + '" data-status="' + esc(proj.status || 'active') + '" onclick="coOpenProject(event,\\'' + esc(spokeId) + '\\')">';
+    h += '<button class="co-card-menu-trigger" onclick="coToggleMenu(event,this)">\\u22EF</button>';
+    h += '<div class="co-card-menu">';
+    h += '<div class="co-card-menu-item" onclick="coMenuAction(event,\\'edit\\',\\'' + esc(spokeId) + '\\',\\'' + esc(proj.id) + '\\')"><span class="co-menu-icon">\\u270E</span> Edit Name</div>';
+    h += '<div class="co-card-menu-divider"></div>';
+    h += '<div class="co-card-menu-item" onclick="coMenuAction(event,\\'archive\\',\\'' + esc(spokeId) + '\\',\\'' + esc(proj.id) + '\\')"><span class="co-menu-icon">\\uD83D\\uDCE6</span> Archive</div>';
+    h += '<div class="co-card-menu-item danger" onclick="coMenuAction(event,\\'delete\\',\\'' + esc(spokeId) + '\\',\\'' + esc(proj.id) + '\\')"><span class="co-menu-icon">\\uD83D\\uDDD1</span> Delete</div>';
+    h += '</div>';
 
-  h += '<div class="co-project-card-header"><div>';
-  h += '<div class="co-project-card-name">' + esc(templateName) + '</div>';
-  h += '<div class="co-project-card-template">Client: ' + esc(spokeName) + '</div>';
-  h += '</div>';
-  h += '<span class="co-status-pill ' + statusClass + '">' + esc(statusLabel) + '</span>';
-  h += '</div>';
+    h += '<div class="co-project-card-header"><div>';
+    h += '<div class="co-project-card-name">' + esc(proj.name) + '</div>';
+    h += '<div class="co-project-card-template">Template: ' + esc(templateName) + '</div>';
+    h += '</div>';
+    h += '<span class="co-status-pill ' + statusClass + '">' + esc(statusLabel) + '</span>';
+    h += '</div>';
 
-  h += '<div class="co-project-card-desc">' + esc(desc) + '</div>';
+    if (proj.notes) h += '<div class="co-project-card-desc">' + esc(proj.notes) + '</div>';
 
-  h += '<div class="co-project-card-stats">';
-  h += '<div class="co-project-stat"><span class="co-project-stat-value" style="color:' + readinessColor + '">' + readinessPct + '%</span><span class="co-project-stat-label">Readiness</span></div>';
-  h += '<div class="co-project-stat"><span class="co-project-stat-value">' + extractedFields + '/' + totalFields + '</span><span class="co-project-stat-label">Fields</span></div>';
-  h += '<div class="co-project-stat"><span class="co-project-stat-value" style="color:' + (blockingCount > 0 ? '#DC2626' : '#059669') + '">' + blockingCount + '</span><span class="co-project-stat-label">Required</span></div>';
-  h += '</div>';
-
-  h += '<div class="co-project-card-bar"><div class="co-project-card-bar-fill" style="width:' + readinessPct + '%;background:' + barColor + ';"></div></div>';
-  h += '<div class="co-project-card-footer">';
-  h += '<span class="co-project-card-updated">Updated ' + esc(updatedLabel) + '</span>';
-  h += '<span class="co-project-card-docs">\\uD83D\\uDCC4 ' + files.length + ' docs</span>';
-  h += '</div>';
-  h += '</div>';
+    h += '<div class="co-project-card-footer">';
+    h += '<span class="co-project-card-updated">Updated ' + esc(updatedLabel) + '</span>';
+    h += '</div>';
+    h += '</div>';
+  }
 
   // New Project card
   h += '<div class="co-new-project-card" onclick="coOpenNewProjectModal()">';
@@ -19585,22 +19597,35 @@ function coToggleMenu(e, trigger) {
   _coOpenMenu = isOpen ? null : menu;
 }
 
-function coMenuAction(e, action, spokeId) {
+function coMenuAction(e, action, spokeId, projectId) {
   e.stopPropagation();
   var card = e.target.closest('.co-project-card');
-  if (action === 'favorite' || action === 'unfavorite') {
-    if (card) card.classList.toggle('starred');
-    toast(action === 'favorite' ? 'Project favorited' : 'Favorite removed');
-  } else if (action === 'edit') {
-    toast('Edit not yet implemented');
-  } else if (action === 'duplicate') {
-    toast('Duplicate not yet implemented');
+
+  if (action === 'edit') {
+    var currentName = card ? (card.dataset.name || '') : '';
+    var newName = prompt('Rename project:', currentName);
+    if (newName && newName.trim() && newName.trim() !== currentName) {
+      api('PUT', '/api/spoke/' + spokeId + '/project/' + projectId, { name: newName.trim() }).then(function() {
+        toast('Project renamed to: ' + newName.trim());
+        api('GET', '/api/spokes').then(function(sData) {
+          _spokesList = sData.spokes || [];
+          renderSidebar();
+          showClientWorkspace(spokeId);
+        });
+      }).catch(function(err) { toast('Error: ' + (err.message || err)); });
+    }
   } else if (action === 'archive') {
-    if (card) { card.style.opacity = '0.4'; card.dataset.status = 'archived'; }
-    toast('Project archived');
+    api('PUT', '/api/spoke/' + spokeId + '/project/' + projectId, { status: 'archived' }).then(function() {
+      if (card) { card.style.opacity = '0.4'; card.dataset.status = 'archived'; }
+      toast('Project archived');
+    }).catch(function(err) { toast('Error: ' + (err.message || err)); });
   } else if (action === 'delete') {
     if (confirm('Delete this project? This cannot be undone.')) {
-      if (card) { card.style.transition = 'all 0.3s ease'; card.style.opacity = '0'; card.style.transform = 'scale(0.95)'; setTimeout(function() { card.remove(); }, 300); }
+      api('DELETE', '/api/spoke/' + spokeId + '/project/' + projectId).then(function() {
+        if (card) { card.style.transition = 'all 0.3s ease'; card.style.opacity = '0'; card.style.transform = 'scale(0.95)'; setTimeout(function() { card.remove(); }, 300); }
+        toast('Project deleted');
+        api('GET', '/api/spokes').then(function(sData) { _spokesList = sData.spokes || []; renderSidebar(); });
+      }).catch(function(err) { toast('Error: ' + (err.message || err)); });
     }
   }
   // Close menu
@@ -19707,27 +19732,17 @@ function coCreateProject() {
   var templateId = selTemp ? selTemp.getAttribute('data-templateid') : 'general';
   var notes = (document.getElementById('coNewProjectNotes') || {}).value || '';
 
-  // Create a new spoke
-  api('POST', '/api/spoke', { name: name.trim(), description: notes }).then(function(data) {
-    var newSpoke = data.spoke || {};
-    var spokeId = newSpoke.id || newSpoke.spoke_id;
-    // If a template was selected, assign it
-    var assignTemplate = templateId && templateId !== 'general'
-      ? api('PUT', '/api/spoke/' + spokeId + '/template', { template_type: templateId })
-      : Promise.resolve();
-    return assignTemplate.then(function() {
-      toast('Project created: ' + name.trim());
-      coCloseNewProjectModal();
-      // Reload spoke list and refresh overview
-      return api('GET', '/api/spokes').then(function(sData) {
-        _spokesList = sData.spokes || [];
-        renderSidebar();
-        if (spokeId) {
-          showProjectDetail(spokeId);
-        } else {
-          showClientWorkspace(_selectedSpoke);
-        }
-      });
+  // Add project to current spoke (client)
+  var spokeId = _selectedSpoke;
+  if (!spokeId) { toast('No client selected'); return; }
+  api('POST', '/api/spoke/' + spokeId + '/project', { name: name.trim(), template_type: templateId, notes: notes }).then(function(data) {
+    toast('Project created: ' + name.trim());
+    coCloseNewProjectModal();
+    // Reload spoke list and refresh client workspace
+    return api('GET', '/api/spokes').then(function(sData) {
+      _spokesList = sData.spokes || [];
+      renderSidebar();
+      showClientWorkspace(spokeId);
     });
   }).catch(function(err) {
     toast('Error creating project: ' + (err.message || err));
