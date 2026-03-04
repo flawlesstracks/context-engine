@@ -13894,6 +13894,8 @@ const WIKI_HTML = `<!DOCTYPE html>
   .matter-action-btn.outline:hover { border-color: #2563EB; color: #2563EB; }
   .matter-action-btn.primary { background: #059669; border: 1px solid #059669; color: #fff; }
   .matter-action-btn.primary:hover { background: #047857; }
+  .matter-delete-btn { background: #DC2626 !important; border: none !important; color: white !important; padding: 8px 12px !important; display: inline-flex; align-items: center; justify-content: center; line-height: 1; align-self: stretch; }
+  .matter-delete-btn:hover { background: #B91C1C !important; }
   .metrics-bar { display: flex; gap: 48px; margin-top: 4px; margin-bottom: 16px; }
   .metric { display: flex; flex-direction: column; gap: 4px; }
   .metric-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #999999; font-weight: 600; display: flex; align-items: center; gap: 4px; }
@@ -19397,10 +19399,12 @@ function showProjectDetail(spokeId, tab) {
   h += '<div class="matter-template" id="matterTemplateBadge"></div>';
   h += '</div>';
   h += '<div class="matter-actions">';
+  h += '<button class="matter-action-btn outline" onclick="coRenameClient(\\'' + esc(spokeId) + '\\',\\'' + esc(spokeName).replace(/'/g, "\\\\'") + '\\')">\\u270E Edit</button>';
   h += '<button class="matter-action-btn outline" onclick="document.getElementById(\\'matterFileInput\\').click()">\\u2191 Upload</button>';
   h += '<button class="matter-action-btn outline" onclick="showShareModal()">\\u2197 Share</button>';
   h += '<button class="matter-action-btn primary" onclick="matterViewGenerate()">\\u2726 Generate</button>';
   h += '<button class="matter-action-btn outline" onclick="downloadExportCsv()">\\u2193 Export</button>';
+  h += '<button class="matter-action-btn matter-delete-btn" onclick="coDeleteClient(\\'' + esc(spokeId) + '\\',\\'' + esc(spokeName).replace(/'/g, "\\\\'") + '\\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>';
   h += '</div>';
   h += '</div>';
   // Metrics bar

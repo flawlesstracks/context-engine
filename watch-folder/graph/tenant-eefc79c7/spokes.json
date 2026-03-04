@@ -413,7 +413,7 @@
     "external_id": null,
     "sync_status": null,
     "created_at": "2026-03-01T19:06:50.689Z",
-    "updated_at": "2026-03-04T16:32:57.967Z",
+    "updated_at": "2026-03-04T16:35:12.614Z",
     "template_type": "corporate_formation",
     "gap_analysis": {
       "spoke_id": "spoke-cc3bb07b4671c838",
@@ -674,12 +674,12 @@
     "projects": [
       {
         "id": "proj-c673829ec37c",
-        "name": "Corporate Formation",
+        "name": "Corporate",
         "template_type": "corporate_formation",
         "notes": "Corporate formation workflow for TEST CLIENT",
         "status": "active",
         "created_at": "2026-03-04T16:32:57.967Z",
-        "updated_at": "2026-03-04T16:32:57.967Z"
+        "updated_at": "2026-03-04T16:35:12.614Z"
       }
     ]
   },
