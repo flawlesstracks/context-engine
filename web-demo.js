@@ -15513,6 +15513,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   .th-search-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 2px 12px rgba(37,99,235,0.1); }
   .th-search-input::placeholder { color: #999; }
   .th-search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #999; }
+  .th-search-count { position:absolute; right:14px; top:50%; transform:translateY(-50%); font-size:12px; color:#999; display:none; }
   .th-search-count.visible { display:block; }
   .th-cat-strip { display:flex; gap:8px; padding:24px 52px 0; flex-wrap:wrap; }
   .th-cat-chip { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; font-size:12px; font-weight:600; border-radius:20px; border:1px solid #e4e3de; background:white; color:#5c5b56; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
@@ -26221,8 +26222,9 @@ function showTemplatesHub() {
   h += '<button class="th-hero-tab" onclick="switchTab(this,&#39;packs&#39;)">Starter Packs</button>';
   h += '</div>';
   h += '<div class="th-search-wrap">';
-  h += '<svg class="th-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>';
-  h += '<input class="th-search-input" type="text" placeholder="Search 100 templates\u2026" oninput="handleTemplateSearch(this.value)">';
+  h += '<span class="th-search-icon">' + svgSearchLg + '</span>';
+  h += '<input class="th-search-input" type="text" id="thHeroSearch" placeholder="Search 100 templates\u2026 e.g. \u2018W-9\u2019, \u20181065\u2019, \u2018depreciation\u2019, \u2018PI intake\u2019" oninput="thHandleSearch(this.value)">';
+  h += '<span class="th-search-count" id="thHeroCount"></span>';
   h += '</div>';
   h += '</div>';
 
