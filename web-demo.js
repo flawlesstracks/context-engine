@@ -4222,6 +4222,74 @@ app.post('/api/spokes/migrate', apiAuth, (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// Client API — All Clients page (Build 35)
+// ---------------------------------------------------------------------------
+
+// GET /api/clients — Returns all non-default spokes formatted for the clients page
+app.get('/api/clients', apiAuth, (req, res) => {
+  const spokes = listSpokesWithCounts(req.graphDir);
+  const clients = spokes.filter(s => s.id !== 'default').map(s => {
+    const projects = s.projects || [];
+    const clientType = s.client_type || 'person';
+    const flags = [];
+    if (s._hasTemplate && s._completeness < 0.5) flags.push({ level: 'error', label: 'Low completeness' });
+    else if (s._hasTemplate && s._completeness < 0.8) flags.push({ level: 'warn', label: 'Needs attention' });
+    const activeBranches = projects.filter(p => p.status === 'active').length;
+    return {
+      id: s.id,
+      name: s.name,
+      subline: s.description || '',
+      type: clientType,
+      projectCount: projects.length,
+      branchCount: projects.length,
+      activeBranchCount: activeBranches,
+      lastActivity: s.updated_at || s.created_at,
+      flags,
+      email: s.email || null,
+      phone: s.phone || null,
+      entityType: s.entity_type || null,
+      notes: s.notes || null,
+      packId: s.pack_id || null,
+    };
+  });
+  res.json({ clients, total: clients.length });
+});
+
+// POST /api/clients — Create a new client via the wizard
+app.post('/api/clients', apiAuth, (req, res) => {
+  try {
+    const { name, type, preferredName, email, phone, filingStatus, entityType, packId, notes, subline } = req.body || {};
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Client name is required' });
+    const clientType = type || 'person';
+    const spoke = createSpoke(req.graphDir, {
+      name: name.trim(),
+      description: subline || '',
+      source: 'manual',
+    });
+    // Store client-specific fields on the spoke
+    const updates = { client_type: clientType };
+    if (email) updates.email = email;
+    if (phone) updates.phone = phone;
+    if (notes) updates.notes = notes;
+    if (entityType) updates.entity_type = entityType;
+    if (packId) updates.pack_id = packId;
+    if (preferredName) updates.preferred_name = preferredName;
+    if (filingStatus) updates.filing_status = filingStatus;
+    // We need to store these extended fields — update the spoke's allowed fields
+    const spokes = loadSpokes(req.graphDir);
+    if (spokes[spoke.id]) {
+      Object.assign(spokes[spoke.id], updates);
+      spokes[spoke.id].updated_at = new Date().toISOString();
+      saveSpokes(req.graphDir, spokes);
+    }
+    res.status(201).json({ status: 'created', client: { ...spoke, ...updates } });
+  } catch (err) {
+    if (err.message.includes('already exists')) return res.status(409).json({ error: err.message });
+    res.status(400).json({ error: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // Tier Adjustments (Build 11.5 — per-spoke field tier overrides)
 // ---------------------------------------------------------------------------
 
@@ -13896,6 +13964,191 @@ const WIKI_HTML = `<!DOCTYPE html>
   .matter-action-btn.primary:hover { background: #047857; }
   .matter-delete-btn { background: #DC2626 !important; border: none !important; color: white !important; padding: 8px 12px !important; display: inline-flex; align-items: center; justify-content: center; line-height: 1; align-self: stretch; }
   .matter-delete-btn:hover { background: #B91C1C !important; }
+
+  /* ══════════════════════════════════════════════════════════
+     ALL CLIENTS PAGE (Build 35 — WereWood Clients)
+  ══════════════════════════════════════════════════════════ */
+  :root { --person-color: #7c3aed; --person-bg: #f5f3ff; --business-color: #0d9488; --business-bg: #f0fdfa; --org-color: #2563eb; --org-bg: #eff6ff; }
+
+  .cl-page-header { background: #fff; border-bottom: 1px solid #e4e3de; padding: 24px 32px 0; }
+  .cl-page-header-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+  .cl-page-title { font-family: var(--font-display, 'Instrument Serif', serif); font-size: 28px; letter-spacing: -0.3px; line-height: 1.1; }
+  .cl-page-subtitle { font-size: 13px; color: #8a8983; margin-top: 4px; }
+  .cl-header-actions { display: flex; gap: 8px; align-items: center; }
+  .cl-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; font-size: 13px; font-weight: 500; border-radius: 6px; border: 1px solid transparent; cursor: pointer; font-family: var(--font-sans, 'DM Sans', sans-serif); transition: all 0.12s; white-space: nowrap; }
+  .cl-btn-primary { background: #1a1917; color: white; border-color: #1a1917; }
+  .cl-btn-primary:hover { background: #2d2c2a; }
+  .cl-btn-secondary { background: white; color: #1a1917; border-color: #e4e3de; }
+  .cl-btn-secondary:hover { border-color: #cccbc6; background: #f5f5f0; }
+  .cl-btn-green { background: #059669; color: white; border-color: #059669; }
+  .cl-btn-green:hover { background: #047857; }
+  .cl-btn-ghost { background: none; color: #5c5b56; border-color: transparent; }
+  .cl-btn-ghost:hover { background: #eeeee9; color: #1a1917; }
+
+  .cl-stats-bar { display: flex; gap: 32px; padding-bottom: 20px; }
+  .cl-stat-item {}
+  .cl-stat-val { font-size: 22px; font-weight: 700; font-family: var(--font-mono, 'JetBrains Mono', monospace); line-height: 1; }
+  .cl-stat-label { font-size: 11px; color: #8a8983; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 3px; }
+
+  .cl-page-tabs { display: flex; gap: 0; }
+  .cl-page-tab { display: flex; align-items: center; gap: 6px; padding: 12px 18px 11px; font-size: 13px; font-weight: 500; color: #5c5b56; cursor: pointer; border: none; background: none; border-bottom: 3px solid transparent; font-family: var(--font-sans, 'DM Sans', sans-serif); transition: all 0.12s; white-space: nowrap; }
+  .cl-page-tab:hover { color: #1a1917; }
+  .cl-page-tab.active { color: #1a1917; font-weight: 600; border-color: #1a1917; }
+  .cl-tab-count { font-size: 11px; font-family: var(--font-mono, 'JetBrains Mono', monospace); padding: 1px 6px; border-radius: 3px; background: #eeeee9; color: #8a8983; font-weight: 600; }
+  .cl-page-tab.active .cl-tab-count { background: #1a1917; color: white; }
+
+  .cl-toolbar { display: flex; align-items: center; gap: 12px; padding: 16px 32px; border-bottom: 1px solid #e4e3de; background: white; }
+  .cl-search-wrap { flex: 1; max-width: 320px; position: relative; }
+  .cl-search-input { width: 100%; padding: 8px 12px 8px 34px; border: 1px solid #e4e3de; border-radius: 6px; font-size: 13px; font-family: var(--font-sans, 'DM Sans', sans-serif); background: #f5f5f0; color: #1a1917; transition: all 0.12s; }
+  .cl-search-input:focus { outline: none; border-color: #2563eb; background: white; box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
+  .cl-search-icon { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: #8a8983; pointer-events: none; }
+  .cl-filter-pills { display: flex; gap: 6px; }
+  .cl-pill { padding: 5px 12px; font-size: 12px; font-weight: 500; border-radius: 20px; border: 1px solid #e4e3de; cursor: pointer; background: white; color: #5c5b56; transition: all 0.12s; display: flex; align-items: center; gap: 5px; }
+  .cl-pill:hover { border-color: #cccbc6; color: #1a1917; }
+  .cl-pill.active-all { background: #1a1917; border-color: #1a1917; color: white; }
+  .cl-pill.active-person { background: var(--person-bg); border-color: var(--person-color); color: var(--person-color); font-weight: 600; }
+  .cl-pill.active-business { background: var(--business-bg); border-color: var(--business-color); color: var(--business-color); font-weight: 600; }
+  .cl-pill.active-org { background: var(--org-bg); border-color: var(--org-color); color: var(--org-color); font-weight: 600; }
+  .cl-toolbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .cl-sort-select { padding: 6px 10px; font-size: 12px; font-family: var(--font-sans, 'DM Sans', sans-serif); border: 1px solid #e4e3de; border-radius: 6px; background: white; color: #5c5b56; cursor: pointer; }
+  .cl-view-toggle { display: flex; gap: 2px; }
+  .cl-view-btn { width: 30px; height: 30px; border-radius: 6px; border: 1px solid #e4e3de; background: white; display: flex; align-items: center; justify-content: center; font-size: 13px; cursor: pointer; transition: all 0.12s; color: #8a8983; }
+  .cl-view-btn.active { background: #1a1917; color: white; border-color: #1a1917; }
+
+  .cl-content { padding: 24px 32px; flex: 1; overflow-y: auto; }
+  .cl-section-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; margin-top: 8px; }
+  .cl-section-row:first-child { margin-top: 0; }
+  .cl-section-type-label { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; white-space: nowrap; }
+  .cl-section-type-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .cl-section-line { flex: 1; height: 1px; background: #e4e3de; }
+  .cl-section-count { font-size: 11px; color: #8a8983; font-family: var(--font-mono, 'JetBrains Mono', monospace); white-space: nowrap; }
+
+  .cl-client-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 32px; }
+  .cl-client-grid.list-view { grid-template-columns: 1fr; }
+
+  .cl-client-card { background: white; border: 1px solid #e4e3de; border-radius: 14px; overflow: hidden; cursor: pointer; transition: all 0.15s; position: relative; }
+  .cl-client-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); transform: translateY(-1px); }
+  .cl-client-card-stripe { height: 4px; width: 100%; }
+  .cl-client-card-body { padding: 16px 18px; }
+  .cl-client-card-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+  .cl-client-avatar { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: white; flex-shrink: 0; font-family: var(--font-display, 'Instrument Serif', serif); position: relative; }
+  .cl-client-type-badge { position: absolute; bottom: -4px; right: -4px; width: 16px; height: 16px; border-radius: 50%; background: white; border: 1.5px solid white; display: flex; align-items: center; justify-content: center; font-size: 9px; }
+  .cl-client-info { flex: 1; min-width: 0; }
+  .cl-client-name { font-size: 15px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .cl-client-sub { font-size: 12px; color: #8a8983; margin-top: 2px; }
+  .cl-client-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 7px; border-radius: 3px; margin-top: 4px; }
+  .cl-client-card-stats { display: flex; justify-content: flex-start; gap: 24px; margin-bottom: 12px; }
+  .cl-client-stat {}
+  .cl-client-stat-val { font-size: 14px; font-weight: 700; font-family: var(--font-mono, 'JetBrains Mono', monospace); line-height: 1; }
+  .cl-client-stat-label { font-size: 10px; color: #8a8983; text-transform: uppercase; letter-spacing: 0.4px; margin-top: 2px; }
+  .cl-client-card-footer { display: flex; align-items: center; justify-content: space-between; padding: 10px 18px; border-top: 1px solid #eeeee9; background: #f5f5f0; }
+  .cl-client-branches { display: flex; gap: 6px; align-items: center; }
+  .cl-branch-dot { width: 6px; height: 6px; border-radius: 50%; }
+  .cl-branch-dot.active { background: #d97706; }
+  .cl-branch-dot.dormant { background: #e4e3de; }
+  .cl-branches-label { font-size: 11px; color: #8a8983; margin-left: 2px; }
+  .cl-client-last-activity { font-size: 11px; color: #8a8983; }
+  .cl-client-flag { position: absolute; top: 14px; right: 14px; width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+  .cl-client-flag.warn { background: #fffbeb; }
+  .cl-client-flag.error { background: #fef2f2; }
+
+  .cl-client-grid.list-view .cl-client-card { border-radius: 10px; }
+  .cl-client-grid.list-view .cl-client-card-stripe { display: none; }
+  .cl-client-grid.list-view .cl-client-card-body { display: flex; align-items: center; gap: 16px; padding: 12px 16px; }
+  .cl-client-grid.list-view .cl-client-card-top { margin-bottom: 0; flex: 0 0 auto; width: 220px; }
+  .cl-client-grid.list-view .cl-client-card-stats { margin-bottom: 0; flex: 1; }
+  .cl-client-grid.list-view .cl-client-card-footer { display: none; }
+  .cl-client-grid.list-view .cl-client-flag { display: none; }
+
+  .cl-add-client-card { background: white; border: 2px dashed #e4e3de; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 32px 20px; cursor: pointer; transition: all 0.15s; color: #8a8983; min-height: 180px; }
+  .cl-add-client-card:hover { border-color: #3d5229; color: #3d5229; background: rgba(61,82,41,0.03); transform: translateY(-1px); }
+  .cl-add-client-card .plus { font-size: 28px; font-weight: 300; }
+  .cl-add-client-card .label { font-size: 13px; font-weight: 600; }
+  .cl-add-client-card .sub { font-size: 12px; }
+
+  /* Add Client Wizard Modal */
+  .cl-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(3px); z-index: 200; display: none; align-items: center; justify-content: center; }
+  .cl-modal-overlay.open { display: flex; }
+  .cl-modal { background: white; border-radius: 18px; width: 600px; max-width: 95vw; box-shadow: 0 24px 64px rgba(0,0,0,0.18); overflow: hidden; animation: clModalIn 0.2s ease; }
+  @keyframes clModalIn { from { opacity: 0; transform: scale(0.97) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .cl-modal-header { padding: 24px 28px 20px; border-bottom: 1px solid #e4e3de; display: flex; align-items: flex-start; justify-content: space-between; }
+  .cl-modal-title { font-family: var(--font-display, 'Instrument Serif', serif); font-size: 22px; letter-spacing: -0.2px; }
+  .cl-modal-subtitle { font-size: 13px; color: #8a8983; margin-top: 4px; }
+  .cl-modal-close { width: 30px; height: 30px; border-radius: 50%; background: #eeeee9; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; color: #5c5b56; flex-shrink: 0; margin-top: 2px; transition: all 0.12s; }
+  .cl-modal-close:hover { background: #e4e3de; }
+
+  .cl-wizard-progress { display: flex; align-items: center; padding: 16px 28px; border-bottom: 1px solid #e4e3de; background: #f5f5f0; gap: 0; }
+  .cl-wizard-step { display: flex; align-items: center; gap: 8px; flex: 1; }
+  .cl-wizard-step:last-child { flex: 0; }
+  .cl-step-circle { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; transition: all 0.2s; }
+  .cl-step-circle.done { background: #059669; color: white; }
+  .cl-step-circle.active { background: #1a1917; color: white; }
+  .cl-step-circle.pending { background: #eeeee9; color: #8a8983; }
+  .cl-step-label { font-size: 12px; font-weight: 500; color: #8a8983; white-space: nowrap; }
+  .cl-step-label.active { color: #1a1917; font-weight: 600; }
+  .cl-step-label.done { color: #059669; }
+  .cl-step-connector { flex: 1; height: 1px; background: #e4e3de; margin: 0 8px; min-width: 20px; }
+  .cl-step-connector.done { background: #059669; }
+
+  .cl-wizard-body { padding: 28px; min-height: 300px; }
+  .cl-wizard-step-content { display: none; }
+  .cl-wizard-step-content.active { display: block; }
+
+  .cl-type-selector { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .cl-type-card { border: 2px solid #e4e3de; border-radius: 14px; padding: 24px 16px; text-align: center; cursor: pointer; transition: all 0.15s; background: white; }
+  .cl-type-card:hover { border-color: #cccbc6; transform: translateY(-2px); box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+  .cl-type-card.selected-person { border-color: var(--person-color); background: var(--person-bg); }
+  .cl-type-card.selected-business { border-color: var(--business-color); background: var(--business-bg); }
+  .cl-type-card.selected-org { border-color: var(--org-color); background: var(--org-bg); }
+  .cl-type-icon { font-size: 32px; margin-bottom: 10px; }
+  .cl-type-name { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .cl-type-desc { font-size: 12px; color: #5c5b56; line-height: 1.5; }
+  .cl-type-examples { margin-top: 8px; font-size: 11px; color: #8a8983; }
+
+  .cl-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .cl-form-group { display: flex; flex-direction: column; gap: 6px; }
+  .cl-form-group.full { grid-column: 1 / -1; }
+  .cl-form-label { font-size: 12px; font-weight: 600; color: #5c5b56; }
+  .cl-form-label .req { color: #dc2626; margin-left: 2px; }
+  .cl-form-input, .cl-form-select, .cl-form-textarea { padding: 9px 12px; border: 1px solid #e4e3de; border-radius: 6px; font-size: 13px; font-family: var(--font-sans, 'DM Sans', sans-serif); background: white; color: #1a1917; transition: all 0.12s; }
+  .cl-form-input:focus, .cl-form-select:focus, .cl-form-textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
+  .cl-form-textarea { resize: vertical; min-height: 70px; }
+
+  .cl-pack-picker { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+  .cl-pack-option { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid #e4e3de; border-radius: 6px; cursor: pointer; transition: all 0.12s; background: white; }
+  .cl-pack-option:hover { border-color: #cccbc6; background: #f5f5f0; }
+  .cl-pack-option.selected { border-color: #059669; background: #ecfdf5; }
+  .cl-pack-option-icon { width: 32px; height: 32px; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .cl-pack-option-info { flex: 1; }
+  .cl-pack-option-name { font-size: 13px; font-weight: 600; }
+  .cl-pack-option-desc { font-size: 11px; color: #8a8983; margin-top: 1px; }
+  .cl-pack-check { width: 20px; height: 20px; border-radius: 50%; border: 2px solid #e4e3de; display: flex; align-items: center; justify-content: center; font-size: 10px; transition: all 0.15s; flex-shrink: 0; }
+  .cl-pack-option.selected .cl-pack-check { background: #059669; border-color: #059669; color: white; }
+
+  .cl-review-card { background: #f5f5f0; border: 1px solid #e4e3de; border-radius: 10px; padding: 20px; }
+  .cl-review-header { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .cl-review-avatar { width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: white; font-family: var(--font-display, 'Instrument Serif', serif); }
+  .cl-review-name { font-size: 18px; font-weight: 700; }
+  .cl-review-meta { font-size: 12px; color: #8a8983; margin-top: 2px; }
+  .cl-review-rows { display: flex; flex-direction: column; gap: 8px; }
+  .cl-review-row { display: flex; gap: 8px; font-size: 13px; }
+  .cl-review-row-label { color: #8a8983; width: 130px; flex-shrink: 0; }
+  .cl-review-row-val { font-weight: 500; }
+  .cl-review-spoke-preview { margin-top: 16px; padding: 14px; background: white; border: 1px solid #e4e3de; border-radius: 6px; }
+  .cl-review-spoke-title { font-size: 12px; font-weight: 600; color: #5c5b56; margin-bottom: 10px; }
+  .cl-spoke-tab-preview { display: flex; gap: 4px; flex-wrap: wrap; }
+  .cl-spoke-tab-chip { font-size: 11px; padding: 4px 10px; border-radius: 4px; background: #ecfdf5; color: #059669; font-weight: 500; }
+
+  .cl-wizard-footer { display: flex; align-items: center; justify-content: space-between; padding: 18px 28px; border-top: 1px solid #e4e3de; background: #f5f5f0; }
+  .cl-wizard-footer-left { display: flex; align-items: center; gap: 8px; }
+  .cl-step-hint { font-size: 12px; color: #8a8983; }
+  .cl-wizard-footer-right { display: flex; gap: 8px; }
+
+  .cl-empty-state { text-align: center; padding: 64px 32px; color: #8a8983; }
+  .cl-empty-icon { font-size: 48px; margin-bottom: 16px; }
+  .cl-empty-title { font-size: 18px; font-weight: 600; color: #5c5b56; margin-bottom: 8px; }
+  .cl-empty-desc { font-size: 13px; line-height: 1.6; max-width: 360px; margin: 0 auto 20px; }
+
   .metrics-bar { display: flex; gap: 48px; margin-top: 4px; margin-bottom: 16px; }
   .metric { display: flex; flex-direction: column; gap: 4px; }
   .metric-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #999999; font-weight: 600; display: flex; align-items: center; gap: 4px; }
@@ -15807,6 +16060,8 @@ document.addEventListener('click', function(e) {
       } else if (nav === 'affiliations') {
         selectPersonalGraph();
         showAffiliationsHub();
+      } else if (nav === 'clients_list') {
+        showClientsList();
       }
       return;
     }
@@ -18766,53 +19021,12 @@ function renderSidebar() {
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>';
   html += 'Affiliations</div>';
 
-  // ── CLIENTS section (Day 14: collapsible with "via Clio" badge) ──
-  var clientSpokes = _spokesList.filter(function(s) { return s.id !== 'default'; });
-  html += '<div class="sb-section-label">Clients <span class="sb-source-badge">via Clio <span class="sb-connected-dot"></span></span></div>';
-  for (var ci = 0; ci < clientSpokes.length; ci++) {
-    var cs = clientSpokes[ci];
-    var isActive = (_selectedSpoke === cs.id);
-    var dotColor = '#d1d5db';
-    if (cs._hasTemplate) {
-      if (cs._completeness >= 0.8) dotColor = '#059669';
-      else if (cs._completeness >= 0.5) dotColor = '#CA8A04';
-      else dotColor = '#DC2626';
-    }
-    var cid = 'c' + ci;
-    html += '<div class="sb-client-group">';
-    html += '<div class="sb-client-item sb-client-parent' + (isActive ? ' active' : '') + '" onclick="selectClient(\\'' + esc(cs.id) + '\\')">';
-    html += '<span class="client-dot" style="background:' + dotColor + ';"></span>';
-    html += '<span class="sb-client-name">' + esc(cs.name) + '</span>';
-    html += '<svg class="sb-chevron" id="chev-' + cid + '" onclick="event.stopPropagation();toggleClientExpand(\\'' + cid + '\\')" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>';
-    html += '</div>';
-    // Child projects from spoke.projects[]
-    html += '<div class="sb-client-children" id="children-' + cid + '">';
-    var cProjects = cs.projects || [];
-    if (cProjects.length > 0) {
-      for (var mi = 0; mi < cProjects.length; mi++) {
-        var cp = cProjects[mi];
-        html += '<div class="sb-client-item sb-child" onclick="event.stopPropagation();selectClient(\\'' + esc(cs.id) + '\\')">';
-        html += esc(cp.name || 'Project ' + (mi + 1));
-        html += '</div>';
-      }
-    } else {
-      // Show template name as fallback if no projects yet
-      var projectName = cs._templateName || cs.template_type || '';
-      if (projectName) {
-        html += '<div class="sb-client-item sb-child" onclick="event.stopPropagation();selectClient(\\'' + esc(cs.id) + '\\')">';
-        html += esc(projectName);
-        html += '<span class="sb-child-count">' + (cs.entity_count || 0) + '</span>';
-        html += '</div>';
-      }
-    }
-    html += '</div>'; // end children
-    html += '</div>'; // end group
-  }
-  // + New Client button
-  html += '<div class="sb-add-btn sb-add-client" onclick="promptNewClient()" title="New Client">';
-  html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
-  html += ' New Client';
-  html += '</div>';
+  // ── CLIENTS nav item (links to all-clients page) ──
+  var clientsActive = (selectedView === 'clients_list' || _selectedSpoke);
+  html += '<div class="sb-section-label">Clients</div>';
+  html += '<div class="sb-nav-item' + (clientsActive ? ' active' : '') + '" data-nav="clients_list">';
+  html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>';
+  html += 'Clients</div>';
 
   // ── TOOLS section ──
   html += '<div class="sb-section-label">Tools</div>';
@@ -19201,6 +19415,655 @@ function _restoreRightPanel() {
   }
   var rpToggle = document.getElementById('rightPanelToggle');
   if (rpToggle) rpToggle.style.display = '';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// All Clients Page (Build 35 — WereWood Clients)
+// ═══════════════════════════════════════════════════════════════════════════
+
+var _clViewMode = 'grid';
+var _clTabFilter = 'all';
+var _clPillFilter = 'all';
+var _clSortBy = 'recent';
+var _clWizardStep = 1;
+var _clWizardType = null;
+var _clWizardPack = null;
+
+var _CL_TYPE_COLORS = {
+  person: { grad: 'linear-gradient(135deg,#7c3aed,#5b21b6)', bg: '#f5f3ff', color: '#7c3aed', emoji: '\\u{1F464}', label: 'Person' },
+  business: { grad: 'linear-gradient(135deg,#0d9488,#0f766e)', bg: '#f0fdfa', color: '#0d9488', emoji: '\\u{1F3E2}', label: 'Business' },
+  org: { grad: 'linear-gradient(135deg,#2563eb,#1d4ed8)', bg: '#eff6ff', color: '#2563eb', emoji: '\\u{1F3DB}', label: 'Organization' },
+};
+
+var _CL_PACKS = {
+  person: [
+    { id:'individual', icon:'\\u{1F464}', name:'Individual Tax Pack', desc:'1040, W-2, 1099s, Schedule C/E. Standard personal return.' },
+    { id:'scorp-owner', icon:'\\u{1F3E2}', name:'S-Corp Owner Pack', desc:'1040 + 1120-S + K-1 + W-2. Full owner-operator workflow.' },
+    { id:'real-estate', icon:'\\u{1F3E0}', name:'Real Estate Investor Pack', desc:'Schedule E, rental income, depreciation, STR strategy.' },
+    { id:'blank', icon:'\\u2726', name:'Start Blank', desc:'No template \\u2014 build this spoke from scratch.' },
+  ],
+  business: [
+    { id:'scorp', icon:'\\u{1F4CA}', name:'S-Corp Tax Pack', desc:'1120-S, K-1s, payroll, officer compensation.' },
+    { id:'llc', icon:'\\u{1F3E2}', name:'LLC / Partnership Pack', desc:'Form 1065, K-1 distribution, operating agreement.' },
+    { id:'formation', icon:'\\u{1F195}', name:'Corporate Formation Pack', desc:'New entity \\u2014 EIN, operating agreement, BOI, Form 2553.' },
+    { id:'blank', icon:'\\u2726', name:'Start Blank', desc:'No template \\u2014 build this spoke from scratch.' },
+  ],
+  org: [
+    { id:'nonprofit', icon:'\\u2764\\uFE0F', name:'Non-Profit Compliance Pack', desc:'Form 990 / 990-EZ, articles, bylaws, governance docs.' },
+    { id:'church', icon:'\\u26EA', name:'Church / Religious Org Pack', desc:'990-N or 990, charitable giving receipts, UBI analysis.' },
+    { id:'blank', icon:'\\u2726', name:'Start Blank', desc:'No template \\u2014 build this spoke from scratch.' },
+  ]
+};
+
+function showClientsList() {
+  _selectedSpoke = null;
+  selectedView = 'clients_list';
+  selectedCategory = null;
+  selectedId = null;
+  _clTabFilter = 'all';
+  _clPillFilter = 'all';
+  renderSidebar();
+  breadcrumbs = [{ label: 'Clients' }];
+  if (typeof renderBreadcrumbs === 'function') renderBreadcrumbs();
+  _clFetchAndRender();
+}
+
+function _clFetchAndRender() {
+  api('GET', '/api/clients').then(function(data) {
+    var clients = data.clients || [];
+    _clRenderPage(clients);
+  }).catch(function(err) {
+    // Fallback: build from _spokesList
+    var clients = (_spokesList || []).filter(function(s) { return s.id !== 'default'; }).map(function(s) {
+      var projects = s.projects || [];
+      return { id: s.id, name: s.name, subline: s.description || '', type: s.client_type || 'person', projectCount: projects.length, branchCount: projects.length, activeBranchCount: projects.filter(function(p) { return p.status === 'active'; }).length, lastActivity: s.updated_at || s.created_at, flags: [] };
+    });
+    _clRenderPage(clients);
+  });
+}
+
+function _clRenderPage(clients) {
+  var main = document.getElementById('main');
+  var people = clients.filter(function(c) { return c.type === 'person'; });
+  var businesses = clients.filter(function(c) { return c.type === 'business'; });
+  var orgs = clients.filter(function(c) { return c.type === 'org'; });
+  var flagged = clients.filter(function(c) { return c.flags && c.flags.length > 0; });
+
+  var h = '';
+
+  // ── Page Header ──
+  h += '<div class="cl-page-header">';
+  h += '<div class="cl-page-header-top">';
+  h += '<div>';
+  h += '<div class="cl-page-title">Clients</div>';
+  h += '<div class="cl-page-subtitle">Every client is a spoke. Every spoke can grow branches.</div>';
+  h += '</div>';
+  h += '<div class="cl-header-actions">';
+  h += '<button class="cl-btn cl-btn-secondary" onclick="toast(\\\'Import coming soon\\\')">\\u2193 Import</button>';
+  h += '<button class="cl-btn cl-btn-primary" onclick="clOpenWizard()">+ New Client</button>';
+  h += '</div>';
+  h += '</div>';
+
+  // Stats bar
+  h += '<div class="cl-stats-bar">';
+  h += '<div class="cl-stat-item"><div class="cl-stat-val">' + clients.length + '</div><div class="cl-stat-label">Total Clients</div></div>';
+  h += '<div class="cl-stat-item"><div class="cl-stat-val" style="color:var(--person-color)">' + people.length + '</div><div class="cl-stat-label">People</div></div>';
+  h += '<div class="cl-stat-item"><div class="cl-stat-val" style="color:var(--business-color)">' + businesses.length + '</div><div class="cl-stat-label">Businesses</div></div>';
+  h += '<div class="cl-stat-item"><div class="cl-stat-val" style="color:var(--org-color)">' + orgs.length + '</div><div class="cl-stat-label">Organizations</div></div>';
+  h += '</div>';
+
+  // Tab bar
+  h += '<div class="cl-page-tabs">';
+  h += '<button class="cl-page-tab' + (_clTabFilter === 'all' ? ' active' : '') + '" onclick="clSwitchTab(this,\\\'all\\\')">All Clients <span class="cl-tab-count">' + clients.length + '</span></button>';
+  h += '<button class="cl-page-tab' + (_clTabFilter === 'person' ? ' active' : '') + '" onclick="clSwitchTab(this,\\\'person\\\')">People <span class="cl-tab-count">' + people.length + '</span></button>';
+  h += '<button class="cl-page-tab' + (_clTabFilter === 'business' ? ' active' : '') + '" onclick="clSwitchTab(this,\\\'business\\\')">Businesses <span class="cl-tab-count">' + businesses.length + '</span></button>';
+  h += '<button class="cl-page-tab' + (_clTabFilter === 'org' ? ' active' : '') + '" onclick="clSwitchTab(this,\\\'org\\\')">Organizations <span class="cl-tab-count">' + orgs.length + '</span></button>';
+  h += '<button class="cl-page-tab' + (_clTabFilter === 'flags' ? ' active' : '') + '" onclick="clSwitchTab(this,\\\'flags\\\')" style="color:#d97706;">\\u{1F6A9} Needs Attention <span class="cl-tab-count" style="background:#fffbeb;color:#d97706;">' + flagged.length + '</span></button>';
+  h += '</div>';
+  h += '</div>';
+
+  // ── Toolbar ──
+  h += '<div class="cl-toolbar">';
+  h += '<div class="cl-search-wrap">';
+  h += '<span class="cl-search-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span>';
+  h += '<input class="cl-search-input" type="text" placeholder="Search clients..." oninput="clFilterCards(this.value)" id="clSearchInput" />';
+  h += '</div>';
+  h += '<div class="cl-filter-pills" id="clFilterPills">';
+  h += '<div class="cl-pill' + (_clPillFilter === 'all' ? ' active-all' : '') + '" onclick="clSetPillFilter(\\\'all\\\',this)">All</div>';
+  h += '<div class="cl-pill' + (_clPillFilter === 'person' ? ' active-person' : '') + '" onclick="clSetPillFilter(\\\'person\\\',this)">\\u{1F464} Person</div>';
+  h += '<div class="cl-pill' + (_clPillFilter === 'business' ? ' active-business' : '') + '" onclick="clSetPillFilter(\\\'business\\\',this)">\\u{1F3E2} Business</div>';
+  h += '<div class="cl-pill' + (_clPillFilter === 'org' ? ' active-org' : '') + '" onclick="clSetPillFilter(\\\'org\\\',this)">\\u{1F3DB} Organization</div>';
+  h += '</div>';
+  h += '<div class="cl-toolbar-right">';
+  h += '<select class="cl-sort-select" onchange="clSortCards(this.value)" id="clSortSelect">';
+  h += '<option value="recent"' + (_clSortBy === 'recent' ? ' selected' : '') + '>Recently Active</option>';
+  h += '<option value="name"' + (_clSortBy === 'name' ? ' selected' : '') + '>Name A\\u2013Z</option>';
+  h += '<option value="completeness"' + (_clSortBy === 'completeness' ? ' selected' : '') + '>Completeness</option>';
+  h += '</select>';
+  h += '<div class="cl-view-toggle">';
+  h += '<button class="cl-view-btn' + (_clViewMode === 'grid' ? ' active' : '') + '" id="clGridBtn" onclick="clSetView(\\\'grid\\\')">\\u229E</button>';
+  h += '<button class="cl-view-btn' + (_clViewMode === 'list' ? ' active' : '') + '" id="clListBtn" onclick="clSetView(\\\'list\\\')">\\u2630</button>';
+  h += '</div>';
+  h += '</div>';
+  h += '</div>';
+
+  // ── Content ──
+  h += '<div class="cl-content" id="clMainContent">';
+
+  // Render each section
+  var sections = [
+    { key: 'person', label: 'People', items: people, color: 'var(--person-color)' },
+    { key: 'business', label: 'Businesses', items: businesses, color: 'var(--business-color)' },
+    { key: 'org', label: 'Organizations', items: orgs, color: 'var(--org-color)' },
+  ];
+
+  var hasAny = false;
+  for (var si = 0; si < sections.length; si++) {
+    var sec = sections[si];
+    var visible = _clTabFilter === 'all' || _clTabFilter === sec.key;
+    if (_clTabFilter === 'flags') {
+      var flagItems = sec.items.filter(function(c) { return c.flags && c.flags.length > 0; });
+      if (flagItems.length === 0) continue;
+      sec = { key: sec.key, label: sec.label, items: flagItems, color: sec.color };
+      visible = true;
+    }
+    if (!visible) continue;
+    if (sec.items.length === 0 && _clTabFilter !== 'all') continue;
+
+    hasAny = true;
+    h += '<div class="cl-section-row" data-cl-section="' + sec.key + '">';
+    h += '<div class="cl-section-type-label"><div class="cl-section-type-dot" style="background:' + sec.color + ';"></div><span style="color:' + sec.color + ';">' + esc(sec.label) + '</span></div>';
+    h += '<div class="cl-section-line"></div>';
+    h += '<div class="cl-section-count">' + sec.items.length + ' client' + (sec.items.length !== 1 ? 's' : '') + '</div>';
+    h += '</div>';
+
+    h += '<div class="cl-client-grid' + (_clViewMode === 'list' ? ' list-view' : '') + '" data-cl-grid="' + sec.key + '">';
+    for (var ci = 0; ci < sec.items.length; ci++) {
+      h += _clRenderCard(sec.items[ci]);
+    }
+    // Add card at end of last visible section
+    if (si === sections.length - 1 || (_clTabFilter !== 'all' && _clTabFilter !== 'flags')) {
+      h += '<div class="cl-add-client-card" onclick="clOpenWizard()">';
+      h += '<div class="plus">+</div>';
+      h += '<div class="label">Add New Client</div>';
+      h += '<div class="sub">Person, Business, or Organization</div>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  // If "all" tab and no clients yet, show add card
+  if (!hasAny || clients.length === 0) {
+    h += '<div class="cl-empty-state">';
+    h += '<div class="cl-empty-icon">\\u{1F33F}</div>';
+    h += '<div class="cl-empty-title">No clients yet</div>';
+    h += '<div class="cl-empty-desc">Create your first client spoke to get started.</div>';
+    h += '<button class="cl-btn cl-btn-primary" onclick="clOpenWizard()">+ New Client</button>';
+    h += '</div>';
+  }
+
+  h += '</div>';
+
+  // ── Wizard Modal (always present in DOM) ──
+  h += _clRenderWizardModal();
+
+  main.innerHTML = h;
+}
+
+function _clRenderCard(client) {
+  var tc = _CL_TYPE_COLORS[client.type] || _CL_TYPE_COLORS.person;
+  var initials = (client.name || '').split(' ').map(function(w) { return w.charAt(0); }).join('').slice(0,2).toUpperCase() || '??';
+  var h = '';
+  h += '<div class="cl-client-card" data-cl-type="' + client.type + '" data-cl-name="' + esc(client.name.toLowerCase()) + '" onclick="selectClient(\\'' + esc(client.id) + '\\')">';
+  h += '<div class="cl-client-card-stripe" style="background:' + tc.color + ';"></div>';
+
+  // Flag indicator
+  if (client.flags && client.flags.length > 0) {
+    var flagLevel = client.flags[0].level || 'warn';
+    h += '<div class="cl-client-flag ' + flagLevel + '">' + (flagLevel === 'error' ? '\\u{1F534}' : '\\u26A0\\uFE0F') + '</div>';
+  }
+
+  h += '<div class="cl-client-card-body">';
+  h += '<div class="cl-client-card-top">';
+  h += '<div class="cl-client-avatar" style="background:' + tc.grad + ';">';
+  h += esc(initials);
+  h += '<div class="cl-client-type-badge" style="background:' + tc.bg + ';">' + tc.emoji + '</div>';
+  h += '</div>';
+  h += '<div class="cl-client-info">';
+  h += '<div class="cl-client-name">' + esc(client.name) + '</div>';
+  if (client.subline) h += '<div class="cl-client-sub">' + esc(client.subline) + '</div>';
+  h += '<div class="cl-client-tag" style="background:' + tc.bg + '; color:' + tc.color + ';">\\u2600 ' + tc.label + '</div>';
+  h += '</div>';
+  h += '</div>';
+
+  // Stats — just Projects count
+  h += '<div class="cl-client-card-stats">';
+  h += '<div class="cl-client-stat"><div class="cl-client-stat-val">' + (client.projectCount || 0) + '</div><div class="cl-client-stat-label">Projects</div></div>';
+  h += '</div>';
+  h += '</div>';
+
+  // Footer
+  h += '<div class="cl-client-card-footer">';
+  h += '<div class="cl-client-branches">';
+  var branchTotal = client.branchCount || 0;
+  var branchActive = client.activeBranchCount || 0;
+  for (var i = 0; i < Math.min(branchTotal, 5); i++) {
+    h += '<div class="cl-branch-dot ' + (i < branchActive ? 'active' : 'dormant') + '"></div>';
+  }
+  h += '<span class="cl-branches-label">' + (branchTotal === 0 ? 'No branches' : branchActive + ' branch' + (branchActive !== 1 ? 'es' : '')) + '</span>';
+  h += '</div>';
+  h += '<span class="cl-client-last-activity">' + _clTimeAgo(client.lastActivity) + '</span>';
+  h += '</div>';
+
+  h += '</div>';
+  return h;
+}
+
+function _clTimeAgo(dateStr) {
+  if (!dateStr) return '';
+  try {
+    var now = Date.now();
+    var then = new Date(dateStr).getTime();
+    var diff = now - then;
+    var mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return mins + 'm ago';
+    var hrs = Math.floor(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    var days = Math.floor(hrs / 24);
+    if (days < 7) return days + 'd ago';
+    if (days < 30) return Math.floor(days / 7) + 'w ago';
+    return Math.floor(days / 30) + 'mo ago';
+  } catch(e) { return ''; }
+}
+
+// ── Tab, Filter, Sort, View ──
+
+function clSwitchTab(el, type) {
+  _clTabFilter = type;
+  _clFetchAndRender();
+}
+
+function clSetPillFilter(type, el) {
+  _clPillFilter = type;
+  var pills = document.querySelectorAll('.cl-pill');
+  for (var i = 0; i < pills.length; i++) { pills[i].className = 'cl-pill'; }
+  if (el) el.classList.add(type === 'all' ? 'active-all' : 'active-' + type);
+  var cards = document.querySelectorAll('.cl-client-card');
+  var sections = document.querySelectorAll('[data-cl-section]');
+  for (var i = 0; i < cards.length; i++) {
+    cards[i].style.display = (type === 'all' || cards[i].getAttribute('data-cl-type') === type) ? '' : 'none';
+  }
+  for (var i = 0; i < sections.length; i++) {
+    sections[i].style.display = (type === 'all' || sections[i].getAttribute('data-cl-section') === type) ? '' : 'none';
+  }
+  var grids = document.querySelectorAll('[data-cl-grid]');
+  for (var i = 0; i < grids.length; i++) {
+    grids[i].style.display = (type === 'all' || grids[i].getAttribute('data-cl-grid') === type) ? '' : 'none';
+  }
+}
+
+function clFilterCards(val) {
+  var q = val.toLowerCase();
+  var cards = document.querySelectorAll('.cl-client-card');
+  for (var i = 0; i < cards.length; i++) {
+    var name = cards[i].getAttribute('data-cl-name') || '';
+    cards[i].style.display = name.indexOf(q) !== -1 ? '' : 'none';
+  }
+}
+
+function clSortCards(val) {
+  _clSortBy = val;
+  _clFetchAndRender();
+}
+
+function clSetView(v) {
+  _clViewMode = v;
+  var grids = document.querySelectorAll('.cl-client-grid');
+  for (var i = 0; i < grids.length; i++) {
+    if (v === 'list') grids[i].classList.add('list-view');
+    else grids[i].classList.remove('list-view');
+  }
+  var gridBtn = document.getElementById('clGridBtn');
+  var listBtn = document.getElementById('clListBtn');
+  if (gridBtn) { gridBtn.classList.toggle('active', v === 'grid'); }
+  if (listBtn) { listBtn.classList.toggle('active', v === 'list'); }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Add Client Wizard Modal
+// ═══════════════════════════════════════════════════════════════════════════
+
+function _clRenderWizardModal() {
+  var h = '';
+  h += '<div class="cl-modal-overlay" id="clWizardOverlay" onclick="if(event.target===this)clCloseWizard()">';
+  h += '<div class="cl-modal" id="clWizardModal">';
+
+  // Header
+  h += '<div class="cl-modal-header">';
+  h += '<div><div class="cl-modal-title" id="clWizardTitle">Add New Client</div>';
+  h += '<div class="cl-modal-subtitle" id="clWizardSubtitle">Choose the type of client you\\\'re adding</div></div>';
+  h += '<button class="cl-modal-close" onclick="clCloseWizard()">\\u2715</button>';
+  h += '</div>';
+
+  // Progress
+  h += '<div class="cl-wizard-progress">';
+  h += '<div class="cl-wizard-step"><div class="cl-step-circle active" id="clS1c">1</div><div class="cl-step-label active" id="clS1l">Client Type</div></div>';
+  h += '<div class="cl-step-connector" id="clConn1"></div>';
+  h += '<div class="cl-wizard-step"><div class="cl-step-circle pending" id="clS2c">2</div><div class="cl-step-label" id="clS2l">Details</div></div>';
+  h += '<div class="cl-step-connector" id="clConn2"></div>';
+  h += '<div class="cl-wizard-step"><div class="cl-step-circle pending" id="clS3c">3</div><div class="cl-step-label" id="clS3l">Starter Pack</div></div>';
+  h += '<div class="cl-step-connector" id="clConn3"></div>';
+  h += '<div class="cl-wizard-step"><div class="cl-step-circle pending" id="clS4c">4</div><div class="cl-step-label" id="clS4l">Review</div></div>';
+  h += '</div>';
+
+  // Body
+  h += '<div class="cl-wizard-body">';
+
+  // Step 1: Type
+  h += '<div class="cl-wizard-step-content active" id="clWstep1">';
+  h += '<div class="cl-type-selector">';
+  h += '<div class="cl-type-card" id="clTypecard-person" onclick="clSelectType(\\\'person\\\')">';
+  h += '<div class="cl-type-icon">\\u{1F464}</div>';
+  h += '<div class="cl-type-name" style="color:var(--person-color);">Person</div>';
+  h += '<div class="cl-type-desc">An individual with personal and/or business income.</div>';
+  h += '<div class="cl-type-examples">e.g. Bob Johnson, W-2 employee, freelancer</div>';
+  h += '</div>';
+  h += '<div class="cl-type-card" id="clTypecard-business" onclick="clSelectType(\\\'business\\\')">';
+  h += '<div class="cl-type-icon">\\u{1F3E2}</div>';
+  h += '<div class="cl-type-name" style="color:var(--business-color);">Business</div>';
+  h += '<div class="cl-type-desc">A company, LLC, S-Corp, partnership, or sole proprietorship.</div>';
+  h += '<div class="cl-type-examples">e.g. Johnson LLC, Meridian Dental</div>';
+  h += '</div>';
+  h += '<div class="cl-type-card" id="clTypecard-org" onclick="clSelectType(\\\'org\\\')">';
+  h += '<div class="cl-type-icon">\\u{1F3DB}</div>';
+  h += '<div class="cl-type-name" style="color:var(--org-color);">Organization</div>';
+  h += '<div class="cl-type-desc">A non-profit, church, association, or institution.</div>';
+  h += '<div class="cl-type-examples">e.g. Grace Community Church, HOA</div>';
+  h += '</div>';
+  h += '</div>';
+  h += '</div>';
+
+  // Step 2: Details (dynamically populated)
+  h += '<div class="cl-wizard-step-content" id="clWstep2"><div id="clFormContainer"></div></div>';
+
+  // Step 3: Starter Pack
+  h += '<div class="cl-wizard-step-content" id="clWstep3">';
+  h += '<div style="margin-bottom:20px;">';
+  h += '<div style="font-size:14px;font-weight:600;margin-bottom:4px;">Choose a Starter Template Pack</div>';
+  h += '<div style="font-size:13px;color:#8a8983;">This pre-loads documents and fields relevant for this client type. You can always add more later.</div>';
+  h += '</div>';
+  h += '<div class="cl-pack-picker" id="clPackPicker"></div>';
+  h += '</div>';
+
+  // Step 4: Review
+  h += '<div class="cl-wizard-step-content" id="clWstep4">';
+  h += '<div class="cl-review-card">';
+  h += '<div class="cl-review-header">';
+  h += '<div class="cl-review-avatar" id="clReviewAvatar" style="background:linear-gradient(135deg,#7c3aed,#5b21b6);">??</div>';
+  h += '<div><div class="cl-review-name" id="clReviewName">\\u2014</div>';
+  h += '<div class="cl-review-meta" id="clReviewMeta">\\u2014</div></div>';
+  h += '</div>';
+  h += '<div class="cl-review-rows" id="clReviewRows"></div>';
+  h += '<div class="cl-review-spoke-preview">';
+  h += '<div class="cl-review-spoke-title">\\u2726 Spoke will be created with these tabs:</div>';
+  h += '<div class="cl-spoke-tab-preview">';
+  var tabs = ['Overview','Projects','People','Affiliations','Events','Strategies','Documents'];
+  for (var t = 0; t < tabs.length; t++) { h += '<div class="cl-spoke-tab-chip">' + tabs[t] + '</div>'; }
+  h += '</div></div>';
+  h += '</div>';
+  h += '</div>';
+
+  h += '</div>'; // /wizard-body
+
+  // Footer
+  h += '<div class="cl-wizard-footer">';
+  h += '<div class="cl-wizard-footer-left"><span class="cl-step-hint" id="clStepHint">Step 1 of 4 \\u2014 Select client type to continue</span></div>';
+  h += '<div class="cl-wizard-footer-right">';
+  h += '<button class="cl-btn cl-btn-secondary" id="clBackBtn" onclick="clWizardBack()" style="display:none;">\\u2190 Back</button>';
+  h += '<button class="cl-btn cl-btn-ghost" id="clSkipBtn" onclick="clWizardNext()" style="display:none;">Skip for now</button>';
+  h += '<button class="cl-btn cl-btn-primary" id="clNextBtn" onclick="clWizardNext()" disabled>Next \\u2192</button>';
+  h += '</div></div>';
+
+  h += '</div></div>';
+  return h;
+}
+
+function clOpenWizard() {
+  _clWizardStep = 1;
+  _clWizardType = null;
+  _clWizardPack = null;
+  _clUpdateWizardUI();
+  var overlay = document.getElementById('clWizardOverlay');
+  if (overlay) overlay.classList.add('open');
+}
+
+function clCloseWizard() {
+  var overlay = document.getElementById('clWizardOverlay');
+  if (overlay) overlay.classList.remove('open');
+}
+
+function clSelectType(type) {
+  _clWizardType = type;
+  var types = ['person','business','org'];
+  for (var i = 0; i < types.length; i++) {
+    var card = document.getElementById('clTypecard-' + types[i]);
+    if (card) card.className = 'cl-type-card' + (types[i] === type ? ' selected-' + types[i] : '');
+  }
+  var nextBtn = document.getElementById('clNextBtn');
+  if (nextBtn) nextBtn.disabled = false;
+  var hint = document.getElementById('clStepHint');
+  if (hint) hint.textContent = type.charAt(0).toUpperCase() + type.slice(1) + ' selected \\u2014 click Next to continue';
+}
+
+function clSelectPack(id, el) {
+  _clWizardPack = id;
+  var options = document.querySelectorAll('.cl-pack-option');
+  for (var i = 0; i < options.length; i++) options[i].classList.remove('selected');
+  el.classList.add('selected');
+  var nextBtn = document.getElementById('clNextBtn');
+  if (nextBtn) nextBtn.disabled = false;
+}
+
+function clWizardNext() {
+  if (_clWizardStep === 4) { _clCreateClient(); return; }
+  _clWizardStep++;
+  if (_clWizardStep === 2) _clShowForm();
+  if (_clWizardStep === 3) _clShowPacks();
+  if (_clWizardStep === 4) _clShowReview();
+  _clUpdateWizardUI();
+}
+
+function clWizardBack() {
+  if (_clWizardStep > 1) { _clWizardStep--; _clUpdateWizardUI(); }
+}
+
+function _clShowForm() {
+  var container = document.getElementById('clFormContainer');
+  if (!container) return;
+  var h = '<div class="cl-form-grid">';
+  if (_clWizardType === 'person') {
+    h += '<div class="cl-form-group"><label class="cl-form-label">Name <span class="req">*</span></label><input class="cl-form-input" type="text" placeholder="e.g. Robert Johnson" id="clF-name" /></div>';
+    h += '<div class="cl-form-group"><label class="cl-form-label">Preferred Name</label><input class="cl-form-input" type="text" placeholder="e.g. Bob" id="clF-preferred" /></div>';
+    h += '<div class="cl-form-group"><label class="cl-form-label">Email</label><input class="cl-form-input" type="email" placeholder="client@email.com" id="clF-email" /></div>';
+    h += '<div class="cl-form-group"><label class="cl-form-label">Phone</label><input class="cl-form-input" type="tel" placeholder="(404) 555-0100" id="clF-phone" /></div>';
+    h += '<div class="cl-form-group"><label class="cl-form-label">Filing Status</label><select class="cl-form-select" id="clF-filing"><option value="">Select status...</option><option>Single</option><option>Married Filing Jointly</option><option>Married Filing Separately</option><option>Head of Household</option></select></div>';
+    h += '<div class="cl-form-group"><label class="cl-form-label">Primary Income</label><select class="cl-form-select" id="clF-income"><option value="">Select type...</option><option>W-2 Employee</option><option>Self-Employed</option><option>S-Corp Owner</option><option>Real Estate Investor</option><option>Multiple Sources</option></select></div>';
+  } else if (_clWizardType === 'business') {
+    h += '<div class="cl-form-group full"><label class="cl-form-label">Business Name <span class="req">*</span></label><input class="cl-form-input" type="text" placeholder="e.g. Johnson LLC" id="clF-name" /></div>';
+    h += '<div class="cl-form-group"><label class="cl-form-label">Entity Type</label><select class="cl-form-select" id="clF-entityType"><option value="">Select type...</option><option>Sole Proprietorship</option><option>Single-Member LLC</option><option>Multi-Member LLC</option><option>S-Corporation</option><option>C-Corporation</option><option>Partnership</option></select></div>';
+    h += '<div class="cl-form-group"><label class="cl-form-label">Primary Owner</label><input class="cl-form-input" type="text" placeholder="Linked to existing client..." id="clF-owner" /></div>';
+    h += '<div class="cl-form-group"><label class="cl-form-label">Email</label><input class="cl-form-input" type="email" placeholder="contact@business.com" id="clF-email" /></div>';
+    h += '<div class="cl-form-group"><label class="cl-form-label">Industry</label><select class="cl-form-select" id="clF-industry"><option value="">Select industry...</option><option>Professional Services</option><option>Healthcare</option><option>Real Estate</option><option>Technology</option><option>Retail / E-commerce</option><option>Other</option></select></div>';
+  } else {
+    h += '<div class="cl-form-group full"><label class="cl-form-label">Organization Name <span class="req">*</span></label><input class="cl-form-input" type="text" placeholder="e.g. Grace Community Church" id="clF-name" /></div>';
+    h += '<div class="cl-form-group"><label class="cl-form-label">Organization Type</label><select class="cl-form-select" id="clF-orgType"><option value="">Select type...</option><option>501(c)(3) Charitable</option><option>Church / Religious Org</option><option>HOA / Condo Association</option><option>Other Nonprofit</option></select></div>';
+    h += '<div class="cl-form-group"><label class="cl-form-label">Primary Contact</label><input class="cl-form-input" type="text" placeholder="e.g. Pastor James Wells" id="clF-contact" /></div>';
+    h += '<div class="cl-form-group"><label class="cl-form-label">Email</label><input class="cl-form-input" type="email" placeholder="admin@org.com" id="clF-email" /></div>';
+  }
+  h += '<div class="cl-form-group full"><label class="cl-form-label">Notes</label><textarea class="cl-form-textarea" placeholder="Any initial context about this client..." id="clF-notes"></textarea></div>';
+  h += '</div>';
+  container.innerHTML = h;
+}
+
+function _clShowPacks() {
+  var picker = document.getElementById('clPackPicker');
+  if (!picker) return;
+  var packs = _CL_PACKS[_clWizardType] || [];
+  _clWizardPack = null;
+  var h = '';
+  for (var i = 0; i < packs.length; i++) {
+    var p = packs[i];
+    h += '<div class="cl-pack-option" onclick="clSelectPack(\\'' + p.id + '\\',this)">';
+    h += '<div class="cl-pack-option-icon">' + p.icon + '</div>';
+    h += '<div class="cl-pack-option-info"><div class="cl-pack-option-name">' + p.name + '</div><div class="cl-pack-option-desc">' + p.desc + '</div></div>';
+    h += '<div class="cl-pack-check">\\u2713</div>';
+    h += '</div>';
+  }
+  picker.innerHTML = h;
+  var nextBtn = document.getElementById('clNextBtn');
+  if (nextBtn) nextBtn.disabled = true;
+}
+
+function _clShowReview() {
+  var tc = _CL_TYPE_COLORS[_clWizardType] || _CL_TYPE_COLORS.person;
+  var nameEl = document.getElementById('clF-name');
+  var name = nameEl ? nameEl.value.trim() : '';
+  if (!name) name = _clWizardType === 'person' ? 'New Person' : _clWizardType === 'business' ? 'New Business' : 'New Organization';
+  var initials = name.split(' ').map(function(w) { return w.charAt(0); }).join('').slice(0,2).toUpperCase();
+
+  var avatar = document.getElementById('clReviewAvatar');
+  if (avatar) { avatar.style.background = tc.grad; avatar.textContent = initials; }
+  var reviewName = document.getElementById('clReviewName');
+  if (reviewName) reviewName.textContent = name;
+  var reviewMeta = document.getElementById('clReviewMeta');
+  var packName = 'None selected';
+  var packs = _CL_PACKS[_clWizardType] || [];
+  for (var i = 0; i < packs.length; i++) { if (packs[i].id === _clWizardPack) { packName = packs[i].name; break; } }
+  if (reviewMeta) reviewMeta.textContent = tc.label + ' \\u00B7 Pack: ' + packName;
+
+  // Build review rows
+  var rows = [];
+  var emailEl = document.getElementById('clF-email');
+  if (emailEl && emailEl.value) rows.push(['Email', emailEl.value]);
+  if (_clWizardType === 'person') {
+    var prefEl = document.getElementById('clF-preferred');
+    if (prefEl && prefEl.value) rows.push(['Preferred Name', prefEl.value]);
+    var filingEl = document.getElementById('clF-filing');
+    if (filingEl && filingEl.value) rows.push(['Filing Status', filingEl.value]);
+  } else if (_clWizardType === 'business') {
+    var etEl = document.getElementById('clF-entityType');
+    if (etEl && etEl.value) rows.push(['Entity Type', etEl.value]);
+  } else {
+    var otEl = document.getElementById('clF-orgType');
+    if (otEl && otEl.value) rows.push(['Org Type', otEl.value]);
+  }
+  rows.push(['Starter Pack', packName]);
+  rows.push(['Type', tc.label]);
+
+  var rowsEl = document.getElementById('clReviewRows');
+  if (rowsEl) {
+    var rh = '';
+    for (var i = 0; i < rows.length; i++) {
+      rh += '<div class="cl-review-row"><span class="cl-review-row-label">' + esc(rows[i][0]) + '</span><span class="cl-review-row-val">' + esc(rows[i][1]) + '</span></div>';
+    }
+    rowsEl.innerHTML = rh;
+  }
+}
+
+function _clUpdateWizardUI() {
+  // Show/hide step content
+  for (var i = 1; i <= 4; i++) {
+    var el = document.getElementById('clWstep' + i);
+    if (el) { if (i === _clWizardStep) el.classList.add('active'); else el.classList.remove('active'); }
+  }
+
+  // Update stepper circles
+  var stepNames = ['Client Type','Details','Starter Pack','Review'];
+  for (var i = 1; i <= 4; i++) {
+    var circle = document.getElementById('clS' + i + 'c');
+    var label = document.getElementById('clS' + i + 'l');
+    if (circle) {
+      if (i < _clWizardStep) { circle.className = 'cl-step-circle done'; circle.textContent = '\\u2713'; }
+      else if (i === _clWizardStep) { circle.className = 'cl-step-circle active'; circle.textContent = String(i); }
+      else { circle.className = 'cl-step-circle pending'; circle.textContent = String(i); }
+    }
+    if (label) {
+      if (i < _clWizardStep) label.className = 'cl-step-label done';
+      else if (i === _clWizardStep) label.className = 'cl-step-label active';
+      else label.className = 'cl-step-label';
+      label.textContent = stepNames[i - 1];
+    }
+  }
+  for (var i = 1; i <= 3; i++) {
+    var conn = document.getElementById('clConn' + i);
+    if (conn) { if (i < _clWizardStep) conn.classList.add('done'); else conn.classList.remove('done'); }
+  }
+
+  // Header text
+  var titles = ['Add New Client','Client Details','Choose a Starter Pack','Review & Create'];
+  var subs = ['Choose the type of client you\\\'re adding','Fill in the key details for this client','Pick a template pack to pre-load this spoke','Everything looks right? Create the spoke.'];
+  var titleEl = document.getElementById('clWizardTitle');
+  var subEl = document.getElementById('clWizardSubtitle');
+  if (titleEl) titleEl.textContent = titles[_clWizardStep - 1];
+  if (subEl) subEl.textContent = subs[_clWizardStep - 1];
+
+  // Buttons
+  var backBtn = document.getElementById('clBackBtn');
+  if (backBtn) backBtn.style.display = _clWizardStep > 1 ? '' : 'none';
+  var skipBtn = document.getElementById('clSkipBtn');
+  if (skipBtn) skipBtn.style.display = _clWizardStep === 3 ? '' : 'none';
+  var nextBtn = document.getElementById('clNextBtn');
+  if (nextBtn) {
+    nextBtn.textContent = _clWizardStep === 4 ? '\\u2600 Create Spoke' : 'Next \\u2192';
+    if (_clWizardStep === 4) { nextBtn.className = 'cl-btn cl-btn-green'; }
+    else { nextBtn.className = 'cl-btn cl-btn-primary'; }
+    if (_clWizardStep === 2 || _clWizardStep === 4) nextBtn.disabled = false;
+    if (_clWizardStep === 1 && !_clWizardType) nextBtn.disabled = true;
+    if (_clWizardStep === 1 && _clWizardType) nextBtn.disabled = false;
+  }
+
+  // Hints
+  var hints = ['Step 1 of 4 \\u2014 Select client type to continue','Step 2 of 4 \\u2014 Only the name is required','Step 3 of 4 \\u2014 Choose a starter template (or skip)','Step 4 of 4 \\u2014 Review and create the spoke'];
+  var hintEl = document.getElementById('clStepHint');
+  if (hintEl) hintEl.textContent = hints[_clWizardStep - 1];
+}
+
+function _clCreateClient() {
+  var nameEl = document.getElementById('clF-name');
+  var name = nameEl ? nameEl.value.trim() : '';
+  if (!name) { toast('Client name is required'); return; }
+
+  var body = { name: name, type: _clWizardType || 'person' };
+  var emailEl = document.getElementById('clF-email');
+  if (emailEl && emailEl.value) body.email = emailEl.value;
+  var notesEl = document.getElementById('clF-notes');
+  if (notesEl && notesEl.value) body.notes = notesEl.value;
+  if (_clWizardPack) body.packId = _clWizardPack;
+
+  if (_clWizardType === 'person') {
+    var prefEl = document.getElementById('clF-preferred');
+    if (prefEl && prefEl.value) body.preferredName = prefEl.value;
+    var filingEl = document.getElementById('clF-filing');
+    if (filingEl && filingEl.value) body.filingStatus = filingEl.value;
+    var phoneEl = document.getElementById('clF-phone');
+    if (phoneEl && phoneEl.value) body.phone = phoneEl.value;
+  } else if (_clWizardType === 'business') {
+    var etEl = document.getElementById('clF-entityType');
+    if (etEl && etEl.value) body.entityType = etEl.value;
+  }
+
+  api('POST', '/api/clients', body).then(function(data) {
+    clCloseWizard();
+    toast('\\u2600 Client created: ' + name);
+    // Refresh spokes list and re-render
+    api('GET', '/api/spokes').then(function(sData) {
+      _spokesList = sData.spokes || [];
+      _clFetchAndRender();
+    });
+  }).catch(function(err) {
+    toast('Error: ' + (err.message || err));
+  });
 }
 
 // Build 33: Client Overview — shows all projects for a client
