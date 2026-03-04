@@ -13543,8 +13543,8 @@ const WIKI_HTML = `<!DOCTYPE html>
   .co-btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: var(--font-sans, 'DM Sans', sans-serif); display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
   .co-btn.outline { background: #fff; border: 1px solid #E5E7EB; color: #1A1A1A; }
   .co-btn.outline:hover { border-color: #2563EB; color: #2563EB; }
-  .co-btn-danger { color: #DC2626 !important; border-color: #FECACA !important; }
-  .co-btn-danger:hover { background: #FEF2F2 !important; border-color: #DC2626 !important; color: #DC2626 !important; }
+  .co-btn-delete { background: #DC2626 !important; border: none !important; color: white !important; padding: 8px 12px !important; display: inline-flex; align-items: center; justify-content: center; }
+  .co-btn-delete:hover { background: #B91C1C !important; }
   .co-btn.primary { background: #2563EB; border: 1px solid #2563EB; color: #fff; }
   .co-btn.primary:hover { background: #1D4ED8; }
   .co-tabs { display: flex; gap: 0; }
@@ -19243,11 +19243,11 @@ function showClientWorkspace(spokeId, tab) {
   h += '</div></div>';
   h += '</div>';
   h += '<div class="co-actions">';
-  h += '<button class="co-btn outline" onclick="coRenameClient(\\'' + esc(spokeId) + '\\',\\'' + esc(spokeName).replace(/'/g, "\\\\'") + '\\')">\\u270E Rename</button>';
+  h += '<button class="co-btn outline" onclick="coRenameClient(\\'' + esc(spokeId) + '\\',\\'' + esc(spokeName).replace(/'/g, "\\\\'") + '\\')">\\u270E Edit</button>';
   h += '<button class="co-btn outline" onclick="showShareModal()">\\u2197 Share</button>';
   h += '<button class="co-btn outline" onclick="downloadExportCsv()">\\u2193 Export All</button>';
   h += '<button class="co-btn primary" onclick="coOpenNewProjectModal()">\\uFF0B New Project</button>';
-  h += '<button class="co-btn outline co-btn-danger" onclick="coDeleteClient(\\'' + esc(spokeId) + '\\',\\'' + esc(spokeName).replace(/'/g, "\\\\'") + '\\')">\\uD83D\\uDDD1</button>';
+  h += '<button class="co-btn co-btn-delete" onclick="coDeleteClient(\\'' + esc(spokeId) + '\\',\\'' + esc(spokeName).replace(/'/g, "\\\\'") + '\\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>';
   h += '</div>';
   h += '</div>';
 
