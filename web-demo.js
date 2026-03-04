@@ -18809,6 +18809,7 @@ function renderSidebar() {
   // + New Client button
   html += '<div class="sb-add-btn sb-add-client" onclick="promptNewClient()" title="New Client">';
   html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+  html += ' New Client';
   html += '</div>';
 
   // ── TOOLS section ──
