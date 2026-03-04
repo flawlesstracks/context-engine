@@ -19708,18 +19708,26 @@ function coCreateProject() {
   var notes = (document.getElementById('coNewProjectNotes') || {}).value || '';
 
   // Create a new spoke
-  api('POST', '/api/spokes', { name: name.trim(), template_id: templateId, notes: notes }).then(function(data) {
-    toast('Project created: ' + name.trim());
-    coCloseNewProjectModal();
-    // Reload spoke list and refresh overview
-    api('GET', '/api/spokes').then(function(sData) {
-      _spokesList = sData.spokes || [];
-      renderSidebar();
-      if (data && data.spoke_id) {
-        showProjectDetail(data.spoke_id);
-      } else {
-        showClientWorkspace(_selectedSpoke);
-      }
+  api('POST', '/api/spoke', { name: name.trim(), description: notes }).then(function(data) {
+    var newSpoke = data.spoke || {};
+    var spokeId = newSpoke.id || newSpoke.spoke_id;
+    // If a template was selected, assign it
+    var assignTemplate = templateId && templateId !== 'general'
+      ? api('PUT', '/api/spoke/' + spokeId + '/template', { template_id: templateId })
+      : Promise.resolve();
+    return assignTemplate.then(function() {
+      toast('Project created: ' + name.trim());
+      coCloseNewProjectModal();
+      // Reload spoke list and refresh overview
+      return api('GET', '/api/spokes').then(function(sData) {
+        _spokesList = sData.spokes || [];
+        renderSidebar();
+        if (spokeId) {
+          showProjectDetail(spokeId);
+        } else {
+          showClientWorkspace(_selectedSpoke);
+        }
+      });
     });
   }).catch(function(err) {
     toast('Error creating project: ' + (err.message || err));
