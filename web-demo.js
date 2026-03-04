@@ -19713,7 +19713,7 @@ function coCreateProject() {
     var spokeId = newSpoke.id || newSpoke.spoke_id;
     // If a template was selected, assign it
     var assignTemplate = templateId && templateId !== 'general'
-      ? api('PUT', '/api/spoke/' + spokeId + '/template', { template_id: templateId })
+      ? api('PUT', '/api/spoke/' + spokeId + '/template', { template_type: templateId })
       : Promise.resolve();
     return assignTemplate.then(function() {
       toast('Project created: ' + name.trim());
