@@ -11887,13 +11887,13 @@ const WIKI_HTML = `<!DOCTYPE html>
   }
   .sb-nav-item:hover { background: #f0f0f0; }
   .sb-nav-item.active {
-    font-weight: 600; border-left-color: #0a66c2; color: #0a66c2;
+    font-weight: 600; border-left-color: transparent; background: #1a1917; color: #ffffff; border-radius: 6px;
   }
   .sb-nav-item svg {
     width: 16px; height: 16px; color: #666;
     margin-right: 8px; flex-shrink: 0;
   }
-  .sb-nav-item.active svg { color: #0a66c2; }
+  .sb-nav-item.active svg { color: #ffffff; }
   .sb-nav-item.add-item { color: #0a66c2; }
   .sb-see-more {
     padding: 6px 16px 6px 40px; font-size: 13px; color: #999;
