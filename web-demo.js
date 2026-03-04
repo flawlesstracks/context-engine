@@ -13543,7 +13543,7 @@ const WIKI_HTML = `<!DOCTYPE html>
   .co-btn { padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: var(--font-sans, 'DM Sans', sans-serif); display: flex; align-items: center; gap: 6px; transition: all 0.15s; }
   .co-btn.outline { background: #fff; border: 1px solid #E5E7EB; color: #1A1A1A; }
   .co-btn.outline:hover { border-color: #2563EB; color: #2563EB; }
-  .co-btn-delete { background: #DC2626 !important; border: none !important; color: white !important; padding: 8px 12px !important; display: inline-flex; align-items: center; justify-content: center; }
+  .co-btn-delete { background: #DC2626 !important; border: none !important; color: white !important; padding: 8px 12px !important; display: inline-flex; align-items: center; justify-content: center; line-height: 1; min-height: 100%; align-self: stretch; }
   .co-btn-delete:hover { background: #B91C1C !important; }
   .co-btn.primary { background: #2563EB; border: 1px solid #2563EB; color: #fff; }
   .co-btn.primary:hover { background: #1D4ED8; }
