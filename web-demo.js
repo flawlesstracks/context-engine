@@ -19671,7 +19671,7 @@ function _clRenderCard(client) {
   // Action buttons (hover-reveal: favorite, edit, delete)
   h += '<div class="cl-card-actions">';
   h += '<button class="cl-card-action-btn fav' + (isFav ? ' active' : '') + '" onclick="event.stopPropagation();clToggleFav(\\'' + esc(client.id) + '\\',this)" title="Favorite"><svg width="14" height="14" viewBox="0 0 24 24" fill="' + (isFav ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg></button>';
-  h += '<button class="cl-card-action-btn" onclick="event.stopPropagation();clOpenEdit(\\'' + esc(client.id) + '\\',\\'' + esc(client.name).replace(/'/g, "\\\\'") + '\\',\\'' + esc(client.type) + '\\')" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>';
+  h += '<button class="cl-card-action-btn" onclick="event.stopPropagation();clOpenEdit(\\'' + esc(client.id) + '\\',\\'' + esc(client.name).replace(/'/g, "\\\\'") + '\\',\\'' + esc(client.type) + '\\')" title="Edit"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="2" x2="22" y2="6"/><path d="M7.5 20.5L4 21l.5-3.5L17.5 4.5l3 3L7.5 20.5z"/></svg></button>';
   h += '<button class="cl-card-action-btn del" onclick="event.stopPropagation();clDeleteClient(\\'' + esc(client.id) + '\\',\\'' + esc(client.name).replace(/'/g, "\\\\'") + '\\')" title="Delete"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>';
   h += '</div>';
 
@@ -20219,7 +20219,7 @@ function showClientWorkspace(spokeId, tab) {
   h += '<div class="co-header">';
   h += '<div class="co-header-top">';
   h += '<div>';
-  h += '<div class="co-back" onclick="showClientDashboard()">\\u2190 All Clients</div>';
+  h += '<div class="co-back" onclick="showClientsList()">\\u2190 All Clients</div>';
   h += '<div class="co-name-row">';
   h += '<div class="co-avatar">' + esc(initials) + '</div>';
   h += '<div>';
