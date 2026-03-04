@@ -15496,25 +15496,32 @@ const WIKI_HTML = `<!DOCTYPE html>
      TEMPLATES HUB
      ═══════════════════════════════════════════ */
   .th-wrap { display: flex; flex-direction: column; height: calc(100vh - 50px); overflow-y: auto; background: #f5f5f0; }
-  .th-hero { background: linear-gradient(145deg, #f8f7f2 0%, #f0efe8 100%); padding: 44px 52px 36px; border-bottom: 1px solid #e4e3de; position: relative; overflow: hidden; text-align: center; }
-  .th-hero::before { content:''; position:absolute; top:-60px; right:-60px; width:300px; height:300px; background:radial-gradient(circle, rgba(37,99,235,0.04) 0%, transparent 70%); pointer-events:none; z-index:0; }
-  .th-hero::after { content:''; position:absolute; bottom:-80px; left:30%; width:400px; height:400px; background:radial-gradient(circle, rgba(124,58,237,0.03) 0%, transparent 70%); pointer-events:none; z-index:0; }
-  .th-hero > * { position: relative; z-index: 1; }
-  .th-new-btn { position:absolute; top:16px; right:20px; background:#059669; color:white; border:none; border-radius:8px; padding:10px 20px; font-weight:600; font-size:13px; cursor:pointer; z-index:50; transition:background 0.15s; }
-  .th-new-btn:hover { background:#047857; }
-  .th-hero-eyebrow { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #999; margin-bottom: 8px; }
-  .th-hero-title { font-family:'Instrument Serif',Georgia,serif; font-size: 40px; font-weight: 400; color: #1a1a1a; margin: 0 0 6px 0; letter-spacing: -0.5px; }
-  .th-hero-sub { font-size: 15px; color: #5c5b56; margin: 0 auto 28px auto; max-width: 480px; }
-  .th-hero-tabs { display: inline-flex; background: rgba(0,0,0,0.04); border-radius: 10px; padding: 3px; margin-bottom: 24px; }
-  .th-hero-tab { padding: 8px 18px; font-size: 13px; font-weight: 500; color: #5c5b56; cursor: pointer; border-radius: 8px; border: none; background: none; font-family:'DM Sans',system-ui,sans-serif; transition: all 0.15s; white-space: nowrap; }
-  .th-hero-tab:hover { color: #1a1a1a; }
-  .th-hero-tab.active { background: white; color: #1a1a1a; font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-  .th-search-wrap { max-width: 560px; margin: 0 auto; position: relative; }
-  .th-search-input { width: 100%; padding: 13px 20px 13px 46px; border: 1px solid #e4e3de; border-radius: 12px; font-size: 14px; font-family:'DM Sans',system-ui,sans-serif; background: white; color: #1a1a1a; box-shadow: 0 2px 8px rgba(0,0,0,0.03); transition: all 0.2s; box-sizing: border-box; }
-  .th-search-input:focus { outline: none; border-color: #2563eb; box-shadow: 0 2px 12px rgba(37,99,235,0.1); }
-  .th-search-input::placeholder { color: #999; }
-  .th-search-icon { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #999; }
-  .th-search-count { position:absolute; right:14px; top:50%; transform:translateY(-50%); font-size:12px; color:#999; display:none; }
+  .th-top-bar { position:sticky; top:0; z-index:100; background:rgba(245,245,240,0.85); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border-bottom:1px solid #e4e3de; padding:12px 52px; }
+  .th-top-bar-inner { display:flex; align-items:center; gap:12px; }
+  .th-top-search-wrap { flex:1; position:relative; max-width:640px; }
+  .th-top-search-icon { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:#8a8983; pointer-events:none; }
+  .th-top-search-input { width:100%; padding:10px 80px 10px 40px; border:1px solid #e4e3de; border-radius:10px; font-size:13.5px; font-family:'DM Sans',system-ui,sans-serif; background:white; color:#1a1917; transition:all 0.2s; box-shadow:0 1px 3px rgba(0,0,0,0.03); box-sizing:border-box; }
+  .th-top-search-input:focus { outline:none; border-color:#2563eb; box-shadow:0 1px 8px rgba(37,99,235,0.1); }
+  .th-top-search-input::placeholder { color:#8a8983; }
+  .th-top-search-count { position:absolute; right:14px; top:50%; transform:translateY(-50%); font-size:11px; font-family:'JetBrains Mono',monospace; color:#8a8983; display:none; }
+  .th-top-search-count.visible { display:block; }
+  .th-top-bar-actions { display:flex; gap:8px; margin-left:auto; }
+  .th-hero { background: linear-gradient(145deg, #f8f7f2 0%, #f0efe8 100%); padding: 44px 52px 36px; border-bottom: 1px solid #e4e3de; position: relative; overflow: hidden; }
+  .th-hero::before { content:''; position:absolute; top:-60px; right:-60px; width:300px; height:300px; background:radial-gradient(circle, rgba(37,99,235,0.04) 0%, transparent 70%); pointer-events:none; }
+  .th-hero::after { content:''; position:absolute; bottom:-80px; left:30%; width:400px; height:400px; background:radial-gradient(circle, rgba(124,58,237,0.03) 0%, transparent 70%); pointer-events:none; }
+  .th-hero-eyebrow { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:1.5px; color:#8a8983; margin-bottom:8px; }
+  .th-hero-title { font-family:'Instrument Serif',Georgia,serif; font-size:40px; font-weight:400; color:#1a1917; margin-bottom:6px; letter-spacing:-0.5px; }
+  .th-hero-sub { font-size:15px; color:#5c5b56; margin-bottom:28px; max-width:480px; }
+  .th-hero-tabs { display:inline-flex; background:rgba(0,0,0,0.04); border-radius:10px; padding:3px; margin-bottom:24px; }
+  .th-hero-tab { padding:8px 18px; font-size:13px; font-weight:500; color:#5c5b56; cursor:pointer; border-radius:8px; border:none; background:none; font-family:'DM Sans',system-ui,sans-serif; transition:all 0.15s; white-space:nowrap; }
+  .th-hero-tab:hover { color:#1a1917; }
+  .th-hero-tab.active { background:white; color:#1a1917; font-weight:600; box-shadow:0 1px 3px rgba(0,0,0,0.08); }
+  .th-search-wrap { max-width:560px; position:relative; }
+  .th-search-input { width:100%; padding:13px 20px 13px 46px; border:1px solid #e4e3de; border-radius:12px; font-size:14px; font-family:'DM Sans',system-ui,sans-serif; background:white; color:#1a1917; box-shadow:0 2px 8px rgba(0,0,0,0.03); transition:all 0.2s; box-sizing:border-box; }
+  .th-search-input:focus { outline:none; border-color:#2563eb; box-shadow:0 2px 12px rgba(37,99,235,0.1); }
+  .th-search-input::placeholder { color:#8a8983; }
+  .th-search-icon { position:absolute; left:16px; top:50%; transform:translateY(-50%); color:#8a8983; }
+  .th-search-count { position:absolute; right:14px; top:50%; transform:translateY(-50%); font-size:12px; font-family:'JetBrains Mono',monospace; color:#8a8983; display:none; }
   .th-search-count.visible { display:block; }
   .th-cat-strip { display:flex; gap:8px; padding:24px 52px 0; flex-wrap:wrap; }
   .th-cat-chip { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; font-size:12px; font-weight:600; border-radius:20px; border:1px solid #e4e3de; background:white; color:#5c5b56; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
@@ -26211,9 +26218,22 @@ function showTemplatesHub() {
 
   var h = '<div class="th-wrap">';
 
-  // ── HERO with + New Template button ──
+  // ── STICKY TOP BAR with search + New Template button ──
+  h += '<div class="th-top-bar">';
+  h += '<div class="th-top-bar-inner">';
+  h += '<div class="th-top-search-wrap">';
+  h += '<span class="th-top-search-icon">' + svgSearchSm + '</span>';
+  h += '<input class="th-top-search-input" type="text" id="thTopSearch" placeholder="Search templates\u2026  e.g. W-9, 1065, depreciation, PI intake" oninput="thHandleSearch(this.value)">';
+  h += '<span class="th-top-search-count" id="thTopCount"></span>';
+  h += '</div>';
+  h += '<div class="th-top-bar-actions">';
+  h += '<button class="th-top-btn" onclick="thOpenModal(&#39;New Template&#39;,&#39;&#39;)">+ New Template</button>';
+  h += '</div>';
+  h += '</div>';
+  h += '</div>';
+
+  // ── HERO ──
   h += '<div class="th-hero">';
-  h += '<button class="th-new-btn" onclick="thOpenModal(&#39;New Template&#39;,&#39;&#39;)">+ New Template</button>';
   h += '<div class="th-hero-eyebrow">Context Architecture \u2014 The intelligence layer for professional services</div>';
   h += '<h1 class="th-hero-title">Templates</h1>';
   h += '<p class="th-hero-sub">Start from a proven structure, rename it, make it yours. 100+ professional forms organized by workflow.</p>';
