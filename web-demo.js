@@ -20918,7 +20918,93 @@ function _wwRenderOverviewTab(spoke, cache) {
   h += '</div>'; // end overview-grid
   return h;
 }
-function _wwRenderProjectsTabWW(spoke) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">Projects tab — Build 3</div>'; }
+function _wwRenderProjectsTabWW(spoke) {
+  var projects = spoke.projects || [];
+  var spokeId = spoke.id;
+  var h = '';
+
+  // Toolbar
+  h += '<div class="ww-section-toolbar">';
+  h += '<div><div class="ww-section-title">Projects</div></div>';
+  h += '<div style="display:flex;gap:8px;align-items:center;">';
+  h += '<div class="ww-search-bar"><span class="ww-search-icon">\\uD83D\\uDD0D</span><input type="text" class="ww-search-input" placeholder="Search projects..." oninput="wwFilterProjects(this)" /></div>';
+  h += '<div class="ww-filter-pills">';
+  h += '<div class="ww-pill active" onclick="wwFilterPill(this,\\'all\\')">All</div>';
+  h += '<div class="ww-pill" onclick="wwFilterPill(this,\\'active\\')">Active</div>';
+  h += '<div class="ww-pill" onclick="wwFilterPill(this,\\'planning\\')">Planning</div>';
+  h += '<div class="ww-pill" onclick="wwFilterPill(this,\\'complete\\')">Complete</div>';
+  h += '</div>';
+  h += '<button class="ww-btn ww-btn-primary ww-btn-sm" onclick="coOpenNewProjectModal()">+ New Project</button>';
+  h += '</div></div>';
+
+  // Project list
+  h += '<div class="ww-project-list" id="wwProjectList">';
+  for (var i = 0; i < projects.length; i++) {
+    var proj = projects[i];
+    var status = proj.status || 'active';
+    var statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+    var statusColor = status === 'complete' ? 'var(--ww-green)' : (status === 'planning' ? 'var(--ww-blue)' : 'var(--ww-amber)');
+    var tagClass = status === 'complete' ? 'ww-tag-green' : (status === 'planning' ? 'ww-tag-blue' : 'ww-tag-amber');
+    var templateName = (proj.template_type || 'general').replace(/_/g, ' ').replace(/\\b\\w/g, function(c) { return c.toUpperCase(); });
+    var updatedLabel = proj.updated_at ? _coTimeAgo(proj.updated_at) : 'Just created';
+    var dotsId = 'ww-proj-dots-' + i;
+
+    h += '<div class="ww-project-card" data-status="' + esc(status) + '" data-name="' + esc(proj.name) + '" onclick="coOpenProject(event,\\'' + esc(spokeId) + '\\')">';
+    h += '<div class="ww-project-card-top">';
+    h += '<div class="ww-project-status-dot" style="background:' + statusColor + ';"></div>';
+    h += '<div class="ww-project-info">';
+    h += '<div class="ww-project-name">' + esc(proj.name) + '</div>';
+    if (proj.notes) h += '<div class="ww-project-desc">' + esc(proj.notes) + '</div>';
+    h += '<div class="ww-project-tags">';
+    h += '<span class="ww-tag ' + tagClass + '">' + esc(statusLabel) + '</span>';
+    h += '<span class="ww-tag ww-tag-default">' + esc(templateName) + '</span>';
+    h += '</div></div>';
+    h += '<div class="ww-project-right">';
+    h += '<div class="ww-dots-menu-wrap">';
+    h += '<div class="ww-dots-btn" onclick="wwToggleDots(event,\\'' + dotsId + '\\')">\\u22EF</div>';
+    h += '<div class="ww-dots-dropdown" id="' + dotsId + '">';
+    h += '<div class="ww-dots-item" onclick="coMenuAction(event,\\'edit\\',\\'' + esc(spokeId) + '\\',\\'' + esc(proj.id) + '\\')">\\u270F\\uFE0F Edit</div>';
+    h += '<div class="ww-dots-item" onclick="coMenuAction(event,\\'archive\\',\\'' + esc(spokeId) + '\\',\\'' + esc(proj.id) + '\\')">\\uD83D\\uDCE6 Archive</div>';
+    h += '<div class="ww-dots-divider"></div>';
+    h += '<div class="ww-dots-item danger" onclick="coMenuAction(event,\\'delete\\',\\'' + esc(spokeId) + '\\',\\'' + esc(proj.id) + '\\')">\\uD83D\\uDDD1 Delete</div>';
+    h += '</div></div></div>';
+    h += '</div>'; // end card-top
+
+    h += '<div class="ww-project-card-footer">';
+    h += '<div class="ww-project-template-chip">\\uD83D\\uDCCB ' + esc(templateName) + '</div>';
+    h += '<div class="ww-project-due">Updated ' + esc(updatedLabel) + '</div>';
+    h += '</div>';
+    h += '</div>'; // end project-card
+  }
+
+  // Add Project card
+  h += '<div class="ww-add-node-card" style="min-height:auto;padding:14px 16px;flex-direction:row;gap:8px;" onclick="coOpenNewProjectModal()">';
+  h += '<div class="ww-plus">+</div><div class="ww-label">New Project</div>';
+  h += '</div>';
+  h += '</div>'; // end project-list
+
+  return h;
+}
+
+function wwFilterProjects(input) {
+  var query = (input.value || '').toLowerCase();
+  var cards = document.querySelectorAll('.ww-project-card');
+  for (var i = 0; i < cards.length; i++) {
+    var name = (cards[i].getAttribute('data-name') || '').toLowerCase();
+    cards[i].style.display = name.indexOf(query) !== -1 ? '' : 'none';
+  }
+}
+
+function wwFilterPill(el, filter) {
+  el.closest('.ww-filter-pills').querySelectorAll('.ww-pill').forEach(function(p) { p.classList.remove('active'); });
+  el.classList.add('active');
+  var cards = document.querySelectorAll('.ww-project-card');
+  for (var i = 0; i < cards.length; i++) {
+    var status = cards[i].getAttribute('data-status') || '';
+    if (filter === 'all') { cards[i].style.display = ''; }
+    else { cards[i].style.display = status === filter ? '' : 'none'; }
+  }
+}
 function _wwRenderPeopleTab(spoke) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">People tab — Build 4</div>'; }
 function _wwRenderAffiliationsTab(spoke) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">Affiliations tab — Build 5</div>'; }
 function _wwRenderEventsTab(spoke) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">Events tab — Build 6</div>'; }
