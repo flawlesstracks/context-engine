@@ -21231,7 +21231,160 @@ function wwOpenPersonPanel(e, idx) {
 
   wwOpenPanel(fullName, body);
 }
-function _wwRenderAffiliationsTab(spoke) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">Affiliations tab — Build 5</div>'; }
+function _wwRenderAffiliationsTab(spoke) {
+  var affiliations = spoke.affiliations || [];
+  var spokeName = spoke.name || '';
+  var h = '';
+
+  // Toolbar
+  h += '<div class="ww-section-toolbar">';
+  h += '<div><div class="ww-section-title">Affiliations</div>';
+  h += '<div class="ww-section-sub">Organizations, entities, and institutions ' + esc(spokeName) + ' belongs to or owns</div></div>';
+  h += '<div style="display:flex;gap:8px;align-items:center;">';
+  h += '<div class="ww-search-bar"><span class="ww-search-icon">\\uD83D\\uDD0D</span><input type="text" class="ww-search-input" placeholder="Search affiliations..." oninput="wwFilterNodes(this,\\'ww-affil-grid\\')" /></div>';
+  h += '<button class="ww-btn ww-btn-primary ww-btn-sm" onclick="wwOpenModal(\\'add-affil\\')">+ Add Affiliation</button>';
+  h += '</div></div>';
+
+  // Node grid
+  h += '<div class="ww-node-grid" id="ww-affil-grid">';
+
+  var icons = ['\\uD83C\\uDFE2', '\\uD83C\\uDFE0', '\\uD83C\\uDFED', '\\uD83C\\uDFE6', '\\uD83C\\uDFEB', '\\uD83C\\uDFE5'];
+  var colorsBg = ['var(--ww-teal-bg)', 'var(--ww-amber-bg)', 'var(--ww-blue-bg)', 'var(--ww-green-bg)', 'var(--ww-purple-bg)', 'var(--ww-red-bg)'];
+  var stripeColors = ['var(--ww-teal)', 'var(--ww-amber)', 'var(--ww-blue)', 'var(--ww-green)', 'var(--ww-purple)', 'var(--ww-red)'];
+
+  for (var i = 0; i < affiliations.length; i++) {
+    var a = affiliations[i];
+    var colorIdx = i % stripeColors.length;
+    var stripe = a.stripe_color || stripeColors[colorIdx];
+    var icon = a.icon || icons[colorIdx];
+    var isFav = a.favorited ? true : false;
+    var dotsId = 'ww-affil-dots-' + i;
+
+    h += '<div class="ww-node-card" data-name="' + esc(a.name || '') + '" onclick="wwOpenAffilPanel(event,' + i + ')">';
+    h += '<div class="ww-node-card-stripe" style="background:' + stripe + ';"></div>';
+    h += '<div class="ww-node-card-body">';
+    h += '<div class="ww-node-card-top">';
+    h += '<div class="ww-node-card-left">';
+    h += '<div class="ww-node-avatar-sq" style="background:' + colorsBg[colorIdx] + ';">' + icon + '</div>';
+    h += '<div><div class="ww-node-name">' + esc(a.name || '') + '</div>';
+    h += '<div class="ww-node-sub">' + esc(a.entity_type || '') + (a.role ? ' \\u00B7 ' + esc(a.role) : '') + (a.ownership ? ' ' + esc(a.ownership) : '') + '</div></div>';
+    h += '</div>';
+    h += '<div class="ww-node-card-actions" onclick="event.stopPropagation()">';
+    h += '<button class="ww-fav-btn' + (isFav ? ' active' : '') + '" onclick="wwToggleFav(this,\\'affiliations\\',\\'' + esc(a.id) + '\\')">' + (isFav ? '\\u2605' : '\\u2606') + '</button>';
+    h += '<div class="ww-dots-menu-wrap"><div class="ww-node-dots" onclick="wwToggleDots(event,\\'' + dotsId + '\\')">\\u22EF</div>';
+    h += '<div class="ww-dots-dropdown" id="' + dotsId + '">';
+    h += '<div class="ww-dots-item" onclick="wwOpenAffilPanel(event,' + i + ')">\\uD83D\\uDC41 View Details</div>';
+    h += '<div class="ww-dots-item">\\u270F\\uFE0F Edit</div>';
+    h += '<div class="ww-dots-item" onclick="toast(\\'Grow into Spoke coming soon\\')">\\uD83C\\uDF3F Grow into Spoke</div>';
+    h += '<div class="ww-dots-divider"></div>';
+    h += '<div class="ww-dots-item danger" onclick="wwDeleteAffil(\\'' + esc(spoke.id) + '\\',\\'' + esc(a.id) + '\\')">\\uD83D\\uDDD1 Remove</div>';
+    h += '</div></div></div></div>';
+
+    // Description + tags
+    if (a.description) h += '<div class="ww-node-body-text">' + esc(a.description) + '</div>';
+    h += '<div class="ww-node-card-footer">';
+    var tags = a.tags || [];
+    for (var ti = 0; ti < tags.length; ti++) h += '<span class="ww-tag ww-tag-default">' + esc(tags[ti]) + '</span>';
+    if (tags.length === 0 && a.entity_type) h += '<span class="ww-tag ww-tag-teal">' + esc(a.entity_type) + '</span>';
+    h += '</div></div></div>';
+  }
+
+  // Add Affiliation card
+  h += '<div class="ww-add-node-card" onclick="wwOpenModal(\\'add-affil\\')">';
+  h += '<div class="ww-plus">+</div><div class="ww-label">Add Affiliation</div></div>';
+  h += '</div>'; // end grid
+
+  // Add Affiliation Modal
+  h += '<div class="ww-modal-overlay" id="ww-modal-add-affil" onclick="if(event.target===this)wwCloseModal(this.id)">';
+  h += '<div class="ww-modal"><div class="ww-modal-header"><div><div class="ww-modal-title">Add Affiliation</div>';
+  h += '<div class="ww-modal-subtitle">An organization or entity related to ' + esc(spokeName) + '</div></div>';
+  h += '<button class="ww-modal-close" onclick="wwCloseModal(\\'ww-modal-add-affil\\')">\\u2715</button></div>';
+  h += '<div class="ww-modal-body">';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Entity Name *</label><input class="ww-form-input" id="wwAffilName" placeholder="e.g., Johnson LLC, Acme Corp..." /></div>';
+  h += '<div class="ww-form-row"><div class="ww-form-group"><label class="ww-form-label">Entity Type</label><select class="ww-form-select" id="wwAffilType"><option>S-Corporation</option><option>LLC</option><option>C-Corporation</option><option>Partnership</option><option>Employer</option><option>Trust</option><option>Non-Profit</option><option>Other</option></select></div>';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Role / Ownership</label><input class="ww-form-input" id="wwAffilRole" placeholder="e.g., Owner 51%, VP Operations..." /></div></div>';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Description</label><input class="ww-form-input" id="wwAffilDesc" placeholder="1-2 sentence summary" /></div>';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Notes</label><textarea class="ww-form-textarea" id="wwAffilNotes" placeholder="Any context..."></textarea></div>';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Tags</label><input class="ww-form-input" id="wwAffilTags" placeholder="S-Corp, Dormant, Active..." /><div class="ww-form-hint">Comma-separated</div></div>';
+  h += '</div>';
+  h += '<div class="ww-modal-footer"><button class="ww-btn ww-btn-secondary" onclick="wwCloseModal(\\'ww-modal-add-affil\\')">Cancel</button>';
+  h += '<button class="ww-btn ww-btn-primary" onclick="wwSaveAffil(\\'' + esc(spoke.id) + '\\')">Add Affiliation</button></div>';
+  h += '</div></div>';
+
+  return h;
+}
+
+function wwSaveAffil(spokeId) {
+  var name = (document.getElementById('wwAffilName') || {}).value || '';
+  if (!name.trim()) { toast('Entity name is required'); return; }
+  var data = {
+    name: name.trim(),
+    entity_type: (document.getElementById('wwAffilType') || {}).value || '',
+    role: ((document.getElementById('wwAffilRole') || {}).value || '').trim(),
+    description: ((document.getElementById('wwAffilDesc') || {}).value || '').trim(),
+    notes: ((document.getElementById('wwAffilNotes') || {}).value || '').trim(),
+    tags: ((document.getElementById('wwAffilTags') || {}).value || '').split(',').map(function(t) { return t.trim(); }).filter(Boolean),
+    favorited: false
+  };
+  api('POST', '/api/spoke/' + spokeId + '/affiliations', data).then(function() {
+    toast('Affiliation added: ' + data.name);
+    wwCloseModal('ww-modal-add-affil');
+    return api('GET', '/api/spokes').then(function(sData) {
+      _spokesList = sData.spokes || [];
+      _wwRenderActiveTab(spokeId);
+      var spoke = null;
+      for (var i = 0; i < _spokesList.length; i++) { if (_spokesList[i].id === spokeId) { spoke = _spokesList[i]; break; } }
+      var badge = document.getElementById('wwBadge-affiliations');
+      if (badge && spoke) badge.textContent = String((spoke.affiliations || []).length);
+    });
+  }).catch(function(err) { toast('Error: ' + (err.message || err)); });
+}
+
+function wwDeleteAffil(spokeId, affilId) {
+  if (!confirm('Remove this affiliation?')) return;
+  api('DELETE', '/api/spoke/' + spokeId + '/affiliations/' + affilId).then(function() {
+    toast('Affiliation removed');
+    return api('GET', '/api/spokes').then(function(sData) {
+      _spokesList = sData.spokes || [];
+      _wwRenderActiveTab(spokeId);
+      var spoke = null;
+      for (var i = 0; i < _spokesList.length; i++) { if (_spokesList[i].id === spokeId) { spoke = _spokesList[i]; break; } }
+      var badge = document.getElementById('wwBadge-affiliations');
+      if (badge && spoke) badge.textContent = String((spoke.affiliations || []).length);
+    });
+  }).catch(function(err) { toast('Error: ' + (err.message || err)); });
+}
+
+function wwOpenAffilPanel(e, idx) {
+  if (e) e.stopPropagation();
+  var spoke = null;
+  for (var i = 0; i < _spokesList.length; i++) { if (_spokesList[i].id === _selectedSpoke) { spoke = _spokesList[i]; break; } }
+  if (!spoke) return;
+  var affiliations = spoke.affiliations || [];
+  var a = affiliations[idx];
+  if (!a) return;
+
+  var icons = ['\\uD83C\\uDFE2', '\\uD83C\\uDFE0', '\\uD83C\\uDFED', '\\uD83C\\uDFE6', '\\uD83C\\uDFEB', '\\uD83C\\uDFE5'];
+  var icon = a.icon || icons[idx % icons.length];
+
+  var body = '<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--ww-border);">';
+  body += '<div style="width:52px;height:52px;border-radius:var(--ww-radius-sm);background:var(--ww-teal-bg);display:flex;align-items:center;justify-content:center;font-size:24px;">' + icon + '</div>';
+  body += '<div><div style="font-size:18px;font-weight:700;">' + esc(a.name) + '</div>';
+  body += '<div style="font-size:12px;color:var(--ww-text-3);">' + esc(a.entity_type || '') + (a.role ? ' \\u00B7 ' + esc(a.role) : '') + '</div></div></div>';
+  if (a.entity_type) body += '<div class="ww-panel-field"><div class="ww-panel-field-label">Entity Type</div><div class="ww-panel-field-val">' + esc(a.entity_type) + '</div></div>';
+  if (a.role || a.ownership) body += '<div class="ww-panel-field"><div class="ww-panel-field-label">Role / Ownership</div><div class="ww-panel-field-val">' + esc(a.role || a.ownership || '') + '</div></div>';
+  if (a.description) body += '<div class="ww-panel-field"><div class="ww-panel-field-label">Description</div><div class="ww-panel-field-val" style="font-size:13px;">' + esc(a.description) + '</div></div>';
+  if (a.notes) body += '<div class="ww-panel-field"><div class="ww-panel-field-label">Notes</div><div class="ww-panel-field-val" style="font-size:13px;">' + esc(a.notes) + '</div></div>';
+
+  // Grow into Spoke CTA
+  body += '<div style="padding:14px;background:var(--ww-teal-bg);border:1px solid #99f6e4;border-radius:var(--ww-radius-sm);margin-top:16px;">';
+  body += '<div style="font-weight:600;font-size:13px;color:var(--ww-teal);margin-bottom:6px;">\\uD83C\\uDF3F ' + esc(a.name) + ' could be its own spoke</div>';
+  body += '<div style="font-size:12px;color:var(--ww-text-2);">Activating gives it a full context layer with its own people, documents, and strategies.</div>';
+  body += '<button class="ww-btn ww-btn-green ww-btn-sm" style="margin-top:10px;" onclick="toast(\\'Grow into Spoke coming soon\\')">\\u2600 Activate as Spoke</button>';
+  body += '</div>';
+
+  wwOpenPanel(a.name, body);
+}
 function _wwRenderEventsTab(spoke) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">Events tab — Build 6</div>'; }
 function _wwRenderStrategiesTab(spoke) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">Strategies tab — Build 7</div>'; }
 function _wwRenderDocumentsTab(spoke, cache) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">Documents tab — Build 8</div>'; }
