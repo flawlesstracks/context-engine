@@ -20809,7 +20809,115 @@ function _wwRenderActiveTab(spokeId) {
 }
 
 // Placeholder tab renderers (will be filled in by subsequent builds)
-function _wwRenderOverviewTab(spoke, cache) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">Overview tab — Build 2</div>'; }
+function _wwRenderOverviewTab(spoke, cache) {
+  var gapData = cache ? cache.gap : null;
+  var pct = gapData ? Math.round((gapData.overall_score || 0) * 100) : 0;
+  var spokeName = spoke.name || '';
+  var people = spoke.people || [];
+  var affiliations = spoke.affiliations || [];
+  var events = spoke.events || [];
+  var strategies = spoke.strategies || [];
+  var projects = spoke.projects || [];
+  var files = spoke.files || [];
+  var serverFiles = cache ? cache.serverFiles || [] : [];
+  var allFiles = serverFiles.length > 0 ? serverFiles : files;
+
+  // Completeness bars
+  var docPct = allFiles.length > 0 ? Math.min(100, Math.round(allFiles.length * 17)) : 0;
+  var peoplePct = people.length > 0 ? Math.min(100, Math.round(people.length * 14)) : 0;
+  var affilPct = affiliations.length > 0 ? Math.min(100, Math.round(affiliations.length * 20)) : 0;
+  var eventPct = events.length > 0 ? Math.min(100, Math.round(events.length * 17)) : 0;
+
+  var h = '<div class="ww-overview-grid">';
+
+  // ── Vitals Card ──
+  h += '<div class="ww-card ww-ov-vitals">';
+  h += '<div class="ww-card-header"><div class="ww-card-title"><span style="width:8px;height:8px;border-radius:50%;background:var(--ww-text-1);display:inline-block;"></span> Client Vitals</div>';
+  h += '<span style="font-size:12px;color:var(--ww-accent);cursor:pointer;" onclick="coRenameClient(\\'' + esc(spoke.id) + '\\',\\'' + esc(spokeName).replace(/'/g, "\\\\'") + '\\')">Edit</span></div>';
+  h += '<div class="ww-card-body"><div class="ww-vitals-grid">';
+  h += '<div><div class="ww-vital-label">Name</div><div class="ww-vital-value">' + esc(spokeName) + '</div>';
+  if (spoke.preferred_name) h += '<div class="ww-vital-sub">Preferred: ' + esc(spoke.preferred_name) + '</div>';
+  h += '</div>';
+  h += '<div><div class="ww-vital-label">Client Type</div><div class="ww-vital-value">' + esc(spoke.client_type || spoke.entity_type || 'Individual') + '</div></div>';
+  h += '<div><div class="ww-vital-label">Filing Status</div><div class="ww-vital-value">' + esc(spoke.filing_status || 'Not set') + '</div></div>';
+  h += '<div><div class="ww-vital-label">Email</div><div class="ww-vital-value">' + esc(spoke.email || 'Not set') + '</div></div>';
+  h += '<div><div class="ww-vital-label">Phone</div><div class="ww-vital-value">' + esc(spoke.phone || 'Not set') + '</div></div>';
+  h += '<div><div class="ww-vital-label">Open Projects</div><div class="ww-vital-value">' + projects.length + '</div>';
+  var activeProj = projects.filter(function(p) { return p.status === 'active'; }).length;
+  if (projects.length > 0) h += '<div class="ww-vital-sub">' + activeProj + ' active</div>';
+  h += '</div>';
+  h += '</div></div></div>';
+
+  // ── Completeness Card ──
+  h += '<div class="ww-card ww-ov-completeness">';
+  h += '<div class="ww-card-header"><div class="ww-card-title"><span style="width:8px;height:8px;border-radius:50%;background:var(--ww-amber);display:inline-block;"></span> Completeness</div></div>';
+  h += '<div class="ww-card-body">';
+  h += '<div style="text-align:center;margin-bottom:16px;">';
+  h += '<div style="font-size:38px;font-weight:700;font-family:var(--font-mono, monospace);color:var(--ww-amber);">' + pct + '%</div>';
+  h += '<div style="font-size:12px;color:var(--ww-text-3);">Context complete</div>';
+  h += '</div>';
+  h += '<div class="ww-completeness-bars">';
+  h += '<div class="ww-comp-row"><span class="ww-comp-label">Documents</span><div class="ww-comp-bar-wrap"><div class="ww-comp-bar" style="width:' + docPct + '%;background:var(--ww-green);"></div></div><span class="ww-comp-pct">' + docPct + '%</span></div>';
+  h += '<div class="ww-comp-row"><span class="ww-comp-label">People</span><div class="ww-comp-bar-wrap"><div class="ww-comp-bar" style="width:' + peoplePct + '%;background:var(--ww-blue);"></div></div><span class="ww-comp-pct">' + peoplePct + '%</span></div>';
+  h += '<div class="ww-comp-row"><span class="ww-comp-label">Affiliations</span><div class="ww-comp-bar-wrap"><div class="ww-comp-bar" style="width:' + affilPct + '%;background:var(--ww-teal);"></div></div><span class="ww-comp-pct">' + affilPct + '%</span></div>';
+  h += '<div class="ww-comp-row"><span class="ww-comp-label">Events</span><div class="ww-comp-bar-wrap"><div class="ww-comp-bar" style="width:' + eventPct + '%;background:var(--ww-amber);"></div></div><span class="ww-comp-pct">' + eventPct + '%</span></div>';
+  h += '</div></div></div>';
+
+  // ── Recent Activity Card ──
+  h += '<div class="ww-card ww-ov-activity">';
+  h += '<div class="ww-card-header"><div class="ww-card-title"><span style="width:8px;height:8px;border-radius:50%;background:var(--ww-blue);display:inline-block;"></span> Recent Activity</div></div>';
+  h += '<div class="ww-card-body"><div class="ww-activity-feed">';
+  var recentActivity = spoke.recent_activity || [];
+  if (recentActivity.length === 0) {
+    // Build synthetic activity from entities
+    if (strategies.length > 0) recentActivity.push({ icon: '\\uD83E\\uDDE0', bg: 'var(--ww-green-bg)', color: 'var(--ww-green)', text: '<strong>' + strategies.length + ' strategies</strong> identified', time: 'Recently' });
+    if (allFiles.length > 0) recentActivity.push({ icon: '\\uD83D\\uDCC4', bg: 'var(--ww-blue-bg)', color: 'var(--ww-blue)', text: '<strong>' + allFiles.length + ' documents</strong> uploaded', time: 'Recently' });
+    if (people.length > 0) recentActivity.push({ icon: '\\uD83D\\uDC64', bg: 'var(--ww-purple-bg)', color: 'var(--ww-purple)', text: '<strong>' + people.length + ' people</strong> added to orbit', time: 'Recently' });
+    if (affiliations.length > 0) recentActivity.push({ icon: '\\uD83C\\uDFE2', bg: 'var(--ww-teal-bg)', color: 'var(--ww-teal)', text: '<strong>' + affiliations.length + ' affiliations</strong> tracked', time: 'Recently' });
+  }
+  if (recentActivity.length === 0) {
+    h += '<div style="text-align:center;padding:16px;color:var(--ww-text-3);font-size:13px;">No recent activity. Add context to get started.</div>';
+  } else {
+    for (var ai = 0; ai < Math.min(recentActivity.length, 4); ai++) {
+      var act = recentActivity[ai];
+      h += '<div class="ww-activity-item">';
+      h += '<div class="ww-activity-icon" style="background:' + (act.bg || 'var(--ww-blue-bg)') + ';color:' + (act.color || 'var(--ww-blue)') + ';">' + (act.icon || '\\u25CF') + '</div>';
+      h += '<div><div class="ww-activity-main">' + (act.text || '') + '</div>';
+      h += '<div class="ww-activity-time">' + esc(act.time || '') + '</div></div></div>';
+    }
+  }
+  h += '</div></div></div>';
+
+  // ── Open Flags Card ──
+  h += '<div class="ww-card ww-ov-flags">';
+  h += '<div class="ww-card-header"><div class="ww-card-title"><span style="width:8px;height:8px;border-radius:50%;background:var(--ww-red);display:inline-block;"></span> Open Flags</div></div>';
+  h += '<div class="ww-card-body"><div class="ww-flag-list">';
+
+  // Generate flags from gap data and missing fields
+  var flags = [];
+  if (gapData && gapData.gaps) {
+    var gaps = gapData.gaps;
+    for (var gi = 0; gi < Math.min(gaps.length, 3); gi++) {
+      var g = gaps[gi];
+      flags.push({ type: g.severity === 'critical' ? 'error' : (g.severity === 'warning' ? 'warn' : 'info'), icon: g.severity === 'critical' ? '\\uD83D\\uDD34' : (g.severity === 'warning' ? '\\u26A0\\uFE0F' : '\\u2139\\uFE0F'), title: g.type || g.document_type || 'Missing item', detail: g.message || g.description || '' });
+    }
+  }
+  if (!spoke.email && !spoke.phone) flags.push({ type: 'warn', icon: '\\u26A0\\uFE0F', title: 'Contact info missing', detail: 'Add email or phone for this client.' });
+  if (people.length === 0) flags.push({ type: 'info', icon: '\\u2139\\uFE0F', title: 'No people added yet', detail: 'Add family, dependents, and business contacts.' });
+
+  if (flags.length === 0) {
+    h += '<div style="text-align:center;padding:16px;color:var(--ww-green);font-size:13px;">\\u2713 No open flags</div>';
+  } else {
+    for (var fi = 0; fi < flags.length; fi++) {
+      var fl = flags[fi];
+      h += '<div class="ww-flag-item ' + fl.type + '"><span>' + fl.icon + '</span><div class="ww-flag-text"><strong>' + esc(fl.title) + '</strong>' + esc(fl.detail) + '</div></div>';
+    }
+  }
+  h += '</div></div></div>';
+
+  h += '</div>'; // end overview-grid
+  return h;
+}
 function _wwRenderProjectsTabWW(spoke) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">Projects tab — Build 3</div>'; }
 function _wwRenderPeopleTab(spoke) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">People tab — Build 4</div>'; }
 function _wwRenderAffiliationsTab(spoke) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">Affiliations tab — Build 5</div>'; }
