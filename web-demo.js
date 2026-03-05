@@ -21385,7 +21385,158 @@ function wwOpenAffilPanel(e, idx) {
 
   wwOpenPanel(a.name, body);
 }
-function _wwRenderEventsTab(spoke) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">Events tab — Build 6</div>'; }
+function _wwRenderEventsTab(spoke) {
+  var events = spoke.events || [];
+  var spokeName = spoke.name || '';
+  var h = '';
+
+  // Toolbar
+  h += '<div class="ww-section-toolbar">';
+  h += '<div><div class="ww-section-title">Events</div>';
+  h += '<div class="ww-section-sub">Life events that inform strategy \\u2014 past and future</div></div>';
+  h += '<div style="display:flex;gap:8px;align-items:center;">';
+  h += '<div class="ww-search-bar"><span class="ww-search-icon">\\uD83D\\uDD0D</span><input type="text" class="ww-search-input" placeholder="Search events..." oninput="wwFilterNodes(this,\\'ww-events-upcoming\\');wwFilterNodes(this,\\'ww-events-past\\')" /></div>';
+  h += '<button class="ww-btn ww-btn-primary ww-btn-sm" onclick="wwOpenModal(\\'add-event\\')">+ Add Event</button>';
+  h += '</div></div>';
+
+  // Split events into upcoming and past
+  var now = new Date();
+  var upcoming = [];
+  var past = [];
+  for (var i = 0; i < events.length; i++) {
+    var ev = events[i];
+    var evDate = ev.date ? new Date(ev.date) : null;
+    var timing = (ev.timing || ev.metadata && ev.metadata.timing || '').toLowerCase();
+    if (timing.indexOf('past') !== -1 || timing.indexOf('happened') !== -1 || (evDate && evDate < now)) {
+      past.push(ev);
+    } else {
+      upcoming.push(ev);
+    }
+  }
+
+  var eventIcons = { 'major_purchase': '\\uD83C\\uDFE0', 'business_event': '\\uD83D\\uDCBC', 'family_change': '\\uD83C\\uDF82', 'employment_change': '\\uD83D\\uDCBC', 'age_milestone': '\\uD83C\\uDF82', 'real_estate': '\\uD83C\\uDFE0', 'other': '\\uD83D\\uDCC5' };
+  var eventColorsBg = ['var(--ww-blue-bg)', 'var(--ww-purple-bg)', 'var(--ww-amber-bg)', 'var(--ww-green-bg)', 'var(--ww-teal-bg)', 'var(--ww-red-bg)'];
+  var eventStripes = ['var(--ww-blue)', 'var(--ww-purple)', 'var(--ww-amber)', 'var(--ww-green)', 'var(--ww-teal)', 'var(--ww-red)'];
+
+  function renderEventCard(ev, idx) {
+    var colorIdx = idx % eventStripes.length;
+    var stripe = eventStripes[colorIdx];
+    var evType = (ev.type || '').toLowerCase().replace(/\\s+/g, '_');
+    var icon = eventIcons[evType] || '\\uD83D\\uDCC5';
+    var isFav = ev.favorited ? true : false;
+    var dotsId = 'ww-ev-dots-' + idx;
+    var title = ev.title || ev.name || '';
+    var dateFmt = ev.date ? new Date(ev.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '';
+    var timing = ev.timing || (ev.metadata && ev.metadata.timing) || '';
+
+    var ch = '<div class="ww-node-card" data-name="' + esc(title) + '">';
+    ch += '<div class="ww-node-card-stripe" style="background:' + stripe + ';"></div>';
+    ch += '<div class="ww-node-card-body">';
+    ch += '<div class="ww-node-card-top">';
+    ch += '<div class="ww-node-card-left">';
+    ch += '<div class="ww-node-avatar-sq" style="background:' + eventColorsBg[colorIdx] + ';">' + icon + '</div>';
+    ch += '<div><div class="ww-node-name">' + esc(title) + '</div>';
+    ch += '<div class="ww-node-sub">' + esc(timing) + (dateFmt ? ' \\u00B7 ' + dateFmt : '') + '</div></div></div>';
+    ch += '<div class="ww-node-card-actions" onclick="event.stopPropagation()">';
+    ch += '<button class="ww-fav-btn' + (isFav ? ' active' : '') + '" onclick="wwToggleFav(this,\\'events\\',\\'' + esc(ev.event_id || ev.id || '') + '\\')">' + (isFav ? '\\u2605' : '\\u2606') + '</button>';
+    ch += '<div class="ww-dots-menu-wrap"><div class="ww-node-dots" onclick="wwToggleDots(event,\\'' + dotsId + '\\')">\\u22EF</div>';
+    ch += '<div class="ww-dots-dropdown" id="' + dotsId + '">';
+    ch += '<div class="ww-dots-item">\\u270F\\uFE0F Edit</div>';
+    ch += '<div class="ww-dots-divider"></div>';
+    ch += '<div class="ww-dots-item danger" onclick="wwDeleteEvent(\\'' + esc(spoke.id) + '\\',\\'' + esc(ev.event_id || ev.id || '') + '\\')">\\uD83D\\uDDD1 Delete</div>';
+    ch += '</div></div></div></div>';
+
+    var desc = ev.description || (ev.metadata && ev.metadata.description) || '';
+    if (desc) ch += '<div class="ww-node-body-text">' + esc(desc) + '</div>';
+
+    ch += '<div class="ww-node-card-footer">';
+    var tags = ev.tags || (ev.metadata && ev.metadata.tags) || [];
+    if (typeof tags === 'string') tags = tags.split(',').map(function(t) { return t.trim(); }).filter(Boolean);
+    for (var ti = 0; ti < tags.length; ti++) ch += '<span class="ww-tag ww-tag-default">' + esc(tags[ti]) + '</span>';
+    ch += '</div></div></div>';
+    return ch;
+  }
+
+  // Upcoming section
+  h += '<div class="ww-section-divider">Upcoming / Planned</div>';
+  h += '<div class="ww-node-grid" id="ww-events-upcoming" style="margin-bottom:20px;">';
+  for (var i = 0; i < upcoming.length; i++) h += renderEventCard(upcoming[i], i);
+  if (upcoming.length === 0) h += '<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--ww-text-3);font-size:13px;">No upcoming events</div>';
+  h += '</div>';
+
+  // Past section
+  h += '<div class="ww-section-divider">Past Events</div>';
+  h += '<div class="ww-node-grid" id="ww-events-past">';
+  for (var i = 0; i < past.length; i++) h += renderEventCard(past[i], upcoming.length + i);
+  if (past.length === 0) h += '<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--ww-text-3);font-size:13px;">No past events</div>';
+  h += '<div class="ww-add-node-card" onclick="wwOpenModal(\\'add-event\\')">';
+  h += '<div class="ww-plus">+</div><div class="ww-label">Add Event</div></div>';
+  h += '</div>';
+
+  // Add Event Modal
+  h += '<div class="ww-modal-overlay" id="ww-modal-add-event" onclick="if(event.target===this)wwCloseModal(this.id)">';
+  h += '<div class="ww-modal"><div class="ww-modal-header"><div><div class="ww-modal-title">Add Event</div>';
+  h += '<div class="ww-modal-subtitle">A life event that may impact strategy</div></div>';
+  h += '<button class="ww-modal-close" onclick="wwCloseModal(\\'ww-modal-add-event\\')">\\u2715</button></div>';
+  h += '<div class="ww-modal-body">';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Event Name *</label><input class="ww-form-input" id="wwEventName" placeholder="e.g., Lake House Purchase, Marriage..." /></div>';
+  h += '<div class="ww-form-row"><div class="ww-form-group"><label class="ww-form-label">Event Type</label><select class="ww-form-select" id="wwEventType"><option>Major Purchase</option><option>Business Event</option><option>Family Change</option><option>Employment Change</option><option>Age Milestone</option><option>Real Estate</option><option>Other</option></select></div>';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Timing</label><select class="ww-form-select" id="wwEventTiming"><option>Planned — Upcoming</option><option>Past — Happened</option><option>Anticipated — Maybe</option></select></div></div>';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Date</label><input class="ww-form-input" type="date" id="wwEventDate" /></div>';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Description</label><input class="ww-form-input" id="wwEventDesc" placeholder="1-2 sentence summary" /></div>';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Notes</label><textarea class="ww-form-textarea" id="wwEventNotes" placeholder="Context, amounts, details..."></textarea></div>';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Tags</label><input class="ww-form-input" id="wwEventTags" placeholder="Mortgage Interest, Strategy trigger..." /><div class="ww-form-hint">Comma-separated</div></div>';
+  h += '</div>';
+  h += '<div class="ww-modal-footer"><button class="ww-btn ww-btn-secondary" onclick="wwCloseModal(\\'ww-modal-add-event\\')">Cancel</button>';
+  h += '<button class="ww-btn ww-btn-primary" onclick="wwSaveEvent(\\'' + esc(spoke.id) + '\\')">Add Event</button></div>';
+  h += '</div></div>';
+
+  return h;
+}
+
+function wwSaveEvent(spokeId) {
+  var title = (document.getElementById('wwEventName') || {}).value || '';
+  if (!title.trim()) { toast('Event name is required'); return; }
+  var data = {
+    title: title.trim(),
+    type: (document.getElementById('wwEventType') || {}).value || 'Other',
+    timing: (document.getElementById('wwEventTiming') || {}).value || '',
+    date: (document.getElementById('wwEventDate') || {}).value || '',
+    metadata: {
+      description: ((document.getElementById('wwEventDesc') || {}).value || '').trim(),
+      timing: (document.getElementById('wwEventTiming') || {}).value || '',
+      tags: ((document.getElementById('wwEventTags') || {}).value || '').split(',').map(function(t) { return t.trim(); }).filter(Boolean)
+    },
+    source: 'manual'
+  };
+  api('POST', '/api/spoke/' + spokeId + '/events', data).then(function() {
+    toast('Event added: ' + data.title);
+    wwCloseModal('ww-modal-add-event');
+    return api('GET', '/api/spokes').then(function(sData) {
+      _spokesList = sData.spokes || [];
+      _wwRenderActiveTab(spokeId);
+      var spoke = null;
+      for (var i = 0; i < _spokesList.length; i++) { if (_spokesList[i].id === spokeId) { spoke = _spokesList[i]; break; } }
+      var badge = document.getElementById('wwBadge-events');
+      if (badge && spoke) badge.textContent = String((spoke.events || []).length);
+    });
+  }).catch(function(err) { toast('Error: ' + (err.message || err)); });
+}
+
+function wwDeleteEvent(spokeId, eventId) {
+  if (!confirm('Delete this event?')) return;
+  api('DELETE', '/api/spoke/' + spokeId + '/events/' + eventId).then(function() {
+    toast('Event deleted');
+    return api('GET', '/api/spokes').then(function(sData) {
+      _spokesList = sData.spokes || [];
+      _wwRenderActiveTab(spokeId);
+      var spoke = null;
+      for (var i = 0; i < _spokesList.length; i++) { if (_spokesList[i].id === spokeId) { spoke = _spokesList[i]; break; } }
+      var badge = document.getElementById('wwBadge-events');
+      if (badge && spoke) badge.textContent = String((spoke.events || []).length);
+    });
+  }).catch(function(err) { toast('Error: ' + (err.message || err)); });
+}
 function _wwRenderStrategiesTab(spoke) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">Strategies tab — Build 7</div>'; }
 function _wwRenderDocumentsTab(spoke, cache) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">Documents tab — Build 8</div>'; }
 
