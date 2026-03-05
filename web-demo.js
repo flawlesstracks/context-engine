@@ -21780,7 +21780,80 @@ function wwOpenStratPanel(e, idx) {
 
   wwOpenPanel(s.name, body);
 }
-function _wwRenderDocumentsTab(spoke, cache) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">Documents tab — Build 8</div>'; }
+function _wwRenderDocumentsTab(spoke, cache) {
+  var spokeFiles = spoke.files || [];
+  var serverFiles = cache ? cache.serverFiles || [] : [];
+  var allFiles = serverFiles.length > 0 ? serverFiles : spokeFiles;
+  var spokeName = spoke.name || '';
+  var h = '';
+
+  // Toolbar
+  h += '<div class="ww-section-toolbar">';
+  h += '<div><div class="ww-section-title">Documents</div>';
+  h += '<div class="ww-section-sub">Source files \\u2014 everything the engine reads to populate this spoke</div></div>';
+  h += '<div style="display:flex;gap:8px;align-items:center;">';
+  h += '<div class="ww-search-bar"><span class="ww-search-icon">\\uD83D\\uDD0D</span><input type="text" class="ww-search-input" placeholder="Search documents..." oninput="wwFilterDocs(this)" /></div>';
+  h += '<button class="ww-btn ww-btn-primary ww-btn-sm" onclick="document.getElementById(\\'wwDocFileInput\\')&&document.getElementById(\\'wwDocFileInput\\').click()">+ Upload</button>';
+  h += '</div></div>';
+
+  h += '<input type="file" id="wwDocFileInput" multiple accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.md,.json" style="display:none" onchange="handleMatterUpload(event)" />';
+
+  // Document grid
+  h += '<div class="ww-docs-grid" id="ww-docs-grid">';
+
+  var docIcons = { 'pdf': '\\uD83D\\uDCC4', 'docx': '\\uD83D\\uDCC4', 'doc': '\\uD83D\\uDCC4', 'xlsx': '\\uD83D\\uDCCA', 'xls': '\\uD83D\\uDCCA', 'csv': '\\uD83D\\uDCCA', 'txt': '\\uD83D\\uDCDD', 'json': '\\uD83D\\uDCDD', 'md': '\\uD83D\\uDCDD' };
+
+  for (var i = 0; i < allFiles.length; i++) {
+    var f = allFiles[i];
+    var fName = f.original_name || f.filename || f.id || 'Document';
+    var fExt = fName.split('.').pop().toLowerCase();
+    var icon = docIcons[fExt] || '\\uD83D\\uDCC4';
+    var fType = f.classification || f.doc_type || fExt.toUpperCase() || 'Document';
+    var fDate = f.uploaded_at ? new Date(f.uploaded_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    var extracted = f.extracted_count || f.extractedCount || 0;
+    var status = f.status || (extracted > 0 ? 'processed' : 'pending');
+    var statusLabel = status === 'processed' ? 'Extracted' : (status === 'missing' ? 'Missing' : 'Pending');
+    var statusBg = status === 'processed' ? 'var(--ww-green-bg)' : (status === 'missing' ? 'var(--ww-red-bg)' : 'var(--ww-amber-bg)');
+    var statusColor = status === 'processed' ? 'var(--ww-green)' : (status === 'missing' ? 'var(--ww-red)' : 'var(--ww-amber)');
+
+    h += '<div class="ww-doc-card" data-name="' + esc(fName) + '">';
+    h += '<div class="ww-doc-card-top">';
+    h += '<div class="ww-doc-icon">' + icon + '</div>';
+    h += '<div><div class="ww-doc-name">' + esc(fName) + '</div><div class="ww-doc-type">' + esc(fType) + '</div></div>';
+    h += '<span class="ww-doc-status-chip" style="margin-left:auto;background:' + statusBg + ';color:' + statusColor + ';">' + esc(statusLabel) + '</span>';
+    h += '</div>';
+    h += '<div class="ww-doc-meta">';
+    if (fDate) h += '<div class="ww-doc-meta-item">' + esc(fDate) + '</div>';
+    if (extracted > 0) h += '<div class="ww-doc-meta-item">' + extracted + ' fields</div>';
+    h += '</div>';
+    h += '</div>';
+  }
+
+  // Upload zone
+  h += '<div class="ww-doc-upload-zone" id="wwUploadZone" onclick="document.getElementById(\\'wwDocFileInput\\')&&document.getElementById(\\'wwDocFileInput\\').click()">';
+  h += '<div style="font-size:24px;">\\uD83D\\uDCCE</div>';
+  h += '<div style="font-size:13px;font-weight:500;">Drop files here</div>';
+  h += '<div style="font-size:12px;">PDF, photos, screenshots</div>';
+  h += '</div>';
+
+  h += '</div>'; // end grid
+
+  // Drag and drop handler
+  h += '<script>setTimeout(function(){var z=document.getElementById("wwUploadZone");if(z){z.addEventListener("dragover",function(e){e.preventDefault();z.style.borderColor="var(--ww-accent)";z.style.background="var(--ww-accent-bg)";});z.addEventListener("dragleave",function(){z.style.borderColor="var(--ww-border)";z.style.background="var(--ww-bg-app)";});z.addEventListener("drop",function(e){e.preventDefault();z.style.borderColor="var(--ww-border)";z.style.background="var(--ww-bg-app)";if(e.dataTransfer.files.length>0){var inp=document.getElementById("wwDocFileInput");if(inp){inp.files=e.dataTransfer.files;inp.dispatchEvent(new Event("change"));}}});}},100);<\\/script>';
+
+  return h;
+}
+
+function wwFilterDocs(input) {
+  var query = (input.value || '').toLowerCase();
+  var grid = document.getElementById('ww-docs-grid');
+  if (!grid) return;
+  var cards = grid.querySelectorAll('.ww-doc-card');
+  for (var i = 0; i < cards.length; i++) {
+    var name = (cards[i].getAttribute('data-name') || '').toLowerCase();
+    cards[i].style.display = name.indexOf(query) !== -1 ? '' : 'none';
+  }
+}
 
 function _coGetInitials(name) {
   var parts = (name || '').split(/[\\s,]+/).filter(function(p) { return p.length > 0; });
