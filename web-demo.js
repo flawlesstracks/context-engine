@@ -11051,8 +11051,55 @@ app.delete('/api/spoke/:id/events/:eventId', apiAuth, (req, res) => {
   res.json({ status: 'deleted' });
 });
 
-// Dashboard event enrichment — patch the dashboard endpoint to include deadline info
-// (The actual dashboard endpoint already exists; we add event data to spoke listings)
+// ---------------------------------------------------------------------------
+// WereWood CRUD — People, Affiliations, Strategies (Builds 4, 5, 7)
+// ---------------------------------------------------------------------------
+
+// Generic array-item CRUD helper for spoke sub-entities
+function _wwCrudRoutes(entityType, idField) {
+  // CREATE
+  app.post('/api/spoke/:id/' + entityType, apiAuth, express.json(), (req, res) => {
+    const spoke = getSpoke(req.graphDir, req.params.id);
+    if (!spoke) return res.status(404).json({ error: 'Spoke not found' });
+    const list = spoke[entityType] || [];
+    const item = Object.assign({}, req.body, {
+      id: entityType.slice(0, 3) + '-' + crypto.randomBytes(6).toString('hex'),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+    list.push(item);
+    updateSpoke(req.graphDir, req.params.id, { [entityType]: list });
+    res.json(item);
+  });
+
+  // UPDATE
+  app.put('/api/spoke/:id/' + entityType + '/:itemId', apiAuth, express.json(), (req, res) => {
+    const spoke = getSpoke(req.graphDir, req.params.id);
+    if (!spoke) return res.status(404).json({ error: 'Spoke not found' });
+    const list = spoke[entityType] || [];
+    const item = list.find(i => i.id === req.params.itemId);
+    if (!item) return res.status(404).json({ error: entityType.slice(0, -1) + ' not found' });
+    Object.assign(item, req.body, { updated_at: new Date().toISOString() });
+    updateSpoke(req.graphDir, req.params.id, { [entityType]: list });
+    res.json(item);
+  });
+
+  // DELETE
+  app.delete('/api/spoke/:id/' + entityType + '/:itemId', apiAuth, (req, res) => {
+    const spoke = getSpoke(req.graphDir, req.params.id);
+    if (!spoke) return res.status(404).json({ error: 'Spoke not found' });
+    const list = spoke[entityType] || [];
+    const idx = list.findIndex(i => i.id === req.params.itemId);
+    if (idx === -1) return res.status(404).json({ error: entityType.slice(0, -1) + ' not found' });
+    list.splice(idx, 1);
+    updateSpoke(req.graphDir, req.params.id, { [entityType]: list });
+    res.json({ status: 'deleted' });
+  });
+}
+
+_wwCrudRoutes('people');
+_wwCrudRoutes('affiliations');
+_wwCrudRoutes('strategies');
 
 // ---------------------------------------------------------------------------
 // Build 18: Conversational Intake Agent
@@ -21005,7 +21052,185 @@ function wwFilterPill(el, filter) {
     else { cards[i].style.display = status === filter ? '' : 'none'; }
   }
 }
-function _wwRenderPeopleTab(spoke) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">People tab — Build 4</div>'; }
+function _wwRenderPeopleTab(spoke) {
+  var people = spoke.people || [];
+  var spokeName = spoke.name || '';
+  var h = '';
+
+  // Toolbar
+  h += '<div class="ww-section-toolbar">';
+  h += '<div><div class="ww-section-title">People</div>';
+  h += '<div class="ww-section-sub">Everyone in ' + esc(spokeName) + '\\u2019s orbit \\u2014 family, dependents, partners, contacts</div></div>';
+  h += '<div style="display:flex;gap:8px;align-items:center;">';
+  h += '<div class="ww-search-bar"><span class="ww-search-icon">\\uD83D\\uDD0D</span><input type="text" class="ww-search-input" placeholder="Search people..." oninput="wwFilterNodes(this,\\'ww-people-grid\\')" /></div>';
+  h += '<button class="ww-btn ww-btn-primary ww-btn-sm" onclick="wwOpenModal(\\'add-person\\')">+ Add Person</button>';
+  h += '</div></div>';
+
+  // Node grid
+  h += '<div class="ww-node-grid" id="ww-people-grid">';
+
+  var stripeColors = ['var(--ww-purple)', 'var(--ww-blue)', 'var(--ww-green)', 'var(--ww-teal)', 'var(--ww-amber)', 'var(--ww-red)'];
+  var gradients = ['linear-gradient(135deg,#7c3aed,#5b21b6)', 'linear-gradient(135deg,#2563eb,#1d4ed8)', 'linear-gradient(135deg,#059669,#047857)', 'linear-gradient(135deg,#0d9488,#0f766e)', 'linear-gradient(135deg,#d97706,#b45309)', 'linear-gradient(135deg,#dc2626,#b91c1c)'];
+
+  for (var i = 0; i < people.length; i++) {
+    var p = people[i];
+    var initials = _coGetInitials((p.first_name || '') + ' ' + (p.last_name || ''));
+    var fullName = ((p.first_name || '') + ' ' + (p.last_name || '')).trim() || 'Unknown';
+    var colorIdx = i % stripeColors.length;
+    var stripe = p.stripe_color || stripeColors[colorIdx];
+    var grad = gradients[colorIdx];
+    var isFav = p.favorited ? true : false;
+    var dotsId = 'ww-person-dots-' + i;
+
+    h += '<div class="ww-node-card" data-name="' + esc(fullName) + '" onclick="wwOpenPersonPanel(event,' + i + ')">';
+    h += '<div class="ww-node-card-stripe" style="background:' + stripe + ';"></div>';
+    h += '<div class="ww-node-card-body">';
+    h += '<div class="ww-node-card-top">';
+    h += '<div class="ww-node-card-left">';
+    h += '<div class="ww-node-avatar" style="background:' + grad + ';">' + esc(initials) + '</div>';
+    h += '<div><div class="ww-node-name">' + esc(fullName) + '</div>';
+    h += '<div class="ww-node-sub">' + esc(p.relationship || '') + (p.dob ? ' \\u00B7 ' + esc(p.dob) : '') + '</div></div>';
+    h += '</div>';
+    h += '<div class="ww-node-card-actions" onclick="event.stopPropagation()">';
+    h += '<button class="ww-fav-btn' + (isFav ? ' active' : '') + '" onclick="wwToggleFav(this,\\'people\\',\\'' + esc(p.id) + '\\')">' + (isFav ? '\\u2605' : '\\u2606') + '</button>';
+    h += '<div class="ww-dots-menu-wrap"><div class="ww-node-dots" onclick="wwToggleDots(event,\\'' + dotsId + '\\')">\\u22EF</div>';
+    h += '<div class="ww-dots-dropdown" id="' + dotsId + '">';
+    h += '<div class="ww-dots-item" onclick="wwOpenPersonPanel(event,' + i + ')">\\uD83D\\uDC41 View Details</div>';
+    h += '<div class="ww-dots-item" onclick="wwEditPerson(' + i + ')">\\u270F\\uFE0F Edit</div>';
+    h += '<div class="ww-dots-divider"></div>';
+    h += '<div class="ww-dots-item danger" onclick="wwDeletePerson(\\'' + esc(spoke.id) + '\\',\\'' + esc(p.id) + '\\')">\\uD83D\\uDDD1 Remove</div>';
+    h += '</div></div>';
+    h += '</div></div>';
+
+    // Tags
+    if (p.description) h += '<div class="ww-node-body-text">' + esc(p.description) + '</div>';
+    h += '<div class="ww-node-card-footer">';
+    var tags = p.tags || [];
+    for (var ti = 0; ti < tags.length; ti++) {
+      h += '<span class="ww-tag ww-tag-default">' + esc(tags[ti]) + '</span>';
+    }
+    if (tags.length === 0 && p.relationship) h += '<span class="ww-tag ww-tag-purple">' + esc(p.relationship) + '</span>';
+    h += '</div>';
+    h += '</div></div>'; // end card-body, card
+  }
+
+  // Add Person card
+  h += '<div class="ww-add-node-card" onclick="wwOpenModal(\\'add-person\\')">';
+  h += '<div class="ww-plus">+</div><div class="ww-label">Add Person</div></div>';
+  h += '</div>'; // end grid
+
+  // Add Person Modal
+  h += '<div class="ww-modal-overlay" id="ww-modal-add-person" onclick="if(event.target===this)wwCloseModal(this.id)">';
+  h += '<div class="ww-modal"><div class="ww-modal-header"><div><div class="ww-modal-title">Add Person</div>';
+  h += '<div class="ww-modal-subtitle">Someone in ' + esc(spokeName) + '\\u2019s orbit</div></div>';
+  h += '<button class="ww-modal-close" onclick="wwCloseModal(\\'ww-modal-add-person\\')">\\u2715</button></div>';
+  h += '<div class="ww-modal-body">';
+  h += '<div class="ww-form-row"><div class="ww-form-group"><label class="ww-form-label">First Name *</label><input class="ww-form-input" id="wwPersonFirst" placeholder="First name" /></div>';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Last Name</label><input class="ww-form-input" id="wwPersonLast" placeholder="Last name" /></div></div>';
+  h += '<div class="ww-form-row"><div class="ww-form-group"><label class="ww-form-label">Relationship</label><select class="ww-form-select" id="wwPersonRel"><option>Spouse</option><option>Child / Dependent</option><option>Parent</option><option>Business Partner</option><option>Employee</option><option>Other</option></select></div>';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Date of Birth</label><input class="ww-form-input" type="date" id="wwPersonDob" /></div></div>';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Description</label><input class="ww-form-input" id="wwPersonDesc" placeholder="1-2 sentence summary shown on the card" /></div>';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Notes</label><textarea class="ww-form-textarea" id="wwPersonNotes" placeholder="Any context..."></textarea></div>';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Tags</label><input class="ww-form-input" id="wwPersonTags" placeholder="Spouse, Strategy trigger..." /><div class="ww-form-hint">Comma-separated</div></div>';
+  h += '</div>';
+  h += '<div class="ww-modal-footer"><button class="ww-btn ww-btn-secondary" onclick="wwCloseModal(\\'ww-modal-add-person\\')">Cancel</button>';
+  h += '<button class="ww-btn ww-btn-primary" onclick="wwSavePerson(\\'' + esc(spoke.id) + '\\')">Add Person</button></div>';
+  h += '</div></div>';
+
+  return h;
+}
+
+function wwFilterNodes(input, gridId) {
+  var query = (input.value || '').toLowerCase();
+  var grid = document.getElementById(gridId);
+  if (!grid) return;
+  var cards = grid.querySelectorAll('.ww-node-card');
+  for (var i = 0; i < cards.length; i++) {
+    var name = (cards[i].getAttribute('data-name') || '').toLowerCase();
+    cards[i].style.display = name.indexOf(query) !== -1 ? '' : 'none';
+  }
+}
+
+function wwSavePerson(spokeId) {
+  var first = (document.getElementById('wwPersonFirst') || {}).value || '';
+  if (!first.trim()) { toast('First name is required'); return; }
+  var data = {
+    first_name: first.trim(),
+    last_name: ((document.getElementById('wwPersonLast') || {}).value || '').trim(),
+    relationship: (document.getElementById('wwPersonRel') || {}).value || '',
+    dob: (document.getElementById('wwPersonDob') || {}).value || '',
+    description: ((document.getElementById('wwPersonDesc') || {}).value || '').trim(),
+    notes: ((document.getElementById('wwPersonNotes') || {}).value || '').trim(),
+    tags: ((document.getElementById('wwPersonTags') || {}).value || '').split(',').map(function(t) { return t.trim(); }).filter(Boolean),
+    favorited: false
+  };
+  api('POST', '/api/spoke/' + spokeId + '/people', data).then(function() {
+    toast('Person added: ' + data.first_name + ' ' + data.last_name);
+    wwCloseModal('ww-modal-add-person');
+    return api('GET', '/api/spokes').then(function(sData) {
+      _spokesList = sData.spokes || [];
+      renderSidebar();
+      _wwRenderActiveTab(spokeId);
+      // Update badge
+      var spoke = null;
+      for (var i = 0; i < _spokesList.length; i++) { if (_spokesList[i].id === spokeId) { spoke = _spokesList[i]; break; } }
+      var badge = document.getElementById('wwBadge-people');
+      if (badge && spoke) badge.textContent = String((spoke.people || []).length);
+    });
+  }).catch(function(err) { toast('Error: ' + (err.message || err)); });
+}
+
+function wwDeletePerson(spokeId, personId) {
+  if (!confirm('Remove this person?')) return;
+  api('DELETE', '/api/spoke/' + spokeId + '/people/' + personId).then(function() {
+    toast('Person removed');
+    return api('GET', '/api/spokes').then(function(sData) {
+      _spokesList = sData.spokes || [];
+      _wwRenderActiveTab(spokeId);
+      var spoke = null;
+      for (var i = 0; i < _spokesList.length; i++) { if (_spokesList[i].id === spokeId) { spoke = _spokesList[i]; break; } }
+      var badge = document.getElementById('wwBadge-people');
+      if (badge && spoke) badge.textContent = String((spoke.people || []).length);
+    });
+  }).catch(function(err) { toast('Error: ' + (err.message || err)); });
+}
+
+function wwEditPerson(idx) {
+  // For now, open the panel which shows edit functionality
+  wwOpenPersonPanel(null, idx);
+}
+
+function wwOpenPersonPanel(e, idx) {
+  if (e) e.stopPropagation();
+  var spoke = null;
+  for (var i = 0; i < _spokesList.length; i++) { if (_spokesList[i].id === _selectedSpoke) { spoke = _spokesList[i]; break; } }
+  if (!spoke) return;
+  var people = spoke.people || [];
+  var p = people[idx];
+  if (!p) return;
+
+  var fullName = ((p.first_name || '') + ' ' + (p.last_name || '')).trim();
+  var initials = _coGetInitials(fullName);
+  var colorIdx = idx % 6;
+  var gradients = ['linear-gradient(135deg,#7c3aed,#6d28d9)', 'linear-gradient(135deg,#2563eb,#1d4ed8)', 'linear-gradient(135deg,#059669,#047857)', 'linear-gradient(135deg,#0d9488,#0f766e)', 'linear-gradient(135deg,#d97706,#b45309)', 'linear-gradient(135deg,#dc2626,#b91c1c)'];
+  var grad = gradients[colorIdx];
+
+  var body = '<div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding-bottom:20px;border-bottom:1px solid var(--ww-border);">';
+  body += '<div style="width:52px;height:52px;border-radius:50%;background:' + grad + ';display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:18px;">' + esc(initials) + '</div>';
+  body += '<div><div style="font-size:18px;font-weight:700;">' + esc(fullName) + '</div>';
+  body += '<div style="font-size:12px;color:var(--ww-text-3);">' + esc(p.relationship || '') + '</div></div></div>';
+  if (p.dob) body += '<div class="ww-panel-field"><div class="ww-panel-field-label">Date of Birth</div><div class="ww-panel-field-val">' + esc(p.dob) + '</div></div>';
+  if (p.description) body += '<div class="ww-panel-field"><div class="ww-panel-field-label">Description</div><div class="ww-panel-field-val" style="font-size:13px;">' + esc(p.description) + '</div></div>';
+  if (p.notes) body += '<div class="ww-panel-field"><div class="ww-panel-field-label">Notes</div><div class="ww-panel-field-val" style="font-size:13px;">' + esc(p.notes) + '</div></div>';
+  var tags = p.tags || [];
+  if (tags.length > 0) {
+    body += '<div class="ww-panel-field"><div class="ww-panel-field-label">Tags</div><div style="display:flex;gap:6px;flex-wrap:wrap;">';
+    for (var ti = 0; ti < tags.length; ti++) body += '<span class="ww-tag ww-tag-default">' + esc(tags[ti]) + '</span>';
+    body += '</div></div>';
+  }
+
+  wwOpenPanel(fullName, body);
+}
 function _wwRenderAffiliationsTab(spoke) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">Affiliations tab — Build 5</div>'; }
 function _wwRenderEventsTab(spoke) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">Events tab — Build 6</div>'; }
 function _wwRenderStrategiesTab(spoke) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">Strategies tab — Build 7</div>'; }
