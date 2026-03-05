@@ -21537,7 +21537,249 @@ function wwDeleteEvent(spokeId, eventId) {
     });
   }).catch(function(err) { toast('Error: ' + (err.message || err)); });
 }
-function _wwRenderStrategiesTab(spoke) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">Strategies tab — Build 7</div>'; }
+function _wwRenderStrategiesTab(spoke) {
+  var strategies = spoke.strategies || [];
+  var spokeName = spoke.name || '';
+  var h = '';
+
+  // Toolbar
+  h += '<div class="ww-section-toolbar">';
+  h += '<div><div class="ww-section-title">Strategies</div>';
+  h += '<div class="ww-section-sub">AI-identified strategies for ' + esc(spokeName) + '</div></div>';
+  h += '<div style="display:flex;gap:8px;align-items:center;">';
+  h += '<div class="ww-search-bar"><span class="ww-search-icon">\\uD83D\\uDD0D</span><input type="text" class="ww-search-input" placeholder="Search strategies..." oninput="wwFilterNodes(this,\\'ww-strat-grid\\')" /></div>';
+  h += '<button class="ww-btn ww-btn-secondary ww-btn-sm" onclick="toast(\\'Re-run analysis coming soon\\')">\\u26A1 Re-run Analysis</button>';
+  h += '<button class="ww-btn ww-btn-primary ww-btn-sm" onclick="wwOpenModal(\\'add-strategy\\')">+ Add Strategy</button>';
+  h += '</div></div>';
+
+  h += '<div class="ww-node-grid" id="ww-strat-grid">';
+
+  var confColors = {
+    'high': { bg: 'var(--ww-green-bg)', color: 'var(--ww-green)', stripe: 'var(--ww-green)', label: '\\u25CF High' },
+    'medium-high': { bg: 'var(--ww-blue-bg)', color: 'var(--ww-blue)', stripe: 'var(--ww-blue)', label: '\\u25CF Medium-High' },
+    'needs input': { bg: 'var(--ww-amber-bg)', color: 'var(--ww-amber)', stripe: 'var(--ww-amber)', label: '\\u25CF Needs Input' },
+    'low': { bg: 'var(--ww-red-bg)', color: 'var(--ww-red)', stripe: 'var(--ww-red)', label: '\\u25CF Low \\u2014 Blocked' }
+  };
+
+  for (var i = 0; i < strategies.length; i++) {
+    var s = strategies[i];
+    var num = s.number || String(i + 1).padStart(2, '0');
+    var confKey = (s.confidence_label || s.confidence || 'needs input').toLowerCase();
+    var conf = confColors[confKey] || confColors['needs input'];
+    var isFav = s.favorited ? true : false;
+    var dotsId = 'ww-strat-dots-' + i;
+    var triggers = s.triggers || [];
+    var infoNeeded = s.information_needed || [];
+    var validation = s.validation_state || {};
+
+    h += '<div class="ww-node-card" data-name="' + esc(s.name || '') + '">';
+    h += '<div class="ww-node-card-stripe" style="background:' + conf.stripe + ';"></div>';
+    h += '<div class="ww-strategy-card-body">';
+
+    // Header
+    h += '<div class="ww-node-card-top" style="margin-bottom:10px;">';
+    h += '<div><div class="ww-strategy-num">STRATEGY ' + esc(num) + '</div>';
+    h += '<div class="ww-strategy-name">' + esc(s.name || '') + '</div></div>';
+    h += '<div class="ww-node-card-actions" onclick="event.stopPropagation()">';
+    h += '<button class="ww-fav-btn' + (isFav ? ' active' : '') + '" onclick="wwToggleFav(this,\\'strategies\\',\\'' + esc(s.id) + '\\')">' + (isFav ? '\\u2605' : '\\u2606') + '</button>';
+    h += '<div class="ww-dots-menu-wrap"><div class="ww-node-dots" onclick="wwToggleDots(event,\\'' + dotsId + '\\')">\\u22EF</div>';
+    h += '<div class="ww-dots-dropdown" id="' + dotsId + '">';
+    h += '<div class="ww-dots-item" onclick="wwOpenStratPanel(event,' + i + ')">\\uD83D\\uDC41 View Details</div>';
+    h += '<div class="ww-dots-item">\\u270F\\uFE0F Edit Ruleset</div>';
+    h += '<div class="ww-dots-divider"></div>';
+    h += '<div class="ww-dots-item danger" onclick="wwDeleteStrategy(\\'' + esc(spoke.id) + '\\',\\'' + esc(s.id) + '\\')">\\uD83D\\uDDD1 Remove</div>';
+    h += '</div></div></div></div>';
+
+    // Triggers
+    if (triggers.length > 0) {
+      h += '<div class="ww-strategy-section-label">\\u2713 Triggers Matched</div>';
+      h += '<div class="ww-strategy-triggers-list">';
+      for (var ti = 0; ti < triggers.length; ti++) {
+        var tr = triggers[ti];
+        var trText = typeof tr === 'string' ? tr : (tr.text || tr.description || '');
+        var isValidated = validation[ti] || (typeof tr === 'object' && tr.validated);
+        h += '<div class="ww-strategy-trigger-row">';
+        h += '<span class="ww-strategy-trigger-icon" style="color:var(--ww-green);">\\u2713</span>';
+        h += '<span class="ww-strategy-trigger-link">' + esc(trText) + '</span>';
+        h += '<button class="ww-trigger-validate-btn' + (isValidated ? ' validated' : '') + '" onclick="event.stopPropagation();wwToggleValidation(this,' + i + ',' + ti + ')" title="' + (isValidated ? 'Validated' : 'Click to validate') + '">\\u2713</button>';
+        h += '</div>';
+      }
+      h += '</div>';
+    }
+
+    // Information Needed
+    if (infoNeeded.length > 0) {
+      h += '<div class="ww-strategy-section-label">\\uD83D\\uDCCB Information Needed</div>';
+      h += '<div class="ww-strategy-needed-list">';
+      for (var ni = 0; ni < infoNeeded.length; ni++) {
+        var need = typeof infoNeeded[ni] === 'string' ? infoNeeded[ni] : (infoNeeded[ni].text || '');
+        h += '<div class="ww-strategy-needed-row"><span>\\u25CB</span><span>' + esc(need) + '</span></div>';
+      }
+      h += '</div>';
+    }
+
+    h += '</div>'; // end strategy-card-body
+
+    // Footer with confidence + source
+    h += '<div class="ww-strategy-card-footer">';
+    h += '<div class="ww-confidence-badge" style="background:' + conf.bg + ';color:' + conf.color + ';">' + conf.label + '</div>';
+    if (s.source) h += '<div class="ww-source-badge">\\uD83D\\uDCC4 ' + esc(s.source) + '</div>';
+    h += '</div>';
+
+    h += '</div>'; // end node-card
+  }
+
+  // Add Strategy card
+  h += '<div class="ww-add-node-card" onclick="wwOpenModal(\\'add-strategy\\')">';
+  h += '<div class="ww-plus">+</div><div class="ww-label">Add Strategy</div>';
+  h += '<div style="font-size:12px;color:var(--ww-text-3);">Define a custom ruleset</div></div>';
+  h += '</div>'; // end grid
+
+  // Add Strategy Modal
+  h += '<div class="ww-modal-overlay" id="ww-modal-add-strategy" onclick="if(event.target===this)wwCloseModal(this.id)">';
+  h += '<div class="ww-modal" style="width:560px;"><div class="ww-modal-header"><div><div class="ww-modal-title">Add Strategy</div>';
+  h += '<div class="ww-modal-subtitle">Define a custom strategy ruleset</div></div>';
+  h += '<button class="ww-modal-close" onclick="wwCloseModal(\\'ww-modal-add-strategy\\')">\\u2715</button></div>';
+  h += '<div class="ww-modal-body">';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Strategy Name *</label><input class="ww-form-input" id="wwStratName" placeholder="e.g., Defined Benefit Plan, QBI Deduction..." /></div>';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Category</label><select class="ww-form-select" id="wwStratCategory"><option>Income Shifting</option><option>Deduction Optimization</option><option>Retirement Planning</option><option>Entity Structure</option><option>Real Estate</option><option>Estate Planning</option><option>Other</option></select></div>';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Trigger Rules *</label><textarea class="ww-form-textarea" id="wwStratTriggers" style="min-height:100px;" placeholder="One trigger per line:\\n- Client must own an S-Corp\\n- Business revenue > $200K\\n- Client age > 50"></textarea>';
+  h += '<div class="ww-form-hint">Each line becomes a checkmark on the strategy card</div></div>';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Information Needed</label><textarea class="ww-form-textarea" id="wwStratNeeded" placeholder="One item per line:\\n- Confirm no existing DB plan\\n- Get actuarial estimate"></textarea></div>';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Source Documents</label><input class="ww-form-input" id="wwStratSource" placeholder="e.g., 1120-S, W-2, Schedule E..." /></div>';
+  h += '<div class="ww-form-row"><div class="ww-form-group"><label class="ww-form-label">Confidence</label><select class="ww-form-select" id="wwStratConf"><option>High</option><option>Medium-High</option><option>Needs Input</option><option>Low</option></select></div>';
+  h += '<div class="ww-form-group"><label class="ww-form-label">Tags</label><input class="ww-form-input" id="wwStratTags" placeholder="Retirement, Deduction..." /></div></div>';
+  h += '</div>';
+  h += '<div class="ww-modal-footer"><button class="ww-btn ww-btn-secondary" onclick="wwCloseModal(\\'ww-modal-add-strategy\\')">Cancel</button>';
+  h += '<button class="ww-btn ww-btn-primary" onclick="wwSaveStrategy(\\'' + esc(spoke.id) + '\\')">Add Strategy</button></div>';
+  h += '</div></div>';
+
+  return h;
+}
+
+function wwToggleValidation(btn, stratIdx, triggerIdx) {
+  btn.classList.toggle('validated');
+  btn.title = btn.classList.contains('validated') ? 'Validated' : 'Click to validate';
+  // Persist validation state
+  if (!_selectedSpoke) return;
+  var spoke = null;
+  for (var i = 0; i < _spokesList.length; i++) { if (_spokesList[i].id === _selectedSpoke) { spoke = _spokesList[i]; break; } }
+  if (!spoke) return;
+  var strategies = spoke.strategies || [];
+  if (strategies[stratIdx]) {
+    if (!strategies[stratIdx].validation_state) strategies[stratIdx].validation_state = {};
+    strategies[stratIdx].validation_state[triggerIdx] = btn.classList.contains('validated');
+    api('PUT', '/api/spoke/' + _selectedSpoke, { strategies: strategies }).catch(function() {});
+  }
+}
+
+function wwSaveStrategy(spokeId) {
+  var name = (document.getElementById('wwStratName') || {}).value || '';
+  if (!name.trim()) { toast('Strategy name is required'); return; }
+
+  var triggersText = (document.getElementById('wwStratTriggers') || {}).value || '';
+  var triggers = triggersText.split('\\n').map(function(t) { return t.replace(/^[-\\u2022\\*]\\s*/, '').trim(); }).filter(Boolean);
+
+  var neededText = (document.getElementById('wwStratNeeded') || {}).value || '';
+  var infoNeeded = neededText.split('\\n').map(function(t) { return t.replace(/^[-\\u2022\\*]\\s*/, '').trim(); }).filter(Boolean);
+
+  var data = {
+    name: name.trim(),
+    category: (document.getElementById('wwStratCategory') || {}).value || '',
+    triggers: triggers,
+    information_needed: infoNeeded,
+    confidence_label: (document.getElementById('wwStratConf') || {}).value || 'Needs Input',
+    source: ((document.getElementById('wwStratSource') || {}).value || '').trim(),
+    tags: ((document.getElementById('wwStratTags') || {}).value || '').split(',').map(function(t) { return t.trim(); }).filter(Boolean),
+    validation_state: {},
+    favorited: false
+  };
+
+  api('POST', '/api/spoke/' + spokeId + '/strategies', data).then(function() {
+    toast('Strategy added: ' + data.name);
+    wwCloseModal('ww-modal-add-strategy');
+    return api('GET', '/api/spokes').then(function(sData) {
+      _spokesList = sData.spokes || [];
+      _wwRenderActiveTab(spokeId);
+      var spoke = null;
+      for (var i = 0; i < _spokesList.length; i++) { if (_spokesList[i].id === spokeId) { spoke = _spokesList[i]; break; } }
+      var badge = document.getElementById('wwBadge-strategies');
+      if (badge && spoke) badge.textContent = String((spoke.strategies || []).length);
+    });
+  }).catch(function(err) { toast('Error: ' + (err.message || err)); });
+}
+
+function wwDeleteStrategy(spokeId, stratId) {
+  if (!confirm('Remove this strategy?')) return;
+  api('DELETE', '/api/spoke/' + spokeId + '/strategies/' + stratId).then(function() {
+    toast('Strategy removed');
+    return api('GET', '/api/spokes').then(function(sData) {
+      _spokesList = sData.spokes || [];
+      _wwRenderActiveTab(spokeId);
+      var spoke = null;
+      for (var i = 0; i < _spokesList.length; i++) { if (_spokesList[i].id === spokeId) { spoke = _spokesList[i]; break; } }
+      var badge = document.getElementById('wwBadge-strategies');
+      if (badge && spoke) badge.textContent = String((spoke.strategies || []).length);
+    });
+  }).catch(function(err) { toast('Error: ' + (err.message || err)); });
+}
+
+function wwOpenStratPanel(e, idx) {
+  if (e) e.stopPropagation();
+  var spoke = null;
+  for (var i = 0; i < _spokesList.length; i++) { if (_spokesList[i].id === _selectedSpoke) { spoke = _spokesList[i]; break; } }
+  if (!spoke) return;
+  var strategies = spoke.strategies || [];
+  var s = strategies[idx];
+  if (!s) return;
+
+  var confKey = (s.confidence_label || 'needs input').toLowerCase();
+  var confColors = { 'high': 'var(--ww-green)', 'medium-high': 'var(--ww-blue)', 'needs input': 'var(--ww-amber)', 'low': 'var(--ww-red)' };
+  var confColor = confColors[confKey] || 'var(--ww-amber)';
+  var confBg = confKey === 'high' ? 'var(--ww-green-bg)' : confKey === 'medium-high' ? 'var(--ww-blue-bg)' : confKey === 'low' ? 'var(--ww-red-bg)' : 'var(--ww-amber-bg)';
+  var num = s.number || String(idx + 1).padStart(2, '0');
+
+  var body = '<div style="padding:14px;background:' + confBg + ';border-left:4px solid ' + confColor + ';border-radius:var(--ww-radius-sm);margin-bottom:20px;">';
+  body += '<div style="font-size:14px;font-weight:700;color:' + confColor + ';">Strategy #' + esc(num) + ' \\u2014 ' + esc(s.name) + '</div>';
+  body += '<div style="font-size:12px;color:var(--ww-text-2);margin-top:4px;">' + esc(s.confidence_label || 'Needs Input') + ' confidence</div></div>';
+
+  if (s.category) body += '<div class="ww-panel-field"><div class="ww-panel-field-label">Category</div><div class="ww-panel-field-val">' + esc(s.category) + '</div></div>';
+
+  // Triggers
+  var triggers = s.triggers || [];
+  if (triggers.length > 0) {
+    body += '<div class="ww-panel-field"><div class="ww-panel-field-label">Triggers Matched</div>';
+    body += '<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px;">';
+    for (var ti = 0; ti < triggers.length; ti++) {
+      var trText = typeof triggers[ti] === 'string' ? triggers[ti] : (triggers[ti].text || '');
+      body += '<div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="color:var(--ww-green);">\\u2713</span> ' + esc(trText) + '</div>';
+    }
+    body += '</div></div>';
+  }
+
+  // Info needed
+  var infoNeeded = s.information_needed || [];
+  if (infoNeeded.length > 0) {
+    body += '<div class="ww-panel-field"><div class="ww-panel-field-label">Information Needed</div>';
+    body += '<div style="display:flex;flex-direction:column;gap:6px;margin-top:6px;">';
+    for (var ni = 0; ni < infoNeeded.length; ni++) {
+      var need = typeof infoNeeded[ni] === 'string' ? infoNeeded[ni] : (infoNeeded[ni].text || '');
+      body += '<div style="display:flex;align-items:center;gap:8px;font-size:12px;"><span style="color:var(--ww-amber);">\\u25CB</span> ' + esc(need) + '</div>';
+    }
+    body += '</div></div>';
+  }
+
+  if (s.source) body += '<div class="ww-panel-field"><div class="ww-panel-field-label">Source</div><div class="ww-panel-field-val" style="font-size:12px;">' + esc(s.source) + '</div></div>';
+
+  var tags = s.tags || [];
+  if (tags.length > 0) {
+    body += '<div class="ww-panel-field"><div class="ww-panel-field-label">Tags</div><div style="display:flex;gap:6px;flex-wrap:wrap;">';
+    for (var ti = 0; ti < tags.length; ti++) body += '<span class="ww-tag ww-tag-default">' + esc(tags[ti]) + '</span>';
+    body += '</div></div>';
+  }
+
+  wwOpenPanel(s.name, body);
+}
 function _wwRenderDocumentsTab(spoke, cache) { return '<div style="padding:40px;text-align:center;color:var(--ww-text-3);">Documents tab — Build 8</div>'; }
 
 function _coGetInitials(name) {
